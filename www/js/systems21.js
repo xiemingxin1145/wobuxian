@@ -124,7 +124,10 @@ const Sys = {
     if (kind === 'stone') { const s = Math.round(150 * POW(Math.max(0.5, Game.power()))); G.stone += s; return { tier, n: `灵石×${s}`, ic: 'stone' }; }
   },
   async draw(n) {
-    const G = Game.G; if (!Game.has('xyf', n)) { UI.toast('仙缘符不足'); return; }
+    const G = Game.G; if (this._drawing) return; if (!Game.has('xyf', n)) { UI.toast('仙缘符不足'); return; }
+    this._drawing = true; try { await this._draw(n); } finally { this._drawing = false; }
+  },
+  async _draw(n) {
     Game.take('xyf', n); const res = [];
     for (let k = 0; k < n; k++) res.push(this.roll());
     if (n >= 10 && !res.some(t => t >= 3)) res[res.length - 1] = 3; // 十连保底仙品
@@ -193,7 +196,7 @@ const EQ_ICON = e => ({ weapon: ['sword_w', 'sword_g', 'sword_b', 'sword_p', 'sw
   };
   Acts.jiyuan = async (m) => {
     const G = Game.G; G.used[m.key] = 1; R.marks = R.marks.filter(x => x !== m); Sfx.play('magic');
-    if (VFX && VFX.burst) VFX.burst(m.i + 0.5, m.j + 0.5, '#ffd27a');
+    if (VFX && VFX.burst) VFX.burst(...t2p(m.i + 0.5, m.j + 0.5), '#ffd27a');
     const r = Math.random();
     if (r < 0.25) { Game.give('xyf', 1); await UI.card('机缘', '一道金光没入你的袖中——是一张【仙缘符】！', 'i:tal_r', ['收下']); }
     else if (r < 0.5) { const g = Game.addExp(Game.yearExp() * 0.5, true); await UI.card('机缘', `你在此处感悟天地，修为+${fmt(g)}。`, 'i:sk_meditate', ['妙哉']); }

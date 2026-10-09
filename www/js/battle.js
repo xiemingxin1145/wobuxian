@@ -198,7 +198,7 @@ async function doAction(a) {
     if (melee) {
       const t = targets[0]; const [tx, ty] = uPos(t); const dx = (tx - ux) * 0.8, dy = (ty - uy) * 0.8;
       await moveUnit(u, u.ox + dx, u.oy + dy, 260);
-      const pa = playAttackAnim(u); await wait(170); Sfx.play(S.fx === 'coin' ? 'coin' : 'slash');
+      const pa = playAttackAnim(u); if (u.isPlayer && Math.random() < 0.35) Sfx.play('voice_ha_' + (Game.G.sex === 'f' ? 'f' : 'm')); await wait(170); Sfx.play(S.fx === 'coin' ? 'coin' : 'slash');
       await fx(S.fx, u, [t]); hitTargets(u, S, [t]); await pa;
       await moveUnit(u, 0, 0, 220);
     } else if (S.tg === 'self' || S.tg === 'ally') {

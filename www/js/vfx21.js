@@ -96,7 +96,7 @@ var VFX = window.VFX = (function () {
       const el = h('div', 'brk-fx' + (fail ? ' fail' : ''), `<div class="bk-bg"></div><div class="bk-pillar"></div><div class="bk-ring"></div><div class="bk-ring r2"></div><div class="bk-txt">${esc(name)}</div><div class="bk-sub">${fail ? '天劫未过，道基受损' : '天 道 认 证 · 境 界 突 破'}</div>`);
       document.body.appendChild(el); Sfx.play('thunder'); R.shake = 1.2; R.flash = 0.9;
       let n = 0; const iv = setInterval(() => { if (++n > 4) return clearInterval(iv); R.shake = 0.8; Sfx.play('thunder'); el.classList.toggle('bolt'); }, 380);
-      setTimeout(() => Sfx.play(fail ? 'hurt' : 'levelup'), 900);
+      setTimeout(() => Sfx.play(fail ? 'fail' : 'breakthrough'), 900);
       if (R.player && R.M) { const [x, y] = t2p(R.player.i, R.player.j); for (let k = 0; k < 50; k++) part({ x, y: y - 60, vx: rnd(-260, 260), vy: rnd(-380, 40), g: 260, r: rnd(3, 8), c: fail ? '#c0c0c0' : '#ffe680', life: 1.4, add: true, star: k % 3 === 0 }); }
       const done = () => { el.classList.add('out'); setTimeout(() => { el.remove(); res(); }, 350); };
       const t = setTimeout(done, B.speed > 1 || (window.BOT && BOT.on) ? 700 : 2300); el.onclick = () => { clearTimeout(t); done(); };
@@ -113,8 +113,25 @@ var VFX = window.VFX = (function () {
       document.body.appendChild(el);
       const cv = document.createElement('canvas'); cv.width = 220; cv.height = 220; el.querySelector('.ci-spr').appendChild(cv);
       drawSprite(cv.getContext('2d'), u.spr, 'attack', 'SE', 2, 110, 210, 1.15);
-      Sfx.play('whoosh'); setTimeout(() => { el.classList.add('out'); }, 620); setTimeout(() => { el.remove(); res(); }, 820);
+      Sfx.play('whoosh'); Sfx.play('voice_hey_' + (Game.G && Game.G.sex === 'f' ? 'f' : 'm')); setTimeout(() => { el.classList.add('out'); }, 620); setTimeout(() => { el.remove(); res(); }, 820);
     });
   };
   return V;
+})();
+// ======================= 内存：切换地图时释放不再使用的精灵/底图（大图集按地图懒加载） =======================
+(function () {
+  const _enter = Game.enterMap;
+  Game.enterMap = async function (id) {
+    const r = await _enter.apply(this, arguments);
+    try {
+      const keep = new Set(['assets/maps/' + id + '.webp']);
+      if (R.M && R.M.propAtlas) keep.add('assets/maps/' + R.M.propAtlas.img);
+      const ids = new Set(R.ents.map(e => e.spr).concat(R.ents.map(e => e.mount)).filter(Boolean));
+      ids.add(this.playerSpr()); const G = this.G;
+      if (G) { for (const p of G.pets || []) if (MONS[p.mon]) ids.add(MONS[p.mon].spr); if (G.mount && MOUNTS[G.mount]) ids.add(MOUNTS[G.mount].spr); }
+      for (const s of ids) if (AS.sprites[s]) keep.add(SPR_PATH(s));
+      for (const src in IMG) if ((src.startsWith('assets/spr/') || src.startsWith('assets/maps/')) && !keep.has(src) && IMG[src].ok) { IMG[src].im.src = ''; delete IMG[src]; }
+    } catch (e) { console.warn('evict', e); }
+    return r;
+  };
 })();

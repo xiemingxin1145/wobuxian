@@ -69,7 +69,7 @@ Object.assign(UI.titles, { cave: '洞府', mount: '坐骑 · 时装', title: '�
         grid.innerHTML = items.map((it, k) => `<div class="gcard t${it.tier}" style="animation-delay:${k * 0.09}s"><div class="gc-in">${it.spr && AS.sprites[it.spr] ? `<div class="sprbox" data-spr="${it.spr}"></div>` : `<i style="${iconCss(it.ic || 'chest', 64)}"></i>`}<b>${esc(it.n)}</b><small>${['', '', '宝品', '仙品', '神品'][it.tier]}</small></div></div>`).join('');
         w.appendChild(grid); UI.drawSprBoxes(grid);
         const btn = h('button', 'opt gclose', '收下'); w.appendChild(btn); btn.onclick = () => { w.classList.add('out'); setTimeout(() => { w.remove(); res(); }, 300); };
-        if (best >= 4) { R.flash = 0.8; Sfx.play('victory'); } else Sfx.play('levelup');
+        if (best >= 4) { R.flash = 0.8; Sfx.play('gacha_ssr'); setTimeout(() => Sfx.play('voice_wow'), 500); } else Sfx.play(best >= 3 ? 'gacha_sr' : 'levelup');
       }, 1500);
     });
   };
@@ -80,4 +80,50 @@ Object.assign(UI.titles, { cave: '洞府', mount: '坐骑 · 时装', title: '�
     g.onclick = () => { if (this.modal || Game._busy || B.on) return; Sfx.play('click'); this.panel('gacha'); };
   };
   const _hud = UI.hud; UI.hud = function (o) { _hud.call(this, o); const G = Game.G; if (!G) return; const g = $('#gachabtn'); if (g) g.dataset.n = G.inv.xyf || 0; };
+})();
+// ======================= 剧情CG：章节过场 + 结局插画 + 回忆图鉴 =======================
+const CG_OF = { debt: 'cg_debt', mentor: 'cg_mentor', sect: 'cg_sect', rival: 'cg_rival', market: 'cg_market', corpse: 'cg_corpse', dragon: 'cg_dragon', lengyue: 'cg_lengyue', mozun: 'cg_mozun', judge: 'cg_judge', tiandao: 'cg_tiandao' };
+const CG_END = { ascend: 'cg_ascend', judge: 'cg_judge', rival: 'cg_rival', paid: 'cg_tiandao', newdao: 'cg_tiandao' };
+const CG_LIST = [['cg_debt', '上门讨债'], ['cg_mentor', '剑仙路过'], ['cg_sect', '拜入仙门'], ['cg_rival', '宿敌龙傲天'], ['cg_market', '云来坊市'], ['cg_corpse', '尸王的账'], ['cg_dragon', '龙宫钱庄'], ['cg_lengyue', '月下抚琴'], ['cg_mozun', '魔尊'], ['cg_judge', '讨债司判官'], ['cg_tiandao', '对账天道'], ['cg_ascend', '白日飞升']];
+UI.cgUnlock = function (id) { const M = Game.meta; M.cg = M.cg || {}; if (!M.cg[id]) { M.cg[id] = 1; Game.saveMeta(); } };
+UI.chapterShow = function (m) {
+  const cg = CG_OF[m.id]; if (!cg || $('.chapter-fx')) return;
+  const im = new Image(); im.src = 'assets/cg/' + cg + '.webp';
+  im.onload = () => {
+    UI.cgUnlock(cg);
+    const [a, b] = m.n.split('·');
+    const w = h('div', 'chapter-fx', `<div class="cx-img" style="background-image:url(${im.src})"></div><div class="cx-shade"></div><div class="cx-txt"><small>${esc(a || '')}</small><b>${esc(b || m.n)}</b><p>${esc(m.d)}</p></div><div class="cx-tip">点击继续</div>`);
+    document.body.appendChild(w); Sfx.play('chapter');
+    const close = () => { if (!w.parentNode) return; w.classList.add('out'); setTimeout(() => w.remove(), 400); };
+    w.onclick = close; setTimeout(close, B.speed > 1 ? 1200 : 5000);
+  };
+};
+(function () {
+  const _hud = UI.hud; UI.hud = function (o) {
+    _hud.call(this, o); const G = Game.G; if (!G || G.dead) return;
+    if ((G.flags.chShown || 0) < G.main + 1) { G.flags.chShown = G.main + 1; const m = MAIN[G.main]; if (m) setTimeout(() => UI.chapterShow(m), 600); }
+  };
+  const _end = UI.ending; UI.ending = function (kind, E, pts, newEnd) {
+    const p = _end.call(this, kind, E, pts, newEnd); const cg = CG_END[kind]; Audio2.bgm('ending');
+    if (cg) { UI.cgUnlock(cg); const ep = document.querySelector('.endw .ending'); if (ep) { ep.classList.add('withcg'); ep.style.setProperty('--cg', `url(assets/cg/${cg}.webp)`); } }
+    return p;
+  };
+  Object.assign(UI.titles, { album: '回忆图鉴' });
+  UI.p_album = function (b) {
+    const got = Game.meta.cg || {};
+    b.innerHTML = `<p class="hint">剧情推进与结局会解锁插画（跨轮回保留）。已解锁 ${CG_LIST.filter(c => got[c[0]]).length}/${CG_LIST.length}</p><div class="album">${CG_LIST.map(([id, n]) => got[id] ? `<div class="al" data-cg="${id}" style="background-image:url(assets/cg/${id}.webp)"><span>${n}</span></div>` : `<div class="al lock"><span>？？？</span></div>`).join('')}</div>`;
+    b.onclick = e => { const a = e.target.closest('[data-cg]'); if (!a) return; const w = h('div', 'chapter-fx', `<div class="cx-img" style="background-image:url(assets/cg/${a.dataset.cg}.webp)"></div>`); w.onclick = () => w.remove(); document.body.appendChild(w); };
+  };
+  const _more = UI.p_more; UI.p_more = function (b, re, close) {
+    _more.call(this, b, re, close);
+    const g = b.querySelector('.grid3'); if (g && !g.querySelector('[data-k="album"]')) { const x = h('button', 'big2', `<i style="${iconCss('scroll', 48)}"></i>回忆图鉴`); x.dataset.k = 'album'; g.insertBefore(x, g.children[5] || null); }
+  };
+})();
+(function () {
+  const _panel = UI.panel; UI.panel = async function (name, tab) {
+    if (name === 'gacha') Audio2.bgm('gacha');
+    const r = await _panel.call(this, name, tab);
+    if (name === 'gacha' && R.mapId && MAPINFO[R.mapId] && R.mode === 'map') Audio2.bgm(MAPINFO[R.mapId].bgm);
+    return r;
+  };
 })();

@@ -51,6 +51,9 @@ window.BOT = {
   pref: ['★', '✔', '突破', '冲！', '渡劫飞升', '收下', '继续', '好', '接受', '拜师', '揭榜', '闭关', '过年', '交付', '同去', '我要对账', '一起闯荡', '结为道侣', '认真的', '拿账本', '高利贷', '先打一架', '同去'],
   tick() {
     this.n++;
+    const gc = document.querySelector('.gacha-fx .gclose'); if (gc) { gc.click(); return 'gacha-close'; }
+    if (document.querySelector('.gacha-fx')) return 'gacha-anim';
+    const cx = document.querySelector('.chapter-fx'); if (cx) { cx.click(); return 'chapter'; }
     const end = document.querySelector('.endw .opt'); if (end) { end.click(); return 'ending'; }
     const top = UI.stack[UI.stack.length - 1];
     if (top) {
@@ -85,6 +88,14 @@ window.BOT = {
     if (!Game.has('ysf') && G.stone > 500) { G.stone -= 120; Game.give('ysf', 1); }
     if (G.debt > 0 && G.stone > G.debt * 1.5 && G.realm >= 4) { G.stone -= G.debt; G.debt = 0; Game.ach('debt0'); }
     if (Game.canBreak()) { Game.tryBreak(); return 'break'; }
+    // v2.1 系统：求仙缘 / 坐骑 / 洞府 / 机缘
+    if (typeof Sys !== 'undefined') {
+      Sys.ensure(G);
+      if (Game.has('xyf', 10) && Math.random() < 0.5) { Sys.draw(10); return 'gacha10'; }
+      if (G.mounts.length && !G.mount) Sys.setMount(G.mounts[G.mounts.length - 1]);
+      for (const k of ['zl', 'field', 'forge']) { const c = CAVE[k].cost(G.cave[k]); if (G.cave[k] < CAVE[k].max && G.stone > c * 4) { G.stone -= c; G.cave[k]++; } }
+      const jy = R.marks.find(m => m.act === 'jiyuan' && !m.hidden); if (jy) { Game.interactMark(jy); return 'jiyuan'; }
+    }
     // 主线
     const mainE = R.ents.find(e => (e.kind === 'npc' || e.kind === 'boss') && (e.mark === '!' || e.mark === '?') && (e.kind === 'boss' ? G.realm >= MAIN[G.main].realm : true) && !(this.talked || {})[e.id + G.year]);
     if (mainE) { (this.talked = this.talked || {})[mainE.id + G.year] = 1; P.i = mainE.i; P.j = mainE.j + 1; Game.interactEnt(mainE); return 'talk:' + mainE.id; }

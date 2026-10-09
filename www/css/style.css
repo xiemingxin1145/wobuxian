@@ -198,3 +198,18 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 @keyframes ciname{from{transform:translateX(80px);opacity:0}to{transform:none;opacity:1}}
 @keyframes cispeed{to{background-position:-34px 0}}
 @media (max-height:680px){#gachabtn{width:54px;height:54px;right:126px}.gtitle{font-size:26px}.ci-name{font-size:32px}}
+/* 剧情CG */
+.chapter-fx{position:fixed;inset:0;z-index:58;background:#000;overflow:hidden;animation:fadein .5s}
+.cx-img{position:absolute;inset:0;background:center/cover no-repeat;animation:kenburns 6s ease-out both}
+@keyframes kenburns{from{transform:scale(1.18) translateX(3%)}to{transform:scale(1.02)}}
+.cx-shade{position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.75))}
+.cx-txt{position:absolute;left:0;right:0;bottom:12%;text-align:center;color:#fff;animation:ftxt2 1s .3s both}
+.cx-txt small{display:block;font-size:15px;letter-spacing:6px;color:#ffe9a0}.cx-txt b{display:block;font-size:42px;letter-spacing:8px;text-shadow:0 0 16px #ff9a3a,0 3px 0 #000;font-family:"Ma Shan Zheng","STXingkai","KaiTi","WBXKai",serif}
+.cx-txt p{margin:8px 24px 0;font-size:14px;opacity:.9}
+.cx-tip{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));width:100%;text-align:center;color:#fff;opacity:.6;font-size:12px;animation:gpulse 2s infinite}
+.chapter-fx.out{opacity:0;transition:opacity .4s}
+@keyframes ftxt2{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@media (orientation:portrait){.cx-img{background-size:auto 62%;background-position:center 30%}.chapter-fx{background:radial-gradient(#2a1a10,#000)}}
+.ending.withcg{background:linear-gradient(rgba(255,250,232,.86),rgba(239,223,184,.95)),var(--cg) center/cover}
+.album{display:grid;grid-template-columns:1fr 1fr;gap:8px}.al{aspect-ratio:16/9;border-radius:10px;background:center/cover #3a2a1a;border:2px solid #c8a060;position:relative;overflow:hidden}
+.al span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#ffe9b0;font-size:12px;text-align:center;padding:2px}.al.lock{background:repeating-linear-gradient(45deg,#4a3a2a 0 6px,#3a2a1a 6px 12px)}

@@ -214,16 +214,56 @@ for i, j in land:
             o = bpy.data.objects.new('p', pebble); o.location = (i + R2.random(), -(j + R2.random()), 0.0); o.scale = (1, 1, 0.5); bpy.context.scene.collection.objects.link(o)
 
 # ---------- 道具（仅投影） ----------
+PROPOBJ = []
 for typ, i, j in m['props']:
     fn, fw, fh = props.PROPS[typ]
     before = set(bpy.data.objects)
     fn()
     new = [o for o in bpy.data.objects if o not in before]
+    PROPOBJ.append((new, (i + fw / 2, -(j + fh / 2)), max(fw, fh)))
     for o in new:
         if o.parent is None: o.location = (o.location.x + i + fw / 2, o.location.y - (j + fh / 2), o.location.z)
-        o.visible_camera = False; o.visible_glossy = False; o.visible_transmission = False
+        if not a.get('cg'): o.visible_camera = False; o.visible_glossy = False; o.visible_transmission = False
         if o.type == 'LIGHT': pass
 
+# ---------- 剧情CG（透视） ----------
+if a.get('cg'):
+    import chars, monsters
+    from specs import SPRITES
+    from cg_specs import CGS
+    C = CGS[a['cg']]
+    tgt, az, el, dist, lens = C['cam']; tv = Vector((tgt[0], -tgt[1], tgt[2]))
+    cpos = tv + Vector((math.cos(D(el)) * math.cos(D(az)), math.cos(D(el)) * math.sin(D(az)), math.sin(D(el)))) * dist
+    # 自动隐藏挡在镜头与主角之间的道具
+    for objs, (px, py), sz in PROPOBJ:
+        ax, ay = cpos.x, cpos.y; bx, by = tv.x, tv.y; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+        t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2)); dd = math.hypot(ax + t * dx - px, ay + t * dy - py)
+        if (t < 0.97 and dd < 1.3 + sz * 0.5) or math.hypot(px - ax, py - ay) < 1.5 + sz * 0.5:
+            for o in objs: o.hide_render = True
+    for sid, ci, cj, face, an, fr, scl in C['chars']:
+        S = SPRITES[sid]; sc_ = 1.2 * S.get('scale', 1.0) * scl
+        if S['kind'] == 'chibi': R = chars.chibi(S['spec'], scale=sc_); posef = chars.pose
+        else: R = monsters.setup(S['mon'], scale=sc_); posef = monsters.mpose
+        R.root.location = (ci, -cj, 0.0)
+        ang = math.atan2(cpos.y + cj, cpos.x - ci) if face == 'cam' else D(face)
+        R.root.rotation_euler = (0, 0, ang + math.pi / 2)
+        n = S['anims'].get(an, S['anims']['idle']); posef(R, an if an in S['anims'] else 'idle', fr % n, n)
+    if C.get('pillar'):
+        bk = tv + (tv - cpos).normalized() * 3.0
+        cyl('pillar', 0.7, 0.7, 30, loc=(bk.x, bk.y, 15), m=M('#fff4c0', emit=4.0, alpha=0.4), seg=32)
+    if C.get('night'):
+        for o in bpy.data.objects:
+            if o.type == 'LIGHT' and o.data.type == 'SUN': o.data.energy *= 0.35; o.data.color = (0.6, 0.7, 1.0)
+        moon = bpy.data.lights.new('moon', 'POINT'); moon.energy = 400; moon.color = (0.7, 0.8, 1.0); mo = bpy.data.objects.new('moon', moon); mo.location = cpos + Vector((0, 0, 4)); bpy.context.scene.collection.objects.link(mo)
+    k = float(os.environ.get('WBX_RES', 1)); W, H = int(1280 * k), int(720 * k)
+    sc.render.resolution_x, sc.render.resolution_y = W, H
+    cd = bpy.data.cameras.new('cgc'); cam = bpy.data.objects.new('cgc', cd); sc.collection.objects.link(cam); sc.camera = cam
+    cd.lens = lens; cd.sensor_width = 36; cam.location = cpos; cam.rotation_euler = (tv - cpos).to_track_quat('-Z', 'Y').to_euler()
+    cd.dof.use_dof = True; cd.dof.focus_distance = dist; cd.dof.aperture_fstop = 2.8
+    od = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out', 'cg'); os.makedirs(od, exist_ok=True)
+    render(os.path.join(od, a['cg'] + '_raw.png'))
+    print('DONE', a['cg'], round(time.time() - t0, 1), flush=True)
+    raise SystemExit(0)
 # ---------- 相机 ----------
 W = int(N * 1.4142 * P + 120); topm = 60; isoh = N * 0.7071 * P; H = int(MAXY[0] + topm + 30)
 cam = camera(W, H, anchor=(0.5, (topm + isoh / 2) / H), target=(N / 2, -N / 2, 0), ortho_scale=max(W, H) / P)
