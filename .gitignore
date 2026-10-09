@@ -1,0 +1,16 @@
+# 构建产物
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/www/
+*.apk
+!wobuxian.apk
+# 工具与缓存
+tools/gradle-8.9/
+tools/gradle.zip
+tools/*.log
+test/*.png
+test/*.log
+__pycache__/
+.DS_Store

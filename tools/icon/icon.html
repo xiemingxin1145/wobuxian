@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><body style="margin:0;background:transparent">
+<canvas id="c"></canvas>
+<script src="../../www/js/render.js"></script>
+<script>
+const N = +(location.hash.slice(1) || 512), c = document.getElementById('c'); c.width = c.height = N; const x = c.getContext('2d');
+x.scale(N / 512, N / 512);
+// 圆角底
+const r = 110; x.beginPath(); x.moveTo(r, 0); x.arcTo(512, 0, 512, 512, r); x.arcTo(512, 512, 0, 512, r); x.arcTo(0, 512, 0, 0, r); x.arcTo(0, 0, 512, 0, r); x.closePath(); x.save(); x.clip();
+let g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#8fd3ff'); g.addColorStop(0.6, '#ffe3c4'); g.addColorStop(1, '#ffb7cf'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+g = x.createRadialGradient(256, 230, 10, 256, 230, 230); g.addColorStop(0, 'rgba(255,250,220,0.95)'); g.addColorStop(1, 'rgba(255,250,220,0)'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+// 远山
+x.fillStyle = 'rgba(120,150,190,0.55)'; x.beginPath(); x.moveTo(0, 400); x.quadraticCurveTo(80, 260, 160, 380); x.quadraticCurveTo(250, 230, 340, 370); x.quadraticCurveTo(430, 270, 512, 380); x.lineTo(512, 512); x.lineTo(0, 512); x.fill();
+// 云
+x.fillStyle = '#fff'; for (const [cx, cy, rr] of [[60, 440, 70], [160, 470, 70], [300, 470, 80], [430, 445, 75], [500, 480, 60]]) { x.beginPath(); x.arc(cx, cy, rr, 0, 7); x.fill(); }
+// 飞剑
+x.save(); x.translate(256, 420); x.rotate(-0.12); x.fillStyle = 'rgba(120,220,255,0.6)'; x.beginPath(); x.ellipse(0, 0, 190, 16, 0, 0, 7); x.fill();
+x.fillStyle = '#eaf6ff'; x.beginPath(); x.moveTo(170, 0); x.lineTo(-110, -11); x.lineTo(-110, 11); x.fill(); x.fillStyle = '#ffd75e'; x.fillRect(-122, -22, 12, 44); x.fillStyle = '#7a4a2a'; x.fillRect(-160, -6, 38, 12); x.restore();
+// 小人
+x.save(); x.translate(250, 412); x.scale(5.4, 5.4);
+R.drawChibi(x, { hair: '#2a1b14', robe: '#6fbf8a', robe2: '#fff', belt: '#ffd75e', sword: false, hold: 'gourd', ribbon: '#ff5a6a', aura: 'rgba(255,230,140,0.6)', seed: 0 }, 0.4);
+x.restore();
+x.restore();
+// 金边
+x.lineWidth = 14; x.strokeStyle = '#d9a441'; x.beginPath(); x.moveTo(r, 7); x.arcTo(505, 7, 505, 505, r - 7); x.arcTo(505, 505, 7, 505, r - 7); x.arcTo(7, 505, 7, 7, r - 7); x.arcTo(7, 7, 505, 7, r - 7); x.closePath(); x.stroke();
+// 印章
+x.save(); x.translate(400, 70); x.rotate(0.12); x.fillStyle = '#c8301e'; x.fillRect(-46, -40, 92, 80); x.fillStyle = '#fff4e0'; x.font = '900 60px "Noto Serif CJK SC",serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('仙', 0, 3); x.restore();
+document.title = 'done';
+</script></body></html>
