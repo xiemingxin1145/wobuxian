@@ -3,7 +3,7 @@
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
 - [x] mapdefs：longgong 东海龙宫 / guishi 鬼市 / cuizhai 天庭催债司
-- [ ] 渲染完成 → SD build_assets（spr,maps,ui）→ 提交
+- [x] 渲染完成 → SD build_assets（spr,maps,ui）→ 提交（df785fc；validate22 0 错误）
 - [ ] 新章节 CG（cg_specs 已加 4 张，/tmp/v22cg.sh 排队渲染，日志 art/out/cg22.log）→ post_cg → CG_OF/CG_LIST
 - [ ] HD：WBX_PROFILE=hd 增量打包（PARTS=spr,ui,maps,cg）→ make_hd_bundle upload → hd-assets.json → 清理 assets-hd 旧 zip
 
@@ -39,3 +39,6 @@
 边界：拖出摇杆区域后松开 ✅；摇杆按住+另一指点按 ✅；点按UI按钮(背包) ✅；面板内滑动 ✅；关闭面板后摇杆 ✅；JS 错误 0
 证据：test/controls/joy_*.png、joy_sheet.png、tap_end.png、ui_button_tap.png、results.json
 
+
+- [ ] 奥拉夫修正重渲（锦鲤朝向/高度、天道真身二阶段、三娘/广寒战斗帧）→ 增量打包 WBX_SPR_IDS
+- [ ] 视觉 A/B（卡通着色 + Quaternius CC0 评估）→ test/ab_render/（许可页已存 docs/licenses/）
