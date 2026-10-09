@@ -262,3 +262,6 @@ body:not(.ingame) #gachabtn,body.inbattle #gachabtn{display:none!important}
 .b22-txt small{display:block;margin-top:8px;font:16px WBXKai,serif;color:#fff3d0;letter-spacing:4px;text-shadow:0 0 6px #000}
 .b22.fail .b22-txt b{background:linear-gradient(#e8e8f0,#8a8aa0);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 8px #4a4a8a)}
 .b22-tip{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:rgba(255,255,255,.5);font-size:12px}
+.b22-bill{display:block;margin:18px auto 0;max-width:80%;padding:8px 12px;background:#f8f0dc;color:#4a3420;font:14px WBXKai,serif;font-style:normal;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.4);transform:translateX(60px) rotate(-3deg);opacity:0;transition:all .35s .35s}
+.b22-bill i{font-style:normal;color:#d02020;border:2px solid #d02020;border-radius:4px;padding:0 4px;margin-left:6px;display:inline-block;transform:rotate(-8deg)}
+.brk-fx.show .b22-bill{opacity:1;transform:translateX(0) rotate(-3deg)}

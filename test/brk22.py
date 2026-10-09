@@ -18,10 +18,12 @@ async def main():
         for fail in (False, True):
             tag = 'fail' if fail else 'ok'
             # 暂停时间：演出期间逐个阶段截图（演出本身用 setTimeout，截图前等待到目标时刻）
-            await pg.evaluate(f"()=>{{window.__bd=0;VFX.breakthrough('{'练气失败' if fail else '筑基期'}',{str(fail).lower()}).then(()=>window.__bd=1)}}")
-            for name, at in [('clouds', 450), ('bolt', 1100), ('gold', 2600), ('title', 3300)]:
-                await pg.wait_for_function(f"()=>performance.now()-(window.__bt0||(window.__bt0=performance.now()))>={at}") if False else await pg.wait_for_timeout(at if name == 'clouds' else 0)
-                await pg.screenshot(path=OUT + f'brk_{tag}_{name}.png')
+            await pg.evaluate(f"()=>{{window.__bd=0;VFX.breakthrough('{'金丹期' if fail else '筑基期'}',{str(fail).lower()}).then(()=>window.__bd=1)}}")
+            # 按演出相位截图：乌云(0.4s) → 雷击(1.0s) → 大字出现(.show) → 大字停留 0.6s
+            await pg.wait_for_timeout(400); await pg.screenshot(path=OUT + f'brk_{tag}_clouds.png')
+            await pg.wait_for_timeout(600); await pg.screenshot(path=OUT + f'brk_{tag}_bolt.png')
+            await pg.wait_for_selector('.brk-fx.show', timeout=10000); await pg.wait_for_timeout(150); await pg.screenshot(path=OUT + f'brk_{tag}_gold.png')
+            await pg.wait_for_timeout(600); await pg.screenshot(path=OUT + f'brk_{tag}_title.png')
             await pg.wait_for_function('()=>window.__bd===1', timeout=15000)
         print('errors', errs)
         await b.close()
