@@ -12,7 +12,11 @@
 ## 进行中 / 待办
 - [ ] frames2 2x 精灵渲染（art/out/frames2，后台 /tmp/queue_extra.sh → 时装/坐骑）
 - [ ] 2x 立绘（/tmp/queue_post.sh 等 /tmp/x{0,1,2}.done 后自动跑）→ 然后 2x 地图底板（art/out/maps2x.log ALLDONE）
-- [ ] 大资源包：tools/pack_hd.py 生成 wbx-hd-assets.zip → 上传到 release `assets-hd`；CI 构建前下载并覆盖 www/assets（git 不存大文件）
+- [x] HD 资源包管线：tools/make_hd_bundle.sh upload → release `assets-hd`（预发布）+ hd-assets.json（sha256）；CI 构建前下载覆盖 www/assets（已写好，待首次上传）
+- [x] 技能序列帧特效 tools/make_vfx.py（SD 192px 进 git；HD 384px 进资源包：`python3 tools/make_vfx.py <dir> 384`）
+- [ ] CG：/tmp/cghd.sh（11 张结局 CG + 旧 12 张 2x 重渲，log art/out/cg_hd.log），SD 自动写入 www/assets/cg，HD 写 art/out/hd/cg
+- [ ] HD 音频：WBX_AQ=8 synth2 → art/out/audio_hd（/tmp/aud_hd.log）
+- [ ] frames2 全部完成后：SD `python3 tools/build_assets.py`（提交）；HD `tools/make_hd_bundle.sh upload`（+ make_vfx 384 进包）→ 提交 hd-assets.json
 - [ ] python3 tools/build_assets.py；重跑 panels21 / multilife
 - [ ] 截图 screenshots/v21/，README 更新
 - [ ] VERSION=2.1.x，tag v2.1.0，gh run watch，验证 APK 证书 436bf922… 与 versionName
