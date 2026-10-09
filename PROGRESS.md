@@ -12,16 +12,19 @@
 ## 进行中 / 待办
 - [x] frames2 2x 精灵渲染 80 个（含时装/坐骑）；SD 精灵+74 头像已提交
 - [x] 2x 立绘 512px
-- [ ] 2x 地图底板进行中（art/out/maps2x.log 出现 ALLDONE 后：SD `python3 tools/build_assets.py www maps` 提交）
+- [x] 2x 地图底板进行中（art/out/maps2x.log 出现 ALLDONE 后：SD `python3 tools/build_assets.py www maps` 提交）
 - [x] HD 精灵/头像/音频 已在 art/out/hdwww
 - [x] 首个 HD 包已上传，CI build-118 APK 211MB，模拟器 API30/34 绿
-- [ ] 地图/CG 全部完成后再：`PARTS=maps,cg tools/make_hd_bundle.sh upload`（spr/ui/audio 已在 hdwww 中）→ 提交 hd-assets.json → CI 出大包
+- [x] 地图/CG 全部完成后再：`PARTS=maps,cg tools/make_hd_bundle.sh upload`（spr/ui/audio 已在 hdwww 中）→ 提交 hd-assets.json → CI 出大包
 - [x] 修复：面板内精灵小画布被全局 canvas{position:fixed} 钉在左上角（坐骑/时装/抽卡/技能特写）
 - [x] HD 资源包管线：tools/make_hd_bundle.sh upload → release `assets-hd`（预发布）+ hd-assets.json（sha256）；CI 构建前下载覆盖 www/assets（已写好，待首次上传）
 - [x] 技能序列帧特效 tools/make_vfx.py（SD 192px 进 git；HD 384px 进资源包：`python3 tools/make_vfx.py <dir> 384`）
-- [ ] CG：/tmp/cghd.sh（11 张结局 CG + 旧 12 张 2x 重渲，log art/out/cg_hd.log），SD 自动写入 www/assets/cg，HD 写 art/out/hd/cg
-- [ ] HD 音频：WBX_AQ=8 synth2 → art/out/audio_hd（/tmp/aud_hd.log）
-- [ ] frames2 全部完成后：SD `python3 tools/build_assets.py`（提交）；HD `tools/make_hd_bundle.sh upload`（+ make_vfx 384 进包）→ 提交 hd-assets.json
-- [ ] python3 tools/build_assets.py；重跑 panels21 / multilife
-- [ ] 截图 screenshots/v21/，README 更新
-- [ ] VERSION=2.1.x，tag v2.1.0，gh run watch，验证 APK 证书 436bf922… 与 versionName
+- [x] CG：/tmp/cghd.sh（11 张结局 CG + 旧 12 张 2x 重渲，log art/out/cg_hd.log），SD 自动写入 www/assets/cg，HD 写 art/out/hd/cg
+- [x] HD 音频：WBX_AQ=8 synth2 → art/out/audio_hd（/tmp/aud_hd.log）
+- [x] frames2 全部完成后：SD `python3 tools/build_assets.py`（提交）；HD `tools/make_hd_bundle.sh upload`（+ make_vfx 384 进包）→ 提交 hd-assets.json
+- [x] python3 tools/build_assets.py；重跑 panels21 / multilife
+- [x] 截图 screenshots/v21/，README 更新
+- [x] VERSION=2.1.x，tag v2.1.0，gh run watch，验证 APK 证书 436bf922… 与 versionName
+
+## v2.1.0 已发布
+- latest：build-123 / tag v2.1.0，APK 213.9MB，证书 436bf922…，versionName 2.1.0；CI build + emulator-smoke(API30/34) 全绿
