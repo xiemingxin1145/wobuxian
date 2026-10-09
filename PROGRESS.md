@@ -13,8 +13,9 @@
 - [x] frames2 2x 精灵渲染 80 个（含时装/坐骑）；SD 精灵+74 头像已提交
 - [x] 2x 立绘 512px
 - [ ] 2x 地图底板进行中（art/out/maps2x.log 出现 ALLDONE 后：SD `python3 tools/build_assets.py www maps` 提交）
-- [ ] HD 精灵/头像/音频 正在打包到 art/out/hdwww（/tmp/hd_spr.log 出现 assets.js 即完成）
-- [ ] 全部完成后：`PARTS=maps,cg tools/make_hd_bundle.sh upload`（spr/ui/audio 已在 hdwww 中）→ 提交 hd-assets.json → CI 出大包
+- [x] HD 精灵/头像/音频 已在 art/out/hdwww
+- [x] 首个 HD 包已上传，CI build-118 APK 211MB，模拟器 API30/34 绿
+- [ ] 地图/CG 全部完成后再：`PARTS=maps,cg tools/make_hd_bundle.sh upload`（spr/ui/audio 已在 hdwww 中）→ 提交 hd-assets.json → CI 出大包
 - [x] 修复：面板内精灵小画布被全局 canvas{position:fixed} 钉在左上角（坐骑/时装/抽卡/技能特写）
 - [x] HD 资源包管线：tools/make_hd_bundle.sh upload → release `assets-hd`（预发布）+ hd-assets.json（sha256）；CI 构建前下载覆盖 www/assets（已写好，待首次上传）
 - [x] 技能序列帧特效 tools/make_vfx.py（SD 192px 进 git；HD 384px 进资源包：`python3 tools/make_vfx.py <dir> 384`）
