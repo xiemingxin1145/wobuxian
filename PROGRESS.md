@@ -10,8 +10,12 @@
 - [x] 测试：test/panels21.py（360x640/412x915 无溢出）、test/multilife.py（多世 0 错误/0 卡死）
 
 ## 进行中 / 待办
-- [ ] frames2 2x 精灵渲染（art/out/frames2，后台 /tmp/queue_extra.sh → 时装/坐骑）
-- [ ] 2x 立绘（/tmp/queue_post.sh 等 /tmp/x{0,1,2}.done 后自动跑）→ 然后 2x 地图底板（art/out/maps2x.log ALLDONE）
+- [x] frames2 2x 精灵渲染 80 个（含时装/坐骑）；SD 精灵+74 头像已提交
+- [x] 2x 立绘 512px
+- [ ] 2x 地图底板进行中（art/out/maps2x.log 出现 ALLDONE 后：SD `python3 tools/build_assets.py www maps` 提交）
+- [ ] HD 精灵/头像/音频 正在打包到 art/out/hdwww（/tmp/hd_spr.log 出现 assets.js 即完成）
+- [ ] 全部完成后：`PARTS=maps,cg tools/make_hd_bundle.sh upload`（spr/ui/audio 已在 hdwww 中）→ 提交 hd-assets.json → CI 出大包
+- [x] 修复：面板内精灵小画布被全局 canvas{position:fixed} 钉在左上角（坐骑/时装/抽卡/技能特写）
 - [x] HD 资源包管线：tools/make_hd_bundle.sh upload → release `assets-hd`（预发布）+ hd-assets.json（sha256）；CI 构建前下载覆盖 www/assets（已写好，待首次上传）
 - [x] 技能序列帧特效 tools/make_vfx.py（SD 192px 进 git；HD 384px 进资源包：`python3 tools/make_vfx.py <dir> 384`）
 - [ ] CG：/tmp/cghd.sh（11 张结局 CG + 旧 12 张 2x 重渲，log art/out/cg_hd.log），SD 自动写入 www/assets/cg，HD 写 art/out/hd/cg
