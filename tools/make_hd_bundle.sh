@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 VER=$(cat VERSION); STAMP=$(date +%Y%m%d%H%M)
 T=$(mktemp -d); mkdir -p "$T/www"; cp -r www/assets "$T/www/"
 WBX_PROFILE=hd python3 tools/build_assets.py "$T/www"
+python3 tools/make_vfx.py "$T/www/assets/vfx" 384
 F="wbx-hd-assets-$VER-$STAMP.zip"
 (cd "$T/www" && zip -q -r -0 "$OLDPWD/art/out/$F" assets)
 SHA=$(sha256sum "art/out/$F" | cut -d' ' -f1); SIZE=$(stat -c %s "art/out/$F")
