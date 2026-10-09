@@ -16,6 +16,11 @@ def shelf(items, maxw=2048, pad=1):
         pos[k] = (x, y); x += w + pad; rowh = max(rowh, h); W = max(W, x)
     return pos, W, y + rowh
 
+def save_webp(im, path):
+    # Q>=100：无损（HD 包，2 倍描边无压缩振铃）；否则有损
+    if Q >= 100: im.save(path, 'WEBP', lossless=True, quality=80, method=4)
+    else: im.save(path, 'WEBP', quality=Q, method=6)
+
 def pack_sprite(sid, scale=1.0, frames='frames', k=1.0):
     """k：图集像素相对游戏世界像素的倍率（高清渲染时 >1，引擎绘制时除以 k）"""
     files = sorted(glob.glob(os.path.join(ROOT, 'out', frames, sid, '*.png')))
@@ -32,7 +37,7 @@ def pack_sprite(sid, scale=1.0, frames='frames', k=1.0):
     meta = {}
     for k, (im, bb) in frames.items():
         sheet.paste(im, pos[k]); meta[k] = [pos[k][0], pos[k][1], im.size[0], im.size[1], bb[0], bb[1]]
-    sheet.save(os.path.join(DEST, sid + '.webp'), 'WEBP', quality=Q, method=6)
+    save_webp(sheet, os.path.join(DEST, sid + '.webp'))
     return dict(img=sid + '.webp', fw=round(fw * scale), fh=round(fh * scale), anims=anims, dirs=sorted(dirs), f=meta, k=k)
 
 def pack_group(name, entries, maxw=2048):
@@ -45,7 +50,7 @@ def pack_group(name, entries, maxw=2048):
     sheet = Image.new('RGBA', (W, H)); meta = {}
     for k, (im, ax, ay) in trimmed.items():
         sheet.paste(im, pos[k]); meta[k] = [pos[k][0], pos[k][1], im.size[0], im.size[1], round(ax, 1), round(ay, 1)]
-    sheet.save(os.path.join(DEST, name + '.webp'), 'WEBP', quality=Q, method=6)
+    save_webp(sheet, os.path.join(DEST, name + '.webp'))
     print(name, W, H, os.path.getsize(os.path.join(DEST, name + '.webp')))
     return dict(img=name + '.webp', f=meta)
 

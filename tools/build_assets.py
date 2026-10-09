@@ -9,7 +9,7 @@ A = os.path.join(WWW, 'assets'); [os.makedirs(os.path.join(A, d), exist_ok=True)
 only = sys.argv[2].split(',') if len(sys.argv) > 2 else ['spr', 'maps', 'ui', 'audio']
 # v2.1：WBX_PROFILE=hd → 高清资源包（2 倍精灵图集/2 倍地图/原尺寸 CG/512 头像/高码率音频）；默认 sd（进 git 的轻量版）
 HD = os.environ.get('WBX_PROFILE', 'sd') == 'hd'
-pack.Q = 92 if HD else 84
+pack.Q = 100 if HD else 84  # HD 精灵/道具图集无损
 out = {}
 old = os.path.join(A, 'assets.json')
 if os.path.exists(old): out = json.load(open(old))
