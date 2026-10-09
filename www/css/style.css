@@ -215,3 +215,6 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 .al span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#ffe9b0;font-size:12px;text-align:center;padding:2px}.al.lock{background:repeating-linear-gradient(45deg,#4a3a2a 0 6px,#3a2a1a 6px 12px)}
 
 body:not(.ingame) #gachabtn,body.inbattle #gachabtn{display:none!important}
+/* v2.1 修复：全局 canvas{position:fixed} 会把面板内的小画布全部钉到左上角；.it>div 的 flex:1 会拉伸精灵框 */
+.sprbox canvas,.ci-spr canvas{position:static}
+.it>.sprbox{flex:none;width:64px}

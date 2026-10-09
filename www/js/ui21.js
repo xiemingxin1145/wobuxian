@@ -52,7 +52,7 @@ Object.assign(UI.titles, { cave: '洞府', mount: '坐骑 · 时装', title: '�
     root.querySelectorAll('.sprbox').forEach(async el => {
       const id = el.dataset.spr; if (!AS.sprites[id]) { el.textContent = '?'; return; }
       await loadSprite(id); const c = document.createElement('canvas'); c.width = 120; c.height = 120; el.appendChild(c);
-      const x = c.getContext('2d'); drawSprite(x, id, 'idle', 'S', 0, 60, 112, id.startsWith('mount_') ? 0.75 : 0.62);
+      const x = c.getContext('2d'); const mt = id.startsWith('mount_'); drawSprite(x, id, 'idle', 'S', 0, 60, mt ? 92 : 112, mt ? 0.5 : 0.62);
     });
   };
   // 抽卡动画
