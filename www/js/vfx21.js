@@ -7,7 +7,7 @@ var VFX = window.VFX = (function () {
   const tint = {};
   const glowOf = c => tint[c] || (tint[c] = mk(128, 128, x => { x.drawImage(glow, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = c; x.fillRect(0, 0, 128, 128); }));
   const puff = mk(256, 128, x => { for (let k = 0; k < 9; k++) { const cx = 40 + k * 22, cy = 74 - Math.sin(k / 8 * Math.PI) * 26, r = 30 + Math.sin(k / 8 * Math.PI) * 24; const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.7, 'rgba(250,252,255,0.7)'); g.addColorStop(1, 'rgba(240,246,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); } });
-  const WEATHER = { village: ['petal', 'rain', 'snow'], sect: ['leaf', 'snow'], market: ['lantern', 'rain'], secret: ['mist', 'firefly'], graveyard: ['rain', 'mist'], island: ['sun', 'rain'], rift: ['ash'], heaven: ['sun'] };
+  const WEATHER = { village: ['petal', 'rain', 'snow'], sect: ['leaf', 'snow'], market: ['lantern', 'rain'], secret: ['mist', 'firefly'], graveyard: ['rain', 'mist'], island: ['sun', 'rain'], rift: ['ash'], heaven: ['sun'], longgong: ['mist', 'sun'], guishi: ['mist', 'lantern'], cuizhai: ['sun', 'mist'] };
   const SEASON = [{ n: '春', c: 'rgba(255,200,220,0.06)' }, { n: '夏', c: 'rgba(255,240,170,0.06)' }, { n: '秋', c: 'rgba(255,160,60,0.09)' }, { n: '冬', c: 'rgba(170,200,255,0.12)' }];
   const AURA = ['#ffffff', '#9affd0', '#7ac8ff', '#ffd25e', '#c88aff', '#ff9a5a', '#fff2a0'];
   function prep() {

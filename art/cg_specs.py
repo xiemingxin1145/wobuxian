@@ -49,4 +49,13 @@ CGS = {
                        cam=((10.4, 7.6, 1.0), -55, 9, 6.5, 38), sky=('#fff2c8', '#ffffff')),
     'cg_mengpo': dict(map='graveyard', chars=[('npc_mengpo', 10.5, 9.0, 'cam', 'idle', 1, 1.1), ('player_f2', 11.2, 10.4, 120, 'idle', 0, 1)],
                       cam=((10.6, 9.6, 0.7), -55, 10, 6.0, 40), sky=('#20304a', '#6080a0'), night=True),
+    # v2.2 新章节插画
+    'cg_longgong': dict(map='longgong', chars=[('npc_taizi', 10.0, 8.6, 'cam', 'attack', 2, 1.1), ('player_f4', 10.8, 11.2, 110, 'attack', 1, 1), ('npc_xiabing', 8.6, 9.6, 'cam', 'idle', 1, 1)],
+                        cam=((10.2, 9.6, 1.0), -55, 9, 7.0, 36), sky=('#2a8ad8', '#c8f4ff')),
+    'cg_guishi': dict(map='guishi', chars=[('boss_guiwang', 10.4, 7.8, 'cam', 'attack', 2, 1), ('npc_sanniang', 8.6, 9.8, 'cam', 'idle', 1, 1), ('player_m4', 11.0, 11.0, 115, 'attack', 3, 1)],
+                      cam=((10.2, 9.2, 1.0), -60, 8, 8.0, 35), sky=('#1a1030', '#6a3a7a'), night=True),
+    'cg_cuizhai': dict(map='cuizhai', chars=[('boss_dasiming', 10.4, 7.6, 'cam', 'attack', 1, 1), ('npc_zhuiming', 12.0, 8.6, 'cam', 'idle', 1, 1), ('player_f5', 10.6, 11.0, 95, 'attack', 2, 1)],
+                       cam=((10.6, 9.2, 1.1), -70, 7, 8.5, 34), sky=('#ffd890', '#fffaf0')),
+    'cg_zhenshen': dict(map='cuizhai', chars=[('boss_tiandao2', 10.5, 7.0, 'cam', 'attack', 2, 1.15), ('player_m5', 10.6, 11.2, 90, 'attack', 1, 1), ('npc_suanpan', 12.4, 8.8, 'cam', 'idle', 0, 1)],
+                        cam=((10.6, 9.0, 1.5), -80, 6, 9.5, 32), sky=('#ffe070', '#ffffff'), pillar=True),
 }

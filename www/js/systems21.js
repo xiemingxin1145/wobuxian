@@ -75,8 +75,8 @@ const GACHA = {
   rates: [['神品', 0.02, 4], ['仙品', 0.10, 3], ['宝品', 0.88, 2]],
   pity: 50, // v2.2：50 抽必出神品
   pool: {
-    4: [['mount', 'crane'], ['mount', 'lotus'], ['mount', 'carp'], ['cos', 'yuyi'], ['cos', 'longpao'], ['cos', 'longwang'], ['cos', 'caishen'], ['eq', 4], ['eq', 4]],
-    3: [['mount', 'cloud'], ['mount', 'fsword'], ['mount', 'abacus'], ['cos', 'guishi'], ['cos', 'tianjia'], ['cos', 'xifu'], ['cos', 'mowang'], ['cos', 'taohua'], ['eq', 3], ['eq', 3], ['pet', 'rand'], ['item', 'pjd', 2], ['item', 'xsd', 1]],
+    4: [['mount', 'crane'], ['mount', 'lotus'], ['mount', 'carp'], ['cos', 'yuyi'], ['cos', 'longpao'], ['cos', 'longwang'], ['cos', 'caishen'], ['pet', 'tianbing'], ['eq', 4], ['eq', 4]],
+    3: [['mount', 'cloud'], ['mount', 'fsword'], ['mount', 'abacus'], ['cos', 'guishi'], ['cos', 'tianjia'], ['cos', 'xifu'], ['cos', 'mowang'], ['cos', 'taohua'], ['eq', 3], ['eq', 3], ['pet', 'rand'], ['pet', 'xiabing'], ['pet', 'guizu'], ['item', 'pjd', 2], ['item', 'xsd', 1]],
     2: [['mount', 'gourd'], ['mount', 'bowl'], ['cos', 'xiake'], ['eq', 2], ['item', 'pyd', 2], ['item', 'hcd', 5], ['item', 'hld', 5], ['item', 'egg', 1], ['item', 'tsf', 1], ['stone', 0], ['item', 'ysd', 1], ['item', 'lz', 3]],
   },
 };
@@ -128,7 +128,7 @@ const Sys = {
     if (kind === 'mount') { const dup = G.mounts.includes(a); this.addMount(a, true); if (dup) { Game.give('xyf', tier - 1); return { tier, n: MOUNTS[a].n + '（重复→仙缘符×' + (tier - 1) + '）', ic: 'gourd_g', spr: MOUNTS[a].spr }; } return { tier, n: '坐骑·' + MOUNTS[a].n, spr: MOUNTS[a].spr, ic: 'gourd_g' }; }
     if (kind === 'cos') { const dup = M.cos[a]; if (dup) { Game.give('xyf', tier - 1); return { tier, n: COSTUMES[a].n + '（重复→仙缘符×' + (tier - 1) + '）', ic: 'robe_p' }; } M.cos[a] = 1; Game.saveMeta(); return { tier, n: '时装·' + COSTUMES[a].n, spr: `cos_${a}_${G.sex}`, ic: 'robe_p' }; }
     if (kind === 'eq') { const e = Game.randEq(Math.max(0.5, Game.power()), a); return { tier, n: e.name, ic: (EQ_ICON && EQ_ICON(e)) || 'sword_o' }; }
-    if (kind === 'pet') { const mon = pick(Object.keys(PET_SKILL)); const p = Game.addPet(mon, Math.max(0.5, Game.power())); return { tier, n: '灵兽·' + p.name, spr: MONS[mon].spr }; }
+    if (kind === 'pet') { const mon = (a && a !== 'rand' && PET_SKILL[a]) ? a : pick(Object.keys(PET_SKILL)); const p = Game.addPet(mon, Math.max(0.5, Game.power())); return { tier, n: '灵兽·' + p.name, spr: MONS[mon].spr }; }
     if (kind === 'item') { Game.give(a, b); return { tier, n: `${ITEMS[a].n}×${b}`, ic: ITEMS[a].ic }; }
     if (kind === 'stone') { const s = Math.round(150 * POW(Math.max(0.5, Game.power()))); G.stone += s; return { tier, n: `灵石×${s}`, ic: 'stone' }; }
   },
