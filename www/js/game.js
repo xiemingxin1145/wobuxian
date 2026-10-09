@@ -273,12 +273,12 @@ const Game = {
   // -------- 事件 --------
   async runEvent(ev) {
     const [id, title, text, , , por, ...opts] = ev; const G = this.G;
-    const usable = opts.filter(o => !/item:(\w+):-/.test(o[1]) || this.has(o[1].match(/item:(\w+):-/)[1]));
+    const usable = opts.filter(o => (!/item:(\w+):-/.test(o[1]) || this.has(o[1].match(/item:(\w+):-/)[1])) && (!/(^|;)stone-(\d+)/.test(o[1]) || G.stone >= +o[1].match(/(^|;)stone-(\d+)/)[2] || /(^|;)(fight|die|ending):/.test(o[1])));
     const list = usable.length ? usable : opts;
     const k = await UI.card(title, this.fill(text), por === 'partner' ? (G.partner ? NPCS[G.partner].por : 'npc_girl') : por, list.map(o => this.fill(o[0])), { year: true });
     const o = list[k] || list[0];
     let ok = true;
-    if (o[3]) { let p = 0.5; const [st, base] = o[3].split(':'); if (base !== undefined) p = +base + (G.st[st] || 0) * 0.04; else p = +st; ok = Math.random() < Math.min(0.95, p); }
+    if (o[3]) { let p = 0.5; const [st, base] = String(o[3]).split(':'); if (base !== undefined) p = +base + (G.st[st] || 0) * 0.04; else p = +st; ok = Math.random() < Math.min(0.95, p); }
     const res = await this.apply(ok ? o[1] : o[4]);
     G.flags['ev_' + id] = (G.flags['ev_' + id] || 0) + 1;
     const txt = this.fill(ok ? o[2] : o[5]);

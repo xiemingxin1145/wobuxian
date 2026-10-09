@@ -145,13 +145,13 @@ const UI = {
   },
   p_comps(b) {
     const G = Game.G; const list = Object.keys(NPCS).filter(k => NPCS[k].comp);
-    b.innerHTML = '<p class="hint">好感≥60可邀请同行（参与战斗），好感≥100可结为道侣。闲聊、送礼、完成委托都能提升好感。</p>' + list.map(k => { const N = NPCS[k]; const a = G.aff[k] || 0; return `<div class="it"><i style="${porCss(N.por, 56)}"></i><div><b>${N.n} ${G.partner === k ? '💗道侣' : G.follower === k ? '（同行中）' : ''}</b><small>所在：${MAPINFO[N.map].n}</small><div class="aff"><i style="width:${Math.min(100, a)}%"></i></div></div><b class="hv">♥${a}</b></div>`; }).join('');
+    b.innerHTML = '<p class="hint">好感≥60可邀请同行（参与战斗），好感≥100可结为道侣。闲聊、送礼、完成委托都能提升好感。</p>' + list.map(k => { const N = NPCS[k]; const a = G.aff[k] || 0; return `<div class="it"><i style="${porCss(N.por, 56)}"></i><div><b>${N.n} ${G.partner === k ? '💗道侣' : G.follower === k ? '（同行中）' : ''}</b><small>所在：${MAPINFO[N.roam ? N.roam(G) : N.map].n}</small><div class="aff"><i style="width:${Math.min(100, a)}%"></i></div></div><b class="hv">♥${a}</b></div>`; }).join('');
   },
   p_quests(b) {
     const G = Game.G; const M = MAIN[G.main];
     b.innerHTML = `<h4>主线 · 天道讨债</h4><div class="it"><i style="${iconCss('bill', 44)}"></i><div><b>${M.n}</b><small>${M.d}</small></div></div>
       <div class="prog">${MAIN.slice(0, MAIN.length - 1).map((m, k) => `<span class="${k < G.main ? 'done' : k === G.main ? 'cur' : ''}">${k + 1}</span>`).join('')}</div>
-      <h4>支线</h4>${Object.keys(G.quests).length ? Object.keys(G.quests).map(q => `<div class="it"><i style="${porCss(NPCS[QUESTS[q].giver].por, 44)}"></i><div><b>${QUESTS[q].n} ${Game.questDone(q) ? '✔' : ''}</b><small>${QUESTS[q].d}<br>进度：${Game.questProg(q)}　（找${NPCS[QUESTS[q].giver].n}交付，${MAPINFO[NPCS[QUESTS[q].giver].map].n}）</small></div></div>`).join('') : '<p class="empty">暂无（头顶有“！”的NPC可以接任务）</p>'}
+      <h4>支线</h4>${Object.keys(G.quests).length ? Object.keys(G.quests).map(q => `<div class="it"><i style="${porCss(NPCS[QUESTS[q].giver].por, 44)}"></i><div><b>${QUESTS[q].n} ${Game.questDone(q) ? '✔' : ''}</b><small>${QUESTS[q].d}<br>进度：${Game.questProg(q)}　（找${NPCS[QUESTS[q].giver].n}交付，${MAPINFO[NPCS[QUESTS[q].giver].roam ? NPCS[QUESTS[q].giver].roam(G) : NPCS[QUESTS[q].giver].map].n}）</small></div></div>`).join('') : '<p class="empty">暂无（头顶有“！”的NPC可以接任务）</p>'}
       ${G.bounty ? `<h4>悬赏</h4><div class="it"><div><b>${MAPINFO[G.bounty.map].n}：击败${MONS[G.bounty.mon].n}</b><small>${(G.kills[G.bounty.mon] || 0) - G.bounty.k0}/${G.bounty.n}，完成后回告示栏领赏</small></div></div>` : ''}
       <p class="hint">已完成支线：${Object.keys(G.qdone).length} / ${Object.keys(QUESTS).length}</p>`;
   },
