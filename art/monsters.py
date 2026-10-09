@@ -1,0 +1,207 @@
+"""怪物与BOSS建模（非人形），统一 Rig 接口：root/body + 可选 limbs"""
+import math
+from lib import *
+import chars
+OL = chars.OL
+
+class MR:  # monster rig
+    def __init__(s): s.limbs = []; s.wings = []; s.kind = ''
+
+def _base(scale):
+    R = MR(); R.root = empty('root'); R.base = empty('base', parent=R.root); R.base.scale = (scale,) * 3
+    R.body = empty('body', parent=R.base); return R
+
+def eyes(parent, c, sep=0.12, r=0.07, col='#1a1010', glow=None, y=0.0):
+    for s in (-1, 1):
+        if glow:
+            sphere('eyeg', r, loc=(c[0] + s * sep, c[1] + y, c[2]), scale=(1, 0.5, 1.1), m=M(glow, emit=4.0, rough=0.2), parent=parent, seg=12, rings=8)
+        else:
+            sphere('eyew', r * 1.25, loc=(c[0] + s * sep, c[1] + y + 0.01, c[2]), scale=(1, 0.4, 1.15), m=M('#ffffff', rough=0.3), parent=parent, seg=12, rings=8)
+            sphere('eye', r * 0.7, loc=(c[0] + s * sep * 1.05, c[1] + y - 0.02, c[2] - 0.01), scale=(1, 0.45, 1.2), m=M(col, rough=0.15), parent=parent, seg=12, rings=8)
+            sphere('hl', r * 0.25, loc=(c[0] + s * sep * 1.05 + 0.02, c[1] + y - 0.05, c[2] + 0.03), m=M('#ffffff', emit=1.5), parent=parent, seg=8, rings=6)
+
+def slime(R):
+    b = R.body; m = M('#9a6cff', rough=0.15, spec=0.9, sss=0.3)
+    sphere('slime', 0.42, loc=(0, 0, 0.36), scale=(1.05, 1.0, 0.85), m=m, parent=b, outline=OL, seg=32, rings=20)
+    sphere('drip', 0.12, loc=(0.28, -0.2, 0.12), m=m, parent=b)
+    sphere('hl', 0.1, loc=(-0.15, -0.25, 0.6), scale=(1, 0.5, 0.6), m=M('#ffffff', emit=0.8, rough=0.1), parent=b, seg=12, rings=8)
+    eyes(b, (0, -0.33, 0.42), sep=0.14, r=0.08)
+    for s in (-1, 1): tube('brow', [(s * 0.22, -0.36, 0.56), (s * 0.06, -0.38, 0.52)], 0.018, m=M('#2a1040'), parent=b)
+    g = empty('bookp', (0.38, -0.12, 0.3), b); g.rotation_euler = (0, D(-20), D(-20)); R.limbs.append(g)
+    box('book', (0.24, 0.07, 0.32), m=M('#a02a2a', rough=0.6), parent=g, bevel=0.012)
+    box('label', (0.12, 0.005, 0.18), loc=(0, -0.038, 0.02), m=M('#f6efd8', rough=0.9), parent=g, bevel=0)
+    # 小帽子（讨债专用）
+    cyl('hat', 0.1, 0.09, 0.14, loc=(0.05, 0.02, 0.76), rot=(D(-8), D(10), 0), m=M('#2a2a34'), parent=b, seg=16, outline=OL)
+    cyl('brim', 0.17, 0.17, 0.02, loc=(0.05, 0.02, 0.7), rot=(D(-8), D(10), 0), m=M('#2a2a34'), parent=b, seg=16)
+
+def paper(R):
+    b = R.body; m = M('#ffd65a', rough=0.85, sss=0.15)
+    bm = bmesh.new(); W, H, n = 0.5, 0.95, 12
+    for i in range(n + 1):
+        for j in range(5):
+            x = -W / 2 + W * j / 4; z = 0.15 + H * i / n
+            y = 0.06 * math.sin(i * 0.9) + 0.04 * (x / W) ** 2 * 8
+            if i == 0: z += 0.05 * math.sin(j * 2.6)
+            bm.verts.new((x, y, z))
+    bm.verts.ensure_lookup_table()
+    for i in range(n):
+        for j in range(4):
+            a = i * 5 + j; bm.faces.new((bm.verts[a], bm.verts[a + 1], bm.verts[a + 6], bm.verts[a + 5]))
+    o = mesh_from_bm('paper', bm); bpy.context.scene.collection.objects.link(o); o.parent = b
+    o.data.materials.append(m); md = o.modifiers.new('s', 'SOLIDIFY'); md.thickness = 0.02
+    sd = o.modifiers.new('sub', 'SUBSURF'); sd.levels = 2; sd.render_levels = 2
+    for p in o.data.polygons: p.use_smooth = True
+    red = M('#d02a20', rough=0.7)
+    box('rl1', (0.03, 0.01, 0.5), loc=(0, -0.03, 0.5), m=red, parent=b, bevel=0)
+    for z, w in ((0.68, 0.24), (0.45, 0.18), (0.3, 0.28)): box('rl', (w, 0.01, 0.025), loc=(0, -0.035, z), m=red, parent=b, bevel=0)
+    eyes(b, (0, -0.05, 0.86), sep=0.1, r=0.06)
+    sphere('mouth', 0.05, loc=(0, -0.05, 0.76), scale=(1.2, 0.3, 0.7), m=M('#401010'), parent=b, seg=10, rings=6)
+    for s in (-1, 1):
+        g = empty('armp', (s * 0.26, 0, 0.7), b); R.limbs.append(g)
+        tube('arm', [(0, 0, 0), (s * 0.12, -0.05, -0.08), (s * 0.18, -0.1, -0.2)], 0.035, m=m, parent=g)
+
+def boar(R):
+    b = R.body; m = M('#5aa58a', rough=0.75, sheen=0.5); dk = M('#2f6b58', rough=0.8)
+    sphere('torso', 0.4, loc=(0, 0.05, 0.42), scale=(0.95, 1.25, 0.85), m=m, parent=b, outline=OL)
+    sphere('head', 0.3, loc=(0, -0.42, 0.5), m=m, parent=b, outline=OL)
+    sphere('snout', 0.14, loc=(0, -0.68, 0.43), scale=(1.2, 0.7, 0.9), m=M('#f0a0a8', rough=0.6), parent=b)
+    for s in (-1, 1):
+        sphere('nos', 0.03, loc=(s * 0.06, -0.77, 0.44), m=M('#401818'), parent=b, seg=8, rings=6)
+        tube('tusk', [(s * 0.12, -0.62, 0.36), (s * 0.18, -0.7, 0.48), (s * 0.14, -0.74, 0.58)], 0.03, m=M('#fffbe8', rough=0.3), parent=b, taper=[1, 0.7, 0.1])
+        cyl('ear', 0.1, 0.0, 0.2, loc=(s * 0.2, -0.36, 0.78), rot=(D(-20), s * D(30), 0), m=dk, parent=b, seg=10)
+    eyes(b, (0, -0.64, 0.6), sep=0.13, r=0.05, glow='#ff3a2a')
+    for i, (x, y) in enumerate(((-0.22, -0.2), (0.22, -0.2), (-0.22, 0.32), (0.22, 0.32))):
+        g = empty('leg', (x, y, 0.28), b); R.limbs.append(g)
+        cyl('legm', 0.08, 0.07, 0.24, loc=(0, 0, -0.14), m=dk, parent=g, seg=12)
+    for k in range(5): cyl('mane', 0.06, 0.0, 0.2, loc=(0, -0.2 + k * 0.12, 0.8 - k * 0.02), rot=(D(20), 0, 0), m=dk, parent=b, seg=8)
+
+def rock(R):
+    b = R.body; m = M('#8a8270', rough=0.9); m2 = M('#6f6858', rough=0.9)
+    import random; rr = random.Random(5)
+    sphere('core', 0.42, loc=(0, 0, 0.5), scale=(1, 0.9, 1.05), m=m, parent=b, seg=8, rings=6, outline=OL)
+    for k in range(7):
+        a = k / 7 * 6.28; sphere('chunk', 0.16 + rr.random() * 0.08, loc=(math.cos(a) * 0.33, math.sin(a) * 0.3, 0.3 + rr.random() * 0.5), m=m2, parent=b, seg=6, rings=5)
+    for s in (-1, 1):
+        g = empty('armp', (s * 0.45, 0, 0.55), b); R.limbs.append(g)
+        sphere('fist', 0.17, loc=(s * 0.05, -0.05, -0.2), m=m2, parent=g, seg=7, rings=5, outline=OL)
+    eyes(b, (0, -0.36, 0.6), sep=0.14, r=0.06, glow='#ffb030')
+    sphere('moss', 0.2, loc=(0.05, 0, 0.92), scale=(1.2, 1, 0.4), m=M('#6fbf4a', rough=0.9), parent=b, seg=10, rings=6)
+    cyl('sprout', 0.012, 0.012, 0.16, loc=(0.05, 0, 1.02), m=M('#4f9f3a'), parent=b, seg=6)
+    sphere('leaf', 0.06, loc=(0.1, 0, 1.1), scale=(1.4, 0.4, 0.6), m=M('#7fd05a'), parent=b, seg=8, rings=6)
+
+def fire(R):
+    b = R.body; m = M('#ff5a1a', emit=0.9, rough=0.3, emit_col=(1.0, 0.35, 0.05)); m2 = M('#ffd040', emit=1.6, emit_col=(1.0, 0.75, 0.2))
+    sphere('fb', 0.33, loc=(0, 0, 0.45), scale=(1, 1, 1.1), m=m, parent=b)
+    for k in range(5):
+        a = k / 5 * 6.28; cyl('flame', 0.13, 0.0, 0.45, loc=(math.cos(a) * 0.15, math.sin(a) * 0.15 + 0.05, 0.85), rot=(math.sin(a) * 0.4, -math.cos(a) * 0.4, 0), m=m, parent=b, seg=10)
+    sphere('core', 0.2, loc=(0, -0.08, 0.45), m=m2, parent=b)
+    eyes(b, (0, -0.34, 0.52), sep=0.1, r=0.07)
+    for s in (-1, 1):
+        g = empty('armp', (s * 0.3, 0, 0.45), b); R.limbs.append(g)
+        sphere('fh', 0.1, loc=(s * 0.08, -0.05, -0.05), m=m, parent=g)
+
+def treant(R):
+    b = R.body; bark = M('#7a5a3a', rough=0.9); leaf = M('#5fb85a', rough=0.8, sheen=0.4)
+    cyl('trunk', 0.34, 0.26, 0.8, loc=(0, 0, 0.42), m=bark, parent=b, seg=10, outline=OL)
+    for k in range(3):
+        a = k * 2.1; cyl('root', 0.08, 0.0, 0.3, loc=(math.cos(a) * 0.3, math.sin(a) * 0.3, 0.08), rot=(math.sin(a) * 1.2, -math.cos(a) * 1.2, 0), m=bark, parent=b, seg=6)
+    for x, y, z, r in ((0, 0, 1.0, 0.38), (-0.26, 0.05, 0.92, 0.26), (0.26, 0.05, 0.94, 0.27), (0, 0.1, 1.26, 0.25)):
+        sphere('crown', r, loc=(x, y, z), m=leaf, parent=b, seg=12, rings=8, outline=OL)
+    eyes(b, (0, -0.32, 0.6), sep=0.12, r=0.06, glow='#ffe060')
+    sphere('mouth', 0.08, loc=(0, -0.31, 0.42), scale=(1.3, 0.4, 0.6), m=M('#2a1a0a'), parent=b, seg=10, rings=6)
+    for s in (-1, 1):
+        g = empty('armp', (s * 0.32, 0, 0.7), b); R.limbs.append(g)
+        tube('branch', [(0, 0, 0), (s * 0.18, -0.05, -0.1), (s * 0.3, -0.1, -0.05), (s * 0.38, -0.12, 0.08)], 0.05, m=bark, parent=g, taper=[1, 0.8, 0.5, 0.2])
+        sphere('lf', 0.08, loc=(s * 0.38, -0.12, 0.12), m=leaf, parent=g, seg=8, rings=6)
+
+def crab(R):
+    b = R.body; m = M('#e0503a', rough=0.35, spec=0.7); m2 = M('#ff8a6a', rough=0.4)
+    sphere('shell', 0.38, loc=(0, 0, 0.42), scale=(1.25, 0.9, 0.6), m=m, parent=b, outline=OL)
+    sphere('belly', 0.3, loc=(0, -0.05, 0.36), scale=(1.2, 0.9, 0.45), m=m2, parent=b)
+    for s in (-1, 1):
+        cyl('stalk', 0.025, 0.025, 0.16, loc=(s * 0.12, -0.22, 0.66), m=m, parent=b, seg=8)
+        sphere('ew', 0.06, loc=(s * 0.12, -0.24, 0.76), m=M('#ffffff', rough=0.3), parent=b, seg=10, rings=8)
+        sphere('ep', 0.035, loc=(s * 0.12, -0.29, 0.77), m=M('#101010'), parent=b, seg=8, rings=6)
+        g = empty('claw', (s * 0.42, -0.15, 0.45), b); R.limbs.append(g)
+        tube('carm', [(0, 0, 0), (s * 0.1, -0.12, 0.08), (s * 0.12, -0.24, 0.12)], 0.05, m=m, parent=g)
+        sphere('pincer', 0.13, loc=(s * 0.13, -0.34, 0.14), scale=(0.8, 1.2, 0.7), m=m, parent=g, outline=OL)
+        for k in range(3):
+            cyl('cleg', 0.025, 0.015, 0.3, loc=(s * (0.38 + 0.02 * k), 0.05 + k * 0.12, 0.22), rot=(0, s * D(55), 0), m=m, parent=b, seg=6)
+    cyl('helm', 0.16, 0.12, 0.12, loc=(0, 0.05, 0.7), m=M('#c0a040', metal=0.8, rough=0.3), parent=b, seg=16)
+    cyl('spike', 0.03, 0.0, 0.14, loc=(0, 0.05, 0.82), m=M('#c0a040', metal=0.8, rough=0.3), parent=b, seg=8)
+
+def ghost(R):
+    b = R.body; m = M('#eef4ff', rough=0.5, sss=0.4, alpha=0.85)
+    lathe('gb', [(0.3, 0.12), (0.32, 0.35), (0.28, 0.6), (0.18, 0.78), (0.0, 0.84)], m=m, parent=b, seg=24, outline=OL)
+    for k in range(6):
+        a = k / 6 * 6.28; cyl('tat', 0.08, 0.0, 0.16, loc=(math.cos(a) * 0.24, math.sin(a) * 0.24, 0.06), rot=(D(180), 0, 0), m=m, parent=b, seg=8)
+    sphere('hair', 0.34, loc=(0, 0.14, 0.8), scale=(1, 1, 1.0), m=M('#151520', rough=0.5), parent=b, outline=OL)
+    tube('hairb', [(0, 0.2, 0.8), (0, 0.3, 0.5), (0, 0.3, 0.2)], 0.25, m=M('#151520'), parent=b, taper=[1, 1, 0.6])
+    sphere('face', 0.27, loc=(0, -0.14, 0.72), scale=(1, 0.8, 1), m=M('#f4f8ff', rough=0.5), parent=b)
+    eyes(b, (0, -0.37, 0.74), sep=0.1, r=0.05, glow='#60e0ff')
+    for s in (-1, 1):
+        g = empty('armp', (s * 0.28, -0.05, 0.6), b); R.limbs.append(g)
+        cyl('gsl', 0.06, 0.1, 0.3, loc=(s * 0.04, -0.1, -0.08), rot=(D(70), 0, 0), m=m, parent=g, seg=12)
+
+def tiandao(R):  # 讨尾款的天道
+    b = R.body; cl = M('#fbf8ff', rough=0.7, sss=0.3); gold = M('#ffcc40', metal=0.9, rough=0.2)
+    for x, y, z, r in ((0, 0, 0.9, 0.62), (-0.55, 0.05, 0.75, 0.42), (0.55, 0.05, 0.75, 0.44), (-0.3, 0.1, 1.3, 0.4), (0.32, 0.1, 1.32, 0.42), (0, 0.2, 1.5, 0.38), (-0.8, 0.1, 0.5, 0.28), (0.8, 0.1, 0.52, 0.3)):
+        sphere('cloud', r, loc=(x, y, z), m=cl, parent=b, outline=OL)
+    sphere('eyeW', 0.3, loc=(0, -0.48, 0.95), scale=(1.3, 0.4, 0.85), m=M('#ffffff', rough=0.2), parent=b)
+    sphere('iris', 0.17, loc=(0, -0.58, 0.95), scale=(1, 0.4, 1), m=M('#f0a020', emit=2.5, rough=0.1), parent=b)
+    sphere('pupil', 0.08, loc=(0, -0.63, 0.95), scale=(1, 0.4, 1), m=M('#201008'), parent=b)
+    torus('halo', 0.75, 0.04, loc=(0, 0.35, 1.25), rot=(D(80), 0, 0), m=M('#ffe070', emit=3.0, rough=0.2), parent=b)
+    lathe('crown', [(0.22, 0), (0.26, 0.1), (0.18, 0.22), (0.05, 0.32)], loc=(0, 0.15, 1.82), m=gold, parent=b, seg=16)
+    for s in (-1, 1):
+        g = empty('abp', (s * 1.05, -0.2, 1.0), b); R.limbs.append(g)
+        box('frame', (0.6, 0.08, 0.36), m=M('#8a5a2a', rough=0.5), parent=g, bevel=0.02)
+        for i in range(7):
+            for j in range(3): sphere('bead', 0.035, loc=(-0.24 + i * 0.08, -0.05, -0.1 + j * 0.1), m=gold, parent=g, seg=8, rings=6)
+    for k in range(3):  # 账单
+        box('bill', (0.22, 0.005, 0.3), loc=(-0.6 + k * 0.6, -0.65, 0.35 + (k % 2) * 0.12), rot=(D(-10), 0, D(-15 + k * 15)), m=M('#f8f0d8', rough=0.9, emit=0.2), parent=b, bevel=0)
+
+def dragon(R):  # 东海龙王
+    b = R.body; m = M('#2f8fc0', rough=0.3, spec=0.8, metal=0.2); belly = M('#f0d890', rough=0.5); gold = M('#ffcc40', metal=0.9, rough=0.2)
+    pts = [(0.6, 0.6, 0.2), (0.0, 0.7, 0.3), (-0.6, 0.4, 0.45), (-0.5, -0.1, 0.7), (0.1, -0.2, 0.95), (0.25, -0.35, 1.3)]
+    tube('serp', pts, 0.24, m=m, parent=b, taper=[0.35, 0.8, 1, 1, 0.95, 0.85])
+    for k in range(6): cyl('fin', 0.08, 0.0, 0.2, loc=(0.6 - k * 0.22, 0.6 - abs(k - 2) * 0.12, 0.4 + k * 0.06), rot=(D(-20), 0, 0), m=M('#e05a3a', rough=0.5), parent=b, seg=6)
+    h = empty('headp', (0.25, -0.42, 1.38), b); R.limbs.append(h)
+    sphere('head', 0.3, loc=(0, 0, 0), scale=(1, 1.3, 0.85), m=m, parent=h, outline=OL)
+    sphere('snout', 0.2, loc=(0, -0.32, -0.06), scale=(1, 1.2, 0.7), m=m, parent=h)
+    sphere('jaw', 0.17, loc=(0, -0.28, -0.18), scale=(1, 1.2, 0.5), m=belly, parent=h)
+    for s in (-1, 1):
+        tube('horn', [(s * 0.12, 0.1, 0.18), (s * 0.25, 0.25, 0.45), (s * 0.2, 0.42, 0.6)], 0.05, m=gold, parent=h, taper=[1, 0.6, 0.15])
+        tube('whisk', [(s * 0.12, -0.45, -0.05), (s * 0.35, -0.5, 0.0), (s * 0.55, -0.4, -0.2)], 0.015, m=gold, parent=h)
+        sphere('eye', 0.06, loc=(s * 0.16, -0.2, 0.12), scale=(1, 0.5, 1), m=M('#ffd040', emit=3.0), parent=h, seg=10, rings=8)
+    sphere('pearl', 0.13, loc=(-0.45, -0.55, 0.9), m=M('#e8f8ff', emit=1.5, rough=0.05), parent=b)
+    lathe('crownd', [(0.12, 0), (0.15, 0.06), (0.1, 0.12)], loc=(0, 0.05, 0.24), m=gold, parent=h, seg=12)
+
+def setup(kind, scale=1.2):
+    """返回 rig；kind 为 chibi 规格名或怪物名"""
+    if kind in MONS:
+        fn, sc = MONS[kind]; R = _base(scale * sc); R.kind = kind; fn(R); return R
+    raise KeyError(kind)
+
+MONS = {'slime': (slime, 1.0), 'paper': (paper, 1.0), 'boar': (boar, 1.0), 'rock': (rock, 1.0), 'fire': (fire, 1.0), 'treant': (treant, 1.0),
+        'crab': (crab, 1.0), 'ghost': (ghost, 1.0), 'tiandao': (tiandao, 1.0), 'dragon': (dragon, 1.0)}
+
+def mpose(R, anim, f, n):
+    t = f / max(1, n); s2 = math.sin(t * 2 * math.pi)
+    R.body.location = (0, 0, 0); R.body.rotation_euler = (0, 0, 0); R.body.scale = (1, 1, 1)
+    for i, g in enumerate(R.limbs): g.rotation_euler = (0, 0, 0)
+    if anim == 'idle':
+        R.body.scale = (1 + 0.03 * s2, 1 + 0.03 * s2, 1 - 0.04 * s2)
+        if R.kind in ('paper', 'ghost', 'fire', 'tiandao'): R.body.location = (0, 0, 0.05 + 0.04 * s2)
+        for i, g in enumerate(R.limbs): g.rotation_euler = (D(8 * s2 * (1 if i % 2 else -1)), 0, 0)
+    elif anim == 'walk':
+        hop = abs(math.sin(t * 2 * math.pi))
+        R.body.location = (0, 0, 0.08 * hop + (0.05 if R.kind in ('paper', 'ghost', 'fire') else 0))
+        R.body.rotation_euler = (D(-6), 0, D(6 * s2))
+        R.body.scale = (1 - 0.04 * hop, 1 - 0.04 * hop, 1 + 0.06 * hop)
+        for i, g in enumerate(R.limbs): g.rotation_euler = (D(30 * s2 * (1 if i % 2 else -1)), 0, 0)
+    elif anim == 'attack':
+        k = [(0.1, -12, 0.95), (0.15, -18, 0.9), (-0.25, 20, 1.12), (-0.3, 24, 1.15), (-0.05, 5, 1.0)][f]
+        R.body.location = (0, k[0], 0.05 if f == 2 else 0); R.body.rotation_euler = (D(k[1]), 0, 0); R.body.scale = (1, k[2], 2 - k[2])
+        for i, g in enumerate(R.limbs): g.rotation_euler = (D(-60 if f in (2, 3) else 40), 0, 0)
+    elif anim == 'hurt':
+        R.body.location = (0, 0.12, 0); R.body.rotation_euler = (D(14), 0, D(-8)); R.body.scale = (1.06, 1.06, 0.9)

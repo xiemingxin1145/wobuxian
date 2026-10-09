@@ -3,94 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#1a1430">
-<title>我不仙 · 修仙人生模拟器</title>
-<link rel="stylesheet" href="style.css">
+<meta name="theme-color" content="#1a2238">
+<title>我不仙 · 修仙人生模拟器 2.0</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <canvas id="cv"></canvas>
-
-<!-- 标题 -->
-<div id="title" class="screen">
-  <div class="logo-wrap">
-    <div class="logo-sub top">修仙人生模拟器</div>
-    <div class="logo">我不仙</div>
-    <div class="logo-sub">从凡人开始 · 欠天道一个飞升</div>
-  </div>
-  <div class="tbottom"><div class="menu">
-    <button class="btn gold" id="bContinue">继续此生</button>
-    <button class="btn" id="bNew">投胎转世</button>
-    <div class="row2"><button class="btn red sm" id="bMeta">轮回殿</button><button class="btn red sm" id="bHist">往世录</button></div>
-    <div class="row2"><button class="btn ghost sm" id="bMusic">音乐：开</button><button class="btn ghost sm" id="bHelp">玩法</button></div>
-  </div>
-  <div class="meta-line" id="metaLine"></div></div>
-</div>
-
-<!-- 创建角色：天赋 -->
-<div id="talentScr" class="screen">
-  <div class="panel tall">
-    <div class="ptitle">天赋抽签 <small>选择 3 个</small></div>
-    <div class="hint">命里有时终须有，命里无时……可以刷新</div>
-    <div id="talentList" class="cards"></div>
-    <div class="row2 bottom"><button class="btn ghost sm" id="bReroll">刷新(1)</button><button class="btn gold" id="bTalentOk">下一步</button></div>
-  </div>
-</div>
-
-<!-- 创建角色：属性 -->
-<div id="statScr" class="screen">
-  <div class="panel tall">
-    <div class="ptitle">投胎设定</div>
-    <div class="namebox"><span>姓名</span><b id="nameV">李二狗</b><button class="btn ghost xs" id="bName">换一个</button></div>
-    <div class="lingbox"><span>灵根</span><b id="lingV">？？？</b><button class="btn ghost xs" id="bLing">摸骨</button></div>
-    <div class="lingdesc" id="lingD">出生后才知道</div>
-    <div class="ptitle s">先天属性 <small>剩余 <b id="ptsV">0</b> 点</small></div>
-    <div id="statList"></div>
-    <div class="row2 bottom"><button class="btn ghost sm" id="bRand">随机分配</button><button class="btn gold" id="bBorn">呱呱坠地！</button></div>
-  </div>
-</div>
-
-<!-- 游戏 -->
-<div id="hud" class="hidden">
-  <div class="hud-row">
-    <div class="seal" id="hRealm">凡人</div>
-    <div class="hname"><b id="hName">某某</b><span id="hLoc">桃花村</span></div>
-    <div class="hstone"><i class="coin"></i><b id="hStone">0</b></div>
-    <button class="ib" id="bMenu">☰</button>
-  </div>
-  <div class="bars">
-    <div class="bar"><i>寿</i><div class="track"><div class="fill life" id="hLifeF"></div></div><em id="hLife">0/70</em></div>
-    <div class="bar"><i>修</i><div class="track"><div class="fill exp" id="hExpF"></div></div><em id="hExp">0/20</em></div>
-  </div>
-  <div class="statline" id="hStats"></div>
-</div>
-<div id="battleTag" class="hidden">斗法中 · 点击加速</div>
-<div id="banner" class="hidden"></div>
-<div id="bottom" class="hidden">
-  <div id="log"></div>
-  <div id="actions"></div>
-  <div class="subbar">
-    <button class="btn ghost sm" id="bMap">地 图</button>
-    <button class="btn ghost sm" id="bBag">行 囊</button>
-    <button class="btn gold sm" id="bBreak">突 破</button>
-  </div>
-</div>
-
-<!-- 结算 -->
-<div id="deathScr" class="screen">
-  <div class="panel tall scroll">
-    <div class="ptitle" id="dTitle">此生已尽</div>
-    <div id="dBody"></div>
-    <div class="row2 bottom"><button class="btn red sm" id="dMeta">轮回殿</button><button class="btn gold" id="dAgain">再入轮回</button></div>
-  </div>
-</div>
-
-<!-- 通用弹窗 -->
-<div id="modal" class="hidden"><div class="panel" id="mBox"></div></div>
+<div id="hud"><div class="por"></div><div class="info"><div class="l1"><b class="nm"></b><span class="rl"></span></div><div class="age"></div>
+  <div class="bar" id="hp"><i></i><b></b></div><div class="bar" id="mp"><i></i></div><div class="bar" id="xp"><i></i><b></b></div></div></div>
+<div id="money"></div>
+<div id="qt"></div>
+<div id="ap"></div>
+<div id="menu"></div>
+<button id="yearbtn"></button>
+<button id="brkbtn">突破</button>
+<div id="battlebar"></div>
+<div id="banner"></div>
+<div id="toasts"></div>
+<div id="modals"></div>
+<div id="title"></div>
 <div id="fade"></div>
-
+<div id="swirl"></div>
+<div id="loading"><div class="spin"></div><span>加载中…</span></div>
+<script src="assets/assets.js"></script>
 <script src="js/data.js"></script>
+<script src="js/events.js"></script>
+<script src="js/engine.js"></script>
 <script src="js/audio.js"></script>
-<script src="js/render.js"></script>
+<script src="js/battle.js"></script>
 <script src="js/game.js"></script>
+<script src="js/talk.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

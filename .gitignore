@@ -14,3 +14,11 @@ test/*.png
 test/*.log
 __pycache__/
 .DS_Store
+# v2 美术原始渲染产物与工程文件（体积大，可由 art/render_all.sh 重新生成）
+art/out/
+art/__pycache__/
+*.blend
+*.blend1
+test/out2/
+test/shots/
+test/*.log

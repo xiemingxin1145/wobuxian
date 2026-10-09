@@ -1,429 +1,516 @@
-/* 我不仙 · 修仙人生模拟器 — 游戏逻辑 */
 'use strict';
-const $ = id => document.getElementById(id);
+// ======================= 游戏状态与人生循环 =======================
 const rnd = (a, b) => a + Math.random() * (b - a);
-const pick = a => a[(Math.random() * a.length) | 0];
-const sleep = ms => new Promise(r => setTimeout(r, ms / (G0 && G0.fast ? 3 : 1)));
-const LS_LIFE = 'wbx_life_v1', LS_META = 'wbx_meta_v1';
-let S = null; // 当前人生
-let META_S = loadMeta();
-let busy = false;
-
-function loadMeta() { try { const m = JSON.parse(localStorage.getItem(LS_META)); if (m) return Object.assign({ pts: 0, lv: {}, lives: [], best: 0, n: 0 }, m); } catch (e) {} return { pts: 0, lv: {}, lives: [], best: 0, n: 0 }; }
-function saveMeta() { try { localStorage.setItem(LS_META, JSON.stringify(META_S)); } catch (e) {} }
-function saveLife() { try { if (S && S.alive) localStorage.setItem(LS_LIFE, JSON.stringify(S)); else localStorage.removeItem(LS_LIFE); } catch (e) {} }
-function loadLife() { try { return JSON.parse(localStorage.getItem(LS_LIFE)); } catch (e) { return null; } }
-const mlv = id => META_S.lv[id] || 0;
-
-/* ================= 辅助（事件可用） ================= */
-const G0 = {
-  fast: false,
-  has: id => !!(S && S.talents.includes(id)),
-  mod(k) { let v = 0; if (!S) return 0; for (const id of S.talents) { const t = TALENTS.find(x => x.id === id); if (t && t.m && t.m[k]) v += t.m[k]; } return v; },
-  roll(p) { return Math.random() < Math.max(0.02, Math.min(0.98, p)); },
-  stat(k, n) { S.st[k] = Math.max(0, S.st[k] + n); pop((n > 0 ? '+' : '') + n + ' ' + STATS.find(x => x[0] === k)[1], n > 0 ? '#9fe8ff' : '#ff8a8a'); },
-  stones(n) { n = Math.round(n); S.stones += n; if (S.stones < 0 && !G0.has('szjj') && n < 0) S.stones = 0; if (n) { pop((n > 0 ? '+' : '') + n + ' 灵石', n > 0 ? '#ffe08a' : '#ff8a8a'); if (n > 0) SFX.coin(); } },
-  life(n) { S.lifeBonus += n; if (n) pop((n > 0 ? '+' : '') + n + ' 寿元', n > 0 ? '#b0ffb0' : '#ff8a8a'); },
-  item(id, n) { S.items[id] = (S.items[id] || 0) + n; if (S.items[id] <= 0) delete S.items[id]; if (n > 0) pop('获得 ' + ITEMS[id].n, '#ffd0ff'); },
-  cultYear(mult) { const g = cultGain() * mult; addExp(g); return g; },
-  unlock(loc) { S.unlocked[loc] = 1; },
-  battle: (kind, mul, name) => battle(kind, mul, name),
-};
-const G = G0;
-
-/* ================= 数值 ================= */
-function lifespan(s = S) { return Math.floor(REALMS[s.realm].life * (1 + G0.mod('life') + mlv('life') * 0.08) * (1 + s.st.con * 0.01)) + s.lifeBonus; }
-function needExp(s = S) { return REALMS[s.realm].need; }
-function locMul() { return { village: 1, sect: 1.5, market: 0.85, secret: 1.3 }[S.loc] || 1; }
-function cultGain() {
-  let g = needExp() * 0.2 / (1 + S.realm * 0.45) * LINGGEN[S.ling].mul * (1 + S.st.int * 0.04) * (1 + G0.mod('cult')) * locMul();
-  if (S.injured > 0) g *= 0.5; if (G0.has('dqwc') && S.age >= 50) g *= 2; if (S.realm === 0 && !S.flags.manual) g *= 0.35;
-  return g * rnd(0.85, 1.15);
-}
-function addExp(g) {
-  if (S.realm >= 7) return; const R0 = REALMS[S.realm]; S.exp += g;
-  while (S.exp >= R0.need && S.stage < R0.stages - 1) { S.exp -= R0.need; S.stage++; R.ring(...R.screenOf(player(), -10), '#9fe8ff', 60); log('<span class="res">修为精进，晋入' + realmName() + '！</span>'); SFX.chime(); }
-  if (S.exp > R0.need) S.exp = R0.need;
-  if (g > 0.5) pop('+' + Math.round(g) + ' 修为', '#9fe8ff');
-}
-function power(s = S) { return (10 + s.st.con * 2 + s.st.int * 0.6) * Math.pow(3.2, s.realm) * (1 + s.stage * 0.25) * (1 + G0.mod('pow')) * (s.flags.mentor ? 1.1 : 1) * (s.injured > 0 ? 0.7 : 1); }
-function realmName(s = S) { const r = REALMS[s.realm]; return r.stages > 1 ? r.n + STAGES[s.stage] : r.n; }
-function canBreak() { return S.realm < 7 && S.stage === REALMS[S.realm].stages - 1 && S.exp >= needExp() && S.age >= 8; }
-
-/* ================= 场景演员 ================= */
-let PL = null;
-function player() { return PL; }
-function playerLook() { const r = REALMS[S.realm]; return { hair: S.look.hair, ribbon: S.look.ribbon, robe: S.age < 6 ? '#ffd0a0' : r.robe, robe2: '#fff', belt: r.col, sword: S.realm >= 1 || S.flags.mentor, aura: r.aura, scale: S.age < 6 ? 0.9 : S.age < 14 ? 1.05 : 1.22, label: S.name, labelCol: '#fff6c0', longhair: S.look.long }; }
-function populate(loc) {
-  R.clearActors(); PL = null;
-  const npc = (spec, o = {}) => R.addActor(Object.assign({}, spec, { scale: 1.05, speed: 0.7 }, o));
-  if (S) { PL = R.addActor(Object.assign(playerLook(), { speed: 1.2 })); }
-  if (loc === 'village') {
-    if (!S || S.age < 30) npc(NPC.mom, { label: '娘' });
-    npc({ hair: '#3a2a1a', robe: '#7a9a5a', hat: 'straw', bun: false, label: '王大爷', beard: true });
-    npc({ hair: '#222', robe: '#e0a080', ribbon: '#5a8fd8', scale: 0.7, label: '小花' });
-    if (!S || (S.flags.mentor && !S.flags.mentorGone)) npc(NPC.mentor, { label: '落魄剑仙', speed: 0.4 });
-  } else if (loc === 'sect') {
-    npc(NPC.elder, { label: '掌门', speed: 0.4 }); npc(NPC.sister, { label: '师姐' });
-    for (let k = 0; k < 3; k++) npc({ hair: '#2a1b14', robe: '#f4f4f4', robe2: '#2f8a7a', belt: '#2f8a7a', sword: true, ribbon: '#2f8a7a', label: '弟子' });
-  } else if (loc === 'market') {
-    npc(NPC.merchant, { label: '钱多多', speed: 0.3 });
-    for (let k = 0; k < 4; k++) npc({ hair: pick(['#2a1b14', '#5a3a22', '#888']), robe: pick(['#c86a6a', '#6a8ac8', '#c8a86a', '#8ac86a']), hat: Math.random() < 0.4 ? 'straw' : null, bun: Math.random() < 0.6, label: pick(['路人', '散修', '小贩', '游客']) });
-  } else if (loc === 'secret') {
-    for (const m of ['slime', 'paper', 'beast', 'paper', 'slime']) R.addActor({ monster: m, scale: 1.15, speed: 0.6, shadow: 1.1 });
-  }
-}
-function refreshPlayerLook() { if (PL) Object.assign(PL, playerLook()); }
-function pop(text, col) { if (!PL) return; const [x, y] = R.screenOf(PL, -75); R.floatText(x + rnd(-20, 20), y + rnd(-10, 10), text, col, 13); }
-
-/* ================= UI 基础 ================= */
-function showScreen(id) { document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.id === id)); const game = id === 'game'; ['hud', 'bottom'].forEach(x => $(x).classList.toggle('hidden', !game)); if (game) layout(); else if (id === 'title') requestAnimationFrame(() => { const a = document.querySelector('.logo-wrap').getBoundingClientRect(), b = document.querySelector('#title .menu').getBoundingClientRect(); R.setLayout(a.bottom - 20, window.innerHeight - b.top - 10); }); else R.setLayout(0, 0); }
-function layout() { requestAnimationFrame(() => R.setLayout($('hud').offsetHeight, $('bottom').offsetHeight)); }
-function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.innerHTML = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); }
-function banner(t, sub) { const b = $('banner'); b.innerHTML = t + (sub ? '<small>' + sub + '</small>' : ''); b.classList.remove('hidden'); b.style.animation = 'none'; b.offsetHeight; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => b.classList.add('hidden'), 2000); }
-async function fade(fn) { $('fade').classList.add('on'); await new Promise(r => setTimeout(r, 360)); await fn(); $('fade').classList.remove('on'); }
-let modalClose = null;
-function openModal(html, closable = true) { $('mBox').innerHTML = html; $('modal').classList.remove('hidden'); modalClose = closable ? closeModal : null; }
-function closeModal() { $('modal').classList.add('hidden'); modalClose = null; }
-$('modal').addEventListener('click', e => { if (e.target.id === 'modal' && modalClose) { SFX.click(); modalClose(); } });
-function bind(id, fn) { const el = typeof id === 'string' ? $(id) : id; el.addEventListener('click', e => { SFX.unlock(); SFX.click(); fn(e); }); }
-function log(html, age = S.age) { S.log.push({ a: age, t: html }); if (S.log.length > 160) S.log.splice(0, S.log.length - 160); appendLog(S.log[S.log.length - 1]); }
-function appendLog(e) { const p = document.createElement('p'); p.innerHTML = '<span class="age">' + e.a + '岁</span>' + e.t; const L = $('log'); L.appendChild(p); while (L.children.length > 60) L.firstChild.remove(); L.scrollTop = L.scrollHeight; }
-function renderLog() { const L = $('log'); L.innerHTML = ''; S.log.slice(-60).forEach(appendLog); }
-
-/* ================= HUD 与行动 ================= */
-const LOCS = {
-  village: { n: '桃花村', d: '生你养你的小山村，桃花开得很随便', ok: () => true },
-  sect: { n: '青云宗', d: '正道大派，修炼速度×1.5，食堂很好吃', ok: () => S.unlocked.sect, lock: '需要拜入宗门' },
-  market: { n: '云来坊市', d: '买卖丹药、摆摊赚钱、被骗', ok: () => S.age >= 12, lock: '12岁后可去' },
-  secret: { n: '万妖秘境', d: '斩妖历练，机缘与危险并存', ok: () => S.realm >= 1, lock: '练气期后可入' }
-};
-function updateHUD() {
-  const r = REALMS[S.realm], L = lifespan();
-  $('hRealm').textContent = realmName(); $('hRealm').style.background = 'linear-gradient(180deg,' + r.col + ',#5a2010)';
-  $('hName').textContent = S.name + (S.injured > 0 ? '（负伤）' : ''); $('hLoc').textContent = LOCS[S.loc].n + ' · ' + LINGGEN[S.ling].n + ' · 第' + (META_S.n + 1) + '世';
-  $('hStone').textContent = S.stones; $('hStone').style.color = S.stones < 0 ? '#ff7a6a' : '';
-  $('hLife').textContent = S.age + '/' + L; $('hLifeF').style.width = Math.min(100, S.age / L * 100) + '%';
-  const need = needExp(); $('hExp').textContent = S.realm >= 7 ? '∞' : Math.floor(S.exp) + '/' + need; $('hExpF').style.width = (S.realm >= 7 ? 100 : Math.min(100, S.exp / need * 100)) + '%';
-  $('hStats').innerHTML = STATS.map(([k, n]) => n + '<b>' + S.st[k] + '</b>').join('') + '战力<b>' + Math.round(power()) + '</b>';
-  const cb = canBreak(); $('bBreak').disabled = !cb; $('bBreak').classList.toggle('glow', cb);
-  $('bBreak').innerHTML = cb ? (S.realm === 6 ? '飞 升' : '突 破') : '突 破';
-  renderActions(); refreshPlayerLook();
-}
-function closedYears() { return S.realm >= 5 ? 20 : S.realm >= 4 ? 10 : S.realm >= 3 ? 5 : S.realm >= 2 ? 3 : 1; }
-function actionsFor() {
-  if (S.age < 6) return [{ id: 'grow', n: '长大一岁', d: '吃饭、睡觉、被鹅追', wide: 1 }];
-  const cy = closedYears(), cult = { id: 'cult', n: cy > 1 ? '闭关' + cy + '年' : (S.realm === 0 && !S.flags.manual ? '瞎练吐纳' : '打坐修炼'), d: cy > 1 ? '一闭眼就是' + cy + '年' : (S.realm === 0 && !S.flags.manual ? '没有功法，效果减半' : '修为+') };
-  const A = {
-    village: [cult, { id: 'farm', n: '下地干活', d: '体魄+ 灵石+' }, { id: 'read', n: '读书识字', d: '悟性+' }, { id: 'work', n: '镇上打工', d: '灵石++' }],
-    sect: [cult, { id: 'quest', n: '宗门任务', d: '灵石+ 修为+' }, { id: 'lib', n: '藏经阁', d: '悟性+ 修为+' }, { id: 'spar', n: '同门切磋', d: '斗法 体魄+' }],
-    market: [cult, { id: 'stall', n: '摆摊卖货', d: '魅力越高赚越多' }, { id: 'shop', n: '逛丹药铺', d: '不消耗时间' }, { id: 'rumor', n: '打听消息', d: '必定触发奇遇' }],
-    secret: [cult, { id: 'hunt', n: '斩妖历练', d: '斗法 掉落丰厚' }, { id: 'herb', n: '采集灵药', d: '灵石+ 小概率丹药' }, { id: 'treasure', n: '寻找机缘', d: '看气运' }]
-  };
-  return A[S.loc];
-}
-function renderActions() {
-  const box = $('actions'); box.innerHTML = '';
-  for (const a of actionsFor()) { const b = document.createElement('button'); b.className = 'btn' + (a.wide ? ' wide gold' : '') + (a.id === 'cult' ? ' gold' : ''); b.innerHTML = a.n + '<small>' + a.d + '</small>'; bind(b, () => doAction(a.id)); box.appendChild(b); }
-}
-
-/* ================= 一年 ================= */
-async function doAction(id) {
-  if (busy || !S || !S.alive) return; busy = true;
-  try {
-    if (id === 'shop') { await shopModal(); return; }
-    let years = 1, cultivated = false;
-    const P = PL ? R.screenOf(PL, -30) : [0, 0];
-    switch (id) {
-      case 'grow': log(pick(['你长大了一岁，饭量也长了。', '你又长高了一截，裤子短了。', '你学会了爬树，然后学会了从树上掉下来。', '你在村口玩泥巴，捏了一个“仙人”。', '你听说书先生讲剑仙的故事，听得口水直流。', '你帮娘喂鸡，鸡啄了你一口。'])); break;
-      case 'cult': { years = closedYears(); cultivated = true; const g = cultGain() * years; R.ring(P[0], P[1] + 20, '#9fe8ff', 70, 0.9); R.burst(P[0], P[1], 26, '#bff4ff', 50, 1.2, 2.5, -30); addExp(g);
-        log((years > 1 ? '你闭关' + years + '年，' : '你打坐修炼一年，') + pick(['灵气入体，如沐春风。', '期间睡着了几次，但修为还是涨了。', '隐约听见丹田里有人在唱《我不仙》。', '你感觉离长生又近了一小步。', '腿麻了，但值得。']) + ' <span class="res">修为+' + Math.round(g) + '</span>'); break; }
-      case 'farm': { G.stat('con', G.roll(0.55) ? 1 : 0); const g = Math.round(rnd(10, 22)); G.stones(g); log('你下地干了一年活，晒得黝黑。<span class="res">灵石+' + g + '</span>'); break; }
-      case 'read': { const ok = G.roll(0.6); if (ok) G.stat('int', 1); log('你读了一年书' + (ok ? '，<span class="res">悟性+1</span>' : '，主要读的是话本小说。')); break; }
-      case 'work': { const g = Math.round(rnd(25, 45) * (1 + S.st.cha * 0.05) * (1 + S.realm * 0.5)); G.stones(g); log(pick(['你在镇上酒楼端盘子', '你给镖局当趟子手', '你在药铺捣药', '你给人写家书']) + '，<span class="res">灵石+' + g + '</span>'); break; }
-      case 'quest': { const g = Math.round(40 * (S.realm + 1) * rnd(0.8, 1.3)); G.stones(g); addExp(cultGain() * 0.5); log(pick(['你去后山除了一窝灵鼠', '你帮长老送了一年快递', '你看守了一年丹炉，炉没炸']) + '。<span class="res">灵石+' + g + '</span>'); break; }
-      case 'lib': { const ok = G.roll(0.55); if (ok) G.stat('int', 1); addExp(cultGain() * 0.6); log('你在藏经阁泡了一年' + (ok ? '，<span class="res">悟性+1</span>' : '，把《修仙界八卦周刊》全看完了。')); break; }
-      case 'spar': { const win = await battle('rival', 0.8, '同门师兄'); if (win) { G.stat('con', 1); addExp(cultGain() * 0.6); log('切磋获胜！<span class="res">体魄+1，修为+</span>'); } else { log('你被师兄按在地上摩擦。<span class="bad">（但学到了）</span>'); addExp(cultGain() * 0.3); } break; }
-      case 'stall': { const g = Math.round(50 * (S.realm + 1) * (1 + S.st.cha * 0.06) * rnd(0.6, 1.4)); G.stones(g); log('你摆了一年摊，' + pick(['卖的是自己画的符（不灵）', '卖的是“剑仙同款”葫芦', '卖的是后山挖的萝卜，号称人参']) + '。<span class="res">灵石+' + g + '</span>'); break; }
-      case 'rumor': log('你在茶馆泡了一年，听到了不少消息。'); break;
-      case 'hunt': { const kinds = ['slime', 'paper', 'beast', 'rock', 'fox']; const k = pick(kinds); const nm = { slime: '讨债妖', paper: '纸符小鬼', beast: '獠牙灵兽', rock: '石头精', fox: '狐妖' }[k];
-        const win = await battle(k, rnd(0.8, 1.15), nm); if (win) { const g = Math.round(30 * (S.realm + 1) * rnd(0.8, 1.6)); G.stones(g); addExp(cultGain() * 0.7); S.kills++; log('你斩杀了' + nm + '！<span class="res">灵石+' + g + '，修为+</span>'); if (G.roll(0.12)) G.item(pick(['pyd', 'hcd', 'zjd']), 1); }
-        else { S.injured = Math.max(S.injured, 2); G.life(-1); log('你被' + nm + '打伤，狼狈逃回。<span class="bad">负伤两年，寿元-1</span>'); } break; }
-      case 'herb': { const g = Math.round(25 * (S.realm + 1) * rnd(0.7, 1.4)); G.stones(g); let t = '你采了一年药，<span class="res">灵石+' + g + '</span>'; if (G.roll(0.2 + S.st.luck * 0.02)) { const it = pick(['hcd', 'pyd', 'zjd']); G.item(it, 1); t += '，还炼出一颗<span class="gold">' + ITEMS[it].n + '</span>'; } log(t); break; }
-      case 'treasure': { if (G.roll(0.3 + S.st.luck * 0.03)) { const g = Math.round(100 * (S.realm + 1) * rnd(0.8, 2)); G.stones(g); addExp(cultGain()); log('<span class="gold">你找到了前辈坐化的洞府！灵石+' + g + '，修为大涨</span>'); R.burst(P[0], P[1], 40, '#ffd75e', 80, 1.2); }
-        else if (G.roll(0.5)) { const win = await battle('beast', 1.15, '守宝妖兽'); log(win ? '你击败守宝妖兽，获得一些灵石。' : '<span class="bad">守宝妖兽太强，你负伤逃走</span>'); if (win) G.stones(60 * (S.realm + 1)); else S.injured = 2; }
-        else log('你找了一年，只找到一只臭袜子。（师父的）'); break; }
-    }
-    if (!cultivated && G.has('myxf') && S.age >= 6) { const g = cultGain() * 0.4 * years; addExp(g); log('（摸鱼心法自动运转，<span class="res">修为+' + Math.round(g) + '</span>）'); }
-    await passYears(years, id === 'rumor');
-  } finally { busy = false; if (S && S.alive) { updateHUD(); saveLife(); } }
-}
-async function passYears(n, forceEvent) {
-  S.age += n; if (S.injured > 0) S.injured = Math.max(0, S.injured - n);
-  if (G.has('chi')) S.stones -= 10 * n; if (G.has('qzt')) S.stones -= 20 * n;
-  if (S.stones < 0 && !G.has('szjj')) S.stones = 0;
-  if (S.age >= 6 && S.age < 18 && n === 1) { const g = Math.round(S.st.wealth * 3); if (g > 0) S.stones += g; }
-  updateHUD();
-  const pEv = S.age < 6 ? 0.85 : 0.5 + (G.has('hl') ? 0.15 : 0);
-  if (forceEvent || Math.random() < pEv) await randomEvent(forceEvent);
-  if (S.alive && S.age >= lifespan()) await die('寿终正寝', '你在一个阳光很好的午后，安详地闭上了眼睛。');
-}
-function eligible() { return EVENTS.filter(e => { try { return (!e.once || !S.seen[e.id]) && e.cond(S, G); } catch (x) { return false; } }); }
-async function randomEvent(force) {
-  const list = eligible(); if (!list.length) return;
-  const ws = list.map(e => e.dyn ? e.dyn(S) : e.w); const tot = ws.reduce((a, b) => a + b, 0); if (tot <= 0) return;
-  let r = Math.random() * tot, ev = list[0]; for (let i = 0; i < list.length; i++) { r -= ws[i]; if (r <= 0) { ev = list[i]; break; } }
-  S.seen[ev.id] = 1; await runEvent(ev);
-}
-async function runEvent(ev) {
-  const text = typeof ev.text === 'function' ? ev.text(S) : ev.text; SFX.event();
-  if (!ev.choices) { const res = await ev.f(S, G); log(text + (res ? ' <span class="res">' + res + '</span>' : '')); return; }
-  const npc = ev.npc ? NPC[ev.npc] : null;
-  const choice = await new Promise(res => {
-    openModal('<div class="ev">' + (npc ? '<canvas id="evPic"></canvas>' : '') + '<div><div class="who">' + (npc ? npc.name : '奇遇') + '</div><div class="txt">' + text + '</div></div></div><div class="choices" id="evCh"></div>', false);
-    if (npc) R.portrait($('evPic'), npc);
-    const box = $('evCh'); ev.choices.forEach(c => { const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = c.t; bind(b, () => res(c)); box.appendChild(b); });
-  });
-  closeModal();
-  const out = await choice.f(S, G);
-  log(text + ' 你选择【' + choice.t + '】。<span class="res">' + (out || '') + '</span>');
-  if (S.alive) await new Promise(res => { openModal('<div class="ev">' + (npc ? '<canvas id="evPic"></canvas>' : '') + '<div><div class="who">' + (npc ? npc.name : '奇遇') + '</div><div class="result">' + (out || '无事发生') + '</div></div></div><div class="choices"><button class="btn" id="evOk">知道了</button></div>', false); if (npc) R.portrait($('evPic'), npc); bind('evOk', () => { closeModal(); res(); }); });
-  updateHUD();
-}
-
-/* ================= 斗法 ================= */
-const PROJ = { slime: 'orb', paper: 'talisman', beast: 'fire', rock: 'orb', fox: 'fire', collector: 'talisman', rival: 'sword', boss: 'orb' };
-async function battle(kind, mul, name) {
-  const P = PL; if (!P) return Math.random() < 0.5;
-  const myPow = power(), enPow = myPow * mul * rnd(0.8, 1.2);
-  let myHp = myPow * 5.5, enHp = enPow * 5;
-  // 先模拟
-  const rounds = []; let a = myHp, b = enHp, turn = 0;
-  while (a > 0 && b > 0 && turn < 14) { if (turn % 2 === 0) { const crit = Math.random() < 0.06 + S.st.luck * 0.015; const d = myPow * rnd(0.8, 1.2) * (crit ? 1.8 : 1); b -= d; rounds.push({ me: 1, d, crit }); } else { const d = enPow * rnd(0.8, 1.2); a -= d; rounds.push({ me: 0, d }); } turn++; }
-  const win = b <= 0 || (a > 0 && a / myHp > b / enHp);
-  // 演出
-  const save = { i: P.i, j: P.j, fixed: P.fixed };
-  P.fixed = true; P.i = 3.5; P.j = 6.5; P.face = 1; P.hp = myHp; P.hpMax = myHp; P.hpShow = myHp; P.hpCol = '#5fd6c0';
-  const E = R.addActor({ monster: kind, i: 6.5, j: 3.5, fixed: true, face: -1, scale: kind === 'boss' ? 1.9 : 1.35, label: name, labelCol: '#ffb0b0', hp: enHp, hpMax: enHp, hpShow: enHp, shadow: kind === 'boss' ? 2 : 1.1 });
-  R.ents.forEach(e => { if (e.kind === 'actor' && e !== P && e !== E) e.alpha = 0.25; });
-  $('battleTag').classList.remove('hidden'); G0.fast = false;
-  const tap = () => { G0.fast = true; }; document.addEventListener('pointerdown', tap);
-  const ps = () => R.screenOf(P, -30), es = () => R.screenOf(E, -30);
-  R.ring(...es(), '#ff6a6a', 50); await sleep(500);
-  for (const rd of rounds) {
-    const from = rd.me ? ps() : es(), to = rd.me ? es() : ps(), tgt = rd.me ? E : P;
-    SFX.swish();
-    await new Promise(res => R.proj(from, to, rd.me ? 'sword' : PROJ[kind], 0.35 / (G0.fast ? 2.5 : 1), res));
-    tgt.hp = Math.max(0, tgt.hp - rd.d); tgt.flashT = 0.12; SFX.hit(); R.shake = rd.crit ? 9 : 4;
-    R.burst(to[0], to[1], rd.crit ? 26 : 14, rd.me ? '#bff4ff' : '#ffb080', 70, 0.6, 2.6, 80);
-    R.floatText(to[0] + rnd(-8, 8), to[1] - 26, (rd.crit ? '暴击 ' : '-') + Math.round(rd.d), rd.me ? (rd.crit ? '#ffd75e' : '#fff') : '#ff7a6a', rd.crit ? 20 : 15);
-    await sleep(380);
-  }
-  if (win) { E.hp = Math.min(E.hp, 0); R.burst(...es(), 40, '#ffd75e', 90, 1, 3); SFX.chime(); R.floatText(es()[0], es()[1] - 50, '胜！', '#ffd75e', 26); }
-  else { SFX.fail(); R.floatText(ps()[0], ps()[1] - 50, '败…', '#ff7a6a', 24); }
-  for (let k = 0; k < 10; k++) { (win ? E : P).alpha = 1 - k / 12; await sleep(60); }
-  await sleep(300);
-  document.removeEventListener('pointerdown', tap); G0.fast = false; $('battleTag').classList.add('hidden');
-  R.ents.splice(R.ents.indexOf(E), 1); P.alpha = null; Object.assign(P, save); delete P.hp; delete P.hpMax;
-  R.ents.forEach(e => { if (e.kind === 'actor') e.alpha = null; });
-  return win;
-}
-
-/* ================= 突破 / 天劫 ================= */
-function breakChance() {
-  const r = REALMS[S.realm]; let p = r.rate + S.st.int * 0.012 + S.st.luck * 0.006 + (S.injured > 0 ? -0.15 : 0); const pills = [];
-  if (S.realm === 1 && S.items.zjd) { p += 0.3 * (1 + G.mod('pill')); pills.push('zjd'); }
-  if (S.items.pjd) { p += 0.15 * (1 + G.mod('pill')); pills.push('pjd'); }
-  if (REALMS[S.realm + 1].trib) p += G.mod('trib') + (LINGGEN[S.ling].trib || 0) + (S.tribBonus || 0);
-  return { p: Math.max(0.05, Math.min(0.97, p)), pills };
-}
-async function doBreak() {
-  if (busy || !canBreak()) return;
-  if (S.realm === 0 && !S.flags.manual) { toast('没有功法，不知道怎么突破……<br>（拜入宗门/拜师/淘个秘籍）'); return; }
-  const { p, pills } = breakChance(), next = REALMS[S.realm + 1];
-  const ok = await new Promise(res => { openModal('<div class="ptitle">' + (S.realm === 6 ? '白日飞升' : '冲击' + next.n) + '</div><div class="big">当前成功率：<b style="color:#b8402a;font-size:22px">' + Math.round(p * 100) + '%</b><br>' + (pills.length ? '将服用：' + pills.map(x => ITEMS[x].n).join('、') + '<br>' : '') + (next.trib ? '<span style="color:#7a2a12">※ 需渡 ' + next.trib + ' 道天劫！失败可能身死道消</span><br>' : '失败会损失修为并受伤<br>') + (S.realm === 6 ? '<span style="color:#7a2a12">天道正在门口等你结尾款……</span>' : '') + '</div><div class="row2"><button class="btn ghost" id="bkNo">再等等</button><button class="btn gold" id="bkGo">冲！</button></div>'); bind('bkNo', () => { closeModal(); res(false); }); bind('bkGo', () => { closeModal(); res(true); }); });
-  if (!ok) return; busy = true;
-  try {
-    pills.forEach(x => G.item(x, -1));
-    const success = Math.random() < p; PL.fixed = true; PL.i = 4.5; PL.j = 5.5; const P = R.screenOf(PL, -30);
-    log('你开始冲击' + next.n + '……');
-    if (next.trib) {
-      R.darken = 1; SFX.thunder(); await sleep(1200); const n = next.trib;
-      for (let k = 0; k < n; k++) {
-        const last = k === n - 1; SFX.thunder(); R.bolt(P[0], P[1] + 20); R.burst(P[0], P[1] + 10, 30, '#d8d0ff', 120, 0.7, 3, 100);
-        R.floatText(P[0] + [-50, 50, 0][k % 3], P[1] - 60 - (k % 3) * 16, '第' + (k + 1) + '道', '#e0d8ff', 16); PL.flashT = 0.15;
-        if (last && !success) R.shake = 20;
-        await sleep(last ? 900 : 650 - Math.min(300, n * 20));
-      }
-      if (S.realm === 6 && success) { // 最终boss
-        log('天劫散去，一朵算盘形状的云飘了下来——<span class="gold">讨尾款的天道</span>现身了！');
-        R.darken = 0.4; const win = await battle('boss', 1.0, '讨尾款的天道');
-        if (!win) { R.darken = 0; S.injured = 5; S.exp *= 0.5; log('<span class="bad">你被天道一算盘拍回人间。修为大损，负伤五年。</span>'); banner('飞升失败', '天道：尾款结清了再来'); SFX.fail(); return; }
-      }
-      R.darken = 0;
-    } else { R.ring(P[0], P[1] + 20, '#ffd75e', 80, 1); R.burst(P[0], P[1], 30, '#ffe9a0', 60, 1.2, 2.5, -20); await sleep(900); }
-    if (success) {
-      S.realm++; S.stage = 0; S.exp = 0; if (S.realm > (META_S.best || 0)) { META_S.best = S.realm; saveMeta(); }
-      R.flash = 0.9; R.flashCol = '#fff6c0'; SFX.levelup(); for (let k = 0; k < 3; k++) R.ring(P[0], P[1] + 20, '#ffd75e', 90 + k * 40, 1 + k * 0.3); R.burst(P[0], P[1], 80, '#ffd75e', 140, 1.6, 3.2, 40);
-      if (S.realm === 7) { log('<span class="gold">天道收下尾款，金光大道铺开。你踏云而上——白日飞升！</span>'); banner('白日飞升！', '恭喜还清天道尾款'); refreshPlayerLook(); await sleep(2600); await die('飞升', '你飞升仙界，成为了一名……仙界的打工人。', true); return; }
-      log('<span class="gold">突破成功！你晋入' + realmName() + '，寿元大增！</span>'); banner('突破成功', realmName());
-      if (S.realm === 1) G.unlock('secret');
+const ri = (a, b) => Math.floor(rnd(a, b + 1));
+const pick = a => a[Math.random() * a.length | 0];
+const fmt = n => n >= 1e8 ? (n / 1e8).toFixed(1) + '亿' : n >= 1e4 ? (n / 1e4).toFixed(1) + '万' : String(Math.round(n));
+let UID = Date.now() % 100000;
+const Game = {
+  G: null, meta: null,
+  loadMeta() { try { this.meta = JSON.parse(localStorage.getItem('wbx2_meta')) || null; } catch (e) { } this.meta = Object.assign({ pts: 0, perks: {}, lives: 0, endings: {}, achs: {}, best: { realm: 0, age: 0 } }, this.meta || {}); },
+  saveMeta() { try { localStorage.setItem('wbx2_meta', JSON.stringify(this.meta)); } catch (e) { } },
+  save() { if (!this.G || this.G.dead) return; try { this.G.pos = R.player ? [R.player.i, R.player.j] : this.G.pos; localStorage.setItem('wbx2_save', JSON.stringify(this.G)); } catch (e) { } },
+  hasSave() { try { const s = JSON.parse(localStorage.getItem('wbx2_save')); return s && !s.dead && s.v === 2 ? s : null; } catch (e) { return null; } },
+  perk(id) { return this.meta.perks[id] || 0; },
+  // -------- 创建角色 --------
+  rollLinggen() {
+    const g = this.perk('gen'); const ws = LINGGEN.map((l, k) => l.w * (k >= 3 ? 1 + g * 0.6 : 1));
+    let r = Math.random() * ws.reduce((a, b) => a + b); for (let k = 0; k < ws.length; k++) { r -= ws[k]; if (r <= 0) return LINGGEN[k].id; } return 'wu';
+  },
+  rollTalents(n = 6) {
+    const pool = TALENTS.slice(); const out = [];
+    while (out.length < n && pool.length) { const w = pool.map(t => [8, 4, 2, 0.6][t.r]); let r = Math.random() * w.reduce((a, b) => a + b); let k = 0; for (; k < w.length; k++) { r -= w[k]; if (r <= 0) break; } out.push(pool.splice(Math.min(k, pool.length - 1), 1)[0].id); }
+    return out;
+  },
+  newLife(cfg) {
+    const G = {
+      v: 2, uid: ++UID, name: cfg.name, sex: cfg.sex, age: 6, realm: 0, stage: 0, exp: 0, lg: cfg.lg, talents: cfg.talents, st: Object.assign({}, cfg.st),
+      stone: 50 + cfg.st.wealth * 30 + this.perk('stone') * 200, debt: 8888, karma: 0, contrib: 0, sect: null, map: 'village', pos: null, ap: 0, year: 1,
+      inv: { hcd: 2 }, eqs: [], eq: {}, techs: {}, tree: { sword: 0, magic: 0, body: 0, misc: 0 }, pts: 0, pets: [], petA: -1, aff: {}, partner: null, follower: null,
+      quests: {}, qdone: {}, main: 0, flags: {}, kills: {}, killsTotal: 0, alchLv: 0, alchCount: 0, giftCount: 0, fishCount: 0, visited: { village: 1 }, bosses: {}, log: [],
+      lifeBonus: this.perk('life') * 10, cultBonus: this.perk('exp') * 0.1, apBonus: this.perk('ap'), atkBonus: 0, defBonus: 0, hpBonus: 0, alchBonus: 0, catchBonus: 0, jieRes: 0, pillBonus: 0, brkBonus: 0, medBonus: 0, spdBonus: 0, critBonus: 0,
+      used: {}, killedMap: {}, shop: null, dead: false, ending: null, surname: cfg.name.match(/^(欧阳|上官|司马|诸葛|.)/)[0],
+    };
+    this.G = G;
+    for (const t of G.talents) { const T = TALENTS.find(x => x.id === t); T && T.f(G); }
+    for (const k in G.st) G.st[k] = Math.max(0, G.st[k]);
+    G.eqs.push(this.makeEq('weapon', 0, 0, '木剑')); this.equip(G.eqs[0].uid);
+    const s = this.stats(); G.hp = s.mhp; G.mp = s.mmp; G.ap = this.apMax();
+    this.log(`${G.name}出生于桃花村。灵根：${this.linggen().n}。`);
+    this.meta.lives++; this.saveMeta();
+  },
+  linggen() { return LINGGEN.find(l => l.id === this.G.lg) || LINGGEN[1]; },
+  lifeMax() { const G = this.G; return REALMS[G.realm].life + G.lifeBonus + G.st.con * 1 + (G.realm ? 0 : 0); },
+  apMax() { const G = this.G; return 4 + G.apBonus + this.treeVal('ap') + (G.techs.moyu ? 1 : 0); },
+  need() { const G = this.G; return Math.round(REALMS[G.realm].need * STAGE_MUL[G.stage]); },
+  yearExp() { const G = this.G; return this.need() / REALMS[Math.min(7, G.realm)].T; },
+  power() { const G = this.G; return G.realm + G.stage * 0.25; },
+  realmName() { const G = this.G; return G.realm >= 7 ? '飞升' : REALMS[G.realm].n + (G.realm === 0 ? ['·锻体一层', '·锻体二层', '·锻体三层', '·锻体圆满'][G.stage] : STAGES[G.stage]); },
+  playerSpr() { const G = this.G; const t = G.realm >= 5 ? 3 : G.realm >= 3 ? 2 : (G.realm >= 1 || G.sect) ? 1 : 0; return `player_${G.sex}${t}`; },
+  log(t) { this.G.log.push(`${this.G.age}岁：${t}`); if (this.G.log.length > 300) this.G.log.shift(); },
+  // -------- 属性 --------
+  treeVal(key) { const G = this.G; let v = 0; for (const br of SKILL_TREE) for (let k = 0; k < (G.tree[br.id] || 0); k++) { const fx = br.nodes[k][2]; if (fx[key]) v += fx[key]; } return v; },
+  techVal(key) { const G = this.G; let v = 0; for (const id in G.techs) { const T = TECHS[id]; if (T && T.pas[key]) v += T.pas[key] * (key === 'ap' || key === 'luck' ? 1 : G.techs[id]); } return v; },
+  eqItems() { const G = this.G; return Object.values(G.eq).map(u => G.eqs.find(e => e.uid === u)).filter(Boolean); },
+  eqFx(name) { return this.eqItems().some(e => e.slot === 'treasure' && e.base === name); },
+  eqSum(key) { let v = 0; for (const e of this.eqItems()) { if (e.main[key]) v += e.main[key]; for (const [k, x] of e.aff) if (k === key) v += x; } return v; },
+  stats() {
+    const G = this.G; const P = POW(G.realm + G.stage * 0.25); const st = G.st;
+    const pct = k => this.treeVal(k) + this.techVal(k) + this.eqSum(k + '%');
+    const mhp = Math.round(((80 + st.con * 10) * P + this.eqSum('hp')) * (1 + G.hpBonus + pct('hp')));
+    const mmp = Math.round(((40 + st.int * 6) * P + this.eqSum('mp')) * (1 + pct('mp')));
+    const atk = ((14 + st.con * 0.8 + st.int * 0.8) * P + this.eqSum('atk')) * (1 + G.atkBonus + pct('atk'));
+    const def = ((8 + st.con * 0.6) * P + this.eqSum('def')) * (1 + G.defBonus + pct('def'));
+    const spd = (10 + st.luck * 0.4 + G.realm * 2 + this.eqSum('spd')) * (1 + G.spdBonus + (this.eqFx('招魂幡') ? 0.2 : 0));
+    const crit = 0.05 + st.luck * 0.005 + G.critBonus + this.treeVal('crit') + this.eqSum('crit');
+    return { mhp, mmp, atk, def, spd, crit, skillBonus: this.treeVal('skill') + (this.eqFx('翻天印') ? 0.2 : 0), metalBonus: this.treeVal('metal'), combo: this.treeVal('combo'), double: this.treeVal('double'), regen: this.treeVal('regen'), mpregen: this.treeVal('mpregen'), undying: this.treeVal('undying') };
+  },
+  skillList() { const G = this.G; const s = new Set(['atk']); for (const id in G.techs) for (const k of TECHS[id].sk) s.add(k); return [...s]; },
+  // -------- 物品 --------
+  has(id, n = 1) { return (this.G.inv[id] || 0) >= n; },
+  give(id, n = 1) { const G = this.G; G.inv[id] = (G.inv[id] || 0) + n; if (G.inv[id] <= 0) delete G.inv[id]; },
+  take(id, n = 1) { this.give(id, -n); },
+  makeEq(slot, tier, rar, nm) {
+    const bases = EQ_BASES[slot]; let b = bases[Math.min(bases.length - 1, slot === 'weapon' || slot === 'armor' ? Math.min(rar, bases.length - 1) : Math.random() * bases.length | 0)];
+    if (slot === 'weapon' && Math.random() < 0.2) b = pick(bases);
+    const R_ = RARITY[rar]; const P = POW(tier) * R_.m; const main = {};
+    if (slot === 'weapon') main.atk = Math.round(7 * P); if (slot === 'armor') { main.def = Math.round(5 * P); main.hp = Math.round(25 * P); }
+    if (slot === 'hat') { main.hp = Math.round(30 * P); main.def = Math.round(2 * P); } if (slot === 'boots') { main.spd = Math.round(2 + tier * 1.5 * R_.m); main.def = Math.round(2 * P); }
+    if (slot === 'acc') { main.mp = Math.round(25 * P); main.crit = +(0.02 * R_.m).toFixed(3); } if (slot === 'treasure') { main.atk = Math.round(3 * P); main.def = Math.round(3 * P); }
+    const aff = [];
+    for (let k = 0; k < R_.aff; k++) { const A = pick(AFFIX); const v = A[0] === 'luck' ? 1 + (rar >> 1) : A[2] * (0.6 + Math.random() * 0.8) * (1 + rar * 0.25); aff.push([A[0] === 'luck' ? 'luck' : (['atk', 'def', 'hp', 'mp'].includes(A[0]) ? A[0] + '%' : A[0]), +v.toFixed(3)]); }
+    return { uid: ++UID + '' + (Math.random() * 1e4 | 0), slot, base: b[0], ic: b[1], name: (nm || (R_.n === '凡品' ? '' : R_.n + '·') + b[0]), rar, tier: +tier.toFixed(1), main, aff };
+  },
+  randEq(tier, minR = 0, slot = null) {
+    const luck = this.G.st.luck; let r = 0; const roll = Math.random() * 100 - luck * 0.8;
+    r = roll < 2 ? 4 : roll < 9 ? 3 : roll < 25 ? 2 : roll < 55 ? 1 : 0; r = Math.max(r, minR);
+    const e = this.makeEq(slot || pick(['weapon', 'armor', 'hat', 'boots', 'acc', 'treasure', 'weapon', 'armor']), tier, r);
+    this.G.eqs.push(e); if (r === 4) this.ach('legend'); return e;
+  },
+  equip(uid) { const G = this.G; const e = G.eqs.find(x => x.uid === uid); if (!e) return; G.eq[e.slot] = uid; const s = this.stats(); G.hp = Math.min(G.hp || s.mhp, s.mhp); G.mp = Math.min(G.mp || s.mmp, s.mmp); },
+  eqScore(e) { return (e.main.atk || 0) * 2 + (e.main.def || 0) * 2 + (e.main.hp || 0) * 0.3 + (e.main.mp || 0) * 0.2 + (e.main.spd || 0) * 3 + e.rar * 10 + e.aff.length * 5; },
+  sellEq(uid) { const G = this.G; const e = G.eqs.find(x => x.uid === uid); if (!e || Object.values(G.eq).includes(uid)) return 0; const v = Math.round(10 * POW(e.tier) * RARITY[e.rar].m * (1 + e.rar)); G.eqs = G.eqs.filter(x => x !== e); G.stone += v; return v; },
+  // -------- 修为 --------
+  cultMult() { const G = this.G; return this.linggen().mult * (1 + G.cultBonus + this.eqSum('cult')); },
+  addExp(n, raw = false) {
+    const G = this.G; if (G.realm >= 7) return 0; n = Math.max(0, Math.round(raw ? n : n * this.cultMult())); G.exp += n;
+    while (G.exp >= this.need() && G.stage < 3) { G.exp -= this.need(); G.stage++; G.pts++; this.levelFx(`${this.realmName()}！`); }
+    if (G.stage === 3 && G.exp >= this.need()) G.exp = this.need();
+    UI.hud(); return n;
+  },
+  canBreak() { const G = this.G; return G.stage === 3 && G.exp >= this.need() && G.realm < 7 && (G.realm > 0 || G.flags.awakened); },
+  levelFx(t) {
+    Sfx.play('levelup'); UI.toast(t, '#ffe680');
+    if (R.player && R.mode === 'map') { const [x, y] = t2p(R.player.i, R.player.j); for (let k = 0; k < 40; k++) part({ x: x + rnd(-40, 40), y: y - rnd(0, 20), vx: 0, vy: -rnd(100, 300), r: rnd(3, 7), c: pick(['#fff2a0', '#ffd25e', '#fff']), life: rnd(0.8, 1.5), star: k % 3 === 0 }); }
+    const s = this.stats(); this.G.hp = s.mhp; this.G.mp = s.mmp;
+  },
+  async tryBreak() {
+    if (this._breaking || this._busy) return; this._breaking = true; this._busy = true;
+    try { await this._tryBreak(); } finally { this._breaking = false; this._busy = false; }
+  },
+  async _tryBreak() {
+    const G = this.G; if (!this.canBreak()) return;
+    const r = G.realm;
+    if (r === 6) return this.ascend();
+    let ch = REALMS[r].brk + G.st.int * 0.015 + G.st.luck * 0.005 + G.brkBonus + this.treeVal('brk') + (G.tmpBrk || 0);
+    const used = [];
+    if (r === 1 && this.has('zjd')) { ch += 0.3; this.take('zjd'); used.push('筑基丹'); }
+    if (r >= 1 && this.has('pjd') && ch < 0.95) { ch += 0.15; this.take('pjd'); used.push('破境丹'); }
+    ch = Math.min(0.97, ch); G.tmpBrk = 0;
+    const ok = await UI.card('冲击瓶颈', `你准备从【${this.realmName()}】冲击【${REALMS[r + 1].n}】。${used.length ? '\n已服用：' + used.join('、') : ''}\n成功率约 ${Math.round(ch * 100)}%${REALMS[r + 1].jie ? `\n⚡ 成功后需渡过 ${REALMS[r + 1].jie} 道天劫！` : ''}`, 'i:sk_meditate', ['冲！', '再等等']);
+    if (ok !== 0) { if (used.length) used.forEach(n => this.give(n === '筑基丹' ? 'zjd' : 'pjd')); return; }
+    if (Math.random() < ch) {
+      if (REALMS[r + 1].jie) { const alive = await this.tribulation(REALMS[r + 1].jie, r); if (!alive) return; }
+      G.realm++; G.stage = 0; G.exp = 0; G.pts += 2;
+      this.log(`突破至${REALMS[G.realm].n}期。`); this.ach('r' + G.realm);
+      this.levelFx(`突破成功！踏入${REALMS[G.realm].n}期`);
+      if (R.player) { R.player.spr = this.playerSpr(); await loadSprite(R.player.spr); }
+      await UI.card('突破成功', `恭喜！你踏入了【${REALMS[G.realm].n}期】。\n寿元上限提升至 ${this.lifeMax()} 岁，获得 2 点技能点。` + (G.realm === 1 ? '\n天道讨债司：已将您升级为“潜力客户”。' : ''), 'i:sk_light', ['好耶']);
     } else {
-      SFX.fail();
-      if (next.trib) {
-        if (S.items.tsf) { G.item('tsf', -1); S.injured = 5; S.exp *= 0.4; log('<span class="bad">天劫将你劈得外焦里嫩，替死符化为灰烬，保住了你一条小命。</span>'); banner('渡劫失败', '替死符救了你一命'); }
-        else if (G.has('bsxq') && !S.revived) { S.revived = 1; S.injured = 5; S.exp = 0; log('<span class="bad">你被雷劈成了焦炭……然后焦炭动了一下。不死小强发动！</span>'); banner('渡劫失败', '不死小强：又活了'); }
-        else if (G.roll(0.45 + S.st.luck * 0.03)) { S.injured = 6; S.exp = 0; G.life(-Math.round(lifespan() * 0.1)); log('<span class="bad">天劫失败，你重伤濒死，侥幸活了下来。修为尽散，寿元大损。</span>'); banner('渡劫失败', '侥幸未死'); }
-        else { await die('渡劫失败', '第' + next.trib + '道天雷落下，你化作了一缕青烟。天道在小本本上划掉了你的名字。'); return; }
-      } else { S.exp *= 0.6; S.injured = 2; log('<span class="bad">突破失败！真气逆行，修为受损，负伤两年。</span>'); banner('突破失败', '道心受挫'); }
+      G.exp = Math.round(G.exp * 0.7); G.hp = Math.max(1, Math.round(G.hp * 0.6));
+      Sfx.play('fail'); await UI.card('突破失败', '真气逆行，你吐了一口老血。修为倒退了三成。\n（提升悟性、服用丹药可以提高成功率）', 'i:sk_poison', ['可恶']);
     }
-  } finally { busy = false; R.darken = 0; if (PL) PL.fixed = false; if (S && S.alive) { updateHUD(); saveLife(); } }
+    this.checkMain(); UI.hud(); this.save();
+  },
+  async tribulation(n, r, ascend = false) {
+    const G = this.G; const s = this.stats(); let hp = G.hp = s.mhp;
+    R.dark = 0.55; Audio2.bgm('boss'); UI.toast(`天劫降临！共 ${n} 道`, '#c8a0ff'); await wait(900);
+    for (let k = 0; k < n; k++) {
+      const P = R.player; const [x, y] = P ? w2s(...t2p(P.i, P.j)) : [R.W / 2, R.H / 2];
+      makeBolt(x + rnd(-60, 60), 0, x, y - 40); R.flash = 0.6; R.shake = 0.8; Sfx.play('thunder');
+      const dm = Math.round(s.mhp * (ascend ? 0.13 : 0.15) * (1 + k * 0.05) * (1 - G.jieRes) * rnd(0.75, 1.25) * (G.realm >= 5 ? 1.1 : 1));
+      hp -= dm; floatText(x, y - 120, `第${k + 1}道 -${dm}`, '#e0c8ff', 36 * R.dpr, false); UI.hud(Math.max(0, hp));
+      await wait(700);
+      if (hp <= 0) {
+        if (this.has('tsf')) { this.take('tsf'); hp = Math.round(s.mhp * 0.3); UI.toast('替死符化为灰烬，替你挡下一劫！', '#ffd23a'); await wait(600); continue; }
+        if (this.treeVal('undying') && !G._undUsed) { G._undUsed = 1; hp = 1; UI.toast('不屈！', '#ffd23a'); continue; }
+        R.dark = 0; G.hp = 0; await this.die('ash'); return false;
+      }
+    }
+    R.dark = 0; G.hp = Math.max(1, hp); G._undUsed = 0; this.ach('jie'); Audio2.bgm(MAPINFO[R.mapId].bgm);
+    UI.toast('渡劫成功！', '#ffe680'); return true;
+  },
+  async ascend() {
+    const G = this.G;
+    const c = await UI.card('飞升', `你已渡劫圆满，头顶的天空裂开一道金色门户。\n九九八十一……不，是12道飞升雷劫在等着你。${G.debt > 0 ? `\n（友情提示：你还欠天道 ${fmt(G.debt)} 灵石）` : ''}`, 'i:sk_light', ['渡劫飞升', '再修炼一会儿']);
+    if (c !== 0) return;
+    const alive = await this.tribulation(12, 6, true); if (!alive) return;
+    G.realm = 7; this.levelFx('飞升成功！');
+    await this.die(G.debt <= 0 ? 'paid' : 'ascend');
+  },
+  // -------- 战斗相关 --------
+  activePet() { const G = this.G; return G.petA >= 0 ? G.pets[G.petA] : null; },
+  petUnit(p) { const m = MONS[p.mon]; const t = p.tier + p.lv * 0.12; const P = POW(t) * (1 + this.treeVal('pet')); return { name: p.name, spr: m.spr, el: m.el, mhp: Math.round(80 * P * m.hp), mmp: Math.round(50 * P), atk: 15 * P * m.atk, def: 8 * P * m.def, spd: 10 * m.spd + t * 2, crit: 0.06, skills: PET_SKILL[p.mon] || ['atk'], hp: p.hp, tier: t }; },
+  addPet(mon, tier) { const G = this.G; const p = { mon, name: MONS[mon].n.replace(/讨债|暴躁|铁钳/, '小'), lv: 1, exp: 0, tier: Math.max(0, tier - 0.3), hp: undefined }; G.pets.push(p); if (G.petA < 0) G.petA = G.pets.length - 1; this.ach('pet1'); if (G.pets.length >= 5) this.ach('pet5'); this.log(`收服灵兽${p.name}。`); return p; },
+  petAfterBattle(u) { const p = this.activePet(); if (!p) return; p.hp = u.alive ? u.hp : 1; },
+  petGain(n) { const p = this.activePet(); if (!p) return; p.exp += n; while (p.exp >= 40 * Math.pow(1.25, p.lv)) { p.exp -= 40 * Math.pow(1.25, p.lv); p.lv++; p.hp = undefined; UI.toast(`${p.name} 升到了 ${p.lv} 级！`, '#9aff9a'); } },
+  compUnit() {
+    const G = this.G; const id = G.follower; if (!id) return null; const N = NPCS[id]; const s = this.stats();
+    const SK = { sister: ['swordqi', 'heal'], xiaoyi: ['swordqi', 'flysword'], cuihua: ['heal', 'vine'], ali: ['fireball', 'inferno'], aoxiao: ['water', 'thunder'], sumei: ['demonfire', 'poison'] };
+    const k = G.partner === id ? 0.85 : 0.65;
+    return { name: N.n.split('·').pop(), spr: N.spr, el: '无', mhp: Math.round(s.mhp * k), mmp: Math.round(s.mmp * k), atk: s.atk * k, def: s.def * k, spd: s.spd * 0.95, crit: 0.08, skills: ['atk', ...(SK[id] || [])] };
+  },
+  async fight(mon, opts = {}) {
+    const G = this.G; const info = MAPINFO[R.mapId] || MAPINFO.village;
+    const tier = opts.tier !== undefined ? opts.tier : info.tier + rnd(0, 0.4);
+    const list = [monUnit(mon, tier, opts.elite)];
+    if (!opts.solo && !MONS[mon].boss) { const extra = Math.random() < 0.35 + G.realm * 0.08 ? ri(1, Math.min(3, 1 + G.realm)) : 0; for (let k = 0; k < extra; k++) list.push(monUnit(pick(info.mons), tier + rnd(-0.2, 0.1))); }
+    if (opts.adds) for (const a of opts.adds) list.push(monUnit(a, tier - 0.3));
+    const r = await startBattle(list, opts);
+    Audio2.bgm(info.bgm);
+    if (r.res === 'win') {
+      let exp = 0, stone = 0; const drops = {};
+      for (const u of r.killed) {
+        exp += this.yearExp() * 0.1 * Math.max(0.15, Math.min(2, 1 + (u.tier - this.power()) * 0.6)) * (u.boss ? 8 : u.elite ? 2.5 : 1); stone += 6 * POW(u.tier) * (u.boss ? 15 : u.elite ? 3 : 1) * rnd(0.7, 1.3);
+        G.kills[u.mon] = (G.kills[u.mon] || 0) + 1; G.killsTotal++;
+        const M = MONS[u.mon]; for (const d of M.drop) if (Math.random() < (u.boss ? 1 : 0.35)) drops[d] = (drops[d] || 0) + 1;
+      }
+      stone *= (1 + this.treeVal('gold') + (this.eqFx('天道算盘') ? 0.5 : 0));
+      const eqd = []; const eqCh = r.killed.some(u => u.boss) ? 1 : r.killed.some(u => u.elite) ? 0.6 : 0.1 + G.st.luck * 0.005;
+      if (Math.random() < eqCh) eqd.push(this.randEq(tier, r.killed.some(u => u.boss) ? 3 : r.killed.some(u => u.elite) ? 1 : 0));
+      if (r.killed.some(u => u.boss)) eqd.push(this.randEq(tier, 2));
+      const ge = this.addExp(exp, true); G.stone += Math.round(stone); for (const d in drops) this.give(d, drops[d]);
+      this.petGain(exp * 0.5);
+      this.ach('first_blood'); if (G.killsTotal >= 100) this.ach('kill100'); if (G.killsTotal >= 500) this.ach('kill500');
+      Sfx.play('victory');
+      await UI.card('战斗胜利', `修为 +${fmt(ge)}　灵石 +${fmt(stone)}` + (Object.keys(drops).length ? '\n获得：' + Object.entries(drops).map(([k, v]) => `${ITEMS[k].n}×${v}`).join('、') : '') + (eqd.length ? '\n装备：' + eqd.map(e => `【${e.name}】`).join('') : ''), 'i:chest', ['收下'], { eq: eqd });
+      this.updateQuests();
+    } else if (r.res === 'lose') {
+      const lost = Math.round(G.stone * 0.2); G.stone -= lost; G.hp = Math.round(this.stats().mhp * 0.3); G.ap = Math.max(0, G.ap - 1);
+      Sfx.play('defeat'); await UI.card('战斗失败', `你被打晕了，醒来时少了 ${lost} 灵石和一点行动力。\n（提升境界、换装备、带上灵兽和道侣再来）`, 'i:sk_poison', ['唉']);
+    }
+    UI.hud(); this.save(); return r;
+  },
+  // -------- 效果 DSL --------
+  fill(t) { const G = this.G; return (t || '').replace(/\{name\}/g, G.name).replace(/\{surname\}/g, G.surname).replace(/\{age\}/g, G.age).replace(/\{debt\}/g, fmt(G.debt)).replace(/\{partner\}/g, G.partner ? NPCS[G.partner].n.split('·').pop() : '道侣').replace(/\{nick\}/g, pick(['欠债修士', '白嫖剑仙', '摸鱼真人', '赖账天尊', '铁公鸡', '桃花村一枝花'])); },
+  cond(c) {
+    const G = this.G; if (!c) return true;
+    for (let tk of c.split(';')) {
+      tk = tk.trim(); if (!tk) continue; let neg = false; if (tk[0] === '!') { neg = true; tk = tk.slice(1); }
+      let ok;
+      const m = tk.match(/^([a-z.]+)(:[a-z_]+)?(>=|<=|=|<|>)(-?[\w.]+)$/);
+      if (tk === 'sect') ok = !!G.sect; else if (tk === 'partner') ok = !!G.partner; else if (tk === 'pet') ok = G.pets.length > 0;
+      else if (tk.startsWith('flag:')) ok = !!G.flags[tk.slice(5)]; else if (tk.startsWith('tech:')) ok = !!G.techs[tk.slice(5)]; else if (tk.startsWith('item:')) ok = this.has(tk.slice(5));
+      else if (m) {
+        let v; const key = m[1], sub = m[2] && m[2].slice(1);
+        if (key === 'aff') v = G.aff[sub] || 0; else if (key === 'lifeleft') v = this.lifeMax() - G.age; else if (key.startsWith('st.')) v = G.st[key.slice(3)]; else if (key in G.st) v = G.st[key]; else v = G[key];
+        const rhs = isNaN(+m[4]) ? m[4] : +m[4];
+        ok = m[3] === '>=' ? v >= rhs : m[3] === '<=' ? v <= rhs : m[3] === '<' ? v < rhs : m[3] === '>' ? v > rhs : v == rhs;
+      } else ok = true;
+      if (neg ? ok : !ok) return false;
+    }
+    return true;
+  },
+  async apply(eff) {
+    const G = this.G; const out = []; const later = [];
+    for (let tk of (eff || '').split(';')) {
+      tk = tk.trim(); if (!tk) continue;
+      let m;
+      if ((m = tk.match(/^(exp|stone|hp|life|age|debt|karma|contrib|con|int|luck|cha|wealth|alch|brk)([+\-%])(-?[\d.]+)$/))) {
+        const k = m[1]; let v = +m[3]; if (m[2] === '-') v = -v;
+        if (m[2] === '%') {
+          if (k === 'exp') { if (v < 0) { G.exp = Math.max(0, G.exp + this.yearExp() * v / 100); out.push(`修为-${fmt(-this.yearExp() * v / 100)}`); } else { const g = this.addExp(this.yearExp() * v / 100, true); out.push(`修为+${fmt(g)}`); } continue; }
+          if (k === 'hp') { const s = this.stats(); G.hp = Math.max(1, Math.min(s.mhp, G.hp + s.mhp * v / 100)); out.push(`气血${v > 0 ? '+' : ''}${v}%`); continue; }
+          if (k === 'stone') { const d = Math.round(G.stone * v / 100); G.stone += d; out.push(`灵石${d >= 0 ? '+' : ''}${d}`); continue; }
+        }
+        if (k === 'exp') { out.push(`修为+${this.addExp(v)}`); continue; }
+        if (k === 'stone') { if (v < 0 && G.stone < -v) { v = -G.stone; } G.stone += v; out.push(`灵石${v >= 0 ? '+' : ''}${v}`); continue; }
+        if (k === 'life') { G.lifeBonus += v; out.push(`寿元${v >= 0 ? '+' : ''}${v}`); continue; }
+        if (k === 'age') { G.age += v; out.push(`年龄+${v}`); continue; }
+        if (k === 'debt') { G.debt = Math.max(0, G.debt + v); out.push(`天道欠款${v >= 0 ? '+' : ''}${v}`); if (G.debt <= 0) this.ach('debt0'); continue; }
+        if (k === 'karma') { G.karma += v; out.push(v > 0 ? `功德+${v}` : `业力+${-v}`); continue; }
+        if (k === 'contrib') { if (G.sect) { G.contrib = Math.max(0, G.contrib + v); out.push(`宗门贡献${v >= 0 ? '+' : ''}${v}`); } continue; }
+        if (k === 'alch') { G.alchLv += v; out.push(`炼丹等级+${v}`); continue; }
+        if (k === 'brk') { G.tmpBrk = (G.tmpBrk || 0) + v; out.push(`下次突破+${v * 100}%`); continue; }
+        G.st[k] = Math.max(0, G.st[k] + v); out.push(`${STATS.find(s => s[0] === k)[1]}${v >= 0 ? '+' : ''}${v}`); continue;
+      }
+      const p = tk.split(':');
+      switch (p[0]) {
+        case 'item': { const n = +(p[2] || 1); if (n < 0 && !this.has(p[1], -n)) { out.push(`（没有${ITEMS[p[1]].n}）`); break; } this.give(p[1], n); out.push(`${ITEMS[p[1]].n}${n > 0 ? '×' + n : n}`); break; }
+        case 'aff': { const n = +p[2]; G.aff[p[1]] = Math.max(0, Math.min(150, (G.aff[p[1]] || 0) + n)); out.push(`${(NPCS[p[1]] || { n: '剑仙' }).n.split('·').pop()}好感${n >= 0 ? '+' : ''}${n}`); break; }
+        case 'flag': G.flags[p[1]] = 1; break;
+        case 'unflag': delete G.flags[p[1]]; break;
+        case 'tech': { const id = p[1] === 'rand' ? pick(Object.keys(TECHS).filter(k => !G.techs[k] && !TECHS[k].sect && k !== 'laizhang')) : p[1]; if (id) { this.learn(id); out.push(`习得${TECHS[id].n}`); } else { out.push('修为提升'); this.addExp(this.yearExp() * 0.5, true); } break; }
+        case 'pet': { const mon = p[1] === 'rand' ? pick(Object.keys(PET_SKILL)) : p[1]; const pt = this.addPet(mon, Math.max(0, G.realm - 0.5)); out.push(`获得灵兽【${pt.name}】`); break; }
+        case 'eq': { const tier = Math.max(0, G.realm + G.stage * 0.25); const e = this.randEq(tier, +(p[2] || 0), p[1] === 'any' ? null : p[1]); out.push(`获得【${e.name}】`); break; }
+        case 'fight': later.push(() => this.fight(p[1], { tier: Math.max(MAPINFO[R.mapId].tier, G.realm + G.stage * 0.2) })); break;
+        case 'sect': this.joinSect(p[1]); out.push(`加入${SECTS[p[1]].n}`); break;
+        case 'die': later.push(() => this.die(p[1])); break;
+        case 'ending': later.push(() => this.die(p[1])); break;
+        case 'debtpay': { const pay = Math.min(G.debt, Math.round(G.stone * 0.3) + 100); G.debt -= pay; out.push(`还款${pay}`); if (G.debt <= 0) this.ach('debt0'); break; }
+        case 'debtint': { const d = Math.round(G.debt * 0.08); G.debt += d; out.push(`欠款+${d}`); break; }
+        case 'petexp': this.petGain(80 * POW(G.realm)); out.push('灵兽经验提升'); break;
+        case 'atkup': G.atkBonus += 0.02; out.push('攻击+2%'); break;
+        case 'spd': G.spdBonus += 0.03; out.push('速度+3%'); break;
+        case 'unpartner': if (G.partner) { out.push(`${NPCS[G.partner].n}离开了`); G.aff[G.partner] = 40; if (G.follower === G.partner) G.follower = null; G.partner = null; } break;
+      }
+    }
+    UI.hud();
+    return { txt: out.join('，'), later };
+  },
+  learn(id) { const G = this.G; if (!G.techs[id]) { G.techs[id] = 1; this.log(`习得${TECHS[id].n}。`); if (Object.keys(G.techs).length >= 5) this.ach('tech5'); } },
+  joinSect(id) { const G = this.G; G.sect = id; G.contrib = 20; this.learn(SECTS[id].tech); G.karma += SECTS[id].karma * 3; this.ach('sect'); this.log(`拜入${SECTS[id].n}。`); if (R.player) { R.player.spr = this.playerSpr(); loadSprite(R.player.spr); } },
+  // -------- 事件 --------
+  async runEvent(ev) {
+    const [id, title, text, , , por, ...opts] = ev; const G = this.G;
+    const usable = opts.filter(o => !/item:(\w+):-/.test(o[1]) || this.has(o[1].match(/item:(\w+):-/)[1]));
+    const list = usable.length ? usable : opts;
+    const k = await UI.card(title, this.fill(text), por === 'partner' ? (G.partner ? NPCS[G.partner].por : 'npc_girl') : por, list.map(o => this.fill(o[0])), { year: true });
+    const o = list[k] || list[0];
+    let ok = true;
+    if (o[3]) { let p = 0.5; const [st, base] = o[3].split(':'); if (base !== undefined) p = +base + (G.st[st] || 0) * 0.04; else p = +st; ok = Math.random() < Math.min(0.95, p); }
+    const res = await this.apply(ok ? o[1] : o[4]);
+    G.flags['ev_' + id] = (G.flags['ev_' + id] || 0) + 1;
+    const txt = this.fill(ok ? o[2] : o[5]);
+    if (txt || res.txt) await UI.card(title, (txt || '') + (res.txt ? `\n\n【${res.txt}】` : ''), por === 'partner' ? (G.partner ? NPCS[G.partner].por : 'npc_girl') : por, ['继续']);
+    for (const f of res.later) { if (G.dead) break; await f(); }
+    if (id === 'c_debtor' && G.main === 0) { G.main = 1; this.checkMain(); }
+    if (id === 'c_mentor') { G.main = Math.max(G.main, 1); this.refreshNpcs(); }
+  },
+  pickEvent() {
+    const G = this.G; const forced = EVENTS.filter(e => e[4] === 0 && this.cond(e[3]) && !(G.flags['ev_' + e[0]] > 0));
+    if (forced.length) return forced[0];
+    const pool = EVENTS.filter(e => e[4] > 0 && this.cond(e[3]) && (G.flags['ev_' + e[0]] || 0) < 2);
+    const ws = pool.map(e => e[4] / (1 + (G.flags['ev_' + e[0]] || 0) * 3) * (e[3].includes('map=') ? 1.5 : 1));
+    let r = Math.random() * ws.reduce((a, b) => a + b, 0); for (let k = 0; k < pool.length; k++) { r -= ws[k]; if (r <= 0) return pool[k]; }
+    return pool[0];
+  },
+  // -------- 过年 --------
+  async yearEnd() {
+    const G = this.G; if (G.dead || this._busy) return; this._busy = true;
+    try {
+      const apLeft = G.ap; const s = this.stats();
+      let g = 0;
+      if (G.realm > 0 || G.realm === 0) g = this.addExp(this.yearExp() * 0.5 * (1 + apLeft * 0.15) * (G.realm === 0 && !G.flags.awakened ? 0.8 : 1));
+      if (G.partner) g += this.addExp(this.yearExp() * 0.15);
+      G.age++; G.year++;
+      if (G.debt > 0) G.debt += Math.ceil(G.debt * 0.03);
+      if (G.sect) G.contrib += 3;
+      G.ap = this.apMax(); G.used = {}; G.killedMap = {}; G.shop = null; G.hp = Math.min(s.mhp, G.hp + s.mhp * 0.5); G.mp = s.mmp;
+      for (const p of G.pets) p.hp = undefined;
+      UI.yearFx(G.age, g);
+      if (G.age > G.meta_bestAge) G.meta_bestAge = G.age;
+      if (G.age >= 1000) this.ach('old');
+      if (G.age > this.lifeMax()) { await this.die(G.realm === 0 ? 'mortal' : 'sit'); return; }
+      const ev = this.pickEvent(); if (ev) await this.runEvent(ev);
+      if (G.dead) return;
+      if (G.flags.vip && Math.random() < 0.3) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
+      if (G.stone >= 10000) this.ach('rich'); if (G.stone >= 200000) this.ach('richer');
+      if (G.stone >= 1000000 && !G.flags.tycoonAsk) { G.flags.tycoonAsk = 1; const c = await UI.card('富甲三界', '你的灵石已经多到可以收购天道的全部债权了。要这么做吗？', 'i:bag', ['收购！（结局）', '低调']); if (c === 0) { await this.die('tycoon'); return; } }
+      this.checkMain(); this.spawnMonsters(); this.refreshNpcs(); UI.hud(); this.save();
+    } finally { this._busy = false; }
+  },
+  async seclude(years) {
+    const G = this.G; if (G.dead || this._busy) return; this._busy = true; let y = 0, gain = 0;
+    try {
+      await UI.fade(true, 500);
+      for (; y < years; y++) {
+        if (this.canBreak()) break;
+        gain += this.addExp(this.yearExp() * 1.0); G.age++; G.year++; if (G.debt > 0) G.debt += Math.ceil(G.debt * 0.03); if (G.sect) G.contrib += 2;
+        if (G.age > this.lifeMax()) { await UI.fade(false, 300); await this.die(G.realm === 0 ? 'mortal' : 'sit'); return; }
+      }
+      const s = this.stats(); G.hp = s.mhp; G.mp = s.mmp; G.ap = this.apMax(); G.used = {}; G.killedMap = {}; G.shop = null;
+      this.log(`闭关${y}年。`);
+      await UI.fade(false, 500); UI.yearFx(G.age, gain);
+      await UI.card('出关', `闭关 ${y} 年，修为 +${fmt(gain)}。${y < years ? '\n瓶颈已至，你提前出关。' : ''}${G.debt > 0 ? `\n天道欠款涨到了 ${fmt(G.debt)}……` : ''}`, 'i:sk_meditate', ['出关']);
+      const ev = this.pickEvent(); if (ev) await this.runEvent(ev);
+      this.checkMain(); this.spawnMonsters(); this.refreshNpcs(); UI.hud(); this.save();
+    } finally { this._busy = false; }
+  },
+  async die(kind) {
+    const G = this.G; if (G.dead) return; G.dead = true; G.ending = kind; this._busy = false;
+    const E = ENDINGS[kind] || ENDINGS.sit; this.log(`结局：${E[0]}。`);
+    if (G.age < 20) this.ach('young_die');
+    const newEnd = !this.meta.endings[kind]; this.meta.endings[kind] = (this.meta.endings[kind] || 0) + 1;
+    if (Object.keys(this.meta.endings).length >= 3) this.ach('end3');
+    if (this.meta.lives >= 3) this.ach('lives3');
+    const pts = G.realm * 15 + G.stage * 3 + Math.floor(G.age / 10) + Object.keys(G.bosses).length * 10 + (newEnd ? 20 : 0) + (G.achNew || 0) * 5;
+    this.meta.pts += pts; this.meta.best.realm = Math.max(this.meta.best.realm, G.realm); this.meta.best.age = Math.max(this.meta.best.age, G.age); this.saveMeta();
+    try { localStorage.removeItem('wbx2_save'); } catch (e) { }
+    Audio2.bgm('title'); Sfx.play(kind === 'ascend' || kind === 'paid' || kind === 'newdao' ? 'victory' : 'gong');
+    await UI.ending(kind, E, pts, newEnd);
+  },
+  ach(id) { const G = this.G; if (!ACHS[id] || this.meta.achs[id]) return; this.meta.achs[id] = Date.now(); if (G) G.achNew = (G.achNew || 0) + 1; this.saveMeta(); UI.toast(`🏆 成就解锁：${ACHS[id][0]}`, '#ffd23a'); Sfx.play('coin'); },
+  // -------- 主线 --------
+  checkMain() {
+    const G = this.G; const m = MAIN[G.main];
+    if (G.main === 2 && G.realm >= 1 && G.sect) G.main = 3;
+    if (G.main === 2 && G.realm >= 2) G.main = 3;
+    UI.hud();
+  },
+  // -------- 任务 --------
+  questDone(q) {
+    const G = this.G; const Q = QUESTS[q]; const n = Q.need;
+    if (n.k) return Object.entries(n.k).every(([m, c]) => (G.kills[m] || 0) - (G.quests[q].k0[m] || 0) >= c);
+    if (n.i) return Object.entries(n.i).every(([i, c]) => this.has(i, c));
+    if (n.f) return !!G.flags[n.f];
+    return false;
+  },
+  questProg(q) { const G = this.G; const Q = QUESTS[q]; const n = Q.need; if (n.k) return Object.entries(n.k).map(([m, c]) => `${MONS[m].n} ${Math.min(c, (G.kills[m] || 0) - (G.quests[q].k0[m] || 0))}/${c}`).join(' '); if (n.i) return Object.entries(n.i).map(([i, c]) => `${ITEMS[i].n} ${Math.min(c, G.inv[i] || 0)}/${c}`).join(' '); return G.flags[n.f] ? '已完成' : '未完成'; },
+  acceptQuest(q) { this.G.quests[q] = { k0: Object.assign({}, this.G.kills) }; UI.toast('接受任务：' + QUESTS[q].n); this.refreshNpcs(); },
+  async finishQuest(q) {
+    const G = this.G; const Q = QUESTS[q]; if (Q.need.i) for (const [i, c] of Object.entries(Q.need.i)) this.take(i, c);
+    const rw = Q.rw; const parts = [];
+    if (rw.exp) parts.push('exp%' + Math.round(Math.min(300, 80 + rw.exp / 20)));
+    if (rw.stone) parts.push('stone+' + rw.stone); if (rw.item) for (const [i, c] of Object.entries(rw.item)) parts.push(`item:${i}:${c}`); if (rw.aff) for (const [k, v] of Object.entries(rw.aff)) parts.push(`aff:${k}:${v}`);
+    const r = await this.apply(parts.join(';')); delete G.quests[q]; G.qdone[q] = 1; Sfx.play('levelup');
+    if (Object.keys(G.qdone).length >= 10) this.ach('quest10');
+    await UI.card('任务完成', `【${Q.n}】完成！\n${r.txt}`, NPCS[Q.giver].por, ['好']); this.refreshNpcs(); this.save();
+  },
+  updateQuests() { this.refreshNpcs(); },
+  // -------- 地图 --------
+  canEnter(id) { const G = this.G; const I = MAPINFO[id]; if (id === 'village') return true; if (!G.flags.awakened) return false; return G.realm >= I.need; },
+  async travel(id, free) {
+    const G = this.G; if (G.map === id && R.mapId === id) return;
+    if (!free) { if (G.ap <= 0) { UI.toast('今年的行动力用完了，先过年吧'); return; } G.ap--; }
+    Sfx.play('whoosh'); await UI.fade(true);
+    G.map = id; G.pos = null; await this.enterMap(id); await UI.fade(false);
+    if (!G.visited[id]) { G.visited[id] = 1; if (Object.keys(G.visited).length >= 8) this.ach('allmaps'); G.flags['visit_' + id] = 1; UI.toast(`首次抵达：${MAPINFO[id].n}`); }
+    this.save();
+  },
+  async enterMap(id) {
+    const G = this.G; const info = MAPINFO[id];
+    const sprs = new Set([this.playerSpr()]); for (const k in NPCS) if (NPCS[k].map === id) sprs.add(NPCS[k].spr); for (const m of info.mons) sprs.add(MONS[m].spr); if (info.boss) sprs.add(MONS[info.boss].spr); const p = this.activePet(); if (p) sprs.add(MONS[p.mon].spr);
+    if (id === 'village') sprs.add('mon_collector');
+    UI.loading(true); await loadMap(id, [...sprs]); UI.loading(false);
+    R.mode = 'map'; R.mapId = id;
+    const st = G.pos || [info.start[0] + 0.5, info.start[1] + 0.5]; const [wi, wj] = nearestWalk(st[0] - 0.5, st[1] - 0.5);
+    R.player = addEnt({ kind: 'player', spr: this.playerSpr(), i: G.pos ? st[0] : wi + 0.5, j: G.pos ? st[1] : wj + 0.5, dir: 'N', speed: 3.4 });
+    if (!walkable(Math.floor(R.player.i), Math.floor(R.player.j))) { R.player.i = wi + 0.5; R.player.j = wj + 0.5; }
+    const [px, py] = t2p(R.player.i, R.player.j); R.cam.x = px; R.cam.y = py - 60;
+    this.spawnPetEnt(); this.makeMarks(); this.refreshNpcs(); this.spawnMonsters();
+    R.onTap = (x, y) => this.onTap(x, y);
+    Audio2.bgm(info.bgm); UI.banner(info.n, info.d); UI.hud();
+  },
+  spawnPetEnt() {
+    if (R.pet) removeEnt(R.pet); R.pet = null; const p = this.activePet(); if (!p) return;
+    const P = R.player; R.pet = addEnt({ kind: 'pet', spr: MONS[p.mon].spr, i: P.i + 0.6, j: P.j + 0.6, s: 0.62, speed: 3.6, label: null, ai: (e, dt) => { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d > 1.8 && (!e.path || !e.path.length)) moveTo(e, Math.floor(P.i), Math.floor(P.j)); if (d < 1.0 && e.path && e.path.length) e.path = []; } });
+    loadSprite(R.pet.spr);
+  },
+  makeMarks() {
+    const G = this.G; R.marks = [];
+    const LBL = { noticeboard: ['告示栏', 'board'], mat: ['打坐', 'mat'], furnace: ['炼丹炉', 'alch'], bigfurnace: ['八卦炉', 'alch'], chest: ['宝箱', 'chest'], herb: ['采药', 'herb'], well: ['古井', 'well'], bell: ['敲钟', 'bell'], dummy: ['练剑', 'dummy'], portal: ['传送阵', 'portal'], boat: ['钓鱼', 'fish'], teahouse: ['茶馆', 'tea'], shop: ['商铺', 'shop'], shop2: ['当铺', 'pawn'], stall_r: ['小摊', 'shop'], altar: ['祭坛', 'altar'], tianmen: ['南天门', 'gate'], debtoffice: ['讨债司', 'debt'], stele: ['石碑', 'stele'], coffin: ['棺材', 'coffin'], pavilion: ['凉亭', 'rest'], fairypeach: ['摘桃', 'peach'], jade: ['玉台', 'jade'], incense: ['上香', 'incense'], well2: [] };
+    const seen = {};
+    for (const p of R.props) {
+      const L = LBL[p.t]; if (!L || !L.length) continue; seen[p.t] = (seen[p.t] || 0) + 1;
+      if (['fairypeach', 'mat', 'stall_r', 'dummy', 'furnace', 'jade', 'boat', 'coffin', 'pavilion'].includes(p.t) && seen[p.t] > 1) continue;
+      let ti = p.i + Math.floor(p.fw / 2), tj = p.j + p.fh; if (NONBLOCK.has(p.t)) { ti = p.i; tj = p.j; }
+      const [i, j] = nearestWalk(ti, tj);
+      const key = `${R.mapId}_${p.t}_${p.i}_${p.j}`;
+      const AFF = { herb: 1, chest: 1, peach: 1, bell: 1, well: 1, incense: 1, stele: 0, coffin: 1 };
+      R.marks.push({ i, j, label: L[0], act: L[1], key, prop: p, h: Math.min(200, 60 + p.fh * 30 + (['hall', 'pagoda', 'tianmen', 'debtoffice', 'demonhall'].includes(p.t) ? 120 : 30)), hidden: AFF[L[1]] && G.used[key] });
+    }
+  },
+  refreshNpcs() {
+    if (!R.M || R.mode !== 'map' && R.mode !== 'battle') return; const G = this.G;
+    R.ents = R.ents.filter(e => e.kind !== 'npc' && e.kind !== 'boss');
+    for (const id in NPCS) {
+      const N = NPCS[id]; if (N.map !== R.mapId) continue;
+      if (N.minAge && G.age < N.minAge) continue; if (N.minRealm && G.realm < N.minRealm) continue;
+      if (id === 'mentor' && !G.flags.main1) continue;
+      if (G.follower === id) continue;
+      const [i, j] = nearestWalk(N.at[0], N.at[1]);
+      const e = addEnt({ kind: 'npc', id, spr: N.spr, i: i + 0.5, j: j + 0.5, dir: 'S', label: N.n, s: N.spr.startsWith('mon_') ? 0.95 : 1, home: [i, j], ai: npcAI });
+      e.mark = this.npcMark(id);
+      loadSprite(N.spr);
+    }
+    const info = MAPINFO[R.mapId]; const mi = MAIN[G.main];
+    if (info.boss && !G.bosses[info.boss] && mi && mi.boss === info.boss) {
+      const pos = { graveyard: [10, 7], island: [11, 6], rift: [11, 6], heaven: [11, 8] }[R.mapId] || [10, 8];
+      const [i, j] = nearestWalk(pos[0], pos[1]);
+      addEnt({ kind: 'boss', id: info.boss, spr: MONS[info.boss].spr, i: i + 0.5, j: j + 0.5, dir: 'SE', label: MONS[info.boss].n, lc: '#ffb040', s: 0.62, mark: '!' });
+    }
+    // 跟随的伙伴
+    if (G.follower && !R.ents.find(e => e.kind === 'comp')) { const N = NPCS[G.follower]; const P = R.player; if (P) { const e = addEnt({ kind: 'comp', spr: N.spr, i: P.i - 0.6, j: P.j + 0.6, s: 0.95, speed: 3.6, label: N.n.split('·').pop(), lc: '#ffc0e0', ai: (e, dt) => { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d > 2.2 && (!e.path || !e.path.length)) moveTo(e, Math.floor(P.i), Math.floor(P.j) + 1); if (d < 1.2 && e.path && e.path.length) e.path = []; } }); loadSprite(N.spr); } }
+  },
+  npcMark(id) {
+    const G = this.G;
+    for (const q in G.quests) if (QUESTS[q].giver === id && this.questDone(q)) return '?';
+    if (Talk.mainTalk(id, true)) return '!';
+    for (const q in QUESTS) { const Q = QUESTS[q]; if (Q.giver === id && !G.quests[q] && !G.qdone[q] && this.questAvail(q)) return '!'; }
+    return null;
+  },
+  questAvail(q) { const G = this.G; const Q = QUESTS[q]; if (Q.minAge && G.age < Q.minAge) return false; if (Q.sect && !G.sect) return false; return true; },
+  spawnMonsters() {
+    if (!R.M || !R.player) return; const G = this.G; const info = MAPINFO[R.mapId];
+    R.ents = R.ents.filter(e => e.kind !== 'mon');
+    const n = Math.max(0, info.cnt - (G.killedMap[R.mapId] || 0));
+    const P = R.player;
+    for (let k = 0; k < n; k++) {
+      let i, j, g = 0; do { i = ri(1, R.n - 2); j = ri(1, R.n - 2); g++; } while ((!walkable(i, j) || Math.hypot(i - P.i, j - P.j) < 5) && g < 200);
+      const mon = pick(info.mons); const elite = Math.random() < 0.1; const tier = info.tier + rnd(0, 0.4);
+      addEnt({ kind: 'mon', mon, tier, elite, spr: MONS[mon].spr, i: i + 0.5, j: j + 0.5, dir: pick(DIR8), s: elite ? 1.1 : 0.95, speed: 1.3, label: (elite ? '精英·' : '') + MONS[mon].n, lc: elite ? '#d8a0ff' : '#ffb0a0', home: [i, j], ai: monAI });
+    }
+  },
+  // -------- 交互 --------
+  onTap(x, y) {
+    if (UI.modal || this._busy || R.mode !== 'map') return; const P = R.player; if (!P) return;
+    const h = pickAt(x, y);
+    if (h.ent) {
+      const e = h.ent; R.tapMark = { i: Math.floor(e.i), j: Math.floor(e.j), t: 0 };
+      const go = () => { if (Math.hypot(e.i - P.i, e.j - P.j) <= 1.6) { P.path = []; this.interactEnt(e); return true; } return false; };
+      if (go()) return;
+      moveTo(P, Math.floor(e.i), Math.floor(e.j) + 1, () => { if (!go()) { if (Math.hypot(e.i - P.i, e.j - P.j) <= 2.4) this.interactEnt(e); } });
+      if (e.kind === 'mon') P.chase = e;
+      return;
+    }
+    if (h.mark) { const m = h.mark; R.tapMark = { i: m.i, j: m.j, t: 0 }; if (Math.abs(P.i - (m.i + 0.5)) < 1.2 && Math.abs(P.j - (m.j + 0.5)) < 1.2) { this.interactMark(m); return; } moveTo(P, m.i, m.j, ok => { if (ok) this.interactMark(m); }); return; }
+    const [ti, tj] = h.tile; R.tapMark = { i: ti, j: tj, t: 0 }; P.chase = null; moveTo(P, ti, tj);
+  },
+  async interactEnt(e) {
+    if (UI.modal || this._busy) return; const P = R.player; P.path = []; P.dir = dirFrom(e.i - P.i, e.j - P.j);
+    if (e.kind === 'npc') { e.dir = dirFrom(P.i - e.i, P.j - e.j); e.talking = 2; await Talk.npc(e.id); this.refreshNpcs(); }
+    else if (e.kind === 'mon') await this.monBattle(e);
+    else if (e.kind === 'boss') await Talk.boss(e.id);
+  },
+  async monBattle(e) {
+    if (this._busy || UI.modal || e.gone) return; this._busy = true; e.gone = true;
+    try {
+      Sfx.play('whoosh'); await UI.flashIn();
+      const r = await this.fight(e.mon, { tier: e.tier, elite: e.elite });
+      if (r.res === 'win') { removeEnt(e); this.G.killedMap[R.mapId] = (this.G.killedMap[R.mapId] || 0) + 1; }
+      else { e.gone = false; e.cool = 3; if (R.player) { const [i, j] = nearestWalk(MAPINFO[R.mapId].start[0], MAPINFO[R.mapId].start[1]); R.player.i = i + 0.5; R.player.j = j + 0.5; R.player.path = []; } }
+      this.refreshNpcs();
+    } finally { this._busy = false; }
+  },
+  async interactMark(m) {
+    if (UI.modal || this._busy) return; const G = this.G; this._busy = true;
+    try { await Acts[m.act](m); } finally { this._busy = false; }
+    UI.hud(); this.save();
+  },
+  useAP(n = 1) { const G = this.G; if (G.ap < n) { UI.toast('行动力不足，点击“过年”进入下一年'); return false; } G.ap -= n; UI.hud(); return true; },
+};
+function npcAI(e, dt) {
+  if (e.talking > 0) { e.talking -= dt; return; }
+  e.wt = (e.wt || rnd(2, 6)) - dt;
+  if (e.wt <= 0) { e.wt = rnd(3, 8); if (Math.random() < 0.5) { const [i, j] = e.home; const ti = i + ri(-2, 2), tj = j + ri(-2, 2); if (walkable(ti, tj)) { e.speed = 1.2; moveTo(e, ti, tj); } } else e.dir = pick(['S', 'SE', 'SW', 'E', 'W']); }
 }
-
-/* ================= 死亡与结算 ================= */
-async function die(cause, text, ascended) {
-  if (!S.alive) return;
-  if (!ascended && cause !== '寿终正寝' && G.has('bsxq') && !S.revived) { S.revived = 1; log('<span class="gold">你本该死了，但不死小强发动，你又爬了起来！</span>'); return; }
-  S.alive = false; S.cause = cause; log('<span class="bad">' + text + '</span>'); saveLife();
-  if (!ascended) { SFX.death(); if (PL) { PL.mood = 'sad'; for (let k = 0; k < 10; k++) { PL.alpha = 1 - k / 10; await sleep(80); } } }
-  const pts = Math.round(S.age / 10 + S.realm * S.realm * 3 + S.realm * 3 + S.kills * 0.3 + (S.fame || 0) * 2 + (ascended ? 60 : 0) + 3);
-  META_S.pts += pts; META_S.n++; META_S.lives.unshift({ n: META_S.n, name: S.name, age: S.age, realm: realmName(), cause, ling: LINGGEN[S.ling].n }); META_S.lives = META_S.lives.slice(0, 30); saveMeta();
-  try { localStorage.removeItem(LS_LIFE); } catch (e) {}
-  const grade = ascended ? 'SSS' : ['D', 'C', 'B', 'A', 'S', 'S+', 'SS'][S.realm];
-  const comment = ascended ? '还清尾款，位列仙班。落魄剑仙在下界为你烧了一壶好酒。' : ['平凡的一生，也是一生。至少你种的萝卜很甜。', '踏入了仙途，但仙途太长，腿太短。', '筑基有成，在村里吹了一辈子。', '金丹修士，一方高人，就是有点穷。', '元婴老怪，小孩子听到你的名字都不敢哭。', '化神大能，离飞升只差几笔尾款。', '渡劫期！就差最后一哆嗦！'][S.realm];
-  await sleep(600);
-  $('dTitle').textContent = ascended ? '飞升成仙' : '此生已尽';
-  $('dBody').innerHTML = '<div class="grade">' + grade + '</div><div class="big" style="text-align:center;margin-bottom:8px">' + comment + '</div>' +
-    [['姓名', S.name], ['灵根', LINGGEN[S.ling].n], ['享年', S.age + ' 岁'], ['境界', realmName()], ['死因', cause], ['斩妖', S.kills + ' 只'], ['天赋', S.talents.map(t => TALENTS.find(x => x.id === t).n).join('、')]].map(([k, v]) => '<div class="kv"><span>' + k + '</span><b>' + v + '</b></div>').join('') +
-    '<div class="big" style="text-align:center;margin-top:10px">获得 <b style="color:#b8402a;font-size:24px">' + pts + '</b> 轮回点（共 ' + META_S.pts + '）</div>';
-  showScreen('deathScr');
+function monAI(e, dt) {
+  if (e.gone) return; const P = R.player; if (!P) return;
+  if (e.cool > 0) { e.cool -= dt; }
+  const d = Math.hypot(e.i - P.i, e.j - P.j);
+  if (d < 0.95 && !(e.cool > 0) && !UI.modal && !Game._busy) { P.path = []; Game.monBattle(e); return; }
+  if (P.chase === e && d < 1.7 && !UI.modal && !Game._busy) { P.path = []; P.chase = null; Game.monBattle(e); return; }
+  e.wt = (e.wt || rnd(1, 4)) - dt;
+  if (e.wt <= 0) { e.wt = rnd(2, 5); const [i, j] = e.home; const ti = i + ri(-3, 3), tj = j + ri(-3, 3); if (walkable(ti, tj)) moveTo(e, ti, tj); }
 }
-
-/* ================= 行囊 / 商店 / 地图 / 菜单 ================= */
-function bagModal() {
-  const ks = Object.keys(S.items);
-  openModal('<div class="ptitle">行囊</div><div class="list">' + (ks.length ? ks.map(k => '<div class="it"><div><div class="nm">' + ITEMS[k].n + ' ×' + S.items[k] + '</div><div class="ds">' + ITEMS[k].d + '</div></div>' + (['hcd', 'ysd', 'pyd'].includes(k) ? '<button class="btn sm" data-use="' + k + '">使用</button>' : '') + '</div>').join('') : '<div class="hint" style="padding:20px">空空如也，跟你的钱袋一样</div>') +
-    '</div><div class="ptitle s">天赋</div>' + S.talents.map(id => { const t = TALENTS.find(x => x.id === id); return '<div class="card"><div class="gem" style="background:' + RCOL[t.r] + '">' + t.n[0] + '</div><div><div class="tn">' + t.n + '</div><div class="td">' + t.d + '</div></div></div>'; }).join('') +
-    '<div class="row2"><button class="btn" id="bagX">关闭</button></div>');
-  bind('bagX', closeModal);
-  document.querySelectorAll('[data-use]').forEach(b => bind(b, () => { const k = b.dataset.use, pm = 1 + G.mod('pill'); G.item(k, -1);
-    if (k === 'hcd') { S.injured = 0; G.life(Math.round(5 * pm)); log('你服下回春丹，伤势痊愈。'); } if (k === 'ysd') { G.life(Math.round(30 * pm)); log('你服下延寿丹，<span class="res">寿元+' + Math.round(30 * pm) + '</span>'); } if (k === 'pyd') { G.cultYear(1.5 * pm); log('你服下培元丹，修为大涨。'); }
-    SFX.chime(); updateHUD(); saveLife(); bagModal(); }));
-}
-function price(k) { return Math.round(ITEMS[k].p * (1 + S.realm * 0.25) * (1 - Math.min(0.3, S.st.cha * 0.02))); }
-function shopModal() {
-  return new Promise(done => {
-    const draw = () => { openModal('<div class="ev"><canvas id="evPic"></canvas><div><div class="who">奸商·钱多多</div><div class="txt">“童叟无欺，假一赔……再说吧。”<br>你有灵石：<b>' + S.stones + '</b></div></div></div><div class="list">' + SHOP.map(k => '<div class="it"><div><div class="nm">' + ITEMS[k].n + '</div><div class="ds">' + ITEMS[k].d + '</div></div><button class="btn gold sm" data-buy="' + k + '">' + price(k) + '</button></div>').join('') + '</div><div class="row2"><button class="btn" id="shX">离开</button></div>');
-      R.portrait($('evPic'), NPC.merchant); bind('shX', () => { closeModal(); done(); });
-      document.querySelectorAll('[data-buy]').forEach(b => bind(b, () => { const k = b.dataset.buy, p = price(k);
-        if (S.stones < p && !G.has('szjj')) { toast('灵石不够！（赊账剑诀可以欠账）'); return; }
-        if (G.has('bphy') && G.roll(0.25)) { toast('白嫖护体发动！老板忘记收钱了'); } else { S.stones -= p; if (S.stones < 0) S.debtHeat = (S.debtHeat || 0) + 1; }
-        G.item(k, 1); SFX.coin(); updateHUD(); saveLife(); draw(); })); };
-    draw(); modalClose = () => { closeModal(); done(); };
-  });
-}
-function mapModal() {
-  openModal('<div class="ptitle">云游四方</div>' + Object.entries(LOCS).map(([k, L]) => { const ok = L.ok(); return '<div class="loc ' + (k === S.loc ? 'cur' : '') + (ok ? '' : ' lock') + '" data-loc="' + k + '"><div><div class="ln">' + L.n + (k === S.loc ? '（当前）' : '') + '</div><div class="ld">' + (ok ? L.d : '【未解锁】' + L.lock) + '</div></div></div>'; }).join('') + '<div class="row2"><button class="btn" id="mpX">关闭</button></div>');
-  bind('mpX', closeModal);
-  document.querySelectorAll('[data-loc]').forEach(el => bind(el, () => { const k = el.dataset.loc; if (!LOCS[k].ok()) { toast(LOCS[k].lock); return; } if (k === S.loc) { closeModal(); return; } closeModal(); travel(k); }));
-}
-async function travel(k) { await fade(() => { S.loc = k; R.setMap(k); populate(k); updateHUD(); saveLife(); }); banner(LOCS[k].n); log('你来到了' + LOCS[k].n + '。'); }
-function menuModal() {
-  openModal('<div class="ptitle">菜单</div><div class="menu" style="margin:10px auto">' +
-    '<button class="btn" id="mnBack">继续游戏</button><button class="btn ghost" id="mnMusic">音乐：' + (SFX.musicOn ? '开' : '关') + '</button><button class="btn ghost" id="mnHelp">玩法说明</button><button class="btn red" id="mnTitle">回到标题</button><button class="btn red sm" id="mnSuicide">兵解重修（结束此生）</button></div>');
-  bind('mnBack', closeModal); bind('mnMusic', () => { SFX.setMusic(!SFX.musicOn); menuModal(); }); bind('mnHelp', helpModal);
-  bind('mnTitle', () => { closeModal(); saveLife(); toTitle(); });
-  bind('mnSuicide', () => { closeModal(); if (!busy) die('兵解', '你觉得这辈子开局不好，果断兵解，重入轮回。'); });
-}
-function helpModal() {
-  openModal('<div class="ptitle">玩法</div><div class="big">' +
-    '① 投胎：抽 3 个天赋、分配先天属性、摸出灵根。<br>② 每次点一个<b>行动</b>就过一年（闭关会过好几年），随机触发奇遇事件。<br>③ 修为满了点<b>突破</b>：凡人→练气→筑基→金丹→元婴→化神→渡劫→<b>飞升</b>。金丹起要渡天劫！<br>④ 用<b>地图</b>去不同地方：宗门修炼快，坊市能赚钱买丹药，秘境斩妖掉宝。<br>⑤ 寿元耗尽或渡劫失败就会死。死后获得<b>轮回点</b>，在轮回殿永久变强，再来一世。<br>⑥ 斗法自动进行，点击屏幕可加速。<br><br>终极目标：还清天道的尾款，白日飞升！</div><div class="row2"><button class="btn" id="hpX">明白了</button></div>');
-  bind('hpX', closeModal);
-}
-function metaModal() {
-  const draw = () => { openModal('<div class="ptitle">轮回殿 <small>轮回点：<b>' + META_S.pts + '</b></small></div><div class="hint">孟婆汤可以不喝，但轮回点要花</div><div class="list">' +
-    META.map(m => { const l = mlv(m.id), max = l >= m.max; return '<div class="it"><div><div class="nm">' + m.n + ' <small>Lv' + l + '/' + m.max + '</small></div><div class="ds">' + m.d + '</div></div><button class="btn gold sm" data-m="' + m.id + '" ' + (max ? 'disabled' : '') + '>' + (max ? '已满' : m.cost(l)) + '</button></div>'; }).join('') + '</div><div class="row2"><button class="btn" id="mtX">关闭</button></div>');
-    bind('mtX', () => { closeModal(); updateTitle(); });
-    document.querySelectorAll('[data-m]').forEach(b => bind(b, () => { const m = META.find(x => x.id === b.dataset.m), l = mlv(m.id), c = m.cost(l); if (l >= m.max) return; if (META_S.pts < c) { toast('轮回点不足，再去死几次吧'); return; } META_S.pts -= c; META_S.lv[m.id] = l + 1; saveMeta(); SFX.chime(); draw(); })); };
-  draw();
-}
-function histModal() {
-  openModal('<div class="ptitle">往世录</div><div class="hint">共轮回 ' + META_S.n + ' 世 · 最高境界：' + REALMS[META_S.best || 0].n + '</div><div class="list">' + (META_S.lives.length ? META_S.lives.map(l => '<div class="it"><div><div class="nm">第' + l.n + '世 · ' + l.name + '</div><div class="ds">' + l.ling + ' · 享年' + l.age + ' · ' + l.realm + ' · ' + l.cause + '</div></div></div>').join('') : '<div class="hint" style="padding:20px">还没有前世。你是一张白纸。</div>') + '</div><div class="row2"><button class="btn" id="hsX">关闭</button></div>');
-  bind('hsX', closeModal);
-}
-
-/* ================= 投胎 ================= */
-let draft = null;
-function newDraft() {
-  const n = 8 + mlv('cand'), pool = TALENTS.slice().sort(() => Math.random() - 0.5);
-  // 稀有度加权：金色较少
-  const cands = []; for (const t of pool) { if (cands.length >= n) break; if (t.r === 3 && Math.random() < 0.55) continue; cands.push(t.id); }
-  while (cands.length < n) { const t = pick(TALENTS).id; if (!cands.includes(t)) cands.push(t); }
-  draft = { cands, sel: [], rerolls: 1 + mlv('reroll'), name: randName(), ling: null, st: { con: 0, int: 0, luck: 0, cha: 0, wealth: 0 }, pts: 20 + mlv('pts') * 2 };
-  randStats();
-}
-function randStats() { const st = draft.st; for (const k in st) st[k] = 0; let p = draft.pts; while (p > 0) { const k = pick(Object.keys(st)); if (st[k] < 10) { st[k]++; p--; } } }
-function rollLing() { let w = LINGGEN.map(l => l.w), lim = mlv('root') ? 3 : 6; let tot = 0; for (let i = 0; i <= lim; i++) tot += w[i]; let r = Math.random() * tot; for (let i = 0; i <= lim; i++) { r -= w[i]; if (r <= 0) return i; } return lim; }
-function drawTalents() {
-  const L = $('talentList'); L.innerHTML = '';
-  draft.cands.forEach(id => { const t = TALENTS.find(x => x.id === id), d = document.createElement('div'); d.className = 'card r' + t.r + (draft.sel.includes(id) ? ' sel' : '');
-    d.innerHTML = '<div class="gem" style="background:' + RCOL[t.r] + '">' + t.n[0] + '</div><div><div class="tn" style="color:' + (t.r ? RCOL[t.r] : '#555') + '">' + t.n + '</div><div class="td">' + t.d + '</div></div>';
-    bind(d, () => { const i = draft.sel.indexOf(id); if (i >= 0) draft.sel.splice(i, 1); else if (draft.sel.length < 3) draft.sel.push(id); else { draft.sel.shift(); draft.sel.push(id); } drawTalents(); }); L.appendChild(d); });
-  $('bReroll').textContent = '刷新(' + draft.rerolls + ')'; $('bReroll').disabled = draft.rerolls <= 0; $('bTalentOk').disabled = draft.sel.length < 3;
-}
-function drawStats() {
-  $('nameV').textContent = draft.name; const used = Object.values(draft.st).reduce((a, b) => a + b, 0); $('ptsV').textContent = draft.pts - used;
-  if (draft.ling != null) { const l = LINGGEN[draft.ling]; $('lingV').innerHTML = '<span style="color:' + l.col + ';text-shadow:0 1px 0 #333">' + l.n + '</span>'; $('lingD').textContent = l.d + '（修炼×' + l.mul + '）'; $('bLing').classList.add('hidden'); }
-  else { $('lingV').textContent = '？？？'; $('lingD').textContent = '点“摸骨”看看你的灵根'; $('bLing').classList.remove('hidden'); }
-  $('statList').innerHTML = STATS.map(([k, n, d]) => '<div class="srow"><span class="sn">' + n + '</span><span class="sd">' + d + '</span><button class="btn ghost" data-s="' + k + '" data-d="-1">−</button><span class="sv">' + draft.st[k] + '</span><button class="btn ghost" data-s="' + k + '" data-d="1">＋</button></div>').join('');
-  document.querySelectorAll('[data-s]').forEach(b => bind(b, () => { const k = b.dataset.s, d = +b.dataset.d, used = Object.values(draft.st).reduce((a, c) => a + c, 0); if (d > 0 && (used >= draft.pts || draft.st[k] >= 10)) return; if (d < 0 && draft.st[k] <= 0) return; draft.st[k] += d; drawStats(); }));
-}
-async function lingAnim() {
-  const v = $('lingV'); for (let k = 0; k < 14; k++) { const l = LINGGEN[(Math.random() * 7) | 0]; v.innerHTML = '<span style="color:' + l.col + '">' + l.n + '</span>'; SFX.click(); await new Promise(r => setTimeout(r, 50 + k * 12)); }
-  draft.ling = rollLing(); drawStats(); draft.ling <= 1 ? SFX.levelup() : SFX.chime();
-}
-function born() {
-  if (draft.ling == null) draft.ling = rollLing();
-  const st = Object.assign({}, draft.st); for (const id of draft.sel) { const t = TALENTS.find(x => x.id === id); if (t.s) for (const k in t.s) st[k] = Math.max(0, st[k] + t.s[k]); }
-  S = { v: 1, name: draft.name, age: 0, ling: draft.ling, st, talents: draft.sel.slice(), realm: 0, stage: 0, exp: 0, stones: st.wealth * 25 + mlv('gold') * 100, lifeBonus: 0, loc: 'village', unlocked: { village: 1 }, flags: {}, items: {}, injured: 0, log: [], seen: {}, kills: 0, fame: 0, alive: true,
-    look: { hair: pick(['#2a1b14', '#1a1a2a', '#4a2a1a', '#3a2a4a']), ribbon: pick(['#ff5a6a', '#5a8fd8', '#ffd75e', '#9be15d', '#c07aff']), long: Math.random() < 0.5 } };
-  if (S.stones > 0 && G.has('fed')) S.stones += 100;
-  if (G.has('luox')) S.flags.mentor = 1;
-  startLife(true);
-}
-async function startLife(fresh) {
-  await fade(() => { showScreen('game'); R.setMap(S.loc); populate(S.loc); renderLog(); updateHUD(); });
-  if (fresh) { log('你出生在桃花村一户' + (S.st.wealth >= 7 ? '富裕的地主' : S.st.wealth >= 4 ? '普通的农' : '穷得叮当响的') + '人家。接生婆说你哭声嘹亮，' + pick(['像个讨债的。', '必成大器。', '吵死了。']) + '<span class="res">（' + LINGGEN[S.ling].n + '）</span>'); saveLife(); }
-  else log('<span class="res">（前尘未了，继续此生）</span>');
-}
-
-/* ================= 标题 ================= */
-function updateTitle() {
-  const L = loadLife(); $('bContinue').style.display = L && L.alive ? '' : 'none';
-  if (L && L.alive) $('bContinue').textContent = '继续此生 · ' + L.name + ' ' + L.age + '岁';
-  $('metaLine').textContent = META_S.n ? '已轮回 ' + META_S.n + ' 世 · 轮回点 ' + META_S.pts + ' · 最高 ' + REALMS[META_S.best || 0].n : '仙途漫漫，不如……先投个胎';
-  $('bMusic').textContent = '音乐：' + (SFX.musicOn ? '开' : '关');
-}
-function toTitle() { fade(() => { S = null; showScreen('title'); R.setMap('village'); populate('village'); updateTitle(); }); }
-
-/* ================= 绑定 ================= */
-bind('bNew', () => { newDraft(); drawTalents(); showScreen('talentScr'); });
-bind('bContinue', () => { const L = loadLife(); if (!L) return; S = L; startLife(false); });
-bind('bMeta', metaModal); bind('bHist', histModal); bind('bHelp', helpModal);
-bind('bMusic', () => { SFX.setMusic(!SFX.musicOn); updateTitle(); });
-bind('bReroll', () => { if (draft.rerolls <= 0) return; draft.rerolls--; const keep = draft.sel.slice(); const r = draft.rerolls; const nm = draft.name; newDraft(); draft.rerolls = r; draft.name = nm; draft.sel = []; drawTalents(); });
-bind('bTalentOk', () => { if (draft.sel.length < 3) return; drawStats(); showScreen('statScr'); });
-bind('bName', () => { draft.name = randName(); drawStats(); });
-bind('bLing', lingAnim);
-bind('bRand', () => { randStats(); drawStats(); });
-bind('bBorn', () => { const used = Object.values(draft.st).reduce((a, b) => a + b, 0); if (used < draft.pts) { toast('还有 ' + (draft.pts - used) + ' 点属性没分配哦'); return; } SFX.gong(); born(); });
-bind('bMenu', menuModal); bind('bMap', () => { if (!busy) mapModal(); }); bind('bBag', () => { if (!busy) bagModal(); }); bind('bBreak', doBreak);
-bind('dAgain', () => { newDraft(); drawTalents(); showScreen('talentScr'); R.setMap('village'); populate('village'); });
-bind('dMeta', metaModal);
-window.onAndroidBack = () => { if (!$('modal').classList.contains('hidden')) { if (modalClose) modalClose(); return true; } if ($('hud').classList.contains('hidden')) { if ($('title').classList.contains('on')) return false; toTitle(); return true; } if (!busy) menuModal(); return true; };
-window.onAppPause = () => { SFX.suspend(); saveLife(); }; window.onAppResume = () => SFX.resume();
-document.addEventListener('visibilitychange', () => { if (document.hidden) { SFX.suspend(); saveLife(); } else SFX.resume(); });
-
-R.init($('cv'));
-populate('village'); showScreen('title'); updateTitle();
-window.__wbx = { get S() { return S; }, G, R, doAction, doBreak, battle, runEvent, travel, META: () => META_S }; // 调试/测试用
