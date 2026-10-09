@@ -135,3 +135,34 @@ var VFX = window.VFX = (function () {
     return r;
   };
 })();
+// ===== v2.1 技能序列帧特效（assets/vfx/*.webp，4x4 帧；HD 资源包替换为 2 倍分辨率）=====
+(function () {
+  const V = window.VFX; if (typeof fx !== 'function' || typeof drawBattle !== 'function') return;
+  const SHEET_OF = { fire: 'fire', fireall: 'fire', ice: 'ice', iceall: 'ice', thunder: 'thunder', thunderall: 'thunder', slash: 'slash', swordqi: 'slash', flysword: 'slash', wanjian: 'slash', light: 'light', dark: 'dark', blood: 'blood', heal: 'heal', shield: 'shield', water: 'water', vine: 'poison', poison: 'poison', quake: 'quake' };
+  const NORMAL = { poison: 1, quake: 1, blood: 1, dark: 1 };
+  const cache = {}; const live = [];
+  const get = n => { let im = cache[n]; if (!im) { im = cache[n] = new Image(); im.src = 'assets/vfx/' + n + '.webp'; } return im; };
+  V.sheet = (n, x, y, size, delay) => { live.push({ n, im: get(n), x, y, size, t0: performance.now() + (delay || 0) }); if (live.length > 24) live.shift(); };
+  V.drawFx = ctx => {
+    const now = performance.now(), dur = 560 / Math.max(1, B.speed || 1);
+    for (let i = live.length - 1; i >= 0; i--) {
+      const e = live[i], k = (now - e.t0) / dur; if (k < 0) continue; if (k >= 1) { live.splice(i, 1); continue; }
+      if (!e.im.complete || !e.im.naturalWidth) continue;
+      const F = e.im.naturalWidth / 4, f = Math.min(15, (k * 16) | 0);
+      ctx.save(); ctx.globalCompositeOperation = NORMAL[e.n] ? 'source-over' : 'lighter';
+      ctx.drawImage(e.im, (f % 4) * F, ((f / 4) | 0) * F, F, F, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size); ctx.restore();
+    }
+  };
+  const _fx = fx;
+  fx = async function (kind, u, targets) {
+    const n = SHEET_OF[kind];
+    if (n && targets && targets.length) {
+      const D = R.dpr, H = 70 * D, many = targets.length > 1, proj = kind === 'fire' || kind === 'water' || kind === 'ice';
+      targets.forEach((t, i) => { try { const [x, y] = uPos(t); V.sheet(n, x, n === 'quake' ? y : y - H, (many ? 190 : 240) * D, (proj ? 300 : 60) / Math.max(1, B.speed) + i * 40); } catch (e) {} });
+    }
+    return _fx(kind, u, targets);
+  };
+  const _db = drawBattle;
+  drawBattle = function (ctx) { _db(ctx); try { V.drawFx(ctx); } catch (e) {} };
+  V.clearFx = () => { live.length = 0; };
+})();
