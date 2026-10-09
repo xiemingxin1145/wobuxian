@@ -157,8 +157,10 @@ function update(dt) {
         let di = (P_.ej[1] * sx - P_.ej[0] * sy) / det, dj = (-P_.ex[1] * sx + P_.ex[0] * sy) / det; const l = Math.hypot(di, dj); di /= l; dj /= l;
         const sp = P.speed * dt * Math.min(1, m / 60); const ni = P.i + di * sp, nj = P.j + dj * sp;
         P.path = []; P.onArrive = null;
+        const oi = P.i, oj = P.j;
         if (walkable(Math.floor(ni), Math.floor(nj))) { P.i = ni; P.j = nj; } else if (walkable(Math.floor(ni), Math.floor(P.j))) P.i = ni; else if (walkable(Math.floor(P.i), Math.floor(nj))) P.j = nj;
-        P.dir = dirFrom(di, dj); P.anim = 'walk'; P.joyMove = true;
+        // 贴墙滑行时按实际位移方向转身；完全被挡住时仍面向摇杆方向
+        const mi = P.i - oi, mj = P.j - oj; P.dir = (Math.abs(mi) + Math.abs(mj) > 1e-6) ? dirFrom(mi, mj) : dirFrom(di, dj); P.anim = 'walk'; P.joyMove = true;
         if ((R.t * 3 | 0) !== (R._st | 0)) { R._st = R.t * 3; Sfx.play('step', 0.2); }
       } else { P.joyMove = false; }
     } else if (P) P.joyMove = false;

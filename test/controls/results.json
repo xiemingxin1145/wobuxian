@@ -1,0 +1,195 @@
+{
+ "joy": [
+  {
+   "drag": "上",
+   "expect": "N",
+   "got": "N",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 0,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 121.4,
+   "ok": true
+  },
+  {
+   "drag": "右上",
+   "expect": "NE",
+   "got": "NE",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 18.4,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 157.6,
+   "ok": true
+  },
+  {
+   "drag": "右",
+   "expect": "E",
+   "got": "E",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 0,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 231.2,
+   "ok": true
+  },
+  {
+   "drag": "右下",
+   "expect": "SE",
+   "got": "SE",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 18.4,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 150.3,
+   "ok": true
+  },
+  {
+   "drag": "下",
+   "expect": "S",
+   "got": "S",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 0,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 120.1,
+   "ok": true
+  },
+  {
+   "drag": "左下",
+   "expect": "SW",
+   "got": "SW",
+   "move_angle_err": 9.6,
+   "facing_vs_motion_err": 18.4,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 99.0,
+   "ok": true
+  },
+  {
+   "drag": "左",
+   "expect": "W",
+   "got": "W",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 0,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 227.3,
+   "ok": true
+  },
+  {
+   "drag": "左上",
+   "expect": "NW",
+   "got": "NW",
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 18.4,
+   "walk_while_drag": true,
+   "idle_after_release": true,
+   "moved_px": 164.1,
+   "ok": true
+  }
+ ],
+ "tap": [
+  {
+   "target": "(+3,+0)",
+   "screen": [
+    275,
+    517
+   ],
+   "end_dist_tiles": 0.0,
+   "first_facing": "SE",
+   "mismatch_frames_pct": 0.0,
+   "path_tiles": 7,
+   "idle_on_arrival": true,
+   "ok": true
+  },
+  {
+   "target": "(+0,+3)",
+   "screen": [
+    137,
+    516
+   ],
+   "end_dist_tiles": 0.0,
+   "first_facing": "NW",
+   "mismatch_frames_pct": 0.0,
+   "path_tiles": 11,
+   "idle_on_arrival": true,
+   "ok": true
+  },
+  {
+   "target": "(-3,-2)",
+   "screen": [
+    183,
+    425
+   ],
+   "end_dist_tiles": 0.0,
+   "first_facing": "N",
+   "mismatch_frames_pct": 0.0,
+   "path_tiles": 9,
+   "idle_on_arrival": true,
+   "ok": true
+  },
+  {
+   "target": "(+2,-3)",
+   "screen": [
+    321,
+    471
+   ],
+   "end_dist_tiles": 0.0,
+   "first_facing": "NE",
+   "mismatch_frames_pct": 0.0,
+   "path_tiles": 10,
+   "idle_on_arrival": true,
+   "ok": true
+  },
+  {
+   "target": "(-3,+2)",
+   "screen": [
+    91,
+    470
+   ],
+   "end_dist_tiles": 0.0,
+   "first_facing": "NW",
+   "mismatch_frames_pct": 0.0,
+   "path_tiles": 12,
+   "idle_on_arrival": true,
+   "ok": true
+  }
+ ],
+ "edge": [
+  {
+   "case": "拖出摇杆区域后松开",
+   "during_walk": true,
+   "after_idle": true,
+   "joy_released": true,
+   "ok": true
+  },
+  {
+   "case": "摇杆按住+另一指点按",
+   "joy_still_active": true,
+   "still_facing_E": true,
+   "released_ok": true,
+   "ok": true
+  },
+  {
+   "case": "点按UI按钮(背包)",
+   "panel_opened": true,
+   "player_path": 0,
+   "moved": 0.0,
+   "ok": true
+  },
+  {
+   "case": "面板内滑动",
+   "player_path": 0,
+   "moved": 0.0,
+   "ok": true
+  },
+  {
+   "case": "关闭面板后摇杆",
+   "dir": "W",
+   "moved_left": true,
+   "ok": true
+  }
+ ],
+ "errors": []
+}
