@@ -83,7 +83,7 @@ NPCS.update({
     'xiabing': dict(robe='#ff8a5a', robe2='#ffe0d0', trim='#c04a2a', belt='#c04a2a', hair='#ff6a3a', hairstyle='short', ears='fox', weapon='staff', eyes='round', mouth='open'),  # 虾兵
     'baiwuchang': dict(robe='#f4f4f4', robe2='#c8c8c8', trim='#1a1a1a', belt='#1a1a1a', hair='#e8e8e8', hat='tall', hairstyle='none', weapon='book', eyes='closed', mouth='smile', skin='#f8f8ff'),  # 白无常·谢必安（勾魂不勾债）
 })
-FIGHTERS = {'aotian', 'lengyue', 'ruyan', 'judge', 'heixin', 'bailang', 'zhuiming', 'tianbing', 'leigong', 'guizu', 'xiabing', 'taizi'}  # 会参与战斗的人物：带攻击动作
+FIGHTERS = {'sanniang', 'guanghan', 'aotian', 'lengyue', 'ruyan', 'judge', 'heixin', 'bailang', 'zhuiming', 'tianbing', 'leigong', 'guizu', 'xiabing', 'taizi'}  # 会参与战斗的人物：带攻击动作
 for k, v in NPCS.items(): SPRITES['npc_' + k] = dict(kind='chibi', spec=v, anims=PL_ANIMS if k in FIGHTERS else NPC_ANIMS)
 
 CHIBI_MON = {
@@ -124,6 +124,7 @@ for k in ('lotus', 'bowl'):
 SPRITES['boss_guiwang'] = dict(kind='chibi', spec=dict(robe='#1a1a2a', robe2='#6a3aaa', trim='#c060ff', belt='#c060ff', hair='#e0e0f0', hat='hood', hood='#120a1a', hairstyle='none', horns='#4a2a6a', cape='#2a0a3a', weapon='staff', left='abacus', eyes='angry', mouth='open', skin='#c8c0e0', fat=1.2), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.0)
 SPRITES['boss_dasiming'] = dict(kind='chibi', spec=dict(robe='#0a0a10', robe2='#c0303a', trim='#ffd25e', belt='#ffd25e', hair='#1a1a1a', hat='tall', hairstyle='none', weapon='gsword', left='book', cape='#6a0a1a', eyes='angry', mouth='flat', beard=True, beardc='#1a1a1a', fat=1.25), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.0)
 SPRITES['boss_tiandao2'] = dict(kind='chibi', spec=dict(robe='#ffffff', robe2='#ffd25e', trim='#ffd25e', belt='#ffd25e', hair='#ffffff', hairstyle='crown', hat='crown2', hatc='#ffe080', halo='#fff2a0', cape='#ffe8a0', weapon='abacus', left='book', eyes='closed', mouth='smile', skin='#fff8f0'), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.2)
+SPRITES['boss_tiandao2_p2'] = dict(SPRITES['boss_tiandao2'], spec=dict(SPRITES['boss_tiandao2']['spec'], robe2='#c8202a', trim='#ffcc40', cape='#c8202a', ribbon2='#ff6a3a', halo='#ff6a3a', eyes='angry', mouth='open'))  # 二阶段「本金翻倍」
 COSTUME22 = {
     'longwang': dict(robe='#3a8ae8', robe2='#ffffff', trim='#ffd25e', belt='#ffd25e', horns='#ffe08a', cape='#1a4aa8', ribbon2='#bff0ff', weapon='fan', skirt=0.34),
     'guishi': dict(robe='#2a1a3a', robe2='#c8a0e0', trim='#ff60c0', belt='#ff60c0', hat='hood', hood='#1a1028', cape='#1a0a28', weapon='abacus', skirt=0.32),

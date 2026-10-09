@@ -228,16 +228,21 @@ def m_bowl(R):
     cyl('soup', 0.46, 0.46, 0.01, loc=(0, 0, 0.26), m=M('#e8a040', rough=0.1, emit=0.3), parent=b, seg=32)
     for k in range(3): sphere('steam', 0.08, loc=(-0.15 + k * 0.15, 0.1, 0.42 + k * 0.05), m=M('#ffffff', alpha=0.5, emit=0.5), parent=b, seg=8, rings=6)
 
-def m_carp(R):  # 锦鲤（v2.2 坐骑）
+def m_carp(R):  # 锦鲤（v2.2 坐骑；头朝 -Y，背顶≈0.30 与 lift 28 甲板吻合，鳍/尾挂 limbs 扇动）
     b = R.body; red = M('#ff5a3a', rough=0.35, sss=0.2); wh = M('#fff4e8', rough=0.4); gold = M('#ffd25e', emit=0.8)
-    sphere('body', 0.3, loc=(0, 0, 0.3), scale=(1.6, 0.8, 0.85), m=red, parent=b, seg=24, rings=16)
-    sphere('belly', 0.24, loc=(0.05, 0, 0.22), scale=(1.5, 0.7, 0.6), m=wh, parent=b, seg=20, rings=12)
+    sphere('body', 0.3, loc=(0, 0, 0.14), scale=(0.8, 1.6, 0.55), m=red, parent=b, outline=OL, seg=24, rings=16)
+    sphere('belly', 0.24, loc=(0, -0.04, 0.08), scale=(0.7, 1.5, 0.4), m=wh, parent=b, seg=20, rings=12)
+    for y in (-0.12, 0.18): sphere('spot', 0.1, loc=(0, y, 0.29), scale=(1, 1, 0.3), m=wh, parent=b, seg=12, rings=8)
     for sx in (1, -1):
-        sphere('fin', 0.14, loc=(0.05, sx * 0.22, 0.25), scale=(1.2, 0.2, 0.6), rot=(D(sx * 30), 0, 0), m=gold, parent=b, seg=12, rings=8)
-        sphere('eye', 0.045, loc=(0.4, sx * 0.13, 0.36), m=M('#1a1010'), parent=b, seg=10, rings=8)
-    sphere('tail', 0.2, loc=(-0.5, 0, 0.34), scale=(0.6, 0.15, 1.2), rot=(0, D(-20), 0), m=gold, parent=b, seg=14, rings=10)
-    sphere('dorsal', 0.14, loc=(0, 0, 0.55), scale=(1.4, 0.15, 0.6), m=gold, parent=b, seg=12, rings=8)
-    torus('glow', 0.5, 0.02, loc=(0, 0, 0.05), m=M('#a0e8ff', emit=4.0), parent=b, seg=40, mseg=6)
+        g = empty('finp', (sx * 0.2, -0.08, 0.12), b); R.limbs.append(g)
+        sphere('fin', 0.14, loc=(sx * 0.08, 0, 0), scale=(0.2, 1.2, 0.6), rot=(0, D(sx * 30), 0), m=gold, parent=g, seg=12, rings=8)
+        sphere('eye', 0.045, loc=(sx * 0.13, -0.4, 0.2), m=M('#1a1010'), parent=b, seg=10, rings=8)
+        sphere('hl', 0.015, loc=(sx * 0.14, -0.43, 0.22), m=M('#ffffff', emit=2.0), parent=b, seg=8, rings=6)
+        tube('whisker', [(sx * 0.06, -0.48, 0.12), (sx * 0.1, -0.6, 0.06), (sx * 0.14, -0.66, 0.0)], 0.012, m=gold, parent=b)
+    g = empty('tailp', (0, 0.46, 0.16), b); R.limbs.append(g)
+    sphere('tail', 0.2, loc=(0, 0.1, 0.06), scale=(0.15, 0.6, 1.2), rot=(D(20), 0, 0), m=gold, parent=g, seg=14, rings=10)
+    sphere('dorsal', 0.14, loc=(0, 0.12, 0.3), scale=(0.15, 1.4, 0.45), m=gold, parent=b, seg=12, rings=8)
+    torus('glow', 0.5, 0.02, loc=(0, 0, 0.02), m=M('#a0e8ff', emit=4.0), parent=b, seg=40, mseg=6)
 
 def m_abacus(R):  # 飞天算盘（v2.2 坐骑）
     b = R.body; wood = M('#7a4a2a', rough=0.5); bead = M('#c0302a', rough=0.3, spec=0.5); gold = M('#ffd25e', emit=0.6)

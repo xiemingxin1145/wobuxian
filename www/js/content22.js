@@ -38,7 +38,7 @@ Object.assign(PET_SKILL, { xiabing: ['atk', 'water', 'rockarmor'], guizu: ['atk'
     if (S.rob && u.side && G) { const g = Math.min(G.stone, Math.round(G.stone * 0.03) + 20); G.stone -= g; u.hp = Math.min(u.mhp, u.hp + Math.round(u.mhp * 0.05)); const [x, y] = uPos(u); if (g > 0) floatText(x, y - 200 * R.dpr, `没收 ${g} 灵石`, '#ffd23a', 24 * R.dpr, false); }
     if (S.selfheal && u.alive) u.hp = Math.min(u.mhp, u.hp + Math.round(u.mhp * S.selfheal));
     for (const t of B.units) if (t.alive && t.mon && MONS[t.mon] && MONS[t.mon].phase2 && !t._p2 && t.hp < t.mhp * 0.5) {
-      t._p2 = 1; t.hp = Math.min(t.mhp, t.hp + Math.round(t.mhp * 0.18)); t.atk *= 1.25; t.spd *= 1.1; R.shake = 1; Sfx.play('thunder');
+      t._p2 = 1; if (AS.sprites[t.spr + '_p2']) { t.spr = t.spr + '_p2'; loadSprite(t.spr); } t.hp = Math.min(t.mhp, t.hp + Math.round(t.mhp * 0.18)); t.atk *= 1.25; t.spd *= 1.1; R.shake = 1; Sfx.play('thunder');
       const [x, y] = uPos(t); floatText(x, y - 230 * R.dpr, '天道：本金翻倍！', '#ff6a3a', 36 * R.dpr, false); floatText(x, y - 190 * R.dpr, '（攻击+25%，回复18%气血）', '#ffd0a0', 22 * R.dpr, false);
     }
   };
