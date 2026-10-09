@@ -78,7 +78,7 @@
       for (let k = 0; k < ladder.length && !S.skipped; k++) {
         S.col = ladder[k]; S.charge = (k + 1) / 3; S.shake = 0.3 + k * 0.3; for (let n = 0; n < 40; n++) swirl();
         if (k > 0) Sfx.play(k === 2 ? 'thunder' : 'magic', 0.7);
-        await step(480);
+        await step(best === 3 ? 640 : 480);  // 时长：宝 2.6s / 仙 3.8s / 神 5.4s（research_v22 §2.3）
       }
       S.col = TC[best];
       // ③ 光柱 + 闪屏
@@ -88,7 +88,7 @@
       const cards = [...grid.querySelectorAll('.gcard')];
       S.flash = S.skipped ? 0.4 : 1.0; S.shake = best >= 4 ? 1 : 0.5; Sfx.play(best >= 4 ? 'thunder' : 'fire', 0.8);
       cards.forEach((c, k) => { const r = c.getBoundingClientRect(); S.pillars.push({ x: r.left + r.width / 2, y: r.top + r.height, w: r.width * 0.55, c: TC[items[k].tier], t: performance.now() + (S.skipped ? 0 : k * 70) }); });
-      w.classList.add('reveal'); await step(700);
+      w.classList.add('reveal'); await step(best === 3 ? 1000 : 700);
       // ④ 翻牌（从低到高，神品最后翻）
       const order = cards.map((c, k) => k).sort((a, b) => items[a].tier - items[b].tier || a - b);
       for (const k of order) {

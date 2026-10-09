@@ -9,6 +9,11 @@ SETUP = """()=>{const G=Game.G; G.flags.awakened=1; G.realm=4; G.stage=3; G.age=
  for(const b of ['corpse','dragon']) {G.bosses[b]=1; G.flags['boss_'+b]=1;} G.visited={village:1,sect:1,market:1,secret:1,graveyard:1,island:1}; Game.give('hcd',30);
  const ye=Game.yearEnd.bind(Game); Game.yearEnd=async function(){ const r=await ye(); if(Game.G) Game.G.ap=Math.max(Game.G.ap,6); return r; };
  const st=Game.stats.bind(Game); Game.stats=function(){const s=st(); s.atk*=4; s.def*=3; s.mhp*=3; return s;}; Game.refreshNpcs(); return MAIN[G.main].id}"""
+async def snap(pg, path):
+    try: await pg.screenshot(path=path, timeout=60000)
+    except Exception as e:
+        alive = await pg.evaluate('()=>1') if True else 0
+        print('SNAPFAIL', path, str(e)[:80], 'alive', alive, flush=True)
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(executable_path='/opt/google/chrome/chrome', args=['--allow-file-access-from-files', '--mute-audio'])
@@ -37,10 +42,10 @@ async def main():
             if st[4]: print('DEAD'); break
             for key in ['taizi', 'guiwang', 'dasiming', 'tiandao2']:
                 if key in st[2].split('+') and key not in shots:
-                    await pg.wait_for_timeout(1400); shots[key] = OUT + f'c22_battle_{key}.png'; await pg.screenshot(path=shots[key]); print('shot', key, flush=True)
+                    await pg.wait_for_timeout(1400); shots[key] = OUT + f'c22_battle_{key}.png'; await snap(pg, shots[key]); print('shot', key, flush=True)
             for mp in ['longgong', 'guishi', 'cuizhai']:
                 if st[1] == mp and not st[2] and not st[3] and 'map_' + mp not in shots:
-                    await pg.wait_for_timeout(900); shots['map_' + mp] = OUT + f'c22_map_{mp}.png'; await pg.screenshot(path=shots['map_' + mp]); print('shot map', mp, flush=True)
+                    await pg.wait_for_timeout(900); shots['map_' + mp] = OUT + f'c22_map_{mp}.png'; await snap(pg, shots['map_' + mp]); print('shot map', mp, flush=True)
             if st[0] == 'done': break
         info = await pg.evaluate("()=>JSON.stringify({main:MAIN[Game.G.main].id, bosses:Game.G.bosses, achs:Object.keys(Game.meta.achs||{}).filter(a=>['longgong','guiwang_win','dasiming_win','zhenshen_win'].includes(a)), debt:Math.round(Game.G.debt), dead:!!Game.G.dead})")
         res = dict(chapters=seen, shots=shots, final=json.loads(info), errors=errs)

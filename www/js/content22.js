@@ -160,19 +160,19 @@ Object.assign(ACHS, {
       await say('taizi', '“好功夫！这页账本给你——上面写着天道用龙宫的名义借了魔尊一笔钱，一直没还。”\n（你的欠款减少了15%：太子把龙宫替你担保的部分划掉了）', ['多谢太子']);
       await adv('天道居然也欠魔尊的钱？\n\n下一步：前往魔道裂谷，找魔尊·赊刀人。', 'npc_taizi');
     }]; }
-    if (M === MI('guishi') && id === 'sanniang') return ['★ 打听假账抵押', async () => {
+    if (M === MI('guishi') && id === 'sanniang' && !G.flags.sanniang_hint) return ['★ 打听假账抵押', async () => {
       await say('sanniang', '“天道的抵押品？有的有的，一箱假账，抵押了三百年。赎回要九千九百九十九万灵石——或者，打赢鬼王。”', ['鬼王在哪？']);
       await say('sanniang', '“鬼市北边的戏台，鬼王·千面每晚都在那唱戏。小心，他有一千张脸，每张脸都欠我钱。”', ['我去会会他']);
-      G.flags.sanniang_hint = 1; G.aff.sanniang = (G.aff.sanniang || 0) + 10;
+      G.flags.sanniang_hint = 1; G.aff.sanniang = (G.aff.sanniang || 0) + 10; Game.refreshNpcs();
     }];
-    if (M === MI('cuizhai') && id === 'suanpan') return ['★ 会计的秘密', async () => {
+    if (M === MI('cuizhai') && id === 'suanpan' && !G.flags.suanpan_hint) return ['★ 会计的秘密', async () => {
       await say('suanpan', '“嘘——我算过了，天道收的利息，三成进了大司命的小金库。”', ['证据呢？']);
       await say('suanpan', '“证据在大司命的生死簿里。打败他，生死簿上的‘勾销’二字就能用了。”', ['明白了']);
-      G.flags.suanpan_hint = 1; Game.give('pyd', 2);
+      G.flags.suanpan_hint = 1; Game.give('pyd', 2); Game.refreshNpcs();
     }];
-    if (M === MI('zhenshen') && id === 'suanpan') return ['★ 总账房在哪', async () => {
+    if (M === MI('zhenshen') && id === 'suanpan' && !G.flags.suanpan_ally) return ['★ 总账房在哪', async () => {
       await say('suanpan', '“天道真身就在催债司正殿的地下，那里有一把算盘，算着三界所有人的债。”\n“我当了它三千年的会计……今天，我站你这边。”', ['一起去']);
-      Game.give('xsd', 1); G.flags.suanpan_ally = 1;
+      Game.give('xsd', 1); G.flags.suanpan_ally = 1; Game.refreshNpcs();
     }];
     const res = _mt.call(this, id, check);
     if (res && !check && typeof res[1] === 'function') res[1] = wrapFn(res[1]);

@@ -14,8 +14,10 @@ out = {}
 old = os.path.join(A, 'assets.json')
 if os.path.exists(old): out = json.load(open(old))
 if 'spr' in only:
-    pack.DEST = os.path.join(A, 'spr'); out['sprites'] = {}
-    for sid in specs.SPRITES:
+    pack.DEST = os.path.join(A, 'spr')
+    ids = [x for x in os.environ.get('WBX_SPR_IDS', '').split(',') if x]  # 增量：只重打指定精灵
+    if not ids: out['sprites'] = {}
+    for sid in (ids or specs.SPRITES):
         # v2.1：优先使用 2 倍分辨率 + 描边的新渲染（art/out/frames2），打包时缩到 1.5 倍以平衡清晰度与内存
         r = None
         if os.path.isdir(os.path.join(ART, 'out', 'frames2', sid)):
