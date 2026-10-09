@@ -42,6 +42,20 @@ jobs:
           echo "name=$NAME" >> $GITHUB_OUTPUT; echo "code=$CODE" >> $GITHUB_OUTPUT; echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "versionName=$NAME versionCode=$CODE tag=$TAG"
 
+      - name: 下载高清资源包（release assets-hd，按 hd-assets.json 校验后覆盖 www/assets）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f hd-assets.json ]; then
+            TAG=$(jq -r .tag hd-assets.json); F=$(jq -r .file hd-assets.json); SHA=$(jq -r .sha256 hd-assets.json)
+            gh release download "$TAG" -p "$F" -D "$RUNNER_TEMP" --clobber
+            echo "$SHA  $RUNNER_TEMP/$F" | sha256sum -c -
+            unzip -q -o "$RUNNER_TEMP/$F" -d www/
+            rm -f "$RUNNER_TEMP/$F"; du -sh www/assets; grep -o '"profile":"[a-z]*"' www/assets/assets.json
+          else
+            echo "::warning::没有 hd-assets.json，使用仓库内的轻量资源构建"
+          fi
+
       - name: 还原签名密钥（与 v1/v2 相同的 keystore）
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -114,6 +128,7 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_4
+          disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
           script: bash .github/emu_smoke.sh

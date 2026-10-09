@@ -35,6 +35,12 @@ def post(name):
     # 暗角
     vg = Image.new('L', (w, h), 0); dv = ImageDraw.Draw(vg); dv.ellipse([-w * 0.25, -h * 0.35, w * 1.25, h * 1.35], fill=255); vg = vg.filter(ImageFilter.GaussianBlur(w * 0.08))
     im = Image.composite(im, Image.blend(im, Image.new('RGB', (w, h), (20, 12, 8)), 0.55), vg)
-    out = os.path.join(DST, name + '.webp'); im.save(out, 'WEBP', quality=88, method=6); return out, os.path.getsize(out)
+    # v2.1：HD 原尺寸进 art/out/hd（高清资源包），SD 1600 宽进 git
+    hd = os.path.join(ROOT, 'art', 'out', 'hd', 'cg'); os.makedirs(hd, exist_ok=True)
+    im.save(os.path.join(hd, name + '.webp'), 'WEBP', quality=92, method=6)
+    if w > 1600: im = im.resize((1600, round(h * 1600 / w)), Image.LANCZOS)
+    out = os.path.join(DST, name + '.webp'); im.save(out, 'WEBP', quality=86, method=6); return out, os.path.getsize(out)
 if __name__ == '__main__':
-    for n in CGS: r = post(n); print(n, r)
+    only = sys.argv[1].split(',') if len(sys.argv) > 1 else list(CGS)
+    for n in only:
+        if os.path.exists(os.path.join(SRC, n + '_raw.png')): print(n, post(n))

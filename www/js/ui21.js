@@ -83,8 +83,8 @@ Object.assign(UI.titles, { cave: '洞府', mount: '坐骑 · 时装', title: '�
 })();
 // ======================= 剧情CG：章节过场 + 结局插画 + 回忆图鉴 =======================
 const CG_OF = { debt: 'cg_debt', mentor: 'cg_mentor', sect: 'cg_sect', rival: 'cg_rival', market: 'cg_market', corpse: 'cg_corpse', dragon: 'cg_dragon', lengyue: 'cg_lengyue', mozun: 'cg_mozun', judge: 'cg_judge', tiandao: 'cg_tiandao' };
-const CG_END = { ascend: 'cg_ascend', judge: 'cg_judge', rival: 'cg_rival', paid: 'cg_tiandao', newdao: 'cg_tiandao' };
-const CG_LIST = [['cg_debt', '上门讨债'], ['cg_mentor', '剑仙路过'], ['cg_sect', '拜入仙门'], ['cg_rival', '宿敌龙傲天'], ['cg_market', '云来坊市'], ['cg_corpse', '尸王的账'], ['cg_dragon', '龙宫钱庄'], ['cg_lengyue', '月下抚琴'], ['cg_mozun', '魔尊'], ['cg_judge', '讨债司判官'], ['cg_tiandao', '对账天道'], ['cg_ascend', '白日飞升']];
+const CG_END = { ascend: 'cg_ascend', judge: 'cg_judge', rival: 'cg_rival', paid: 'cg_tiandao', newdao: 'cg_tiandao', couple: 'cg_couple', mortal: 'cg_mortal', sit: 'cg_sit', ash: 'cg_ash', demon: 'cg_demon', tycoon: 'cg_tycoon', teahouse: 'cg_teahouse', storyteller: 'cg_storyteller', fisher: 'cg_fisher', insured: 'cg_insured', mengpo: 'cg_mengpo' };
+const CG_LIST = [['cg_debt', '上门讨债'], ['cg_mentor', '剑仙路过'], ['cg_sect', '拜入仙门'], ['cg_rival', '宿敌龙傲天'], ['cg_market', '云来坊市'], ['cg_corpse', '尸王的账'], ['cg_dragon', '龙宫钱庄'], ['cg_lengyue', '月下抚琴'], ['cg_mozun', '魔尊'], ['cg_judge', '讨债司判官'], ['cg_tiandao', '对账天道'], ['cg_ascend', '白日飞升'], ['cg_couple', '神仙眷侣'], ['cg_mortal', '凡人一生'], ['cg_sit', '坐化'], ['cg_ash', '劫灰'], ['cg_demon', '魔尊降世'], ['cg_tycoon', '富甲三界'], ['cg_teahouse', '茶馆老板'], ['cg_storyteller', '说书人'], ['cg_fisher', '钓鱼成仙'], ['cg_insured', '理赔到账'], ['cg_mengpo', '孟婆汤铺']];
 UI.cgUnlock = function (id) { const M = Game.meta; M.cg = M.cg || {}; if (!M.cg[id]) { M.cg[id] = 1; Game.saveMeta(); } };
 UI.chapterShow = function (m) {
   const cg = CG_OF[m.id]; if (!cg || $('.chapter-fx')) return;

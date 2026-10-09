@@ -106,6 +106,7 @@ def compose2(seed, root=62, bpm=84, bars=16, mood='calm', lead='erhu', lead2='di
     return Lc, Rc
 
 def save(name, L, R=None, q=5):
+    q = int(os.environ.get('WBX_AQ', q))  # v2.1：HD 包用更高码率
     if R is None: R = L
     pcm = (np.clip(np.stack([L, R], 1), -1, 1) * 32767).astype('<i2').tobytes(); p = os.path.join(OUT, name + '.ogg')
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 's16le', '-ar', str(SR), '-ac', '2', '-i', '-', '-c:a', 'libvorbis', '-q:a', str(q), p], input=pcm, check=True)
