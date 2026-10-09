@@ -200,7 +200,7 @@ Object.assign(ACHS, {
     const adds = { guiwang: ['guizu', 'ghost'], dasiming: ['tianbing', 'zhuiming'], tiandao2: G.flags.suanpan_ally ? ['tianbing', 'collector'] : ['tianbing', 'zhuiming'] }[id];
     const tier = { guiwang: 4.9, dasiming: 5.75, tiandao2: 6.3 }[id];
     const r = await Game.fight(id, { tier, boss: true, adds, solo: true }); if (r.res !== 'win') return;
-    G.bosses[id] = 1; G.flags['boss_' + id] = 1; Game.log(`击败${M.n}。`);
+    G.bosses[id] = 1; G.flags['boss_' + id] = 1; Game.log(`击败${M.n}。`); if (Object.keys(G.bosses).length >= 4) Game.ach('boss4');
     if (id === 'guiwang') {
       Game.ach('guiwang_win'); G.main = MI('judge'); Game.give('ledger', 1); Game.give('xyf', 1);
       await UI.card('主线推进', '鬼王的一千张脸碎了一地，每张脸后面都贴着一张欠条。\n你从当铺里赎回了天道的假账：每一页都盖着“讨债司·判官钱不够”的章。\n\n下一步：化神后前往天外天，先过判官“钱不够”那一关！', 'boss_guiwang', ['继续']);
