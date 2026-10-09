@@ -46,12 +46,13 @@ if 'maps' in only:
         print(mid, os.path.getsize(os.path.join(A, 'maps', mid + '.webp')))
 if 'ui' in only:
     pack.DEST = os.path.join(A, 'ui')
-    ents = {os.path.basename(f)[:-4]: (Image.open(f).convert('RGBA').resize((180, 180), Image.LANCZOS), 90, 90) for f in glob.glob(os.path.join(ART, 'out', 'portraits', '*.png'))}
+    PS = 256  # v2.1：头像 256px（原 180）
+    ents = {os.path.basename(f)[:-4]: (Image.open(f).convert('RGBA').resize((PS, PS), Image.LANCZOS), PS // 2, PS // 2) for f in glob.glob(os.path.join(ART, 'out', 'portraits', '*.png'))}
     # 头像不裁切（保持统一框）
-    sheet = Image.new('RGBA', (180 * 8, 180 * ((len(ents) + 7) // 8))); pm = {}
+    sheet = Image.new('RGBA', (PS * 8, PS * ((len(ents) + 7) // 8))); pm = {}
     for k, (key, (im, _, _)) in enumerate(sorted(ents.items())):
-        x, y = (k % 8) * 180, (k // 8) * 180; sheet.paste(im, (x, y)); pm[key] = [x, y]
-    sheet.save(os.path.join(A, 'ui', 'portraits.webp'), 'WEBP', quality=86, method=6); out['portraits'] = dict(size=180, cols=8, w=sheet.size[0], h=sheet.size[1], f=pm)
+        x, y = (k % 8) * PS, (k // 8) * PS; sheet.paste(im, (x, y)); pm[key] = [x, y]
+    sheet.save(os.path.join(A, 'ui', 'portraits.webp'), 'WEBP', quality=86, method=6); out['portraits'] = dict(size=PS, cols=8, w=sheet.size[0], h=sheet.size[1], f=pm)
     ic = sorted(glob.glob(os.path.join(ART, 'out', 'icons', '*.png')))
     sheet = Image.new('RGBA', (96 * 10, 96 * ((len(ic) + 9) // 10))); im_ = {}
     for k, f in enumerate(ic):
@@ -60,6 +61,7 @@ if 'ui' in only:
     print('ui done')
 if 'audio' in only:
     for f in glob.glob(os.path.join(ART, 'out', 'audio', '*.ogg')): shutil.copy(f, os.path.join(A, 'audio'))
+    for f in glob.glob(os.path.join(ART, 'out', 'audio2', '*.ogg')): shutil.copy(f, os.path.join(A, 'audio'))  # v2.1 立体声高码率版覆盖
     out['audio'] = sorted(os.path.basename(f)[:-4] for f in glob.glob(os.path.join(A, 'audio', '*.ogg')))
 json.dump(out, open(old, 'w'), separators=(',', ':'))
 open(os.path.join(A, 'assets.js'), 'w').write('window.ASSETS=' + json.dumps(out, separators=(',', ':'), ensure_ascii=False) + ';\n')

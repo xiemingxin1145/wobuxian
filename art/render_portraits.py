@@ -6,7 +6,7 @@ from specs import SPRITES
 from mathutils import Vector
 a = args(); ids = a['ids'].split(',') if 'ids' in a else list(SPRITES)
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out', 'portraits'); os.makedirs(out, exist_ok=True)
-S0 = 256
+S0 = int(256 * float(os.environ.get('WBX_RES', 1)))
 def bbox(objs):
     lo = Vector((1e9,) * 3); hi = Vector((-1e9,) * 3)
     for o in objs:

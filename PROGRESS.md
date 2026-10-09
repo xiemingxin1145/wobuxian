@@ -1,12 +1,18 @@
-# 我不仙 v2.0 进度
+# 我不仙 v2.1 进度清单（断点续做用）
 
-- [x] 阶段0：安装 Blender 4.2 LTS（headless, CPU Cycles + OIDN）
-- [x] 阶段1：bpy 建模库（art/lib.py, chars.py, monsters.py, props.py）：Q版主角男/女×4 套服装、落魄剑仙、13 名 NPC、12 种怪物、4 个 BOSS、65 种建筑/道具、飞剑
-- [x] 阶段2：批量渲染 5 方向（镜像得 8 方向）idle/walk/attack 精灵帧 → webp 图集；8 张等距地图底板（软阴影）；37 张 3D 头像；67 个图标
-- [x] 阶段3：numpy 离线合成五声音阶 BGM 11 首 + 音效 18 个 → ogg
-- [x] 阶段4：v2 引擎：可行走等距地图、点地寻路（A* 8 向）+ 虚拟摇杆、深度排序/遮挡淡出、NPC 对话、巡逻怪、问道式回合制斗法 + 技能特效
-- [x] 阶段5：内容：8 地图、153 事件、3 宗门、12 功法 + 4 系技能树、装备/法宝稀有度与词缀、炼丹小游戏、灵兽捕捉、伙伴/道侣、16 支线 + 10 段主线（天道讨债）、30 成就、9 结局、轮回殿
-- [x] 阶段6a：数值重平衡（年修为基准 + 闭关多年），机器人试玩 0 JS 错误；8 张地图/战斗/UI 截图（test/shots）
-- [x] 阶段6b：完整一生机器人测试、www2 → www、打包 APK 2.0.0（versionCode 2）、README、推送 GitHub
+## 已完成
+- [x] 剧情 15 章 / 33 NPC / 318 事件 / 44 任务 / 16 结局 / 44 成就（story21*.js, events21.js）
+- [x] 系统：求仙缘抽卡（仅游戏内仙缘符，公示概率+保底）、坐骑、时装、称号、洞府、逆天改命、机缘
+- [x] VFX：云海/水面/天气/昼夜/境界光环/突破演出+震屏/技能切入/章节卡
+- [x] 12 张剧情 CG（Blender 透视场景 + tools/post_cg.py）→ www/assets/cg
+- [x] 音频 synth2（44.1k 立体声）→ art/out/audio2 (25 条)
+- [x] CI：push main → build-N 发布 latest；tag → vX.Y.Z；emulator-smoke API30/34 + 自动 bot
+- [x] 测试：test/panels21.py（360x640/412x915 无溢出）、test/multilife.py（多世 0 错误/0 卡死）
 
-v1.0 保留在 git 历史中（commit 8485cd6）。
+## 进行中 / 待办
+- [ ] frames2 2x 精灵渲染（art/out/frames2，后台 /tmp/queue_extra.sh → 时装/坐骑）
+- [ ] 2x 立绘（/tmp/queue_post.sh 等 /tmp/x{0,1,2}.done 后自动跑）→ 然后 2x 地图底板（art/out/maps2x.log ALLDONE）
+- [ ] 大资源包：tools/pack_hd.py 生成 wbx-hd-assets.zip → 上传到 release `assets-hd`；CI 构建前下载并覆盖 www/assets（git 不存大文件）
+- [ ] python3 tools/build_assets.py；重跑 panels21 / multilife
+- [ ] 截图 screenshots/v21/，README 更新
+- [ ] VERSION=2.1.x，tag v2.1.0，gh run watch，验证 APK 证书 436bf922… 与 versionName
