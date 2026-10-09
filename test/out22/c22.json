@@ -1,0 +1,42 @@
+{
+ "chapters": [
+  "longgong",
+  "mozun",
+  "judge",
+  "guishi",
+  "tiandao",
+  "cuizhai",
+  "zhenshen",
+  "done"
+ ],
+ "shots": {
+  "map_longgong": "/workspace/game/test/out22/c22_map_longgong.png",
+  "taizi": "/workspace/game/test/out22/c22_battle_taizi.png",
+  "map_guishi": "/workspace/game/test/out22/c22_map_guishi.png",
+  "guiwang": "/workspace/game/test/out22/c22_battle_guiwang.png",
+  "map_cuizhai": "/workspace/game/test/out22/c22_map_cuizhai.png",
+  "dasiming": "/workspace/game/test/out22/c22_battle_dasiming.png",
+  "tiandao2": "/workspace/game/test/out22/c22_battle_tiandao2.png"
+ },
+ "final": {
+  "main": "done",
+  "bosses": {
+   "corpse": 1,
+   "dragon": 1,
+   "mozun": 1,
+   "guiwang": 1,
+   "dasiming": 1,
+   "tiandao": 1,
+   "tiandao2": 1
+  },
+  "achs": [
+   "longgong",
+   "guiwang_win",
+   "dasiming_win",
+   "zhenshen_win"
+  ],
+  "debt": 0,
+  "dead": false
+ },
+ "errors": []
+}
