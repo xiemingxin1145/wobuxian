@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 121.4,
+   "moved_px": 106.0,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 157.6,
+   "moved_px": 134.0,
    "ok": true
   },
   {
@@ -30,7 +30,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 231.2,
+   "moved_px": 219.6,
    "ok": true
   },
   {
@@ -41,7 +41,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 150.3,
+   "moved_px": 131.6,
    "ok": true
   },
   {
@@ -52,18 +52,18 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 120.1,
+   "moved_px": 105.3,
    "ok": true
   },
   {
    "drag": "左下",
    "expect": "SW",
    "got": "SW",
-   "move_angle_err": 9.6,
-   "facing_vs_motion_err": 18.4,
+   "move_angle_err": 10.4,
+   "facing_vs_motion_err": 22.1,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 99.0,
+   "moved_px": 86.4,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 227.3,
+   "moved_px": 209.4,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 164.1,
+   "moved_px": 129.2,
    "ok": true
   }
  ],
@@ -94,12 +94,12 @@
    "target": "(+3,+0)",
    "screen": [
     275,
-    517
+    516
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "SE",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 7,
+   "path_tiles": 8,
    "idle_on_arrival": true,
    "ok": true
   },
@@ -112,7 +112,7 @@
    "end_dist_tiles": 0.0,
    "first_facing": "NW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 11,
+   "path_tiles": 12,
    "idle_on_arrival": true,
    "ok": true
   },
@@ -120,12 +120,12 @@
    "target": "(-3,-2)",
    "screen": [
     183,
-    425
+    424
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "N",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 9,
+   "path_tiles": 10,
    "idle_on_arrival": true,
    "ok": true
   },
@@ -133,7 +133,7 @@
    "target": "(+2,-3)",
    "screen": [
     321,
-    471
+    469
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "NE",

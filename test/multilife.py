@@ -61,7 +61,7 @@ async def main():
             if res != 'meta':
                 print(f'L{life} time up, forcing death', flush=True)
                 await pg.evaluate("()=>{ if(Game.G && !Game.G.dead){ Game.G.age = Game.lifeMax(); Game.yearEnd(); } }")
-                for k in range(200):
+                for k in range(900):  # v2.2：Boss 战可能较长，死亡在战斗结束后结算
                     r = await pg.evaluate("()=>BOT.tick()"); await pg.wait_for_timeout(100)
                     if r == 'meta': res = 'meta'; break
             info = await pg.evaluate("()=>JSON.stringify({lives:Game.meta.lives, endings:Game.meta.endings, pts:Game.meta.pts, cg:Game.meta.cg, gacha:Game.meta.gacha})")
