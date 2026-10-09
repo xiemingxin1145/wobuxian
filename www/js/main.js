@@ -52,6 +52,7 @@ window.BOT = {
   tick() {
     this.n++;
     const gc = document.querySelector('.gacha-fx .gclose'); if (gc) { gc.click(); return 'gacha-close'; }
+    const gs = document.querySelector('.gacha-fx .gskip'); if (gs && Math.random() < 0.5) { gs.click(); return 'gacha-skip'; }
     if (document.querySelector('.gacha-fx')) return 'gacha-anim';
     const cx = document.querySelector('.chapter-fx'); if (cx) { cx.click(); return 'chapter'; }
     const end = document.querySelector('.endw .opt'); if (end) { end.click(); return 'ending'; }

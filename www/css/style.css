@@ -218,3 +218,37 @@ body:not(.ingame) #gachabtn,body.inbattle #gachabtn{display:none!important}
 /* v2.1 修复：全局 canvas{position:fixed} 会把面板内的小画布全部钉到左上角；.it>div 的 flex:1 会拉伸精灵框 */
 .sprbox canvas,.ci-spr canvas{position:static}
 .it>.sprbox{flex:none;width:64px}
+/* ===== v2.2 求仙缘演出 ===== */
+.gacha-fx.g22{background:radial-gradient(circle at 50% 42%,#1c1030,#05030a 70%)!important}
+.g22 .gfx-bg,.g22 .gfx-scroll,.g22 .gfx-rays{display:none}
+.g22cv{position:absolute!important;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.gskip{position:absolute;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:3;background:rgba(0,0,0,.45);color:#fff3d0;border:1px solid rgba(255,230,160,.5);border-radius:16px;padding:6px 14px;font-size:13px}
+.g22c{z-index:2;margin-top:18vh}
+.g22c .gcard{animation:none;position:relative;perspective:700px;background:none}
+.g22c .gc-flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,1.4,.5,1);transform:rotateY(0deg) translateY(-30px) scale(.7);opacity:0;animation:g22drop .45s ease-out forwards}
+.g22c .gcard:nth-child(2) .gc-flip{animation-delay:.07s}.g22c .gcard:nth-child(3) .gc-flip{animation-delay:.14s}.g22c .gcard:nth-child(4) .gc-flip{animation-delay:.21s}.g22c .gcard:nth-child(5) .gc-flip{animation-delay:.28s}
+.g22c .gcard:nth-child(6) .gc-flip{animation-delay:.35s}.g22c .gcard:nth-child(7) .gc-flip{animation-delay:.42s}.g22c .gcard:nth-child(8) .gc-flip{animation-delay:.49s}.g22c .gcard:nth-child(9) .gc-flip{animation-delay:.56s}.g22c .gcard:nth-child(10) .gc-flip{animation-delay:.63s}
+@keyframes g22drop{to{opacity:1;transform:rotateY(0deg) translateY(0) scale(1)}}
+.g22c .gc-back,.g22c .gc-in{position:absolute;top:0;left:0;width:100%;height:100%;-webkit-backface-visibility:hidden;backface-visibility:hidden;box-sizing:border-box}
+.g22c .gc-back{border-radius:10px;border:3px solid #c8a050;background:repeating-linear-gradient(45deg,#3a1418 0 6px,#4a1c20 6px 12px);display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(255,200,100,.35)}
+.g22c .gc-back span{width:58%;aspect-ratio:1;height:auto;border-radius:50%;border:2px solid #ffd27a;color:#ffd27a;display:flex;align-items:center;justify-content:center;font:bold 26px WBXKai,serif;box-shadow:0 0 10px #ffb040 inset}
+.g22c.many .gc-back span{font-size:18px}
+.g22c .gcard.t3 .gc-back{border-color:#b77aff;box-shadow:0 0 14px #b77aff}
+.g22c .gcard.t4 .gc-back{border-color:#ffcf3a;box-shadow:0 0 18px #ffcf3a}
+.g22c .gcard.shine .gc-back{animation:g22shake .5s linear}
+@keyframes g22shake{20%,60%{transform:translateX(-4px) rotate(-3deg)}40%,80%{transform:translateX(4px) rotate(3deg)}}
+.g22c .gc-in{transform:rotateY(180deg)}
+.g22c .gcard.open .gc-flip{animation:none;opacity:1;transform:rotateY(180deg)}
+.gcut{position:absolute;top:0;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;justify-content:center;animation:fadein .15s}
+.gcut-band{position:absolute;left:-20%;right:-20%;top:28%;height:44%;background:linear-gradient(100deg,rgba(255,170,30,0) 0%,rgba(255,190,60,.92) 18%,#fff3c0 50%,rgba(255,190,60,.92) 82%,rgba(255,170,30,0) 100%);transform:skewY(-8deg);animation:gcutband .35s cubic-bezier(.2,1.3,.4,1) both;box-shadow:0 0 60px #ffcf3a}
+@keyframes gcutband{from{transform:skewY(-8deg) scaleY(0)}}
+.gcut-art{position:relative;width:260px;height:260px;animation:gcutart .5s cubic-bezier(.2,1.4,.4,1) both;filter:drop-shadow(0 0 14px #fff) drop-shadow(0 0 28px #ffb020)}
+.gcut-art canvas{position:static;width:260px;height:260px}
+@keyframes gcutart{from{transform:translateX(-120vw) scale(1.4)}}
+.gcut-txt{position:absolute;left:0;right:0;bottom:16%;text-align:center;animation:gcuttxt .5s .2s both}
+.gcut-txt em{display:block;font:bold 18px WBXKai,serif;color:#ffcf3a;letter-spacing:8px;font-style:normal;text-shadow:0 0 8px #000}
+.gcut-txt b{font:bold 30px WBXKai,serif;color:#fff;text-shadow:0 0 6px #b06000,0 2px 0 #7a3a00,0 0 18px #ffcf3a}
+@keyframes gcuttxt{from{opacity:0;transform:translateX(60px)}}
+.gcut-seal{position:absolute;right:12%;top:24%;width:64px;height:64px;border:3px solid #d02020;color:#d02020;background:rgba(255,240,220,.9);border-radius:8px;font:bold 24px/58px WBXKai,serif;text-align:center;transform:rotate(-14deg);animation:gcutseal .35s .55s cubic-bezier(.3,1.8,.5,1) both}
+@keyframes gcutseal{from{opacity:0;transform:rotate(-14deg) scale(3)}}
+.gcut.out{opacity:0;transition:opacity .25s}
