@@ -22,3 +22,5 @@ art/__pycache__/
 test/out2/
 test/shots/
 test/*.log
+wobuxian.apk
+*.apk

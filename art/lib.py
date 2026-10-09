@@ -27,6 +27,21 @@ def reset():
     bg = w.node_tree.nodes['Background']; bg.inputs[0].default_value = (0.78, 0.84, 1.0, 1); bg.inputs[1].default_value = 0.55
     return sc
 
+def toon(thick=None):
+    """v2.1 画质升级：Freestyle 描边（只描外轮廓/边界）"""
+    if os.environ.get('WBX_TOON', '1') != '1': return
+    sc = bpy.context.scene; k = float(os.environ.get('WBX_RES', 1))
+    sc.render.use_freestyle = True; sc.render.line_thickness_mode = 'ABSOLUTE'
+    sc.render.line_thickness = thick or 1.1 * k
+    vl = bpy.context.view_layer; vl.use_freestyle = True
+    fs = vl.freestyle_settings; fs.crease_angle = D(120)
+    ls = fs.linesets[0] if fs.linesets else fs.linesets.new('L')
+    ls.select_by_visibility = True; ls.select_by_edge_types = True
+    ls.select_silhouette = True; ls.select_border = True; ls.select_crease = False; ls.select_contour = True
+    st = ls.linestyle or bpy.data.linestyles.new('LS'); ls.linestyle = st; st.color = (0.16, 0.09, 0.06); st.alpha = 0.85; st.thickness = sc.render.line_thickness
+    try: st.chaining = 'PLAIN'; st.use_chaining = True
+    except Exception: pass
+
 def lights(strength=3.2, ang=(D(50), D(0), D(-40)), soft=D(8)):
     s = bpy.data.lights.new('sun', 'SUN'); s.energy = strength; s.angle = soft; s.color = (1.0, 0.96, 0.88)
     o = bpy.data.objects.new('sun', s); o.rotation_euler = ang; bpy.context.scene.collection.objects.link(o)
@@ -34,6 +49,13 @@ def lights(strength=3.2, ang=(D(50), D(0), D(-40)), soft=D(8)):
     f = bpy.data.lights.new('fill', 'SUN'); f.energy = 0.6; f.color = (0.75, 0.85, 1.0); f.angle = D(30)
     fo = bpy.data.objects.new('fill', f); fo.rotation_euler = (D(60), 0, D(150)); bpy.context.scene.collection.objects.link(fo)
     fo.visible_shadow = False if hasattr(fo, 'visible_shadow') else None
+    if os.environ.get('WBX_TOON', '1') == '1':
+        # 轮廓光（从角色背后打来的暖白光，勾出边缘高光）
+        r = bpy.data.lights.new('rim', 'SUN'); r.energy = 2.2; r.color = (1.0, 0.95, 0.85); r.angle = D(4)
+        ro = bpy.data.objects.new('rim', r); ro.rotation_euler = (D(-70), 0, D(45)); bpy.context.scene.collection.objects.link(ro)
+        try: ro.visible_shadow = False
+        except Exception: pass
+        toon()
     return o
 
 def camera(w, h, anchor=(0.5, 0.85), target=(0, 0, 0), persp=False, lens=50, ortho_scale=None):

@@ -46,6 +46,7 @@ const Talk = {
       add('闲聊', async () => { const ln = pick(CHAT[id] || ['……']); const k = 'chat_' + id; let extra = ''; if (!G.used[k]) { G.used[k] = 1; G.aff[id] = (G.aff[id] || 0) + ri(2, 5); extra = '\n（好感度提升了）'; } await UI.say(N.por, N.n, ln + extra, ['……']); });
       if (N.comp || id === 'mentor') add('送礼', () => this.gift(id));
       if (SHOPS[id]) add('交易', () => UI.shop(id));
+      if (this.extra) for (const [tx, fx] of this.extra(id)) add(tx, fx);
       if (id === 'danlao' || id === 'guzhu') add('请教炼丹', () => this.learnAlch(id));
       const sect = Object.entries(SECTS).find(([k, s]) => s.master === id);
       if (sect) {
@@ -75,7 +76,7 @@ const Talk = {
     if (!have.length) { await UI.say(N.por, N.n, '你身上没有合适的礼物。（桃花酿、暖玉、折扇、蟠桃、灵鱼、古钱可以送人，坊市有卖）', ['好']); return; }
     const c = await UI.say(N.por, '送礼', '选择要送的礼物：', [...have.map(g => `${ITEMS[g].n}（${G.inv[g]}）`), '算了']);
     if (c >= have.length) return; const g = have[c]; Game.take(g);
-    const like = { mentor: 'wine', sister: 'jadeg', cuihua: 'jadeg', ali: 'fish', aoxiao: 'peach', sumei: 'coin', xiaoyi: 'fan' }[id];
+    const like = { mentor: 'wine', sister: 'jadeg', cuihua: 'jadeg', ali: 'fish', aoxiao: 'peach', sumei: 'coin', xiaoyi: 'fan', aotian: 'coin', ruyan: 'wine', bailang: 'fan', lengyue: 'jadeg' }[id];
     const v = g === like ? 22 : ri(8, 12); G.aff[id] = Math.min(150, (G.aff[id] || 0) + v); G.giftCount++; if (G.giftCount >= 20) Game.ach('gift');
     Sfx.play('pickup'); await UI.say(N.por, N.n, g === like ? '“这、这正是我最喜欢的！”（好感+' + v + '）' : '“谢谢你。”（好感+' + v + '）', ['不客气']);
   },
@@ -88,23 +89,23 @@ const Talk = {
   // ------- 主线对话 -------
   mainTalk(id, check) {
     const G = Game.G; const M = G.main;
-    if (M === 1 && id === 'mentor' && G.flags.main1 && !G.flags.awakened) return ['请剑仙测灵根', async () => {
+    if (M === MI('mentor') && id === 'mentor' && G.flags.main1 && !G.flags.awakened) return ['请剑仙测灵根', async () => {
       const L = Game.linggen(); await UI.say('npc_mentor', '落魄剑仙', '来，把手伸出来……嗝。', ['伸手']);
       Sfx.play('magic'); await UI.card('灵根觉醒', `一道光芒从你掌心升起——\n\n【${L.n}】\n${L.d}\n\n修炼速度 ×${L.mult}`, 'i:sk_light', ['原来如此']);
       G.flags.awakened = 1; if (!G.techs.changsheng) Game.learn('changsheng'); Game.give('wine', 1);
       await UI.say('npc_mentor', '落魄剑仙', `不错不错。顺便告诉你，你家祖上欠天道一笔飞升尾款，现在连本带利 ${fmt(G.debt)} 灵石。\n想活得久，就好好修炼吧。修到练气，去青云宗（或者别的宗门）拜个师。这坛酒……就当学费了。`, ['（这剑仙靠谱吗）']);
-      G.main = 2; Game.checkMain(); G.aff.mentor = (G.aff.mentor || 0) + 10;
+      G.main = MI('sect'); Game.checkMain(); G.aff.mentor = (G.aff.mentor || 0) + 10;
     }];
-    if (M === 3 && id === 'merchant') return ['质问欠条的来历', async () => {
+    if (M === MI('market') && id === 'merchant') return ['质问欠条的来历', async () => {
       await UI.say('npc_merchant', '钱多多', '欠条？哦——那批“祖传欠条”是我从天道讨债司批发来的，一文钱一张，我再加价卖给讨债鬼……', ['你说什么？！']);
       await UI.say('npc_merchant', '钱多多', '别动手别动手！是讨债鬼头子逼我的！它就在后巷——', ['去后巷']);
       const r = await Game.fight('collector', { tier: 1.4, elite: true, solo: true, adds: ['collector'], noflee: true });
-      if (r.res === 'win') { Game.give('bill'); G.main = 4; Game.log('在坊市击败讨债鬼头子，拿到祖传欠条。'); await UI.card('主线推进', '你从讨债鬼头子身上搜出一张【祖传欠条】。上面的落款居然是……天道讨债司·外包部。\n\n下一步：修到筑基，前往万妖秘境找狐妖阿离打听消息。', 'i:bill', ['继续']); }
+      if (r.res === 'win') { Game.give('bill'); G.main = MI('secret'); Game.log('在坊市击败讨债鬼头子，拿到祖传欠条。'); await UI.card('主线推进', '你从讨债鬼头子身上搜出一张【祖传欠条】。上面的落款居然是……天道讨债司·外包部。\n\n下一步：修到筑基，前往万妖秘境找狐妖阿离打听消息。', 'i:bill', ['继续']); }
     }];
-    if (M === 4 && id === 'ali') { if (G.realm < 2) return check ? null : ['打听天道的事', () => UI.say('mon_fox', '狐妖·阿离', '哼，你这点修为，进秘境深处会被吃掉的。筑基了再来。', ['……'])]; return ['打听天道的打手', async () => {
+    if (M === MI('secret') && id === 'ali') { if (G.realm < 2) return check ? null : ['打听天道的事', () => UI.say('mon_fox', '狐妖·阿离', '哼，你这点修为，进秘境深处会被吃掉的。筑基了再来。', ['……'])]; return ['打听天道的打手', async () => {
       await UI.say('mon_fox', '狐妖·阿离', '天道雇了秘境里的树妖王帮它看守账本。它们收的是“绩效灵石”……打败树妖王，账本就是你的。', ['带路']);
       const r = await Game.fight('treant', { tier: 2.4, elite: true, solo: true, adds: ['treant', 'fox'], noflee: true });
-      if (r.res === 'win') { G.main = 5; G.aff.ali = (G.aff.ali || 0) + 15; await UI.card('主线推进', '树妖王倒下了，但账本被它的同伙带去了乱葬岗，交给了尸王“欠一世”。\n\n下一步：前往乱葬岗，击败尸王。', 'mon_fox', ['继续']); }
+      if (r.res === 'win') { G.main = MI('traitor'); G.aff.ali = (G.aff.ali || 0) + 15; await UI.card('主线推进', '树妖王倒下了，但账本被它的同伙带去了乱葬岗，交给了尸王“欠一世”。\n\n可就在这时，阿离悄悄告诉你：“出卖你们宗门弟子名单的，是青云宗的黑心长老。”\n\n下一步：回青云宗，揭穿黑心长老。', 'mon_fox', ['继续']); }
     }]; }
     return null;
   },
@@ -120,20 +121,20 @@ const Talk = {
     const L = LINES[id];
     if (id === 'mozun' && G.sect === 'tianmo') {
       const c = await UI.say(M.spr, L[0], '“哦？自家弟子。要不要一起去天外天，把天道的账本烧了？”', ['同去！（不战斗）', '我要挑战你！']);
-      if (c === 0) { G.bosses.mozun = 1; G.main = 8; G.karma -= 5; Game.give('pjd', 2); await UI.card('魔道联盟', '魔尊把天道的把柄交给了你：天道讨债司的账本有三成是伪造的。\n\n下一步：化神后前往天外天，与天道对账！', M.spr, ['继续']); Game.refreshNpcs(); return; }
+      if (c === 0) { G.bosses.mozun = 1; G.flags.boss_mozun = 1; G.main = MI('judge'); G.karma -= 5; Game.give('pjd', 2); await UI.card('魔道联盟', '魔尊把天道的把柄交给了你：天道讨债司的账本有三成是伪造的。\n\n下一步：化神后前往天外天，与天道对账！', M.spr, ['继续']); Game.refreshNpcs(); return; }
     }
     const c = await UI.say(M.spr, L[0], L[1], [L[2], '先撤']); if (c !== 0) return;
     const adds = { corpse: ['jiangshi', 'jiangshi'], dragon: ['crab', 'crab'], mozun: ['demon', 'demon'], tiandao: ['collector', 'paper'] }[id];
     const tier = { corpse: 2.6, dragon: 3.6, mozun: 4.6, tiandao: 5.8 }[id];
     const r = await Game.fight(id, { tier, boss: true, adds, solo: true });
     if (r.res !== 'win') return;
-    G.bosses[id] = 1; if (Object.keys(G.bosses).length >= 4) Game.ach('boss4');
+    G.bosses[id] = 1; G.flags['boss_' + id] = 1; if (Object.keys(G.bosses).length >= 4) Game.ach('boss4');
     Game.log(`击败${M.n}。`);
-    if (id === 'corpse') { Game.give('ledger'); G.main = 6; G.flags.contract = 1; await UI.card('主线推进', '尸王倒下时嘟囔着：“终于……不用还了……”\n你拿到了【天道账本残页】，发现上面的利息是按“天”复利计算的——一天等于一年。\n\n下一步：结成金丹后，前往东海仙岛。', 'i:debtbook', ['继续']); }
-    if (id === 'dragon') { Game.learn('laizhang'); G.main = 7; G.debt = Math.round(G.debt * 0.5); await UI.card('主线推进', '龙王交出了天道的离岸账户，你的欠款直接减半！\n他还哭着塞给你一本《赖账真经》：“拿走拿走，这玩意在我这儿不灵。”\n\n下一步：修成元婴后，前往魔道裂谷。', 'boss_dragon', ['继续']); }
-    if (id === 'mozun') { G.main = 8; Game.give('pjd', 1); await UI.card('主线推进', '魔尊扔给你一个玉简：“天道讨债司的账本，有三成是伪造的。去吧，替我也讨个说法。”\n\n下一步：化神后前往天外天，与天道对账！', 'boss_mozun', ['继续']); }
+    if (id === 'corpse') { Game.give('ledger'); G.main = MI('insure'); G.flags.contract = 1; await UI.card('主线推进', '尸王倒下时嘟囔着：“终于……不用还了……”\n你拿到了【天道账本残页】，发现上面的利息是按“天”复利计算的——一天等于一年。\n\n下一步：结成金丹后，去坊市找那个卖“天道保险”的保真人——听说他和龙王钱庄有生意往来。', 'i:debtbook', ['继续']); }
+    if (id === 'dragon') { Game.learn('laizhang'); G.main = MI('lengyue'); G.debt = Math.round(G.debt * 0.5); await UI.card('主线推进', '龙王交出了天道的离岸账户，你的欠款直接减半！\n他还哭着塞给你一本《赖账真经》：“拿走拿走，这玩意在我这儿不灵。”\n\n下一步：修成元婴后，去东海仙岛见冷月仙子——她曾是讨债司的收账仙子。', 'boss_dragon', ['继续']); }
+    if (id === 'mozun') { G.main = MI('judge'); Game.give('pjd', 1); await UI.card('主线推进', '魔尊扔给你一个玉简：“天道讨债司的账本，有三成是伪造的。去吧，替我也讨个说法。”\n\n下一步：化神后前往天外天，先过判官“钱不够”那一关！', 'boss_mozun', ['继续']); }
     if (id === 'tiandao') {
-      G.main = 9; const c2 = await UI.card('天道认输', '天道的算盘碎了一地。\n“好吧好吧……账，一笔勾销。你要不要……来接替我的位置？讨债司缺个领导。”', 'boss_tiandao', ['成为新天道（结局）', '销账，继续修仙']);
+      G.main = MI('done'); const c2 = await UI.card('天道认输', '天道的算盘碎了一地。\n“好吧好吧……账，一笔勾销。你要不要……来接替我的位置？讨债司缺个领导。”', 'boss_tiandao', ['成为新天道（结局）', '销账，继续修仙']);
       if (c2 === 0) { await Game.die('newdao'); return; }
       G.debt = 0; Game.ach('debt0'); await UI.card('销账', '你的欠款清零了。天道在你的档案上盖了个章：“此人惹不起”。\n剩下的人生，随你。（渡劫圆满后可在南天门飞升）', 'i:bill', ['好']);
     }

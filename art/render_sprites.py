@@ -14,7 +14,8 @@ for sid in ids:
     else:
         R = monsters.setup(S['mon'], scale=sc); posef = monsters.mpose
     w, h = (320, 352) if big else (160, 176)
-    camera(w, h, anchor=(0.5, 0.9 if big else 0.86), ortho_scale=h / P)
+    k = float(os.environ.get('WBX_RES', 1))
+    camera(int(w * k), int(h * k), anchor=(0.5, 0.9 if big else 0.86), ortho_scale=h / P)
     d = os.path.join(out, sid); os.makedirs(d, exist_ok=True)
     dirs = S.get('dirs', DIRS5)
     jobs = [('idle', 'S' if 'S' in dirs else dirs[0], 0)] if preview else [(an, dn, f) for dn in dirs for an, n in S['anims'].items() for f in range(n)]

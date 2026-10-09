@@ -13,7 +13,11 @@ if os.path.exists(old): out = json.load(open(old))
 if 'spr' in only:
     pack.DEST = os.path.join(A, 'spr'); out['sprites'] = {}
     for sid in specs.SPRITES:
-        r = pack.pack_sprite(sid)
+        # v2.1：优先使用 2 倍分辨率 + 描边的新渲染（art/out/frames2），打包时缩到 1.5 倍以平衡清晰度与内存
+        r = None
+        if os.path.isdir(os.path.join(ART, 'out', 'frames2', sid)):
+            r = pack.pack_sprite(sid, scale=0.75, frames='frames2', k=1.5)
+        if not r: r = pack.pack_sprite(sid)
         if r: out['sprites'][sid] = r
     print('sprites', len(out['sprites']))
 if 'maps' in only:

@@ -16,8 +16,9 @@ def shelf(items, maxw=2048, pad=1):
         pos[k] = (x, y); x += w + pad; rowh = max(rowh, h); W = max(W, x)
     return pos, W, y + rowh
 
-def pack_sprite(sid, scale=1.0):
-    files = sorted(glob.glob(os.path.join(ROOT, 'out', 'frames', sid, '*.png')))
+def pack_sprite(sid, scale=1.0, frames='frames', k=1.0):
+    """k：图集像素相对游戏世界像素的倍率（高清渲染时 >1，引擎绘制时除以 k）"""
+    files = sorted(glob.glob(os.path.join(ROOT, 'out', frames, sid, '*.png')))
     if not files: return None
     frames = {}; anims = {}; dirs = set(); fw = fh = 0
     for f in files:
@@ -32,7 +33,7 @@ def pack_sprite(sid, scale=1.0):
     for k, (im, bb) in frames.items():
         sheet.paste(im, pos[k]); meta[k] = [pos[k][0], pos[k][1], im.size[0], im.size[1], bb[0], bb[1]]
     sheet.save(os.path.join(DEST, sid + '.webp'), 'WEBP', quality=Q, method=6)
-    return dict(img=sid + '.webp', fw=round(fw * scale), fh=round(fh * scale), anims=anims, dirs=sorted(dirs), f=meta)
+    return dict(img=sid + '.webp', fw=round(fw * scale), fh=round(fh * scale), anims=anims, dirs=sorted(dirs), f=meta, k=k)
 
 def pack_group(name, entries, maxw=2048):
     """entries: {key: (Image, anchor_x, anchor_y)} → 单张图集"""

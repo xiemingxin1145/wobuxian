@@ -176,6 +176,58 @@ def dragon(R):  # 东海龙王
     sphere('pearl', 0.13, loc=(-0.45, -0.55, 0.9), m=M('#e8f8ff', emit=1.5, rough=0.05), parent=b)
     lathe('crownd', [(0.12, 0), (0.15, 0.06), (0.1, 0.12)], loc=(0, 0.05, 0.24), m=gold, parent=h, seg=12)
 
+
+# ---------------- v2.1 坐骑（人物站在上面，渲染时在原点高度 0.15 处承载角色） ----------------
+def m_cloud(R):
+    b = R.body; m = M('#ffffff', rough=0.9, emit=0.35, emit_col=(1.0, 0.95, 0.85)); m2 = M('#ffe6b8', rough=0.9, emit=0.5)
+    import random as _r; rr = _r.Random(3)
+    for k in range(11):
+        a = k / 11 * 2 * math.pi; rad = 0.42 + rr.random() * 0.1
+        sphere('cl', 0.2 + rr.random() * 0.08, loc=(math.cos(a) * rad * 0.9, math.sin(a) * rad * 1.15, 0.08 + rr.random() * 0.05), m=(m2 if k % 4 == 0 else m), parent=b, seg=14, rings=10)
+    sphere('clc', 0.4, loc=(0, 0, 0.06), scale=(1.2, 1.4, 0.45), m=m, parent=b, seg=20, rings=12)
+    for k in range(3): tube('swirl', [(-0.3 + k * 0.3, 0.55, 0.05), (-0.2 + k * 0.3, 0.8, 0.0), (-0.35 + k * 0.3, 0.95, 0.04)], 0.04, m=m, parent=b, taper=[1, 0.7, 0.2])
+
+def m_fsword(R):
+    b = R.body; g = empty('fsw', (0, 0.0, 0.05), b); g.rotation_euler = (D(-90), 0, 0); g.scale = (2.6, 2.6, 1.9)
+    chars.swordmesh(g, 0.75, glow=True)
+    g.location = (0, 0.75, 0.05)
+    for k in range(4): sphere('trail', 0.05 - k * 0.008, loc=(0, 1.0 + k * 0.18, 0.05), m=M('#9fe8ff', emit=3.0), parent=b, seg=8, rings=6)
+
+def m_gourd(R):
+    b = R.body; g = empty('gd', (0, 0, 0.12), b); g.rotation_euler = (D(-90), 0, 0); g.scale = (2.2, 2.2, 2.6)
+    lathe('gourdm', [(0.0, -0.2), (0.11, -0.15), (0.12, -0.08), (0.06, 0.0), (0.08, 0.05), (0.07, 0.11), (0.02, 0.15)], m=M('#e09a3a', rough=0.3, sheen=0.3), parent=g, seg=24, outline=OL)
+    torus('gstr', 0.06, 0.012, loc=(0, 0, 0.0), m=M('#c0302a'), parent=g)
+    tube('tassel', [(0, 0.05, 0.12), (0.05, 0.25, 0.1), (0.02, 0.4, 0.0)], 0.02, m=M('#ff3a3a'), parent=b)
+
+def m_crane(R):
+    b = R.body; w = M('#fbfbf8', rough=0.6, sheen=0.4); blk = M('#1a1a1a', rough=0.5); red = M('#e02a2a', emit=0.5)
+    sphere('cb', 0.34, loc=(0, 0.05, 0.12), scale=(0.9, 1.5, 0.6), m=w, parent=b, outline=OL, seg=24, rings=14)
+    tube('neck', [(0, -0.38, 0.18), (0, -0.62, 0.42), (0, -0.7, 0.62)], 0.07, m=w, parent=b, taper=[1, 0.8, 0.7])
+    sphere('ch', 0.09, loc=(0, -0.72, 0.66), m=w, parent=b, seg=14, rings=10)
+    sphere('cr', 0.04, loc=(0, -0.72, 0.74), m=red, parent=b, seg=10, rings=8)
+    cyl('beak', 0.03, 0.0, 0.2, loc=(0, -0.86, 0.64), rot=(D(95), 0, 0), m=M('#d8c070'), parent=b, seg=8)
+    for s in (-1, 1):
+        wg = empty('wing', (s * 0.25, 0.05, 0.2), b); R.limbs.append(wg)
+        sphere('wingm', 0.32, loc=(s * 0.3, 0.05, 0.0), scale=(1.6, 0.9, 0.12), m=w, parent=wg, seg=16, rings=10)
+        sphere('wingt', 0.18, loc=(s * 0.72, 0.15, 0.0), scale=(1.3, 0.8, 0.12), m=blk, parent=wg, seg=12, rings=8)
+    tube('tail', [(0, 0.5, 0.12), (0, 0.75, 0.1)], 0.08, m=blk, parent=b, taper=[1, 0.3])
+
+def m_lotus(R):
+    b = R.body; pk = M('#ffb8d0', rough=0.5, sss=0.2, emit=0.25); pk2 = M('#ff8ab0', rough=0.5); gold = M('#ffe080', emit=1.2)
+    for ring, (n, rad, tilt, mm) in enumerate(((10, 0.42, 55, pk2), (8, 0.3, 35, pk))):
+        for k in range(n):
+            a = k / n * 2 * math.pi + ring * 0.3
+            sphere('petal', 0.16, loc=(math.cos(a) * rad, math.sin(a) * rad, 0.1 + ring * 0.05), scale=(0.55, 1.2, 0.25), rot=(D(tilt), 0, a + math.pi / 2), m=mm, parent=b, seg=12, rings=8)
+    cyl('seat', 0.22, 0.24, 0.06, loc=(0, 0, 0.12), m=gold, parent=b, seg=24)
+    torus('glow', 0.5, 0.02, loc=(0, 0, 0.05), m=M('#fff0a0', emit=4.0), parent=b, seg=40, mseg=6)
+
+def m_bowl(R):
+    b = R.body; w = M('#f4f0e8', rough=0.25, spec=0.6); blu = M('#3a6ab8', rough=0.3)
+    lathe('bowl', [(0.12, 0.0), (0.3, 0.05), (0.45, 0.2), (0.5, 0.3)], m=w, parent=b, seg=32, outline=OL, close_top=False)
+    torus('rim', 0.5, 0.025, loc=(0, 0, 0.3), m=blu, parent=b, seg=40, mseg=6)
+    cyl('soup', 0.46, 0.46, 0.01, loc=(0, 0, 0.26), m=M('#e8a040', rough=0.1, emit=0.3), parent=b, seg=32)
+    for k in range(3): sphere('steam', 0.08, loc=(-0.15 + k * 0.15, 0.1, 0.42 + k * 0.05), m=M('#ffffff', alpha=0.5, emit=0.5), parent=b, seg=8, rings=6)
+
 def setup(kind, scale=1.2):
     """返回 rig；kind 为 chibi 规格名或怪物名"""
     if kind in MONS:
@@ -183,12 +235,17 @@ def setup(kind, scale=1.2):
     raise KeyError(kind)
 
 MONS = {'slime': (slime, 1.0), 'paper': (paper, 1.0), 'boar': (boar, 1.0), 'rock': (rock, 1.0), 'fire': (fire, 1.0), 'treant': (treant, 1.0),
-        'crab': (crab, 1.0), 'ghost': (ghost, 1.0), 'tiandao': (tiandao, 1.0), 'dragon': (dragon, 1.0)}
+        'crab': (crab, 1.0), 'ghost': (ghost, 1.0), 'tiandao': (tiandao, 1.0), 'dragon': (dragon, 1.0),
+        'm_cloud': (m_cloud, 0.8), 'm_fsword': (m_fsword, 1.3), 'm_gourd': (m_gourd, 1.4), 'm_crane': (m_crane, 0.8), 'm_lotus': (m_lotus, 0.8), 'm_bowl': (m_bowl, 0.8)}
 
 def mpose(R, anim, f, n):
     t = f / max(1, n); s2 = math.sin(t * 2 * math.pi)
     R.body.location = (0, 0, 0); R.body.rotation_euler = (0, 0, 0); R.body.scale = (1, 1, 1)
     for i, g in enumerate(R.limbs): g.rotation_euler = (0, 0, 0)
+    if R.kind.startswith('m_'):
+        R.body.location = (0, 0, 0.18 + 0.04 * s2)
+        for i, g in enumerate(R.limbs): g.rotation_euler = (0, D(18 * s2 * (1 if i % 2 else -1)), 0)
+        return
     if anim == 'idle':
         R.body.scale = (1 + 0.03 * s2, 1 + 0.03 * s2, 1 - 0.04 * s2)
         if R.kind in ('paper', 'ghost', 'fire', 'tiandao'): R.body.location = (0, 0, 0.05 + 0.04 * s2)

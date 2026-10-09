@@ -71,12 +71,12 @@ function drawBattle(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x - w / 2 - 2, top - 2, w + 4, 14 * R.dpr);
     ctx.fillStyle = u.side ? '#ff5a4a' : '#5adf6a'; ctx.fillRect(x - w / 2, top, w * Math.max(0, u.hp / u.mhp), 6 * R.dpr);
     ctx.fillStyle = '#4aa8ff'; ctx.fillRect(x - w / 2, top + 7 * R.dpr, w * Math.max(0, Math.min(1, u.mp / u.mmp)), 3 * R.dpr);
-    ctx.font = `bold ${13 * R.dpr}px sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.strokeText(u.name, x, top - 6 * R.dpr); ctx.fillStyle = u.boss ? '#ffb040' : u.elite ? '#d8a0ff' : '#fff'; ctx.fillText(u.name, x, top - 6 * R.dpr);
+    ctx.font = `bold ${13 * R.dpr}px WBXKai,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.strokeText(u.name, x, top - 6 * R.dpr); ctx.fillStyle = u.boss ? '#ffb040' : u.elite ? '#d8a0ff' : '#fff'; ctx.fillText(u.name, x, top - 6 * R.dpr);
     const bs = Object.keys(u.buf).filter(k => u.buf[k] > 0).map(k => ({ def: '甲', slow: '缓', stun: '晕', reflect: '反', poison: '毒' })[k]).filter(Boolean).join('');
     if (bs) { ctx.fillStyle = '#ffe680'; ctx.fillText(bs, x + w / 2 + 14 * R.dpr, top + 8 * R.dpr); }
   }
   ctx.restore();
-  ctx.font = `bold ${16 * R.dpr}px sans-serif`; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText(`第 ${B.round} 回合`, 14 * R.dpr, R.H * 0.16);
+  ctx.font = `bold ${16 * R.dpr}px WBXKai,sans-serif`; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText(`第 ${B.round} 回合`, 14 * R.dpr, R.H * 0.16);
 }
 // --------- 战斗计算 ---------
 function calcDmg(a, d, sk) {
@@ -189,6 +189,7 @@ async function doAction(a) {
   let targets = (a.t || []).filter(t => t.alive);
   if (S.tg === 'all') targets = alive(1 - u.side);
   if (!targets.length && S.tg === 'one') { const f = alive(1 - u.side); if (!f.length) return; targets = [f[Math.random() * f.length | 0]]; }
+  if (S !== SKILLS.atk && u.isPlayer && S.k >= 1.4 && window.VFX && VFX.cutin) await VFX.cutin(u, S);
   if (S !== SKILLS.atk) { const [x, y] = uPos(u); floatText(x, y - 175 * R.dpr, S.n, ELEM[S.el] || '#ffe9a0', 30 * R.dpr, false); }
   const melee = S === SKILLS.atk || S.fx === 'slash' || S.fx === 'blood' || S.fx === 'coin';
   const times = (S === SKILLS.atk && u.combo && Math.random() < u.combo) ? 2 : (S !== SKILLS.atk && S.k > 0 && u.double && Math.random() < u.double) ? 2 : 1;

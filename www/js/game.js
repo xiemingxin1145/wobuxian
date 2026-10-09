@@ -354,8 +354,8 @@ const Game = {
   // -------- 主线 --------
   checkMain() {
     const G = this.G; const m = MAIN[G.main];
-    if (G.main === 2 && G.realm >= 1 && G.sect) G.main = 3;
-    if (G.main === 2 && G.realm >= 2) G.main = 3;
+    if (G.main === MI('sect') && G.realm >= 1 && G.sect) G.main = MI('rival');
+    if (G.main === MI('sect') && G.realm >= 2) G.main = MI('rival');
     UI.hud();
   },
   // -------- 任务 --------
@@ -372,7 +372,7 @@ const Game = {
     const G = this.G; const Q = QUESTS[q]; if (Q.need.i) for (const [i, c] of Object.entries(Q.need.i)) this.take(i, c);
     const rw = Q.rw; const parts = [];
     if (rw.exp) parts.push('exp%' + Math.round(Math.min(300, 80 + rw.exp / 20)));
-    if (rw.stone) parts.push('stone+' + rw.stone); if (rw.item) for (const [i, c] of Object.entries(rw.item)) parts.push(`item:${i}:${c}`); if (rw.aff) for (const [k, v] of Object.entries(rw.aff)) parts.push(`aff:${k}:${v}`);
+    if (rw.stone) parts.push('stone+' + rw.stone); if (rw.item) for (const [i, c] of Object.entries(rw.item)) parts.push(`item:${i}:${c}`); if (rw.aff) for (const [k, v] of Object.entries(rw.aff)) parts.push(`aff:${k}:${v}`); if (rw.eq) parts.push(`eq:any:${rw.eq}`); if (rw.life) parts.push(`life+${rw.life}`); if (rw.contrib) parts.push(`contrib+${rw.contrib}`);
     const r = await this.apply(parts.join(';')); delete G.quests[q]; G.qdone[q] = 1; Sfx.play('levelup');
     if (Object.keys(G.qdone).length >= 10) this.ach('quest10');
     await UI.card('任务完成', `【${Q.n}】完成！\n${r.txt}`, NPCS[Q.giver].por, ['好']); this.refreshNpcs(); this.save();
@@ -390,7 +390,7 @@ const Game = {
   },
   async enterMap(id) {
     const G = this.G; const info = MAPINFO[id];
-    const sprs = new Set([this.playerSpr()]); for (const k in NPCS) if (NPCS[k].map === id) sprs.add(NPCS[k].spr); for (const m of info.mons) sprs.add(MONS[m].spr); if (info.boss) sprs.add(MONS[info.boss].spr); const p = this.activePet(); if (p) sprs.add(MONS[p.mon].spr);
+    const sprs = new Set([this.playerSpr()]); for (const k in NPCS) if ((NPCS[k].roam ? NPCS[k].roam(G) : NPCS[k].map) === id) sprs.add(NPCS[k].spr); for (const m of info.mons) sprs.add(MONS[m].spr); if (info.boss) sprs.add(MONS[info.boss].spr); const p = this.activePet(); if (p) sprs.add(MONS[p.mon].spr);
     if (id === 'village') sprs.add('mon_collector');
     UI.loading(true); await loadMap(id, [...sprs]); UI.loading(false);
     R.mode = 'map'; R.mapId = id;
@@ -425,7 +425,7 @@ const Game = {
     if (!R.M || R.mode !== 'map' && R.mode !== 'battle') return; const G = this.G;
     R.ents = R.ents.filter(e => e.kind !== 'npc' && e.kind !== 'boss');
     for (const id in NPCS) {
-      const N = NPCS[id]; if (N.map !== R.mapId) continue;
+      const N = NPCS[id]; if ((N.roam ? N.roam(G) : N.map) !== R.mapId) continue;
       if (N.minAge && G.age < N.minAge) continue; if (N.minRealm && G.realm < N.minRealm) continue;
       if (id === 'mentor' && !G.flags.main1) continue;
       if (G.follower === id) continue;
@@ -450,7 +450,7 @@ const Game = {
     for (const q in QUESTS) { const Q = QUESTS[q]; if (Q.giver === id && !G.quests[q] && !G.qdone[q] && this.questAvail(q)) return '!'; }
     return null;
   },
-  questAvail(q) { const G = this.G; const Q = QUESTS[q]; if (Q.minAge && G.age < Q.minAge) return false; if (Q.sect && !G.sect) return false; return true; },
+  questAvail(q) { const G = this.G; const Q = QUESTS[q]; if (Q.minAge && G.age < Q.minAge) return false; if (Q.pre && !G.qdone[Q.pre]) return false; if (Q.minRealm && G.realm < Q.minRealm) return false; if (Q.sect && !G.sect) return false; return true; },
   spawnMonsters() {
     if (!R.M || !R.player) return; const G = this.G; const info = MAPINFO[R.mapId];
     R.ents = R.ents.filter(e => e.kind !== 'mon');

@@ -23,14 +23,14 @@ function drawSprite(ctx, id, anim, dir, f, x, y, s = 1, alpha = 1, tint = null) 
   if (!S.dirs.includes(d)) { if (MIRROR[d] && S.dirs.includes(MIRROR[d])) { d = MIRROR[d]; flip = true; } else if (S.dirs.includes('SE')) { d = 'SE'; flip = ['W', 'NW', 'SW', 'N'].includes(dir); } else d = S.dirs[0]; }
   if (!S.anims[anim]) anim = 'idle';
   const n = S.anims[anim]; const fr = S.f[`${anim}_${d}_${((f | 0) % n + n) % n}`]; if (!fr) return false;
-  const big = S.fw >= 300; const ax = S.fw / 2, ay = S.fh * (big ? 0.9 : 0.86);
-  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x, y); ctx.scale(flip ? -s : s, s);
+  const K = S.k || 1; const big = S.fw / K >= 300; const ax = S.fw / 2, ay = S.fh * (big ? 0.9 : 0.86);
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x, y); ctx.scale((flip ? -s : s) / K, s / K);
   ctx.drawImage(im, fr[0], fr[1], fr[2], fr[3], fr[4] - ax, fr[5] - ay, fr[2], fr[3]);
   if (tint) { ctx.globalCompositeOperation = 'source-atop'; }
   ctx.restore();
-  return { top: y + (Math.min(...[fr[5]]) - ay) * s, h: S.fh * s };
+  return { top: y + (fr[5] - ay) * s / K, h: S.fh * s / K };
 }
-function spriteBox(id, s = 1) { const S = AS.sprites[id]; if (!S) return { w: 80, h: 120 }; const big = S.fw >= 300; return { w: S.fw * 0.55 * s, h: S.fh * (big ? 0.8 : 0.78) * s }; }
+function spriteBox(id, s = 1) { const S = AS.sprites[id]; if (!S) return { w: 80, h: 120 }; const K = S.k || 1; const big = S.fw / K >= 300; return { w: S.fw / K * 0.55 * s, h: S.fh / K * (big ? 0.8 : 0.78) * s }; }
 // UI 图集：头像 / 图标（CSS）
 function iconCss(key, size = 48) {
   const I = AS.icons; const f = I.f[key] || I.f['scroll']; const k = size / I.size;
@@ -195,7 +195,9 @@ function render() {
   drawSky(ctx, info.sky[0], info.sky[1]);
   const sx = (Math.random() - 0.5) * R.shake * 20, sy = (Math.random() - 0.5) * R.shake * 20;
   ctx.setTransform(R.Z, 0, 0, R.Z, R.W / 2 - R.cam.x * R.Z + sx, R.H / 2 - R.cam.y * R.Z + sy);
+  if (R.drawUnder) R.drawUnder(ctx);
   const plate = img('assets/maps/' + R.mapId + '.webp'); if (plate) ctx.drawImage(plate, 0, 0);
+  if (R.drawGround) R.drawGround(ctx);
   // 标记目标
   if (R.tapMark && R.tapMark.t < 0.8) { R.tapMark.t += 0.016; const [x, y] = t2p(R.tapMark.i + 0.5, R.tapMark.j + 0.5); const k = 1 - R.tapMark.t / 0.8; ctx.strokeStyle = `rgba(255,240,150,${k})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 40 * (1.2 - k * 0.4), 20 * (1.2 - k * 0.4), 0, 0, 7); ctx.stroke(); }
   // 阴影
@@ -217,25 +219,29 @@ function render() {
     } else {
       const e = it.e; const [x, y] = t2p(e.i, e.j);
       const fps = e.anim === 'walk' ? 10 : 5;
-      drawSprite(ctx, e.spr, e.anim, e.dir, e.at * fps, x, y + (e.bob ? Math.sin(R.t * 3) * 3 : 0), e.s, e.alpha);
+      const lift = R.entPre ? R.entPre(ctx, e, x, y) || 0 : 0;
+      drawSprite(ctx, e.spr, e.anim, e.dir, e.at * fps, x, y - lift + (e.bob ? Math.sin(R.t * 3) * 3 : 0), e.s, e.alpha);
+      if (R.entPost) R.entPost(ctx, e, x, y - lift);
     }
   }
   // 头顶标签
   ctx.textAlign = 'center';
   for (const e of R.ents) {
     if (e.hidden || !e.label) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s);
-    const ty = y - b.h - 6;
-    ctx.font = 'bold 22px sans-serif'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(e.label, x, ty); ctx.fillStyle = e.lc || '#fff'; ctx.fillText(e.label, x, ty);
-    if (e.mark) { const by = ty - 30 + Math.sin(R.t * 4) * 5; ctx.font = 'bold 40px sans-serif'; ctx.strokeText(e.mark, x, by); ctx.fillStyle = e.mark === '!' ? '#ffd23a' : e.mark === '?' ? '#7affb0' : '#ff6a6a'; ctx.fillText(e.mark, x, by); }
+    const ty = y - b.h - 6 - (e.lift || 0);
+    ctx.font = 'bold 22px WBXKai,sans-serif'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(e.label, x, ty); ctx.fillStyle = e.lc || '#fff'; ctx.fillText(e.label, x, ty);
+    if (e.mark) { const by = ty - 30 + Math.sin(R.t * 4) * 5; ctx.font = 'bold 40px WBXKai,sans-serif'; ctx.strokeText(e.mark, x, by); ctx.fillStyle = e.mark === '!' ? '#ffd23a' : e.mark === '?' ? '#7affb0' : '#ff6a6a'; ctx.fillText(e.mark, x, by); }
   }
   // 交互点
   for (const m of R.marks) {
     if (m.hidden) continue; const [x, y] = t2p(m.i + 0.5, m.j + 0.5); const by = y - (m.h || 110) + Math.sin(R.t * 3 + m.i) * 6;
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - 52, by - 26, 104, 40, 18) : ctx.rect(x - 52, by - 26, 104, 40); ctx.fill();
-    ctx.font = 'bold 22px sans-serif'; ctx.fillStyle = m.c || '#ffe9a0'; ctx.fillText(m.label, x, by + 2);
+    ctx.font = 'bold 22px WBXKai,sans-serif'; ctx.fillStyle = m.c || '#ffe9a0'; ctx.fillText(m.label, x, by + 2);
   }
   drawParts(ctx, true);
+  if (R.drawAbove) R.drawAbove(ctx);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (R.drawScreen) R.drawScreen(ctx);
   drawOverlay(ctx);
 }
 function drawParts(ctx, world) {
@@ -252,7 +258,7 @@ function drawParts(ctx, world) {
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   for (const t of R.texts) {
     if (t.world !== world) continue; const k = t.t / t.life; const y = t.y - 60 * k - (k < 0.15 ? (0.15 - k) * -200 : 0);
-    ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1; ctx.font = `bold ${t.size * (k < 0.1 ? 1 + (0.1 - k) * 5 : 1)}px sans-serif`; ctx.textAlign = 'center';
+    ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1; ctx.font = `bold ${t.size * (k < 0.1 ? 1 + (0.1 - k) * 5 : 1)}px WBXKai,sans-serif`; ctx.textAlign = 'center';
     ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(t.txt, t.x, y); ctx.fillStyle = t.c; ctx.fillText(t.txt, t.x, y);
   }
   ctx.globalAlpha = 1;

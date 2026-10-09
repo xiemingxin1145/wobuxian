@@ -77,6 +77,29 @@ def hat(head, c, r, spec):
         cyl('jh', 0.3, 0.27, 0.3, loc=(c[0], c[1] + 0.02, c[2] + r * 0.85), m=M('#1f2a3a', rough=0.6), parent=head, seg=24, outline=OL)
         cyl('jb', 0.33, 0.33, 0.04, loc=(c[0], c[1] + 0.02, c[2] + r * 0.7), m=M('#1f2a3a'), parent=head, seg=24)
         box('fu', (0.16, 0.01, 0.42), loc=(c[0], c[1] - r * 0.98, c[2] - 0.02), rot=(D(-8), 0, 0), m=M('#ffd84a', rough=0.9, emit=0.3), parent=head, bevel=0.0)
+    elif h == 'flower':   # 花簪
+        for k, a in enumerate((-0.5, 0.0, 0.5)):
+            sphere('flw', 0.075, loc=(c[0] + r * 0.62 + 0.05 * k, c[1] + 0.05, c[2] + r * 0.62 + 0.06 * (1 - abs(a) * 2)), scale=(1, 1, 0.6), m=M(spec.get('flower', '#ff7aa8'), rough=0.5, emit=0.3), parent=head, seg=10, rings=8)
+        sphere('flc', 0.035, loc=(c[0] + r * 0.67, c[1] - 0.02, c[2] + r * 0.68), m=M('#ffe060', emit=0.8), parent=head, seg=8, rings=6)
+    elif h == 'scholar':  # 儒巾
+        box('rj', (0.5, 0.42, 0.2), loc=(c[0], c[1] + 0.05, c[2] + r * 0.88), m=M(spec.get('hatc', '#2a3a4a'), rough=0.6), parent=head, bevel=0.06, outline=OL)
+        for s in (-1, 1): box('rjt', (0.06, 0.02, 0.36), loc=(c[0] + s * 0.12, c[1] + r * 0.95, c[2] + r * 0.45), rot=(D(25), s * D(10), 0), m=M(spec.get('hatc', '#2a3a4a')), parent=head, bevel=0.01)
+    elif h == 'veil':     # 幕篱（轻纱斗笠）
+        m = M(spec.get('hatc', '#f4f6ff'), rough=0.7)
+        cyl('vb', 0.5, 0.5, 0.03, loc=(c[0], c[1] + 0.04, c[2] + r * 0.82), m=m, parent=head, seg=32, outline=OL)
+        cyl('vt', 0.26, 0.08, 0.2, loc=(c[0], c[1] + 0.04, c[2] + r * 0.82 + 0.11), m=m, parent=head, seg=32)
+        for a in range(10):
+            ang = a / 10 * 2 * math.pi
+            if math.sin(ang) < -0.3: continue
+            box('veilp', (0.16, 0.01, 0.42), loc=(c[0] + math.cos(ang) * 0.47, c[1] + 0.04 + math.sin(ang) * 0.47, c[2] + r * 0.82 - 0.22), rot=(0, 0, ang + math.pi / 2), m=M('#e8f0ff', rough=0.4, alpha=0.55), parent=head, bevel=0)
+    elif h == 'crown2':   # 宗主玉冠
+        lathe('cr2', [(0.16, 0), (0.19, 0.1), (0.14, 0.22), (0.06, 0.3)], loc=(c[0], c[1] + 0.06, c[2] + r + 0.04), m=M(spec.get('hatc', '#7fe0c0'), metal=0.4, rough=0.15, emit=0.25), parent=head, seg=20, outline=OL)
+        cyl('cr2p', 0.016, 0.016, 0.8, loc=(c[0], c[1] + 0.06, c[2] + r + 0.16), rot=(0, D(88), 0), m=M('#ffd25e', metal=0.9, rough=0.2), parent=head, seg=8)
+    if spec.get('glasses'):
+        gm = M('#2a2a2a', metal=0.6, rough=0.3)
+        for s in (-1, 1): torus('gl', 0.07, 0.01, loc=(c[0] + s * 0.135 * r / 0.38, c[1] - r * 0.93, c[2] - 0.02), rot=(D(90), 0, 0), m=gm, parent=head, seg=16, mseg=6)
+    if spec.get('halo'):
+        torus('halo', 0.42, 0.025, loc=(c[0], c[1] + r * 0.9, c[2] + 0.05), rot=(D(90), 0, 0), m=M(spec['halo'], emit=4.0, rough=0.2), parent=head, seg=40, mseg=8)
     if spec.get('ears') == 'fox':
         for s in (-1, 1):
             o = cyl('ear', 0.12, 0.0, 0.28, loc=(c[0] + s * 0.24, c[1] + 0.05, c[2] + r * 0.9), rot=(0, s * D(25), 0), m=M(spec.get('hair'), rough=0.6), parent=head, seg=12, outline=OL)

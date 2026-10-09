@@ -105,3 +105,96 @@ input#nm{flex:1;font-size:18px;padding:8px;border-radius:8px;border:2px solid #b
 .meta .it b{font-size:15px}
 @media (min-width:700px){#hud{width:270px}#menu{grid-template-columns:repeat(4,56px)}.mb{width:56px;height:56px}#qt{width:220px;font-size:12px}}
 body:not(.ingame) #hud,body:not(.ingame) #money,body:not(.ingame) #qt,body:not(.ingame) #ap,body:not(.ingame) #menu,body:not(.ingame) #yearbtn,body:not(.ingame) #brkbtn{display:none!important}
+/* ===================== v2.1 视觉打磨 ===================== */
+@font-face{font-family:"WBXKai";src:url(../assets/fonts/wenkai.woff2) format("woff2");font-display:swap}
+html,body{font-family:"WBXKai","Noto Serif SC","Source Han Serif SC","Songti SC","SimSun",serif}
+.card,.panel{background:linear-gradient(rgba(255,250,232,.97),rgba(239,223,184,.97)),repeating-linear-gradient(45deg,rgba(138,90,42,.04) 0 2px,transparent 2px 6px);border-image:none;position:relative}
+.card::before,.panel::before{content:"";position:absolute;inset:4px;border:1px solid rgba(176,128,58,.55);border-radius:12px;pointer-events:none;box-shadow:inset 0 0 18px rgba(176,128,58,.18)}
+.card{animation:cardin .28s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes cardin{from{transform:scale(.7) translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.panel{animation:panelin .25s ease-out both}
+@keyframes panelin{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.opt{position:relative;overflow:hidden;background:linear-gradient(#b4532f,#7a2a1a);transition:transform .1s,filter .15s}
+.opt::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:shine 3.2s infinite}
+@keyframes shine{0%,70%{left:-60%}100%{left:130%}}
+.opt.gold{background:linear-gradient(#f0c050,#b07818);color:#3a1a00;border-color:#fff0b0}
+.opt:active{filter:brightness(1.2)}
+.mb,.sm{transition:transform .1s}.mb:active,.sm:active{transform:scale(.92)}
+.gold{color:#c88a00}
+/* 面板内容 */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.big2{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;background:linear-gradient(#fffaf0,#f0e0bc);border:2px solid #c8a060;font-size:14px;box-shadow:0 2px 0 #a07a40}
+.big2:active{transform:translateY(2px);box-shadow:none}
+.cavehead{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 10px;font-size:16px;color:#5a3a1a}.cavehead span{color:#2a8a5a;font-size:13px}
+.it em{font-style:normal;font-size:11px;color:#8a5a2a}
+.sm small{display:block;font-size:10px;opacity:.85}
+.sprbox{width:64px;height:64px;flex:none;border-radius:10px;background:radial-gradient(circle at 50% 70%,#fff8e0,#e8d4a8);overflow:hidden;display:flex;align-items:center;justify-content:center;color:#a08060}
+.sprbox canvas{width:64px;height:64px}
+.ttl{flex:none;min-width:96px;font-weight:bold;color:#a05a00;text-shadow:0 1px 0 #fff}
+.tag.on{color:#c87a00;font-weight:bold}
+.chips{display:flex;flex-wrap:wrap;gap:5px}.chips span{font-size:12px;padding:3px 7px;border-radius:10px;background:rgba(0,0,0,.07)}.chips span.on{background:#ffd25e;color:#4a2a00}
+h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6px}
+/* 求仙缘 */
+.gbanner{text-align:center;padding:16px 6px;border-radius:12px;background:radial-gradient(circle at 50% 120%,#ffcf6a,#b0302a 55%,#3a0a2a);color:#fff;box-shadow:inset 0 0 20px rgba(0,0,0,.4);position:relative;overflow:hidden}
+.gbanner::after{content:"";position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent,rgba(255,240,180,.25),transparent 30%);animation:spin 8s linear infinite}
+.gtitle{font-size:34px;letter-spacing:10px;text-shadow:0 0 12px #ffd25e,0 3px 0 #6a1a0a;position:relative;z-index:1}.gsub{font-size:12px;opacity:.9;position:relative;z-index:1}
+.grates{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:13px;margin:8px 0;font-weight:bold}.grates span:last-child{flex-basis:100%;text-align:center;font-weight:normal;color:#6a5040;font-size:12px}
+.gpool{font-size:12px;line-height:1.7;background:rgba(255,255,255,.5);border-radius:10px;padding:6px 10px;color:#5a4030}
+.gbtns{display:flex;gap:10px}.gbtns .opt{flex:1}
+#gachabtn{position:fixed;right:130px;bottom:calc(10px + env(safe-area-inset-bottom));width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ffe9a0,#d08a10 60%,#7a3a00);border:3px solid #fff0b0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#4a1a00;font-size:11px;font-weight:bold;box-shadow:0 0 14px rgba(255,200,80,.7);animation:gpulse 2s infinite}
+#gachabtn::after{content:attr(data-n);position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#e0302a;color:#fff;font-size:12px;line-height:20px;text-align:center;padding:0 4px}
+#gachabtn[data-n="0"]::after{display:none}
+@keyframes gpulse{50%{box-shadow:0 0 24px rgba(255,220,120,1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gacha-fx{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.gfx-bg{position:absolute;inset:0;background:radial-gradient(circle,#3a1a4a,#0a0614);animation:fadein .3s}
+.gfx-rays{position:absolute;width:200vmax;height:200vmax;background:repeating-conic-gradient(rgba(255,230,150,.18) 0 6deg,transparent 6deg 18deg);animation:spin 10s linear infinite;opacity:0;transition:opacity .5s}
+.gacha-fx.t3 .gfx-rays{background:repeating-conic-gradient(rgba(170,120,255,.25) 0 6deg,transparent 6deg 18deg)}
+.gacha-fx.t4 .gfx-rays{background:repeating-conic-gradient(rgba(255,200,60,.4) 0 6deg,transparent 6deg 18deg)}
+.gacha-fx.reveal .gfx-rays{opacity:1}
+.gfx-scroll{position:relative;width:120px;height:160px;border-radius:10px;background:linear-gradient(#f8e8c0,#d8b070);border:4px solid #8a4a1a;display:flex;align-items:center;justify-content:center;animation:gshake 1.5s ease-in both;box-shadow:0 0 30px #ffd25e}
+.gacha-fx.t3 .gfx-scroll{box-shadow:0 0 50px #b08aff}.gacha-fx.t4 .gfx-scroll{box-shadow:0 0 80px #ffcf3a,0 0 140px #ff7a3a}
+.gfx-seal{font-size:64px;color:#c0201a;font-weight:bold}
+@keyframes gshake{0%{transform:scale(.2) rotate(-30deg);opacity:0}25%{transform:scale(1.1);opacity:1}40%,60%,80%{transform:rotate(-6deg) scale(1.05)}50%,70%,90%{transform:rotate(6deg) scale(1.1)}100%{transform:scale(1.6);opacity:0}}
+.gacha-fx.reveal .gfx-scroll{display:none}
+.gfx-cards{position:relative;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:94vw}
+.gcard{width:30vw;max-width:150px;aspect-ratio:3/4;perspective:600px;animation:flipin .5s both}
+.gfx-cards.many .gcard{width:17vw;max-width:96px}
+.gc-in{width:100%;height:100%;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:linear-gradient(#fffaf0,#e8d4a8);border:3px solid #a08060;text-align:center;padding:4px}
+.gcard.t3 .gc-in{border-color:#a070ff;box-shadow:0 0 14px #a070ff;background:linear-gradient(#f8f0ff,#d8c0ff)}
+.gcard.t4 .gc-in{border-color:#ffcf3a;box-shadow:0 0 22px #ffcf3a;background:linear-gradient(#fffbe0,#ffd870);animation:goldglow 1.2s infinite}
+.gc-in b{font-size:13px;line-height:1.2}.gc-in small{font-size:10px;color:#6a5040}
+.gfx-cards.many .gc-in b{font-size:11px}.gfx-cards.many .sprbox,.gfx-cards.many .sprbox canvas{width:48px;height:48px}
+@keyframes flipin{from{transform:rotateY(90deg) scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes goldglow{50%{box-shadow:0 0 34px #fff0a0}}
+@keyframes fadein{from{opacity:0}}
+.gclose{position:relative;margin-top:16px;width:160px}
+.gacha-fx.out,.brk-fx.out{opacity:0;transition:opacity .3s}
+/* 突破演出 */
+.brk-fx{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;overflow:hidden}
+.bk-bg{position:absolute;inset:0;background:radial-gradient(circle at 50% 60%,rgba(255,220,120,.35),rgba(10,10,30,.85));animation:fadein .2s}
+.brk-fx.bolt .bk-bg{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.7),rgba(60,40,120,.85))}
+.bk-pillar{position:absolute;left:50%;top:-10%;width:120px;height:120%;margin-left:-60px;background:linear-gradient(90deg,transparent,rgba(255,240,160,.85),#fff,rgba(255,240,160,.85),transparent);filter:blur(4px);animation:pillar 1.8s ease-out both}
+@keyframes pillar{0%{transform:scaleX(0);opacity:0}15%{transform:scaleX(1.4);opacity:1}100%{transform:scaleX(.6);opacity:.7}}
+.bk-ring{position:absolute;width:40px;height:40px;border-radius:50%;border:4px solid #ffe680;animation:ring 1.4s ease-out both}.bk-ring.r2{animation-delay:.4s}
+@keyframes ring{from{transform:scale(.2);opacity:1}to{transform:scale(18);opacity:0}}
+.bk-txt{position:relative;font-size:min(18vw,88px);color:#fff6d0;letter-spacing:10px;text-shadow:0 0 20px #ffb83a,0 0 40px #ff7a2a,0 4px 0 #6a2a0a;animation:bktxt .7s .3s cubic-bezier(.2,1.6,.4,1) both;font-family:"Ma Shan Zheng","STXingkai","KaiTi","WBXKai",serif}
+.bk-sub{position:relative;color:#ffe9b0;font-size:14px;letter-spacing:4px;margin-top:8px;animation:fadein .5s .8s both}
+.brk-fx.fail .bk-txt{color:#c8c8d0;text-shadow:0 0 20px #6a6a8a}.brk-fx.fail .bk-pillar{background:linear-gradient(90deg,transparent,rgba(150,150,200,.7),transparent)}
+@keyframes bktxt{from{transform:scale(3);opacity:0}to{transform:none;opacity:1}}
+.flash-txt{position:fixed;left:0;right:0;top:38%;text-align:center;z-index:50;font-size:40px;color:#ffe680;text-shadow:0 0 14px #ff9a3a,0 3px 0 #5a1a0a;pointer-events:none;animation:ftxt 1.6s both}
+@keyframes ftxt{0%{transform:scale(2);opacity:0}15%{transform:none;opacity:1}80%{opacity:1}100%{transform:translateY(-30px);opacity:0}}
+/* 技能特写 */
+.cutin{position:fixed;inset:0;z-index:40;pointer-events:none;display:flex;align-items:center}
+.ci-band{position:relative;width:100%;height:150px;background:linear-gradient(100deg,transparent 0,rgba(10,10,20,.88) 8%,rgba(10,10,20,.88) 92%,transparent 100%);border-top:3px solid var(--c);border-bottom:3px solid var(--c);box-shadow:0 0 30px var(--c);animation:ciin .22s ease-out both;overflow:hidden;display:flex;align-items:center}
+.ci-band::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,transparent 0 30px,rgba(255,255,255,.06) 30px 34px);animation:cispeed .4s linear infinite}
+.ci-spr{position:relative;width:180px;height:150px;flex:none;animation:cispr .6s ease-out both}.ci-spr canvas{width:180px;height:180px;margin-top:-30px;filter:drop-shadow(0 0 8px var(--c))}
+.ci-name{position:relative;font-size:44px;color:#fff;letter-spacing:6px;text-shadow:0 0 16px var(--c),0 3px 0 #000;animation:ciname .3s .08s ease-out both}
+.ci-el{position:absolute;right:16px;bottom:10px;color:var(--c);font-size:14px;letter-spacing:3px}
+.cutin.out .ci-band{animation:ciout .2s ease-in both}
+@keyframes ciin{from{transform:translateX(-100%) skewX(-12deg)}to{transform:none}}
+@keyframes ciout{to{transform:translateX(100%);opacity:0}}
+@keyframes cispr{from{transform:translateX(-60px)}to{transform:translateX(10px)}}
+@keyframes ciname{from{transform:translateX(80px);opacity:0}to{transform:none;opacity:1}}
+@keyframes cispeed{to{background-position:-34px 0}}
+@media (max-height:680px){#gachabtn{width:54px;height:54px;right:126px}.gtitle{font-size:26px}.ci-name{font-size:32px}}
