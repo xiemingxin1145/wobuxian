@@ -252,3 +252,13 @@ body:not(.ingame) #gachabtn,body.inbattle #gachabtn{display:none!important}
 .gcut-seal{position:absolute;right:12%;top:24%;width:64px;height:64px;border:3px solid #d02020;color:#d02020;background:rgba(255,240,220,.9);border-radius:8px;font:bold 24px/58px WBXKai,serif;text-align:center;transform:rotate(-14deg);animation:gcutseal .35s .55s cubic-bezier(.3,1.8,.5,1) both}
 @keyframes gcutseal{from{opacity:0;transform:rotate(-14deg) scale(3)}}
 .gcut.out{opacity:0;transition:opacity .25s}
+/* ===== v2.2 渡劫突破演出 ===== */
+.brk-fx.b22{background:none}
+.brk-fx.b22 .bk-bg,.brk-fx.b22 .bk-pillar,.brk-fx.b22 .bk-ring{display:none}
+.b22cv{position:absolute!important;top:0;left:0;width:100%;height:100%}
+.b22-txt{position:absolute;left:0;right:0;top:16%;text-align:center;opacity:0;transform:scale(2.4);transition:opacity .35s,transform .45s cubic-bezier(.2,1.5,.4,1)}
+.b22.show .b22-txt{opacity:1;transform:none}
+.b22-txt b{display:block;font:bold 54px WBXKai,serif;letter-spacing:6px;background:linear-gradient(#fff8d8,#ffd25e 55%,#c07a10);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px #ffb020) drop-shadow(0 3px 0 #6a3a00)}
+.b22-txt small{display:block;margin-top:8px;font:16px WBXKai,serif;color:#fff3d0;letter-spacing:4px;text-shadow:0 0 6px #000}
+.b22.fail .b22-txt b{background:linear-gradient(#e8e8f0,#8a8aa0);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 8px #4a4a8a)}
+.b22-tip{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:rgba(255,255,255,.5);font-size:12px}

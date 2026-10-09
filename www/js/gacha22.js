@@ -114,7 +114,7 @@
       const cv = document.createElement('canvas'); const D = 2; cv.width = 260 * D; cv.height = 260 * D; art.appendChild(cv);
       try { await loadSprite(it.spr); const g = cv.getContext('2d'); g.scale(D, D); drawSprite(g, it.spr, 'idle', 'S', 0, 130, 240, it.spr.startsWith('mount_') ? 1.2 : 1.45); } catch (e) {}
     } else art.innerHTML = `<i style="${iconCss(it.ic || 'chest', 150)}"></i>`;
-    Sfx.play('voice_hey');
+    Sfx.play('voice_hey_' + (Game.G && Game.G.sex === 'f' ? 'f' : 'm'));
     await new Promise(r => { const t = setTimeout(r, S.skipped ? 0 : 1800); c.onclick = () => { clearTimeout(t); r(); }; const iv = setInterval(() => { if (S.skipped) { clearInterval(iv); clearTimeout(t); r(); } }, 60); setTimeout(() => clearInterval(iv), 2000); });
     c.classList.add('out'); setTimeout(() => c.remove(), 300);
   }
