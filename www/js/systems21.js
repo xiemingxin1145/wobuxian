@@ -1,7 +1,7 @@
 'use strict';
 // ======================= v2.1 新系统：逆天改命 / 洞府 / 坐骑 / 时装 / 称号 / 求仙缘（抽卡） =======================
 // 求仙缘只消耗游戏内获得的“仙缘符”，没有任何真实付费。
-ITEMS.xyf = { n: '仙缘符', ic: 'tal_r', t: 'mat', p: 0, d: '求仙缘所需的符箓。完成任务、击败BOSS、解锁成就、每三年过年都会获得。' };
+ITEMS.xyf = { n: '仙缘符', ic: 'tal_r', t: 'mat', p: 0, d: '求仙缘所需的符箓。完成任务、击败BOSS、解锁成就、每八年过年都会获得（机缘、重复抽到也会返还）。' };
 // ---------------- 逆天改命 ----------------
 const NITIAN = [
   { id: 'jianxin', n: '剑心通明', d: '攻击+15%', f: G => { G.atkBonus += 0.15; } },
@@ -31,6 +31,8 @@ const MOUNTS = {
   crane: { n: '仙鹤', spr: 'mount_crane', d: '移动速度+50%，速度+12%', mv: 1.5, spd: 0.12, rar: 4, lift: 30 },
   lotus: { n: '九品莲台', spr: 'mount_lotus', d: '移动速度+45%，修炼+8%', mv: 1.45, cult: 0.08, rar: 4, lift: 24 },
   bowl: { n: '孟婆汤碗', spr: 'mount_bowl', d: '移动速度+30%，寿元+10（搞笑坐骑）', mv: 1.3, life: 10, rar: 2, lift: 26 },
+  carp: { n: '锦鲤', spr: 'mount_carp', d: '移动速度+45%，暴击+4%，每年20%概率横财', mv: 1.45, crit: 0.04, rar: 4, lift: 28 },
+  abacus: { n: '飞天算盘', spr: 'mount_abacus', d: '移动速度+40%，每年灵石+5%（天道会计同款）', mv: 1.4, rar: 3, lift: 22 },
 };
 // ---------------- 时装（全账号永久解锁） ----------------
 const COSTUMES = {
@@ -40,6 +42,10 @@ const COSTUMES = {
   mowang: { n: '魔王战袍', rar: 3, d: '天魔殿限定款（外观）' },
   taohua: { n: '桃花仙裳', rar: 3, d: '桃花村村花同款' },
   longpao: { n: '龙袍金冠', rar: 4, d: '东海龙宫皇家定制' },
+  longwang: { n: '龙宫太子服', rar: 4, d: '敖小白同款，自带龙角发箍' },
+  guishi: { n: '鬼市夜行衣', rar: 3, d: '兜帽一戴，谁也不知道你欠了多少钱' },
+  tianjia: { n: '天兵金甲', rar: 3, d: '天庭催债司制式铠甲（二手）' },
+  caishen: { n: '财神袍', rar: 4, d: '穿上之后天道都不好意思催你' },
 };
 // ---------------- 称号 ----------------
 const TITLES = [
@@ -67,10 +73,10 @@ const CAVE = {
 // ---------------- 求仙缘卡池 ----------------
 const GACHA = {
   rates: [['神品', 0.02, 4], ['仙品', 0.10, 3], ['宝品', 0.88, 2]],
-  pity: 60, // 60 抽必出神品
+  pity: 50, // v2.2：50 抽必出神品
   pool: {
-    4: [['mount', 'crane'], ['mount', 'lotus'], ['cos', 'yuyi'], ['cos', 'longpao'], ['eq', 4], ['eq', 4]],
-    3: [['mount', 'cloud'], ['mount', 'fsword'], ['cos', 'xifu'], ['cos', 'mowang'], ['cos', 'taohua'], ['eq', 3], ['eq', 3], ['pet', 'rand'], ['item', 'pjd', 2], ['item', 'xsd', 1]],
+    4: [['mount', 'crane'], ['mount', 'lotus'], ['mount', 'carp'], ['cos', 'yuyi'], ['cos', 'longpao'], ['cos', 'longwang'], ['cos', 'caishen'], ['eq', 4], ['eq', 4]],
+    3: [['mount', 'cloud'], ['mount', 'fsword'], ['mount', 'abacus'], ['cos', 'guishi'], ['cos', 'tianjia'], ['cos', 'xifu'], ['cos', 'mowang'], ['cos', 'taohua'], ['eq', 3], ['eq', 3], ['pet', 'rand'], ['item', 'pjd', 2], ['item', 'xsd', 1]],
     2: [['mount', 'gourd'], ['mount', 'bowl'], ['cos', 'xiake'], ['eq', 2], ['item', 'pyd', 2], ['item', 'hcd', 5], ['item', 'hld', 5], ['item', 'egg', 1], ['item', 'tsf', 1], ['stone', 0], ['item', 'ysd', 1], ['item', 'lz', 3]],
   },
 };
@@ -99,11 +105,14 @@ const Sys = {
   afterYear() {
     const G = Game.G; if (!G || G.dead) return; this.ensure(G);
     const C = G.cave; const msg = [];
+    const mt = this.mount();
+    if (mt && G.mount === 'abacus') { const add = Math.round(G.stone * 0.05); if (add > 0) { G.stone += add; msg.push('飞天算盘利息+' + add); } }
+    if (mt && G.mount === 'carp' && Math.random() < 0.2) { G.stone += Math.round(100 * POW(Math.max(0.5, Game.power()))); msg.push('锦鲤带来一笔横财'); }
     if (C.zl) { const g = Game.addExp(Game.yearExp() * 0.15 * C.zl, true); msg.push(`聚灵阵修为+${fmt(g)}`); }
     if (C.field) { Game.give('herb', C.field); if (C.field >= 3) Game.give('lz', C.field - 2); if (C.field >= 5) Game.give('peach', 1); msg.push(`灵田收获灵草×${C.field}`); }
     if (G.flags.nt_zhaocai) { const s = Math.round(40 * POW(G.realm)); G.stone += s; msg.push(`招财进宝+${s}灵石`); }
     if (G.flags.nt_lowint && G.debt > 0) G.debt = Math.max(0, Math.round(G.debt * 0.985));
-    if (G.year % 3 === 0) { Game.give('xyf', 1); msg.push('仙缘符+1'); }
+    if (G.year % 8 === 0) { Game.give('xyf', 1); msg.push('仙缘符+1'); }  // v2.2 平衡：每 8 年 1 张
     if (msg.length) UI.toast(msg.join('，'), '#bfffd0');
   },
   // ---- 抽卡 ----
@@ -163,8 +172,8 @@ const EQ_ICON = e => ({ weapon: ['sword_w', 'sword_g', 'sword_b', 'sword_p', 'sw
     }
   };
   const _ye = Game.yearEnd; Game.yearEnd = async function () { const y = this.G && this.G.year; await _ye.call(this); if (this.G && this.G.year !== y) Sys.afterYear(); };
-  const _fq = Game.finishQuest; Game.finishQuest = async function (q) { await _fq.call(this, q); this.give('xyf', 1); UI.toast('仙缘符+1', '#ffd23a'); };
-  const _ach = Game.ach; Game.ach = function (id) { const had = this.meta.achs[id]; _ach.call(this, id); if (!had && this.meta.achs[id] && this.G) { this.give('xyf', 2); } };
+  const _fq = Game.finishQuest; Game.finishQuest = async function (q) { await _fq.call(this, q); if (Math.random() < 0.35) { this.give('xyf', 1); UI.toast('仙缘符+1', '#ffd23a'); } };  // v2.2：35%
+  const _ach = Game.ach; Game.ach = function (id) { const had = this.meta.achs[id]; _ach.call(this, id); if (!had && this.meta.achs[id] && this.G) { this.give('xyf', 1); } };
   const _re = Game.runEvent; Game.runEvent = async function (ev) { if (this.G) { this.G.evSeen = (this.G.evSeen || 0) + 1; this.meta.evTotal = (this.meta.evTotal || 0) + 1; if (this.meta.evTotal >= 200) this.ach('events200'); } return _re.call(this, ev); };
   const _die = Game.die; Game.die = async function (kind) {
     const G = this.G;
@@ -198,7 +207,7 @@ const EQ_ICON = e => ({ weapon: ['sword_w', 'sword_g', 'sword_b', 'sword_p', 'sw
     const G = Game.G; G.used[m.key] = 1; R.marks = R.marks.filter(x => x !== m); Sfx.play('magic');
     if (VFX && VFX.burst) VFX.burst(...t2p(m.i + 0.5, m.j + 0.5), '#ffd27a');
     const r = Math.random();
-    if (r < 0.25) { Game.give('xyf', 1); await UI.card('机缘', '一道金光没入你的袖中——是一张【仙缘符】！', 'i:tal_r', ['收下']); }
+    if (r < 0.1) { Game.give('xyf', 1); await UI.card('机缘', '一道金光没入你的袖中——是一张【仙缘符】！', 'i:tal_r', ['收下']); }
     else if (r < 0.5) { const g = Game.addExp(Game.yearExp() * 0.5, true); await UI.card('机缘', `你在此处感悟天地，修为+${fmt(g)}。`, 'i:sk_meditate', ['妙哉']); }
     else if (r < 0.7) { const e = Game.randEq(Math.max(0.5, Game.power()), ri(1, 3)); await UI.card('机缘', `你从土里刨出一件宝贝：【${e.name}】`, 'i:chest', ['收下']); }
     else { const ev = Game.pickEvent(); if (ev) await Game.runEvent(ev); else await UI.card('机缘', '什么都没有，只有一只路过的鸭子。', 'i:egg', ['……']); }
