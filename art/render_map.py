@@ -266,10 +266,11 @@ if a.get('cg'):
     raise SystemExit(0)
 # ---------- 相机 ----------
 W = int(N * 1.4142 * P + 120); topm = 60; isoh = N * 0.7071 * P; H = int(MAXY[0] + topm + 30)
-cam = camera(W, H, anchor=(0.5, (topm + isoh / 2) / H), target=(N / 2, -N / 2, 0), ortho_scale=max(W, H) / P)
+KR = float(os.environ.get('WBX_RES', 1))
+cam = camera(int(W * KR), int(H * KR), anchor=(0.5, (topm + isoh / 2) / H), target=(N / 2, -N / 2, 0), ortho_scale=max(W, H) / P)
 bpy.context.view_layer.update()
 O = project(cam, (0, 0, 0)); EX = project(cam, (1, 0, 0)); EJ = project(cam, (0, -1, 0)); EZ = project(cam, (0, 0, 1))
-meta = dict(id=mid, w=W, h=H, ox=O[0], oy=O[1], ex=[EX[0] - O[0], EX[1] - O[1]], ej=[EJ[0] - O[0], EJ[1] - O[1]], ez=[EZ[0] - O[0], EZ[1] - O[1]])
+meta = dict(id=mid, w=W, h=H, k=KR, ox=O[0], oy=O[1], ex=[EX[0] - O[0], EX[1] - O[1]], ej=[EJ[0] - O[0], EJ[1] - O[1]], ez=[EZ[0] - O[0], EZ[1] - O[1]])
 json.dump(meta, open(os.path.join(OUT, mid + '.json'), 'w'))
 render(os.path.join(OUT, mid + '.png'))
 print('DONE', mid, W, H, round(time.time() - t0, 1), flush=True)

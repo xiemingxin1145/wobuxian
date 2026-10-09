@@ -18,7 +18,7 @@
       } else await say('aotian', '“哈哈哈！果然我才是主角！回去再练练吧。”', ['可恶……']);
     }];
     // 第六章：黑心长老
-    if (M === MI('traitor') && id === 'heixin') { if (G.realm < 2) return check ? null : ['质问', () => say('heixin', '“小小练气，也敢来问东问西？”', ['……'])]; return ['★ 揭穿黑心长老', async () => {
+    if (M === MI('traitor') && id === 'heixin') { if (G.realm < 2) return check ? null : ['质问', () => say('heixin', '“小小练气，也敢来问东问西？”', ['……']), 'gate']; return ['★ 揭穿黑心长老', async () => {
       await say('heixin', '“名单？什么名单？我只是……把弟子们的欠款信息‘共享’给了讨债司，顺便收点‘信息服务费’嘛。”', ['你这是出卖同门！']);
       await say('heixin', '“年轻人，宗门就是一家公司，我是股东，你们是……资产。既然你知道了——就留下吧！”', ['出手！']);
       const r = await Game.fight('heixin', { tier: 2.3, solo: true, adds: ['paper', 'paper'], noflee: true });
@@ -29,7 +29,7 @@
       }
     }]; }
     // 第八章：天道保险
-    if (M === MI('insure') && id === 'baoxian') { if (G.realm < 3) return check ? null : ['打听消息', () => say('baoxian', '“金丹以下的客户，我们只卖意外险。您先结丹吧。”', ['……'])]; return ['★ 打听龙王钱庄', async () => {
+    if (M === MI('insure') && id === 'baoxian') { if (G.realm < 3) return check ? null : ['打听消息', () => say('baoxian', '“金丹以下的客户，我们只卖意外险。您先结丹吧。”', ['……']), 'gate']; return ['★ 打听龙王钱庄', async () => {
       const c = await say('baoxian', '“龙王钱庄？嘘——我们天道保险的再保险就是在那儿办的。想知道更多？买一份‘渡劫无忧险’吧，只要800灵石，身故赔付十倍！”', ['投保（800灵石）', '不买，直接说！']);
       if (c === 0 && G.stone >= 800) { G.stone -= 800; G.flags.insured = 1; Game.give('tsf', 1); Game.ach('insured'); await say('baoxian', '“爽快！这是您的保单和赠品替死符。好了，我告诉你——”', ['快说']); }
       else await say('baoxian', '“不买？那……那我只好叫讨债司的外勤来‘劝劝’你了！”', ['来啊！']);
@@ -41,7 +41,7 @@
       }
     }]; }
     // 第十章：冷月之约
-    if (M === MI('lengyue') && id === 'lengyue') { if (G.realm < 4) return check ? null : ['搭话', () => say('lengyue', '“元婴之前，别来找我。讨债司的人会盯上你。”', ['……'])]; return ['★ 冷月之约', async () => {
+    if (M === MI('lengyue') && id === 'lengyue') { if (G.realm < 4) return check ? null : ['搭话', () => say('lengyue', '“元婴之前，别来找我。讨债司的人会盯上你。”', ['……']), 'gate']; return ['★ 冷月之约', async () => {
       await say('lengyue', '“我曾是讨债司的收账仙子，收了三百年账。直到有一天，我发现账本上所有人的利息，都是按‘一天等于一年’算的。”', ['所以你辞职了？']);
       await say('lengyue', '“我偷走了讨债司的一页总账，所以他们派‘游魂队’来追我。帮我打退它们，我就把总账给你。”', ['出手！']);
       const r = await Game.fight('ghost', { tier: 4.2, elite: true, solo: true, adds: ['ghost', 'collector'], noflee: true });
@@ -52,7 +52,7 @@
       }
     }]; }
     // 第十二章：判官钱不够
-    if (M === MI('judge') && id === 'judge') { if (G.realm < 5) return check ? null : ['求见', () => say('judge', '“化神以下，没资格排号。”', ['……'])]; return ['★ 闯讨债司', async () => {
+    if (M === MI('judge') && id === 'judge') { if (G.realm < 5) return check ? null : ['求见', () => say('judge', '“化神以下，没资格排号。”', ['……']), 'gate']; return ['★ 闯讨债司', async () => {
       await say('judge', `“${G.name}？查到了：祖传欠款 ${fmt(G.debt)} 灵石，逾期 ${G.age * 365} 天，滞纳金另计。想见天道？先过我这关！”`, ['你的账是假的！']);
       const r = await Game.fight('judge', { tier: 5.3, solo: true, boss: true, adds: ['collector', 'collector'], noflee: true });
       if (r.res === 'win') {

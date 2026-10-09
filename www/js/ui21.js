@@ -127,3 +127,4 @@ UI.chapterShow = function (m) {
     return r;
   };
 })();
+(function () { const _b = UI.battleUI; UI.battleUI = function (on) { document.body.classList.toggle('inbattle', !!on); return _b.apply(this, arguments); }; })();

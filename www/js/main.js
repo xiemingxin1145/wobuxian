@@ -11,13 +11,13 @@ async function boot() {
     const P = AS.maps.village.plate; const im = img('assets/maps/village.webp'); const t = R.t;
     const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, '#9fd4ff'); g.addColorStop(1, '#fff0e0'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
     const Z = R.Z * 1.1; const cx = P.ox + Math.sin(t * 0.05) * 300, cy = P.oy + P.h * 0.32;
-    ctx.setTransform(Z, 0, 0, Z, R.W / 2 - cx * Z, R.H * 0.62 - cy * Z); if (im) ctx.drawImage(im, 0, 0);
+    ctx.setTransform(Z, 0, 0, Z, R.W / 2 - cx * Z, R.H * 0.62 - cy * Z); if (im) ctx.drawImage(im, 0, 0, im.width / (P.k || 1), im.height / (P.k || 1));
     const pa = AS.maps.village.propAtlas; const pim = img('assets/maps/' + pa.img); const M = AS.maps.village;
     const pos = (i, j) => [P.ox + i * P.ex[0] + j * P.ej[0], P.oy + i * P.ex[1] + j * P.ej[1]];
     const list = M.props.map(([tp, i, j]) => { const [fw, fh] = M.foot[tp]; return { d: i + j + (fw + fh) / 2, tp, x: pos(i + fw / 2, j + fh / 2) }; });
     [['player_m0', 9.5, 11.5, 'S'], ['player_f0', 11.5, 11.5, 'SW'], ['npc_mentor', 10.5, 13.5, 'N'], ['mon_slime', 13.5, 13.5, 'W']].forEach(([s, i, j, d]) => list.push({ d: i + j, s, x: pos(i, j), dir: d }));
     list.sort((a, b) => a.d - b.d);
-    for (const it of list) { if (it.tp) { const f = pa.f[it.tp]; if (f && pim) ctx.drawImage(pim, f[0], f[1], f[2], f[3], it.x[0] - f[4], it.x[1] - f[5], f[2], f[3]); } else { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(it.x[0], it.x[1], 34, 15, 0, 0, 7); ctx.fill(); drawSprite(ctx, it.s, 'idle', it.dir, t * 5, it.x[0], it.x[1]); } }
+    for (const it of list) { if (it.tp) { const f = pa.f[it.tp]; if (f && pim) ctx.drawImage(pim, f[0], f[1], f[2], f[3], it.x[0] - f[4], it.x[1] - f[5], f[2] / (pa.k || 1), f[3] / (pa.k || 1)); } else { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(it.x[0], it.x[1], 34, 15, 0, 0, 7); ctx.fill(); drawSprite(ctx, it.s, 'idle', it.dir, t * 5, it.x[0], it.x[1]); } }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (Math.random() < 0.3) part({ x: Math.random() * R.W, y: -10, vx: -30 * R.dpr, vy: 50 * R.dpr, r: 5 * R.dpr, c: '#ffc0d8', life: 8, add: false, spin: 1, world: false, ph: Math.random() * 6 });
     drawParts(ctx, false);
@@ -48,7 +48,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { Gam
 // ======================= 自动测试机器人 =======================
 window.BOT = {
   log: [], n: 0,
-  pref: ['★', '✔', '突破', '冲！', '渡劫飞升', '收下', '继续', '好', '接受', '拜师', '揭榜', '闭关', '过年', '交付', '同去', '我要对账', '一起闯荡', '结为道侣', '认真的', '拿账本', '高利贷', '先打一架', '同去'],
+  pref: ['★', '✔', '！', '突破', '冲！', '渡劫飞升', '收下', '继续', '好', '接受', '拜师', '揭榜', '闭关', '过年', '交付', '同去', '我要对账', '一起闯荡', '结为道侣', '认真的', '拿账本', '高利贷', '先打一架', '同去'],
   tick() {
     this.n++;
     const gc = document.querySelector('.gacha-fx .gclose'); if (gc) { gc.click(); return 'gacha-close'; }
@@ -67,7 +67,7 @@ window.BOT = {
         if (secl.length && Math.random() < 0.4) best = secl[secl.length - 1];
         if (!best) best = opts.find(b => b.textContent.startsWith('打坐'));
         for (const p of this.pref) { if (best) break; best = opts.find(b => b.textContent.includes(p)); if (best) break; }
-        if (!best) { best = opts.find(b => /离开|算了|先撤|再想想|再等等|取消/.test(b.textContent)) || opts[Math.random() * Math.min(2, opts.length) | 0]; }
+        if (!best) { best = opts.find(b => /离开|算了|先撤|再想想|再等等|取消|稍后/.test(b.textContent)) || opts[Math.random() * Math.min(2, opts.length) | 0]; }
         best.click(); return 'opt:' + best.textContent.slice(0, 8);
       }
       const x = top.querySelector('.x'); if (x) { x.click(); return 'close'; }
@@ -115,3 +115,19 @@ window.BOT = {
   },
 };
 boot();
+// ======================= 设备端自动试玩（CI 模拟器冒烟测试用：index.html#bot） =======================
+if (location.hash === '#bot') (async () => {
+  window.onerror = (m, s, l) => { console.error('WBXERR ' + m + ' @' + s + ':' + l); };
+  addEventListener('unhandledrejection', e => console.error('WBXERR rej ' + ((e.reason && e.reason.stack) || e.reason)));
+  const sleep = ms => new Promise(r => setTimeout(r, ms)); const q = s => document.querySelector(s);
+  for (let k = 0; k < 40 && !q('#title .opt'); k++) await sleep(250);
+  const st = [...document.querySelectorAll('#title .opt')].find(b => b.textContent.includes('开始新人生')); if (st) st.click();
+  await sleep(600); if (q('#nx')) q('#nx').click(); await sleep(400);
+  for (let k = 0; k < 3; k++) { const t = document.querySelectorAll('.talb:not(.on)')[0]; if (t) t.click(); await sleep(150); }
+  for (const s of ['#nx', '#rs', '#nx', '#nx']) { await sleep(400); if (q(s)) q(s).click(); }
+  await sleep(3000); B.speed = 6; let n = 0; console.log('WBXBOT start');
+  setInterval(() => {
+    try { BOT.tick(); } catch (e) { console.error('WBXERR tick ' + e); }
+    if (++n % 50 === 0 && Game.G) { const G = Game.G; console.log('WBXBOT ' + [G.age, Game.realmName(), 'main' + G.main, R.mapId, 'k' + G.killsTotal, 'xyf' + (G.inv.xyf || 0), G.mount || '-', 'imgs' + Object.keys(IMG).length].join(' ')); }
+  }, 150);
+})();

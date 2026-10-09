@@ -196,7 +196,7 @@ function render() {
   const sx = (Math.random() - 0.5) * R.shake * 20, sy = (Math.random() - 0.5) * R.shake * 20;
   ctx.setTransform(R.Z, 0, 0, R.Z, R.W / 2 - R.cam.x * R.Z + sx, R.H / 2 - R.cam.y * R.Z + sy);
   if (R.drawUnder) R.drawUnder(ctx);
-  const plate = img('assets/maps/' + R.mapId + '.webp'); if (plate) ctx.drawImage(plate, 0, 0);
+  const plate = img('assets/maps/' + R.mapId + '.webp'); if (plate) { const pk = R.M.plate.k || 1; ctx.drawImage(plate, 0, 0, plate.width / pk, plate.height / pk); }
   if (R.drawGround) R.drawGround(ctx);
   // 标记目标
   if (R.tapMark && R.tapMark.t < 0.8) { R.tapMark.t += 0.016; const [x, y] = t2p(R.tapMark.i + 0.5, R.tapMark.j + 0.5); const k = 1 - R.tapMark.t / 0.8; ctx.strokeStyle = `rgba(255,240,150,${k})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 40 * (1.2 - k * 0.4), 20 * (1.2 - k * 0.4), 0, 0, 7); ctx.stroke(); }
@@ -215,7 +215,7 @@ function render() {
       const dx = p.x - f[4], dy = p.y - f[5];
       let al = 1;
       if (P && p.depth > pd + 0.3 && ppx > dx + 10 && ppx < dx + f[2] - 10 && ppy - 90 > dy && ppy - 20 < dy + f[3] && ppy < p.y + 10) al = 0.45;
-      ctx.globalAlpha = al; ctx.drawImage(pim, f[0], f[1], f[2], f[3], dx, dy, f[2], f[3]); ctx.globalAlpha = 1;
+      ctx.globalAlpha = al; const qk = PA.k || 1; ctx.drawImage(pim, f[0], f[1], f[2], f[3], dx, dy, f[2] / qk, f[3] / qk); ctx.globalAlpha = 1;
     } else {
       const e = it.e; const [x, y] = t2p(e.i, e.j);
       const fps = e.anim === 'walk' ? 10 : 5;

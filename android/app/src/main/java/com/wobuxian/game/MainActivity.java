@@ -44,7 +44,9 @@ public class MainActivity extends Activity {
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(web);
         hideBars();
-        web.loadUrl("file:///android_asset/www/index.html");
+        // 自动化测试：adb shell am start ... --ez wbx_bot true 时启用页内机器人试玩（仅影响该次启动）
+        boolean bot = getIntent() != null && getIntent().getBooleanExtra("wbx_bot", false);
+        web.loadUrl("file:///android_asset/www/index.html" + (bot ? "#bot" : ""));
     }
 
     private void hideBars() {

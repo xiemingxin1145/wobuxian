@@ -36,7 +36,7 @@ function makeBattleBg() {
   if (plate && R.player) {
     const [px, py] = t2p(R.player.i, R.player.j); const Z = R.Z * 1.35;
     try { g.filter = 'blur(3px) saturate(0.9)'; } catch (e) { }
-    g.drawImage(plate, R.W / 2 - px * Z, R.H * 0.55 - py * Z, plate.width * Z, plate.height * Z); g.filter = 'none';
+    const pk = (R.M && R.M.plate.k) || 1; g.drawImage(plate, R.W / 2 - px * Z, R.H * 0.55 - py * Z, plate.width * Z / pk, plate.height * Z / pk); g.filter = 'none';
   }
   const v = g.createRadialGradient(R.W / 2, R.H * 0.55, R.H * 0.2, R.W / 2, R.H * 0.55, R.H * 0.75); v.addColorStop(0, 'rgba(0,0,0,0.05)'); v.addColorStop(1, 'rgba(0,0,0,0.6)'); g.fillStyle = v; g.fillRect(0, 0, R.W, R.H);
   // 战斗法阵

@@ -31,13 +31,13 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 #toasts{position:fixed;left:50%;top:34%;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 .toast{background:rgba(20,14,8,.85);border:1px solid #c8a060;padding:7px 16px;border-radius:18px;font-size:14px;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;animation:tin .25s}.toast.out{opacity:0;transition:opacity .5s}
 @keyframes tin{from{transform:scale(.6);opacity:0}}
-#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:40}
-#swirl{position:fixed;inset:0;pointer-events:none;z-index:41;background:radial-gradient(circle,transparent 0%,transparent 30%,#000 31%);opacity:0}
+#fade{position:fixed;top:0;right:0;bottom:0;left:0;background:#000;opacity:0;pointer-events:none;z-index:40}
+#swirl{position:fixed;top:0;right:0;bottom:0;left:0;pointer-events:none;z-index:41;background:radial-gradient(circle,transparent 0%,transparent 30%,#000 31%);opacity:0}
 #swirl.go{animation:sw .5s}@keyframes sw{0%{opacity:0;background-size:400% 400%;background-position:center}50%{opacity:1}100%{opacity:0}}
-#loading{position:fixed;inset:0;background:rgba(10,14,30,.8);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#fff;z-index:45}
+#loading{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(10,14,30,.8);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#fff;z-index:45}
 .spin{width:40px;height:40px;border:4px solid #c8a060;border-top-color:transparent;border-radius:50%;animation:rot 1s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
-#modals{position:fixed;inset:0;z-index:20;pointer-events:none}
-.mwrap{position:absolute;inset:0;background:rgba(10,8,20,.45);display:flex;align-items:center;justify-content:center;pointer-events:auto;opacity:0;transition:opacity .18s}
+#modals{position:fixed;top:0;right:0;bottom:0;left:0;z-index:20;pointer-events:none}
+.mwrap{position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(10,8,20,.45);display:flex;align-items:center;justify-content:center;pointer-events:auto;opacity:0;transition:opacity .18s}
 .mwrap.in{opacity:1}.mwrap.outm{opacity:0}
 .mwrap.say{align-items:flex-end;background:rgba(10,8,20,.2)}
 .card{width:min(92vw,420px);max-height:86vh;overflow:auto;background:linear-gradient(#fbf3dc,#efdfb8);border:3px solid #8a5a2a;border-radius:16px;padding:14px;box-shadow:0 0 0 3px #f6ecd0,0 0 0 6px #6a3a1a,0 10px 30px rgba(0,0,0,.6);transform:scale(.9);transition:transform .18s}
@@ -97,7 +97,7 @@ input#nm{flex:1;font-size:18px;padding:8px;border-radius:8px;border:2px solid #b
 .pond{height:120px;border-radius:50%;background:radial-gradient(#5ac8f0,#1a6aa0);margin:10px 20px;position:relative}.float{position:absolute;left:50%;top:45%;width:14px;height:24px;margin-left:-7px;border-radius:7px;background:linear-gradient(#ff4a4a 50%,#fff 50%);animation:bob 1s infinite}.float.bite{animation:sink .3s infinite}@keyframes bob{50%{transform:translateY(-3px)}}@keyframes sink{50%{transform:translateY(14px)}}
 .yearfx{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:35;text-align:center;color:#fff;pointer-events:none;animation:yfx 1.8s forwards;text-shadow:0 0 10px #b0442a,0 2px 4px #000}.yearfx b{display:block;font-size:54px;letter-spacing:6px}.yearfx span{font-size:16px;color:#ffe680}
 @keyframes yfx{0%{opacity:0;transform:translate(-50%,-30%) scale(1.4)}20%,70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0}}
-#title{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(20,30,60,.15),rgba(20,10,5,.55))}
+#title{position:fixed;top:0;right:0;bottom:0;left:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(20,30,60,.15),rgba(20,10,5,.55))}
 .logo{text-align:center;margin-bottom:28px}.logo b{display:block;font-size:76px;letter-spacing:12px;color:#fff6d8;text-shadow:0 0 18px #ff9a3a,0 4px 0 #8a2a1a,0 6px 12px #000;font-family:"Ma Shan Zheng","STXingkai","KaiTi",serif}.logo span{color:#ffe9b0;font-size:15px;letter-spacing:4px;text-shadow:0 2px 4px #000}
 .tbtns{width:min(80vw,320px);display:flex;flex-direction:column;gap:10px}.ver{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom));color:rgba(255,255,255,.75);font-size:11px;text-shadow:0 1px 2px #000}
 .endw{background:rgba(5,5,15,.75)}.ending{width:min(92vw,420px);max-height:90vh;overflow:auto;background:linear-gradient(#fbf3dc,#e8d4a4);border:3px solid #8a5a2a;border-radius:16px;padding:16px;text-align:center}
@@ -109,7 +109,7 @@ body:not(.ingame) #hud,body:not(.ingame) #money,body:not(.ingame) #qt,body:not(.
 @font-face{font-family:"WBXKai";src:url(../assets/fonts/wenkai.woff2) format("woff2");font-display:swap}
 html,body{font-family:"WBXKai","Noto Serif SC","Source Han Serif SC","Songti SC","SimSun",serif}
 .card,.panel{background:linear-gradient(rgba(255,250,232,.97),rgba(239,223,184,.97)),repeating-linear-gradient(45deg,rgba(138,90,42,.04) 0 2px,transparent 2px 6px);border-image:none;position:relative}
-.card::before,.panel::before{content:"";position:absolute;inset:4px;border:1px solid rgba(176,128,58,.55);border-radius:12px;pointer-events:none;box-shadow:inset 0 0 18px rgba(176,128,58,.18)}
+.card::before,.panel::before{content:"";position:absolute;top:4px;right:4px;bottom:4px;left:4px;border:1px solid rgba(176,128,58,.55);border-radius:12px;pointer-events:none;box-shadow:inset 0 0 18px rgba(176,128,58,.18)}
 .card{animation:cardin .28s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes cardin{from{transform:scale(.7) translateY(30px);opacity:0}to{transform:none;opacity:1}}
 .panel{animation:panelin .25s ease-out both}
@@ -136,7 +136,7 @@ html,body{font-family:"WBXKai","Noto Serif SC","Source Han Serif SC","Songti SC"
 h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6px}
 /* 求仙缘 */
 .gbanner{text-align:center;padding:16px 6px;border-radius:12px;background:radial-gradient(circle at 50% 120%,#ffcf6a,#b0302a 55%,#3a0a2a);color:#fff;box-shadow:inset 0 0 20px rgba(0,0,0,.4);position:relative;overflow:hidden}
-.gbanner::after{content:"";position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent,rgba(255,240,180,.25),transparent 30%);animation:spin 8s linear infinite}
+.gbanner::after{content:"";position:absolute;top:-50%;right:-50%;bottom:-50%;left:-50%;background:conic-gradient(from 0deg,transparent,rgba(255,240,180,.25),transparent 30%);animation:spin 8s linear infinite}
 .gtitle{font-size:34px;letter-spacing:10px;text-shadow:0 0 12px #ffd25e,0 3px 0 #6a1a0a;position:relative;z-index:1}.gsub{font-size:12px;opacity:.9;position:relative;z-index:1}
 .grates{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:13px;margin:8px 0;font-weight:bold}.grates span:last-child{flex-basis:100%;text-align:center;font-weight:normal;color:#6a5040;font-size:12px}
 .gpool{font-size:12px;line-height:1.7;background:rgba(255,255,255,.5);border-radius:10px;padding:6px 10px;color:#5a4030}
@@ -146,8 +146,8 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 #gachabtn[data-n="0"]::after{display:none}
 @keyframes gpulse{50%{box-shadow:0 0 24px rgba(255,220,120,1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-.gacha-fx{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
-.gfx-bg{position:absolute;inset:0;background:radial-gradient(circle,#3a1a4a,#0a0614);animation:fadein .3s}
+.gacha-fx{position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.gfx-bg{position:absolute;top:0;right:0;bottom:0;left:0;background:radial-gradient(circle,#3a1a4a,#0a0614);animation:fadein .3s}
 .gfx-rays{position:absolute;width:200vmax;height:200vmax;background:repeating-conic-gradient(rgba(255,230,150,.18) 0 6deg,transparent 6deg 18deg);animation:spin 10s linear infinite;opacity:0;transition:opacity .5s}
 .gacha-fx.t3 .gfx-rays{background:repeating-conic-gradient(rgba(170,120,255,.25) 0 6deg,transparent 6deg 18deg)}
 .gacha-fx.t4 .gfx-rays{background:repeating-conic-gradient(rgba(255,200,60,.4) 0 6deg,transparent 6deg 18deg)}
@@ -158,8 +158,8 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 @keyframes gshake{0%{transform:scale(.2) rotate(-30deg);opacity:0}25%{transform:scale(1.1);opacity:1}40%,60%,80%{transform:rotate(-6deg) scale(1.05)}50%,70%,90%{transform:rotate(6deg) scale(1.1)}100%{transform:scale(1.6);opacity:0}}
 .gacha-fx.reveal .gfx-scroll{display:none}
 .gfx-cards{position:relative;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:94vw}
-.gcard{width:30vw;max-width:150px;aspect-ratio:3/4;perspective:600px;animation:flipin .5s both}
-.gfx-cards.many .gcard{width:17vw;max-width:96px}
+.gcard{width:30vw;max-width:150px;height:40vw;max-height:200px;aspect-ratio:3/4;perspective:600px;animation:flipin .5s both}
+.gfx-cards.many .gcard{width:17vw;max-width:96px;height:22.6vw;max-height:128px}
 .gc-in{width:100%;height:100%;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:linear-gradient(#fffaf0,#e8d4a8);border:3px solid #a08060;text-align:center;padding:4px}
 .gcard.t3 .gc-in{border-color:#a070ff;box-shadow:0 0 14px #a070ff;background:linear-gradient(#f8f0ff,#d8c0ff)}
 .gcard.t4 .gc-in{border-color:#ffcf3a;box-shadow:0 0 22px #ffcf3a;background:linear-gradient(#fffbe0,#ffd870);animation:goldglow 1.2s infinite}
@@ -171,8 +171,8 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 .gclose{position:relative;margin-top:16px;width:160px}
 .gacha-fx.out,.brk-fx.out{opacity:0;transition:opacity .3s}
 /* 突破演出 */
-.brk-fx{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;overflow:hidden}
-.bk-bg{position:absolute;inset:0;background:radial-gradient(circle at 50% 60%,rgba(255,220,120,.35),rgba(10,10,30,.85));animation:fadein .2s}
+.brk-fx{position:fixed;top:0;right:0;bottom:0;left:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;overflow:hidden}
+.bk-bg{position:absolute;top:0;right:0;bottom:0;left:0;background:radial-gradient(circle at 50% 60%,rgba(255,220,120,.35),rgba(10,10,30,.85));animation:fadein .2s}
 .brk-fx.bolt .bk-bg{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.7),rgba(60,40,120,.85))}
 .bk-pillar{position:absolute;left:50%;top:-10%;width:120px;height:120%;margin-left:-60px;background:linear-gradient(90deg,transparent,rgba(255,240,160,.85),#fff,rgba(255,240,160,.85),transparent);filter:blur(4px);animation:pillar 1.8s ease-out both}
 @keyframes pillar{0%{transform:scaleX(0);opacity:0}15%{transform:scaleX(1.4);opacity:1}100%{transform:scaleX(.6);opacity:.7}}
@@ -185,9 +185,9 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 .flash-txt{position:fixed;left:0;right:0;top:38%;text-align:center;z-index:50;font-size:40px;color:#ffe680;text-shadow:0 0 14px #ff9a3a,0 3px 0 #5a1a0a;pointer-events:none;animation:ftxt 1.6s both}
 @keyframes ftxt{0%{transform:scale(2);opacity:0}15%{transform:none;opacity:1}80%{opacity:1}100%{transform:translateY(-30px);opacity:0}}
 /* 技能特写 */
-.cutin{position:fixed;inset:0;z-index:40;pointer-events:none;display:flex;align-items:center}
+.cutin{position:fixed;top:0;right:0;bottom:0;left:0;z-index:40;pointer-events:none;display:flex;align-items:center}
 .ci-band{position:relative;width:100%;height:150px;background:linear-gradient(100deg,transparent 0,rgba(10,10,20,.88) 8%,rgba(10,10,20,.88) 92%,transparent 100%);border-top:3px solid var(--c);border-bottom:3px solid var(--c);box-shadow:0 0 30px var(--c);animation:ciin .22s ease-out both;overflow:hidden;display:flex;align-items:center}
-.ci-band::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,transparent 0 30px,rgba(255,255,255,.06) 30px 34px);animation:cispeed .4s linear infinite}
+.ci-band::before{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:repeating-linear-gradient(100deg,transparent 0 30px,rgba(255,255,255,.06) 30px 34px);animation:cispeed .4s linear infinite}
 .ci-spr{position:relative;width:180px;height:150px;flex:none;animation:cispr .6s ease-out both}.ci-spr canvas{width:180px;height:180px;margin-top:-30px;filter:drop-shadow(0 0 8px var(--c))}
 .ci-name{position:relative;font-size:44px;color:#fff;letter-spacing:6px;text-shadow:0 0 16px var(--c),0 3px 0 #000;animation:ciname .3s .08s ease-out both}
 .ci-el{position:absolute;right:16px;bottom:10px;color:var(--c);font-size:14px;letter-spacing:3px}
@@ -199,10 +199,10 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 @keyframes cispeed{to{background-position:-34px 0}}
 @media (max-height:680px){#gachabtn{width:54px;height:54px;right:126px}.gtitle{font-size:26px}.ci-name{font-size:32px}}
 /* 剧情CG */
-.chapter-fx{position:fixed;inset:0;z-index:58;background:#000;overflow:hidden;animation:fadein .5s}
-.cx-img{position:absolute;inset:0;background:center/cover no-repeat;animation:kenburns 6s ease-out both}
+.chapter-fx{position:fixed;top:0;right:0;bottom:0;left:0;z-index:58;background:#000;overflow:hidden;animation:fadein .5s}
+.cx-img{position:absolute;top:0;right:0;bottom:0;left:0;background:center/cover no-repeat;animation:kenburns 6s ease-out both}
 @keyframes kenburns{from{transform:scale(1.18) translateX(3%)}to{transform:scale(1.02)}}
-.cx-shade{position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.75))}
+.cx-shade{position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.75))}
 .cx-txt{position:absolute;left:0;right:0;bottom:12%;text-align:center;color:#fff;animation:ftxt2 1s .3s both}
 .cx-txt small{display:block;font-size:15px;letter-spacing:6px;color:#ffe9a0}.cx-txt b{display:block;font-size:42px;letter-spacing:8px;text-shadow:0 0 16px #ff9a3a,0 3px 0 #000;font-family:"Ma Shan Zheng","STXingkai","KaiTi","WBXKai",serif}
 .cx-txt p{margin:8px 24px 0;font-size:14px;opacity:.9}
@@ -211,5 +211,7 @@ h4{margin:10px 0 6px;color:#6a3a1a;border-left:4px solid #c8a060;padding-left:6p
 @keyframes ftxt2{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
 @media (orientation:portrait){.cx-img{background-size:auto 62%;background-position:center 30%}.chapter-fx{background:radial-gradient(#2a1a10,#000)}}
 .ending.withcg{background:linear-gradient(rgba(255,250,232,.86),rgba(239,223,184,.95)),var(--cg) center/cover}
-.album{display:grid;grid-template-columns:1fr 1fr;gap:8px}.al{aspect-ratio:16/9;border-radius:10px;background:center/cover #3a2a1a;border:2px solid #c8a060;position:relative;overflow:hidden}
+.album{display:grid;grid-template-columns:1fr 1fr;gap:8px}.al{height:calc((min(96vw,520px) - 48px) * 0.28);aspect-ratio:16/9;border-radius:10px;background:center/cover #3a2a1a;border:2px solid #c8a060;position:relative;overflow:hidden}
 .al span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#ffe9b0;font-size:12px;text-align:center;padding:2px}.al.lock{background:repeating-linear-gradient(45deg,#4a3a2a 0 6px,#3a2a1a 6px 12px)}
+
+body:not(.ingame) #gachabtn,body.inbattle #gachabtn{display:none!important}

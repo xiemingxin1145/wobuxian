@@ -40,7 +40,7 @@ const Talk = {
     while (true) {
       const opts = []; const acts = [];
       const add = (t, f) => { opts.push(t); acts.push(f); };
-      const mt = this.mainTalk(id); if (mt) add('★ ' + mt[0], mt[1]);
+      const mt = this.mainTalk(id); if (mt) add(mt[2] === 'gate' ? mt[0] : (mt[0].startsWith('★') ? mt[0] : '★ ' + mt[0]), mt[1]);
       for (const q in G.quests) if (QUESTS[q].giver === id && Game.questDone(q)) add('✔ 交付：' + QUESTS[q].n, () => Game.finishQuest(q));
       for (const q in QUESTS) { const Q = QUESTS[q]; if (Q.giver === id && !G.quests[q] && !G.qdone[q] && Game.questAvail(q)) add('！' + Q.n, async () => { const c = await UI.say(N.por, N.n, Q.d + `\n\n需要：${this.needTxt(Q)}`, ['接受', '算了']); if (c === 0) Game.acceptQuest(q); }); }
       add('闲聊', async () => { const ln = pick(CHAT[id] || ['……']); const k = 'chat_' + id; let extra = ''; if (!G.used[k]) { G.used[k] = 1; G.aff[id] = (G.aff[id] || 0) + ri(2, 5); extra = '\n（好感度提升了）'; } await UI.say(N.por, N.n, ln + extra, ['……']); });
@@ -102,7 +102,7 @@ const Talk = {
       const r = await Game.fight('collector', { tier: 1.4, elite: true, solo: true, adds: ['collector'], noflee: true });
       if (r.res === 'win') { Game.give('bill'); G.main = MI('secret'); Game.log('在坊市击败讨债鬼头子，拿到祖传欠条。'); await UI.card('主线推进', '你从讨债鬼头子身上搜出一张【祖传欠条】。上面的落款居然是……天道讨债司·外包部。\n\n下一步：修到筑基，前往万妖秘境找狐妖阿离打听消息。', 'i:bill', ['继续']); }
     }];
-    if (M === MI('secret') && id === 'ali') { if (G.realm < 2) return check ? null : ['打听天道的事', () => UI.say('mon_fox', '狐妖·阿离', '哼，你这点修为，进秘境深处会被吃掉的。筑基了再来。', ['……'])]; return ['打听天道的打手', async () => {
+    if (M === MI('secret') && id === 'ali') { if (G.realm < 2) return check ? null : ['打听天道的事', () => UI.say('mon_fox', '狐妖·阿离', '哼，你这点修为，进秘境深处会被吃掉的。筑基了再来。', ['……']), 'gate']; return ['打听天道的打手', async () => {
       await UI.say('mon_fox', '狐妖·阿离', '天道雇了秘境里的树妖王帮它看守账本。它们收的是“绩效灵石”……打败树妖王，账本就是你的。', ['带路']);
       const r = await Game.fight('treant', { tier: 2.4, elite: true, solo: true, adds: ['treant', 'fox'], noflee: true });
       if (r.res === 'win') { G.main = MI('traitor'); G.aff.ali = (G.aff.ali || 0) + 15; await UI.card('主线推进', '树妖王倒下了，但账本被它的同伙带去了乱葬岗，交给了尸王“欠一世”。\n\n可就在这时，阿离悄悄告诉你：“出卖你们宗门弟子名单的，是青云宗的黑心长老。”\n\n下一步：回青云宗，揭穿黑心长老。', 'mon_fox', ['继续']); }

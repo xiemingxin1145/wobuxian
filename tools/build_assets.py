@@ -30,6 +30,11 @@ if 'maps' in only:
         im = Image.open(os.path.join(ART, 'out', 'maps', mid + '.png')).convert('RGBA'); bb = im.getchannel('A').getbbox()
         im = im.crop(bb); im.save(os.path.join(A, 'maps', mid + '.webp'), 'WEBP', quality=84, method=6)
         meta['ox'] -= bb[0]; meta['oy'] -= bb[1]; meta['w'], meta['h'] = im.size
+        k = meta.get('k', 1) or 1  # v2.1：2 倍分辨率底图，坐标换算回世界像素
+        if k != 1:
+            for key in ('ox', 'oy', 'w', 'h'): meta[key] = meta[key] / k
+            for key in ('ex', 'ej', 'ez'): meta[key] = [v / k for v in meta[key]]
+            meta['k'] = k
         used = sorted(set(p[0] for p in m['props']))
         ents = {}
         for t in used:
