@@ -14,7 +14,7 @@ cp www/assets/fonts/* "$T/www/assets/fonts/" 2>/dev/null || true
 WBX_PROFILE=hd python3 tools/build_assets.py "$T/www" "$PARTS"
 python3 tools/make_vfx.py "$T/www/assets/vfx" 384
 F="wbx-hd-assets-$VER-$STAMP.zip"
-rm -f art/out/wbx-hd-assets-*.zip; (cd "$T/www" && zip -q -r -0 "$OLDPWD/art/out/$F" assets)
+rm -f art/out/wbx-hd-assets-*.zip; python3 -c "import shutil,sys; shutil.make_archive(sys.argv[1], \"zip\", sys.argv[2], \"assets\")" "art/out/${F%.zip}" "$T/www"
 SHA=$(sha256sum "art/out/$F" | cut -d' ' -f1); SIZE=$(stat -c %s "art/out/$F")
 echo "$F $SIZE $SHA"
 if [ "${1:-}" = "upload" ]; then

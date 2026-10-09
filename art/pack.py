@@ -27,16 +27,16 @@ def pack_sprite(sid, scale=1.0, frames='frames', k=1.0):
     if not files: return None
     frames = {}; anims = {}; dirs = set(); fw = fh = 0
     for f in files:
-        name = os.path.basename(f)[:-4]; an, d, k = name.rsplit('_', 2)
+        name = os.path.basename(f)[:-4]; an, d, fi = name.rsplit('_', 2)
         im = Image.open(f).convert('RGBA'); fw, fh = im.size
         if scale != 1: im = im.resize((round(fw * scale), round(fh * scale)), Image.LANCZOS)
         bb = im.getchannel('A').point(lambda v: 255 if v > 6 else 0).getbbox() or (0, 0, 1, 1)
-        frames[name] = (im.crop(bb), bb); anims[an] = max(anims.get(an, 0), int(k) + 1); dirs.add(d)
-    pos, W, H = shelf([(k, v[0]) for k, v in frames.items()])
+        frames[name] = (im.crop(bb), bb); anims[an] = max(anims.get(an, 0), int(fi) + 1); dirs.add(d)
+    pos, W, H = shelf([(key, v[0]) for key, v in frames.items()])
     sheet = Image.new('RGBA', (W, H))
     meta = {}
-    for k, (im, bb) in frames.items():
-        sheet.paste(im, pos[k]); meta[k] = [pos[k][0], pos[k][1], im.size[0], im.size[1], bb[0], bb[1]]
+    for key, (im, bb) in frames.items():
+        sheet.paste(im, pos[key]); meta[key] = [pos[key][0], pos[key][1], im.size[0], im.size[1], bb[0], bb[1]]
     save_webp(sheet, os.path.join(DEST, sid + '.webp'))
     return dict(img=sid + '.webp', fw=round(fw * scale), fh=round(fh * scale), anims=anims, dirs=sorted(dirs), f=meta, k=k)
 

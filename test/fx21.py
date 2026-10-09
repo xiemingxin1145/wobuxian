@@ -9,7 +9,7 @@ async def main(secs):
         ctx = await b.new_context(viewport={'width': 412, 'height': 915}, device_scale_factor=2, is_mobile=True, has_touch=True)
         pg = await ctx.new_page(); errs = []
         pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'Failed to load' not in m.text else None)
-        pg.on('requestfailed', lambda r: errs.append('404 ' + r.url.split('www/')[-1]))
+        pg.on('requestfailed', lambda r: None if 'ABORTED' in (r.failure or '') else errs.append('REQFAIL ' + str(r.failure) + ' ' + r.url.split('www/')[-1]))
         pg.on('pageerror', lambda e: errs.append('PAGEERR ' + str(e)))
         await pg.goto(URL); shots = 0; t = 0
         while t < secs and shots < 6:
