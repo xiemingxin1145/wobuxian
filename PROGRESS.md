@@ -4,14 +4,14 @@
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
 - [x] mapdefs：longgong 东海龙宫 / guishi 鬼市 / cuizhai 天庭催债司
 - [ ] 渲染完成 → SD build_assets（spr,maps,ui）→ 提交
-- [ ] 新章节 CG（cg_specs 增加）→ /tmp/cghd 类脚本 → post_cg
+- [ ] 新章节 CG（cg_specs 已加 4 张，/tmp/v22cg.sh 排队渲染，日志 art/out/cg22.log）→ post_cg → CG_OF/CG_LIST
 - [ ] HD：WBX_PROFILE=hd 增量打包（PARTS=spr,ui,maps,cg）→ make_hd_bundle upload → hd-assets.json → 清理 assets-hd 旧 zip
 
 ## 代码
 - [x] 抽卡演出重做（www/js/gacha22.js，test/gacha22.py）：阵法、按稀有度光柱、翻牌、粒子、闪屏、稀有立绘切入、跳过
 - [x] 突破演出加强（www/js/brk22.js，test/brk22.py）
 - [x] 抽卡货币平衡（每8年1张、任务35%、成就+1、机缘10%、保底50）
-- [ ] 新内容：3–5 章、3 张新地图接入、100+ 事件、新 BOSS 技能、新坐骑/时装/灵宠进卡池
+- [x] 新内容代码：4 章（龙宫太子/鬼市当铺/天庭催债司/天道真身）、3 张新地图接入、12 NPC + 17 任务、115 事件、3 BOSS（利滚利/审计/抢灵石/二阶段）、灵宠进卡池（www/js/content22.js, events22.js；node test/validate22.js 0 错误）
 - [ ] 版本 2.2.0、测试（panels/multilife/fx）、screenshots/v22、README、tag v2.2.0、验证证书
 
 ## 触控验证（v2.2 插入任务，test/controls.py，412x915 真实触摸事件）— 全部通过
