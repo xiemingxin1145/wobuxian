@@ -23,6 +23,7 @@ async function boot() {
     drawParts(ctx, false);
   };
   Audio2.bgm('title');
+  setTimeout(() => Updater.check(), 1500);
   const r = await UI.title();
   const isNew = r !== 'cont';
   if (isNew) Game.newLife(r);
@@ -33,7 +34,14 @@ async function boot() {
   if (isNew) { const ev = EVENTS.find(e => e[0] === 'c_born'); await Game.runEvent(ev); await UI.help(); }
   setInterval(() => Game.save(), 20000);
 }
-window.onAndroidBack = () => { const top = UI.stack[UI.stack.length - 1]; if (top) { const x = top.querySelector('.x'); if (x) { x.click(); return true; } } return false; };
+// 安卓返回键：有面板就关面板；对话/事件卡等必须选择的弹窗吞掉返回键；其余情况需连按两次才退出
+window.onAndroidBack = () => {
+  const top = UI.stack[UI.stack.length - 1];
+  if (top) { const x = top.querySelector('.x'); if (x) x.click(); else UI.toast('请先做出选择'); return true; }
+  if (B.on) { UI.toast('斗法中无法退出'); return true; }
+  const now = Date.now(); if (window._backAt && now - window._backAt < 2000) { Game.save(); return false; }
+  window._backAt = now; UI.toast('再按一次返回键退出（进度已自动保存）'); Game.save(); return true;
+};
 window.onAppPause = () => { Game.save(); Audio2.pause(); };
 window.onAppResume = () => { Audio2.resume(); };
 document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); Audio2.pause(); } else Audio2.resume(); });

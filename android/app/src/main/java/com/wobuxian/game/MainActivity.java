@@ -1,6 +1,10 @@
 package com.wobuxian.game;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -27,7 +31,14 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true);
         s.setTextZoom(100);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                String u = req.getUrl().toString();
+                if (u.startsWith("http")) { openUrl(u); return true; }
+                return false;
+            }
+        });
+        web.addJavascriptInterface(new Bridge(), "AndroidApp");
         web.setWebChromeClient(new WebChromeClient());
         web.setBackgroundColor(0xFF0B1020);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -60,4 +71,14 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() { super.onPause(); web.evaluateJavascript("window.onAppPause&&window.onAppPause()", null); web.onPause(); }
     @Override protected void onResume() { super.onResume(); web.onResume(); web.evaluateJavascript("window.onAppResume&&window.onAppResume()", null); }
+
+    private void openUrl(String u) {
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u))); } catch (Exception e) { }
+    }
+
+    /** 提供给网页的接口：在系统浏览器中打开链接（用于下载新版本 APK）。 */
+    class Bridge {
+        @JavascriptInterface public void openUrl(String u) { if (u != null && u.startsWith("https://")) runOnUiThread(() -> MainActivity.this.openUrl(u)); }
+        @JavascriptInterface public String version() { return BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE; }
+    }
 }
