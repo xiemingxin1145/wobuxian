@@ -7,13 +7,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VER=$(cat VERSION); STAMP=$(date +%Y%m%d%H%M)
-T=$(mktemp -d); mkdir -p "$T/www"; cp -r www/assets "$T/www/"
-WBX_PROFILE=hd python3 tools/build_assets.py "$T/www"
+# 持久工作目录（art/out 不进 git），可用 PARTS=maps,cg 只重做部分
+T=art/out/hdwww; PARTS="${PARTS:-spr,maps,ui,audio,cg}"
+if [ ! -d "$T/www/assets" ]; then mkdir -p "$T/www"; cp -r www/assets "$T/www/"; fi
+cp www/assets/fonts/* "$T/www/assets/fonts/" 2>/dev/null || true
+WBX_PROFILE=hd python3 tools/build_assets.py "$T/www" "$PARTS"
 python3 tools/make_vfx.py "$T/www/assets/vfx" 384
 F="wbx-hd-assets-$VER-$STAMP.zip"
-(cd "$T/www" && zip -q -r -0 "$OLDPWD/art/out/$F" assets)
+rm -f art/out/wbx-hd-assets-*.zip; (cd "$T/www" && zip -q -r -0 "$OLDPWD/art/out/$F" assets)
 SHA=$(sha256sum "art/out/$F" | cut -d' ' -f1); SIZE=$(stat -c %s "art/out/$F")
-echo "$F $SIZE $SHA"; rm -rf "$T"
+echo "$F $SIZE $SHA"
 if [ "${1:-}" = "upload" ]; then
   gh release view assets-hd >/dev/null 2>&1 || gh release create assets-hd --prerelease --title "高清资源包（构建用，非安装包）" --notes "CI 构建 APK 时下载此资源包覆盖 www/assets。玩家请下载 latest 里的 wobuxian.apk。"
   gh release upload assets-hd "art/out/$F" --clobber
