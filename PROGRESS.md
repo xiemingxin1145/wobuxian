@@ -8,8 +8,8 @@
 - [ ] HD：WBX_PROFILE=hd 增量打包（PARTS=spr,ui,maps,cg）→ make_hd_bundle upload → hd-assets.json → 清理 assets-hd 旧 zip
 
 ## 代码
-- [ ] 抽卡演出重做：阵法、按稀有度光柱、翻牌、粒子、闪屏、稀有立绘切入、跳过
+- [x] 抽卡演出重做（www/js/gacha22.js，test/gacha22.py）：阵法、按稀有度光柱、翻牌、粒子、闪屏、稀有立绘切入、跳过
 - [ ] 突破演出加强 + 测试截图时机
-- [ ] 抽卡货币平衡（原 110–180 抽/世）
+- [x] 抽卡货币平衡（每8年1张、任务35%、成就+1、机缘10%、保底50）
 - [ ] 新内容：3–5 章、3 张新地图接入、100+ 事件、新 BOSS 技能、新坐骑/时装/灵宠进卡池
 - [ ] 版本 2.2.0、测试（panels/multilife/fx）、screenshots/v22、README、tag v2.2.0、验证证书
