@@ -116,16 +116,24 @@ def _cel(m, c, rough, metal, emit, alpha, emit_col):
     只借鉴思路，未使用任何第三方着色器代码。WBX_CEL=1 启用。"""
     nt = m.node_tree; nt.nodes.clear(); N = nt.nodes.new; L = nt.links.new
     out = N('ShaderNodeOutputMaterial')
-    td = N('ShaderNodeBsdfToon'); td.component = 'DIFFUSE'; td.inputs['Color'].default_value = c; td.inputs['Size'].default_value = 0.62; td.inputs['Smooth'].default_value = 0.03
-    # 阴影面不发黑：叠加一层偏冷的“环境底色”（=颜色×0.42，向蓝紫偏移）
-    amb = N('ShaderNodeEmission'); amb.inputs['Color'].default_value = (c[0] * 0.36, c[1] * 0.36, c[2] * 0.46 + 0.012, 1); amb.inputs['Strength'].default_value = 1.0
+    # 深色材质（黑发/黑袍）：把亮面抬到深灰蓝，保证明暗交界可见；再叠一条窄高光带形成三阶明暗，保住体积感
+    Y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; dk = max(0.0, 1 - Y / 0.06)
+    cl = (c[0] * (1 + 0.5 * dk) + 0.005 * dk, c[1] * (1 + 0.5 * dk) + 0.005 * dk, c[2] * (1 + 0.5 * dk) + 0.007 * dk, 1)  # 保色相地轻抬
+    td = N('ShaderNodeBsdfToon'); td.component = 'DIFFUSE'; td.inputs['Color'].default_value = cl; td.inputs['Size'].default_value = 0.62; td.inputs['Smooth'].default_value = 0.03
+    # 阴影面不发黑：叠加环境底色（=颜色×0.36，轻微偏冷；乘法偏移，黑色不会被染成紫色）
+    amb = N('ShaderNodeEmission'); amb.inputs['Color'].default_value = (cl[0] * 0.36, cl[1] * 0.36, cl[2] * 0.36 * (1.12 - 0.08 * dk) + 0.01 * (1 - dk), 1); amb.inputs['Strength'].default_value = 1.0
     add1 = N('ShaderNodeAddShader'); L(td.outputs[0], add1.inputs[0]); L(amb.outputs[0], add1.inputs[1])
-    # 轮廓光：Layer Weight Facing → 常量阶梯 → 暖白发光
+    if dk > 0:
+        tb = N('ShaderNodeBsdfToon'); tb.component = 'DIFFUSE'; tb.inputs['Color'].default_value = (cl[0] * 0.5 * dk + 0.005 * dk, cl[1] * 0.5 * dk + 0.005 * dk, cl[2] * 0.5 * dk + 0.007 * dk, 1); tb.inputs['Size'].default_value = 0.22; tb.inputs['Smooth'].default_value = 0.03
+        a0 = N('ShaderNodeAddShader'); L(add1.outputs[0], a0.inputs[0]); L(tb.outputs[0], a0.inputs[1]); add1 = a0
+    # 轮廓光：Layer Weight Facing → 常量阶梯 → 发光；深色材质用更窄、更冷、更弱的边缘光，避免一圈白边压扁体积
     lw = N('ShaderNodeLayerWeight'); lw.inputs['Blend'].default_value = 0.35
-    cr = N('ShaderNodeValToRGB'); cr.color_ramp.interpolation = 'CONSTANT'; cr.color_ramp.elements[0].color = (0, 0, 0, 1); cr.color_ramp.elements[1].position = 0.72; cr.color_ramp.elements[1].color = (1, 1, 1, 1)
+    cr = N('ShaderNodeValToRGB'); cr.color_ramp.interpolation = 'CONSTANT'; cr.color_ramp.elements[0].color = (0, 0, 0, 1); cr.color_ramp.elements[1].position = 0.72 + 0.1 * dk; cr.color_ramp.elements[1].color = (1, 1, 1, 1)
     L(lw.outputs['Facing'], cr.inputs[0])
-    rim = N('ShaderNodeEmission'); rim.inputs['Color'].default_value = (min(1, c[0] * 0.5 + 0.5), min(1, c[1] * 0.5 + 0.48), min(1, c[2] * 0.5 + 0.42), 1)
-    rs = N('ShaderNodeMath'); rs.operation = 'MULTIPLY'; rs.inputs[1].default_value = 0.55; L(cr.outputs['Color'], rs.inputs[0]); L(rs.outputs[0], rim.inputs['Strength'])
+    rc = (min(1, c[0] * 0.5 + 0.5), min(1, c[1] * 0.5 + 0.48), min(1, c[2] * 0.5 + 0.42))
+    rc = tuple(rc[i] * (1 - dk) + (0.42, 0.5, 0.68)[i] * dk for i in range(3))
+    rim = N('ShaderNodeEmission'); rim.inputs['Color'].default_value = (*rc, 1)
+    rs = N('ShaderNodeMath'); rs.operation = 'MULTIPLY'; rs.inputs[1].default_value = 0.55 - 0.25 * dk; L(cr.outputs['Color'], rs.inputs[0]); L(rs.outputs[0], rim.inputs['Strength'])
     add2 = N('ShaderNodeAddShader'); L(add1.outputs[0], add2.inputs[0]); L(rim.outputs[0], add2.inputs[1]); last = add2
     if rough < 0.45 or metal > 0.2:  # 硬边高光（头发、金属、漆面）
         tg = N('ShaderNodeBsdfToon'); tg.component = 'GLOSSY'; tg.inputs['Color'].default_value = (1, 0.98, 0.92, 1) if metal < 0.2 else c
