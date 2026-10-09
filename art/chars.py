@@ -3,7 +3,7 @@ import math, random
 from lib import *
 
 SK = '#ffe0cc'
-OL = 0.016   # 描边厚度
+OL = 0.022 if os.environ.get('WBX_CEL') == '1' else 0.016   # 描边厚度（赛璐璐模式加粗）
 
 def face(head, c, r, spec, f):
     """在头部前方(-Y)放置五官；c=头中心局部坐标"""

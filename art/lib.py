@@ -32,7 +32,7 @@ def toon(thick=None):
     if os.environ.get('WBX_TOON', '1') != '1': return
     sc = bpy.context.scene; k = float(os.environ.get('WBX_RES', 1))
     sc.render.use_freestyle = True; sc.render.line_thickness_mode = 'ABSOLUTE'
-    sc.render.line_thickness = thick or 1.1 * k
+    sc.render.line_thickness = thick or (1.6 if os.environ.get('WBX_CEL') == '1' else 1.1) * k
     vl = bpy.context.view_layer; vl.use_freestyle = True
     fs = vl.freestyle_settings; fs.crease_angle = D(120)
     ls = fs.linesets[0] if fs.linesets else fs.linesets.new('L')
@@ -90,6 +90,8 @@ def mat(name, col, rough=0.55, metal=0.0, emit=0.0, sss=0.0, spec=0.35, alpha=1.
     key = name
     if key in _mats: return _mats[key]
     m = bpy.data.materials.new(name); m.use_nodes = True
+    if os.environ.get('WBX_CEL') == '1' and emit < 1.5:
+        _cel(m, col if len(col) == 4 else (*col, 1), rough, metal, emit, alpha, emit_col); _mats[key] = m; return m
     b = m.node_tree.nodes['Principled BSDF']
     c = col if len(col) == 4 else (*col, 1)
     b.inputs['Base Color'].default_value = c
@@ -108,6 +110,33 @@ def mat(name, col, rough=0.55, metal=0.0, emit=0.0, sss=0.0, spec=0.35, alpha=1.
     if alpha < 1: b.inputs['Alpha'].default_value = alpha
     _mats[key] = m
     return m
+
+def _cel(m, c, rough, metal, emit, alpha, emit_col):
+    """v2.3 实验：自研赛璐璐着色（Cycles Toon BSDF 两阶明暗 + 冷色阴影环境 + 菲涅尔轮廓光 + 硬高光）。
+    只借鉴思路，未使用任何第三方着色器代码。WBX_CEL=1 启用。"""
+    nt = m.node_tree; nt.nodes.clear(); N = nt.nodes.new; L = nt.links.new
+    out = N('ShaderNodeOutputMaterial')
+    td = N('ShaderNodeBsdfToon'); td.component = 'DIFFUSE'; td.inputs['Color'].default_value = c; td.inputs['Size'].default_value = 0.62; td.inputs['Smooth'].default_value = 0.03
+    # 阴影面不发黑：叠加一层偏冷的“环境底色”（=颜色×0.42，向蓝紫偏移）
+    amb = N('ShaderNodeEmission'); amb.inputs['Color'].default_value = (c[0] * 0.36, c[1] * 0.36, c[2] * 0.46 + 0.012, 1); amb.inputs['Strength'].default_value = 1.0
+    add1 = N('ShaderNodeAddShader'); L(td.outputs[0], add1.inputs[0]); L(amb.outputs[0], add1.inputs[1])
+    # 轮廓光：Layer Weight Facing → 常量阶梯 → 暖白发光
+    lw = N('ShaderNodeLayerWeight'); lw.inputs['Blend'].default_value = 0.35
+    cr = N('ShaderNodeValToRGB'); cr.color_ramp.interpolation = 'CONSTANT'; cr.color_ramp.elements[0].color = (0, 0, 0, 1); cr.color_ramp.elements[1].position = 0.72; cr.color_ramp.elements[1].color = (1, 1, 1, 1)
+    L(lw.outputs['Facing'], cr.inputs[0])
+    rim = N('ShaderNodeEmission'); rim.inputs['Color'].default_value = (min(1, c[0] * 0.5 + 0.5), min(1, c[1] * 0.5 + 0.48), min(1, c[2] * 0.5 + 0.42), 1)
+    rs = N('ShaderNodeMath'); rs.operation = 'MULTIPLY'; rs.inputs[1].default_value = 0.55; L(cr.outputs['Color'], rs.inputs[0]); L(rs.outputs[0], rim.inputs['Strength'])
+    add2 = N('ShaderNodeAddShader'); L(add1.outputs[0], add2.inputs[0]); L(rim.outputs[0], add2.inputs[1]); last = add2
+    if rough < 0.45 or metal > 0.2:  # 硬边高光（头发、金属、漆面）
+        tg = N('ShaderNodeBsdfToon'); tg.component = 'GLOSSY'; tg.inputs['Color'].default_value = (1, 0.98, 0.92, 1) if metal < 0.2 else c
+        tg.inputs['Size'].default_value = 0.18; tg.inputs['Smooth'].default_value = 0.02
+        mx = N('ShaderNodeMixShader'); mx.inputs[0].default_value = 0.35 if metal < 0.2 else 0.6; L(last.outputs[0], mx.inputs[1]); L(tg.outputs[0], mx.inputs[2]); last = mx
+    if emit > 0:
+        em = N('ShaderNodeEmission'); ec = emit_col or c[:3]; em.inputs['Color'].default_value = (*ec[:3], 1); em.inputs['Strength'].default_value = emit
+        a3 = N('ShaderNodeAddShader'); L(last.outputs[0], a3.inputs[0]); L(em.outputs[0], a3.inputs[1]); last = a3
+    if alpha < 1:
+        tr = N('ShaderNodeBsdfTransparent'); mx = N('ShaderNodeMixShader'); mx.inputs[0].default_value = alpha; L(tr.outputs[0], mx.inputs[1]); L(last.outputs[0], mx.inputs[2]); last = mx
+    L(last.outputs[0], out.inputs[0])
 
 def hexc(h, a=1.0):
     h = h.lstrip('#')
