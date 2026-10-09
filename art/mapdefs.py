@@ -122,6 +122,22 @@ MAPS = [
          paths=[('j', 10, 12, 10, 21), ('j', 3, 15, 18, 15)],
          props=[['tianmen', 8, 13], ['debtoffice', 9, 4], ['jade', 6, 9], ['jade', 14, 9], ['cloudpillar', 7, 3], ['cloudpillar', 14, 3], ['cloudpillar', 7, 7], ['cloudpillar', 14, 7], ['sundisk', 12, 2], ['fairypeach', 4, 17], ['fairypeach', 17, 17]],
          keep=[[10, 20], [10, 11]], scatter=[('cloudpuff', 10, 'c'), ('fairypeach', 3, 'c'), ('crane', 3, 'c')]),
+    # ---- v2.2 新地图 ----
+    dict(id='longgong', name='东海龙宫', biome='island', seed=131, base='j', alt=('a', 0.06),
+         features=[('circle', 4, 5, 2.2, 'w'), ('circle', 17, 16, 2.4, 'w'), ('rect', 7, 2, 14, 9, 's')],
+         paths=[('j', 10, 9, 10, 21), ('p', 2, 13, 19, 13)],
+         props=[['hall', 9, 3], ['pavilion', 4, 9], ['pavilion', 15, 7], ['jade', 7, 10], ['jade', 13, 10], ['bigfurnace', 14, 3], ['chest', 18, 11], ['noticeboard', 12, 14], ['herb', 5, 16]],
+         keep=[[10, 20], [10, 12]], scatter=[('coral', 12, 'aj'), ('shellrock', 6, 'aj'), ('crystal_b', 6, 'j'), ('palm', 3, 'a')]),
+    dict(id='guishi', name='鬼市', biome='graveyard', seed=149, base='b', alt=('s', 0.2),
+         features=[('rect', 5, 5, 16, 16, 's'), ('circle', 18, 4, 1.8, 'w')],
+         paths=[('p', 10, 21, 10, 1), ('p', 1, 11, 20, 11)],
+         props=[['shop', 5, 5], ['shop2', 13, 5], ['teahouse', 5, 13], ['stall_r', 8, 9], ['stall_b', 12, 9], ['stall_y', 8, 13], ['stall_r', 13, 13], ['wlantern', 9, 7], ['wlantern', 12, 7], ['coffin', 16, 15], ['chest', 3, 17], ['noticeboard', 11, 15]],
+         keep=[[10, 20], [10, 11]], scatter=[('wlantern', 6, 'bs'), ('tomb', 6, 'b'), ('deadtree', 6, 'b'), ('lanternpole', 3, 's'), ('rock', 3, 'b')]),
+    dict(id='cuizhai', name='天庭催债司', biome='heaven', seed=163, base='c', alt=None, keepPaths=False,
+         features=[('rect', 5, 2, 16, 13, 'j')],
+         paths=[('j', 10, 13, 10, 21), ('j', 3, 16, 18, 16)],
+         props=[['debtoffice', 9, 4], ['tianmen', 8, 14], ['cloudpillar', 6, 3], ['cloudpillar', 15, 3], ['cloudpillar', 6, 10], ['cloudpillar', 15, 10], ['bell', 13, 8], ['incense', 10, 10], ['noticeboard', 7, 8], ['jade', 4, 17], ['jade', 16, 17]],
+         keep=[[10, 20], [10, 12]], scatter=[('cloudpuff', 10, 'c'), ('crane', 2, 'c'), ('fairypeach', 2, 'c')]),
 ]
 
 if __name__ == '__main__':

@@ -228,6 +228,28 @@ def m_bowl(R):
     cyl('soup', 0.46, 0.46, 0.01, loc=(0, 0, 0.26), m=M('#e8a040', rough=0.1, emit=0.3), parent=b, seg=32)
     for k in range(3): sphere('steam', 0.08, loc=(-0.15 + k * 0.15, 0.1, 0.42 + k * 0.05), m=M('#ffffff', alpha=0.5, emit=0.5), parent=b, seg=8, rings=6)
 
+def m_carp(R):  # 锦鲤（v2.2 坐骑）
+    b = R.body; red = M('#ff5a3a', rough=0.35, sss=0.2); wh = M('#fff4e8', rough=0.4); gold = M('#ffd25e', emit=0.8)
+    sphere('body', 0.3, loc=(0, 0, 0.3), scale=(1.6, 0.8, 0.85), m=red, parent=b, seg=24, rings=16)
+    sphere('belly', 0.24, loc=(0.05, 0, 0.22), scale=(1.5, 0.7, 0.6), m=wh, parent=b, seg=20, rings=12)
+    for sx in (1, -1):
+        sphere('fin', 0.14, loc=(0.05, sx * 0.22, 0.25), scale=(1.2, 0.2, 0.6), rot=(D(sx * 30), 0, 0), m=gold, parent=b, seg=12, rings=8)
+        sphere('eye', 0.045, loc=(0.4, sx * 0.13, 0.36), m=M('#1a1010'), parent=b, seg=10, rings=8)
+    sphere('tail', 0.2, loc=(-0.5, 0, 0.34), scale=(0.6, 0.15, 1.2), rot=(0, D(-20), 0), m=gold, parent=b, seg=14, rings=10)
+    sphere('dorsal', 0.14, loc=(0, 0, 0.55), scale=(1.4, 0.15, 0.6), m=gold, parent=b, seg=12, rings=8)
+    torus('glow', 0.5, 0.02, loc=(0, 0, 0.05), m=M('#a0e8ff', emit=4.0), parent=b, seg=40, mseg=6)
+
+def m_abacus(R):  # 飞天算盘（v2.2 坐骑）
+    b = R.body; wood = M('#7a4a2a', rough=0.5); bead = M('#c0302a', rough=0.3, spec=0.5); gold = M('#ffd25e', emit=0.6)
+    for y in (-0.32, 0.32): box('rail', (1.2, 0.06, 0.06), loc=(0, y, 0.2), m=wood, parent=b)
+    for x in (-0.58, 0.58): box('side', (0.06, 0.7, 0.06), loc=(x, 0, 0.2), m=wood, parent=b)
+    box('beam', (1.2, 0.04, 0.05), loc=(0, 0.12, 0.2), m=gold, parent=b)
+    for k in range(7):
+        x = -0.45 + k * 0.15
+        cyl('rod', 0.012, 0.012, 0.64, loc=(x, 0, 0.2), rot=(D(90), 0, 0), m=gold, parent=b, seg=8)
+        for yy in (0.22, -0.02, -0.1, -0.18): sphere('bead', 0.05, loc=(x, yy, 0.2), scale=(1, 0.6, 1), m=bead, parent=b, seg=12, rings=8)
+    torus('glow', 0.6, 0.02, loc=(0, 0, 0.05), m=M('#ffe080', emit=4.0), parent=b, seg=40, mseg=6)
+
 def setup(kind, scale=1.2):
     """返回 rig；kind 为 chibi 规格名或怪物名"""
     if kind in MONS:
@@ -236,7 +258,7 @@ def setup(kind, scale=1.2):
 
 MONS = {'slime': (slime, 1.0), 'paper': (paper, 1.0), 'boar': (boar, 1.0), 'rock': (rock, 1.0), 'fire': (fire, 1.0), 'treant': (treant, 1.0),
         'crab': (crab, 1.0), 'ghost': (ghost, 1.0), 'tiandao': (tiandao, 1.0), 'dragon': (dragon, 1.0),
-        'm_cloud': (m_cloud, 0.8), 'm_fsword': (m_fsword, 1.3), 'm_gourd': (m_gourd, 1.4), 'm_crane': (m_crane, 0.8), 'm_lotus': (m_lotus, 0.8), 'm_bowl': (m_bowl, 0.8)}
+        'm_cloud': (m_cloud, 0.8), 'm_fsword': (m_fsword, 1.3), 'm_gourd': (m_gourd, 1.4), 'm_crane': (m_crane, 0.8), 'm_lotus': (m_lotus, 0.8), 'm_bowl': (m_bowl, 0.8), 'm_carp': (m_carp, 0.8), 'm_abacus': (m_abacus, 0.8)}
 
 def mpose(R, anim, f, n):
     t = f / max(1, n); s2 = math.sin(t * 2 * math.pi)

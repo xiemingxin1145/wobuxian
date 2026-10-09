@@ -68,7 +68,22 @@ NPCS = {
     'qymaster': dict(robe='#ffffff', robe2='#5fb3a0', trim='#ffd25e', belt='#ffd25e', hair='#d8d8d8', hairstyle='crown', hat='crown2', hatc='#9ff0d8', beard=True, beardc='#f0f0f0', back='sword', weapon='fan', cape='#2f8a7a', ribbon2='#bff8e8'),  # 青云宗主·云鹤真人
     'tongzi': dict(robe='#fffaf0', robe2='#ffd25e', trim='#ffd25e', belt='#ffb020', hair='#2a1b14', hairstyle='double', weapon='abacus', headScale=1.08, ribbon='#ffb020'),  # 记账童子
 }
-FIGHTERS = {'aotian', 'lengyue', 'ruyan', 'judge', 'heixin', 'bailang'}  # 会参与战斗的人物：带攻击动作
+# ---- v2.2 新角色 ----
+NPCS.update({
+    'taizi': dict(robe='#4ab0e8', robe2='#ffffff', trim='#ffd25e', belt='#ffd25e', hair='#2a6ad8', hairstyle='crown', horns='#ffe08a', cape='#1a5aa8', weapon='fan', eyes='happy', ribbon2='#bff0ff'),  # 龙宫太子·敖小白
+    'sanniang': dict(robe='#3a1a4a', robe2='#c8a0e0', trim='#ff60c0', belt='#ff60c0', hair='#1a1018', hairstyle='pony', long=True, hat='hood', hood='#2a1030', weapon='abacus', eyes='happy', mouth='smile', skin='#f0e8f4'),  # 鬼市掌柜·阴三娘
+    'zhuiming': dict(robe='#1a1a22', robe2='#c0303a', trim='#ffd25e', belt='#c0303a', hair='#1a1a1a', hat='tall', hairstyle='none', weapon='book', left='abacus', eyes='angry', mouth='flat', skin='#e8e4f0'),  # 催债司主簿·追命
+    'tianbing': dict(robe='#d8b040', robe2='#f4f0e0', trim='#c0302a', belt='#c0302a', hair='#1a1a1a', hairstyle='guan', hat='crown2', hatc='#ffd25e', weapon='gsword', cape='#c0302a', eyes='angry', mouth='flat'),  # 天兵甲
+    'xiaoyao': dict(robe='#9ac0a0', robe2='#f4f8f0', trim='#5a8a6a', belt='#5a8a6a', hair='#d8d8d8', hat='straw', hairstyle='bun', beard=True, beardc='#e8e8e8', left='gourd', weapon='fan', eyes='closed', mouth='smile'),  # 逍遥散人
+    'guanghan': dict(robe='#f4f8ff', robe2='#c8d8ff', trim='#9ab0ff', belt='#9ab0ff', hair='#1a1a2a', hairstyle='double', long=True, hat='flower', flower='#e8f0ff', ribbon2='#e0e8ff', halo='#e8f0ff', eyes='happy'),  # 广寒仙子
+    'caishen': dict(robe='#e02a2a', robe2='#ffd25e', trim='#ffd25e', belt='#ffd25e', hair='#1a1a1a', hairstyle='guan', hat='crown2', hatc='#ffd25e', beard=True, beardc='#1a1a1a', weapon='abacus', fat=1.3, eyes='happy', mouth='open'),  # 财神
+    'leigong': dict(robe='#3a4ab8', robe2='#ffe040', trim='#ffe040', belt='#ffe040', hair='#e8e8ff', hairstyle='crown', horns='#ffe040', cape='#1a2a7a', weapon='staff', eyes='angry', mouth='open'),  # 雷公
+    'suanpan': dict(robe='#8a5a2a', robe2='#ffe6b0', trim='#3a2a1a', belt='#3a2a1a', hair='#3a2a1a', hairstyle='short', glasses=True, weapon='abacus', left='book', eyes='round', headScale=1.06),  # 天道会计·算无遗
+    'guizu': dict(robe='#2a3a3a', robe2='#8ab0a0', trim='#4a6a6a', belt='#4a6a6a', hair='#1a1a1a', hat='hood', hood='#1a2a2a', hairstyle='none', weapon='claw', eyes='angry', mouth='flat', skin='#b8d0c8'),  # 鬼卒
+    'xiabing': dict(robe='#ff8a5a', robe2='#ffe0d0', trim='#c04a2a', belt='#c04a2a', hair='#ff6a3a', hairstyle='short', ears='fox', weapon='staff', eyes='round', mouth='open'),  # 虾兵
+    'baiwuchang': dict(robe='#f4f4f4', robe2='#c8c8c8', trim='#1a1a1a', belt='#1a1a1a', hair='#e8e8e8', hat='tall', hairstyle='none', weapon='book', eyes='closed', mouth='smile', skin='#f8f8ff'),  # 白无常·谢必安（勾魂不勾债）
+})
+FIGHTERS = {'aotian', 'lengyue', 'ruyan', 'judge', 'heixin', 'bailang', 'zhuiming', 'tianbing', 'leigong', 'guizu', 'xiabing', 'taizi'}  # 会参与战斗的人物：带攻击动作
 for k, v in NPCS.items(): SPRITES['npc_' + k] = dict(kind='chibi', spec=v, anims=PL_ANIMS if k in FIGHTERS else NPC_ANIMS)
 
 CHIBI_MON = {
@@ -105,3 +120,22 @@ for cid, cs in COSTUME_SPECS.items():
         SPRITES[f'cos_{cid}_{g}'] = dict(kind='chibi', spec=sp, anims=PL_ANIMS)
 for k in ('lotus', 'bowl'):
     SPRITES['mount_' + k] = dict(kind='mon', mon='m_' + k, anims=MOUNT_ANIMS)
+# ---- v2.2 BOSS / 时装 / 坐骑 ----
+SPRITES['boss_guiwang'] = dict(kind='chibi', spec=dict(robe='#1a1a2a', robe2='#6a3aaa', trim='#c060ff', belt='#c060ff', hair='#e0e0f0', hat='hood', hood='#120a1a', hairstyle='none', horns='#4a2a6a', cape='#2a0a3a', weapon='staff', left='abacus', eyes='angry', mouth='open', skin='#c8c0e0', fat=1.2), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.0)
+SPRITES['boss_dasiming'] = dict(kind='chibi', spec=dict(robe='#0a0a10', robe2='#c0303a', trim='#ffd25e', belt='#ffd25e', hair='#1a1a1a', hat='tall', hairstyle='none', weapon='gsword', left='book', cape='#6a0a1a', eyes='angry', mouth='flat', beard=True, beardc='#1a1a1a', fat=1.25), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.0)
+SPRITES['boss_tiandao2'] = dict(kind='chibi', spec=dict(robe='#ffffff', robe2='#ffd25e', trim='#ffd25e', belt='#ffd25e', hair='#ffffff', hairstyle='crown', hat='crown2', hatc='#ffe080', halo='#fff2a0', cape='#ffe8a0', weapon='abacus', left='book', eyes='closed', mouth='smile', skin='#fff8f0'), anims=BOSS_ANIMS, dirs=['SE'], big=True, scale=2.2)
+COSTUME22 = {
+    'longwang': dict(robe='#3a8ae8', robe2='#ffffff', trim='#ffd25e', belt='#ffd25e', horns='#ffe08a', cape='#1a4aa8', ribbon2='#bff0ff', weapon='fan', skirt=0.34),
+    'guishi': dict(robe='#2a1a3a', robe2='#c8a0e0', trim='#ff60c0', belt='#ff60c0', hat='hood', hood='#1a1028', cape='#1a0a28', weapon='abacus', skirt=0.32),
+    'tianjia': dict(robe='#d8b040', robe2='#f4f0e0', trim='#c0302a', belt='#c0302a', hat='crown2', hatc='#ffd25e', cape='#c0302a', weapon='gsword', skirt=0.3),
+    'caishen': dict(robe='#e02a2a', robe2='#ffd25e', trim='#ffd25e', belt='#ffd25e', hat='crown2', hatc='#ffd25e', weapon='abacus', skirt=0.35, fat=1.15),
+}
+for cid, cs in COSTUME22.items():
+    COSTUME_SPECS[cid] = cs
+    for g, gs in (('m', dict(hairstyle='bun', hair='#2a1b14', ribbon='#3a5a8a')), ('f', dict(hairstyle='double', hair='#2a1610', ribbon='#e84a5f', long=True))):
+        sp = dict(cs); sp.update({k: v for k, v in gs.items() if k not in cs})
+        if g == 'f': sp['skirt'] = sp.get('skirt', 0.3) + 0.03
+        SPRITES[f'cos_{cid}_{g}'] = dict(kind='chibi', spec=sp, anims=PL_ANIMS)
+for k in ('carp', 'abacus'):
+    SPRITES['mount_' + k] = dict(kind='mon', mon='m_' + k, anims=MOUNT_ANIMS)
+
