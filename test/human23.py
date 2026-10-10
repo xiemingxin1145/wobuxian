@@ -226,13 +226,17 @@ async def main():
             for tb_ in ['境界', '解锁', '演出', '调试']:
                 await tap(pg.locator('.devtabs .dt', has_text=tb_), 400)
             await shot('16_dev_debug_tab')
+        if await vis('.devtabs'): await tap('#modals .mwrap:last-child .ph .x', 500)  # 用右上角 ✕ 关面板（settle 会点到“关闭开发者模式”）
         step('9 开发者面板', nodev and ok, f'开启前无🛠={nodev}', OUT + '15_dev_panel.png' if ok else await shot('15_dev_panel'))
         await settle()  # 关掉面板（.x）
         # 10 切换地图：开发者“解锁全部地图” → 关面板 → 御剑 → 第一张可去的新地图
         if ok:
             for _try in range(3):  # 只读检查 G.flags.devmaps；没生效（被弹窗/战斗挡住）就收拾一下再点一次
                 await settle()
-                if not await vis('.devtabs'): await tap('#devbtn', 900)
+                if not await vis('.devtabs'):
+                    tb = await tap('#devbtn', 900)
+                    d2 = await pg.evaluate("()=>{const b=document.querySelector('#devbtn');if(!b)return 'nobtn';const r=b.getBoundingClientRect();const e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return (e&&(e.id||e.className||e.tagName))+' '+JSON.stringify([r.x,r.y,r.width,r.height])}")
+                    print(f'[step10] 点🛠 tap={tb} top={d2} devtabs={bool(await vis(".devtabs"))}', flush=True)
                 await tap(pg.locator('.devtabs .dt', has_text='解锁'), 500); await tap('.opt[data-a=maps]', 600)
                 dm = await pg.evaluate('()=>!!(Game.G&&Game.G.flags&&Game.G.flags.devmaps)')
                 diag = await pg.evaluate("()=>JSON.stringify({modal:!!UI.modal,stack:UI.stack.length,busy:!!Game._busy,b:!!(window.B&&B.on),mode:R.mode,inMap:UX.inMap(),fx:!!document.querySelector('.gacha-fx,.chapter-fx,.brk-fx,.endw'),afk:!!(window.AFK&&AFK.on)})")

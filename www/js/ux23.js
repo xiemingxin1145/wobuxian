@@ -59,7 +59,7 @@ pickAt = function (sx, sy) {
       if (Math.abs(wx - ex) <= hw && wy >= ty - 38 - mk && wy <= ty + 14) { hit = true; dp = Math.hypot(wx - ex, Math.max(0, wy - (ty - 12)) + Math.max(0, (ty - 38) - wy) * 0.3); } }
     if (!hit) continue;
     const cy = ey - (sb.h + (e.lift || 0)) / 2; const db = Math.hypot(wx - ex, Math.max(0, Math.abs(wy - cy) - sb.h * 0.3) * 0.8 + Math.min(Math.abs(wy - cy), sb.h * 0.3) * 0.25);
-    const sc = Math.min(db, dp) + (e.kind === 'mon' ? 30 : 0);
+    const sc = Math.min(db, dp - 25 /* 正点在名字牌/头顶标记上：明确就是点它（★ 指引常叠在别人身上） */) + (e.kind === 'mon' ? 30 : 0);
     if (sc < bs) { bs = sc; best = { ent: e }; }
   }
   if (best) return best;

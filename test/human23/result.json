@@ -2,7 +2,7 @@
  {
   "step": "1 新开一局",
   "ok": true,
-  "note": "宋知秋 凡人·锻体一层 6岁 / 寿76 110/120 0/80",
+  "note": "董无名 凡人·锻体一层 6岁 / 寿83 180/190 0/80",
   "shot": "/workspace/game/test/human23/01_new_game.png"
  },
  {
@@ -44,7 +44,7 @@
  {
   "step": "8 挂机",
   "ok": true,
-  "note": "'挂机中\\n\\n0:52 · 9岁 凡人·锻体三层 · 击败 5 · 灵石 +288' | ['宋知秋', '凡人·锻体一层', '7岁 / 寿76'] → ['宋知秋', '凡人·锻体三层', '9岁 / 寿77'] | 总结='挂机总结'",
+  "note": "'挂机中\\n\\n0:52 · 9岁 凡人·锻体三层 · 击败 9 · 灵石 +64' | ['董无名', '凡人·锻体一层', '7岁 / 寿83'] → ['董无名', '凡人·锻体三层', '9岁 / 寿83'] | 总结='挂机总结'",
   "shot": "/workspace/game/test/human23/12_afk_progress.png"
  },
  {
@@ -58,6 +58,18 @@
   "ok": true,
   "note": "前往 青云宗 → 当前所在 '青云宗'",
   "shot": "/workspace/game/test/human23/17_map_switched.png"
+ },
+ {
+  "step": "11 点身体中心=打开这个 NPC（重叠/摇杆区回归）",
+  "ok": true,
+  "note": "sister:ok xiaoyi:ok danlao:ok",
+  "shot": "/workspace/game/test/human23/19_tap_body_regression.png"
+ },
+ {
+  "step": "12 #actbtn 选最近的 NPC",
+  "ok": true,
+  "note": "elder:按钮='对话掌门·云中鹤' 最近=掌门·云中鹤(1.41) 打开=掌门·云中鹤 ok | sister:按钮='对话师姐·林小满' 最近=师姐·林小满(1.41) 打开=师姐·林小满  ♥0 ok | xiaoyi:按钮='对话师兄·萧逸' 最近=师兄·萧逸(1.41) 打开=师兄·萧逸  ♥0 ok",
+  "shot": "/workspace/game/test/human23/20_actbtn_nearest.png"
  },
  {
   "step": "无 JS 错误",
