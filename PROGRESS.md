@@ -103,6 +103,7 @@
 - [x] 阶段 1：离线低模资产/预览、Blend 与静态几何检查完成；玛丽卡已按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收。仅签收离线资产，不代表实机/触控/盲测/设备验证，也不接入正式运行链。
 - [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已实测移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害和胜败重试/返回地图。无并发单实例复测命令 `ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1434-win.png" python3 -B test/encounter_prototype.py`，Chromium `/usr/bin/chromium`、412×915，8 PASS/0 FAIL、退出码0；pageerror=0、console.error=0、HTTP错误=0；临时回环入口 `http://127.0.0.1:59933/prototypes/encounter/`；完整日志及胜利截图分别为 `test/results/encounter-stage2-20261010T1434.log`、`test/results/encounter-stage2-20261010T1434-win.png`。复现服务器只绑定 `127.0.0.1`，只能由仓库所在电脑访问；分支尚未推送/公开部署，主人其他设备无法访问此 localhost URL。摇杆由 `page.mouse` 模拟指针拖动，不是实际触屏；正式地图未接入，待玛丽卡按本次提交SHA独立签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
 - [ ] 阶段 3（阶段 2 单独验收后）：做一条可测的奇遇选择闭环，至少覆盖 NPC 态度与债务后果；先复用现有状态，任何正式游戏接线另行小步验证
+- 2026-10-10 14:47 工作区观察：阶段2仍待独立签收时，出现未提交的 `www/js/events22.js`、`www/js/game.js` 赊丹/催收草稿；不纳入阶段3完成或验收，未暂存、提交或测试该草稿。初审风险：赊欠额 `+900` 后，“偿还六百”只减 `600` 却立即设置 `v25_credit_settled`，使这条年度催收事件不再触发，余款 `300` 没有本事件链的后续催收选项；需先明确还款/结清语义并补对应测试，再按阶段顺序推进。
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
 ### 当前优先（v2.5+ 阶段 2）
