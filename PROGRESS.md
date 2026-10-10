@@ -101,7 +101,7 @@
 - [x] 新增即时遭遇战原型占位 `www/js/battle_realtime_prototype.js`（可导出 RealtimeBattle，后续接入移动/技能/弹道）
 - [x] 建分支 `openworld-wip`，从最新已核实 `main` `3baa83f` 开出；分支起点工作区干净
 - [x] 阶段 1：离线低模资产/预览、Blend 与静态几何检查完成；玛丽卡已按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收。仅签收离线资产，不代表实机/触控/盲测/设备验证，也不接入正式运行链。
-- [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已实测移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害和胜败重试/返回地图。无并发单实例复测命令 `ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1434-win.png" python3 -B test/encounter_prototype.py`，Chromium `/usr/bin/chromium`、412×915，8 PASS/0 FAIL、退出码0；pageerror=0、console.error=0、HTTP错误=0；临时回环入口 `http://127.0.0.1:59933/prototypes/encounter/`；完整日志及胜利截图分别为 `test/results/encounter-stage2-20261010T1434.log`、`test/results/encounter-stage2-20261010T1434-win.png`。摇杆由 `page.mouse` 模拟指针拖动，不是实际触屏；正式地图未接入，待玛丽卡按本次提交SHA独立签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
+- [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已实测移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害和胜败重试/返回地图。无并发单实例复测命令 `ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1434-win.png" python3 -B test/encounter_prototype.py`，Chromium `/usr/bin/chromium`、412×915，8 PASS/0 FAIL、退出码0；pageerror=0、console.error=0、HTTP错误=0；临时回环入口 `http://127.0.0.1:59933/prototypes/encounter/`；完整日志及胜利截图分别为 `test/results/encounter-stage2-20261010T1434.log`、`test/results/encounter-stage2-20261010T1434-win.png`。复现服务器只绑定 `127.0.0.1`，只能由仓库所在电脑访问；分支尚未推送/公开部署，主人其他设备无法访问此 localhost URL。摇杆由 `page.mouse` 模拟指针拖动，不是实际触屏；正式地图未接入，待玛丽卡按本次提交SHA独立签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
 - [ ] 阶段 3（阶段 2 单独验收后）：做一条可测的奇遇选择闭环，至少覆盖 NPC 态度与债务后果；先复用现有状态，任何正式游戏接线另行小步验证
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）

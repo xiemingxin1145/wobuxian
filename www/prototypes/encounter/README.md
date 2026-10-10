@@ -10,7 +10,7 @@
 python3 -m http.server 8090 --directory www
 ```
 
-打开：<http://127.0.0.1:8090/prototypes/encounter/>（也可直接打开 `www/prototypes/encounter/index.html`，但推荐 HTTP 方式）。
+打开：<http://127.0.0.1:8090/prototypes/encounter/>（也可直接打开 `www/prototypes/encounter/index.html`，但推荐 HTTP 方式）。该 loopback 地址只在运行静态服务器的同一台电脑上可访问；当前 `openworld-wip` 尚未推送，也没有公开部署，因此主人其他设备无法通过这个 localhost URL 访问。此边界不影响仓库内本机复现。
 
 ## 操作与闭环
 
