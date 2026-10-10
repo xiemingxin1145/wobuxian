@@ -73,6 +73,7 @@ jobs:
             echo "$SHA  $RUNNER_TEMP/$F" | sha256sum -c -
             unzip -q -o "$RUNNER_TEMP/$F" -d www/
             rm -f "$RUNNER_TEMP/$F"; du -sh www/assets; grep -o '"profile":"[a-z]*"' www/assets/assets.json
+            if [ -d art/gen/hd ]; then cp art/gen/hd/*.webp www/assets/gen/; echo "AI 插画：已换成 HD 尺寸"; fi
           else
             echo "::warning::没有 hd-assets.json，使用仓库内的轻量资源构建"
           fi

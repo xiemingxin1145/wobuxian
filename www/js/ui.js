@@ -297,7 +297,7 @@ const UI = {
   title() {
     return new Promise(res => {
       const t = $('#title'); t.style.display = 'flex'; const sv = Game.hasSave();
-      t.innerHTML = `<div class="logo"><b>我不仙</b><span>修仙人生模拟器 · ${APP_VERSION.name}</span></div><div class="tbtns">${sv ? `<button class="opt" data-k="cont">继续人生<small>${esc(sv.name)} · ${sv.age}岁 · ${REALMS[sv.realm].n}</small></button>` : ''}<button class="opt" data-k="new">开始新人生</button><button class="opt" data-k="meta">轮回殿（${Game.meta.pts}点）</button><button class="opt" data-k="ach">成就与结局</button></div><p class="ver">v${APP_VERSION.name}　全部美术为 Blender 原创建模渲染</p>`;
+      t.innerHTML = `<div class="logo"><b>我不仙</b><span>修仙人生模拟器 · ${APP_VERSION.name}</span></div><div class="tbtns">${sv ? `<button class="opt" data-k="cont">继续人生<small>${esc(sv.name)} · ${sv.age}岁 · ${REALMS[sv.realm].n}</small></button>` : ''}<button class="opt" data-k="new">开始新人生</button><button class="opt" data-k="meta">轮回殿（${Game.meta.pts}点）</button><button class="opt" data-k="ach">成就与结局</button></div><p class="ver">v${APP_VERSION.name}　立绘为 AI 生成插画 · 地图角色为 Blender 3D 渲染</p>`;
       t.onclick = async e => {
         const b = e.target.closest('.opt'); if (!b) return; Sfx.play('click'); Audio2.unlock(); const k = b.dataset.k;
         if (k === 'cont') { Game.G = sv; t.style.display = 'none'; res('cont'); }

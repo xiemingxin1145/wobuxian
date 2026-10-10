@@ -1,0 +1,53 @@
+{
+ "_doc": "生成插画 → 游戏键。keys 支持 * 通配（匹配 portraits 图集里的键）。face=[cx,cy,size] 可手动覆盖自动人脸检测（原图像素）。",
+ "player_m1.jpg": {
+  "keys": [
+   "player_m1*"
+  ],
+  "name": "player_m1"
+ },
+ "mentor.jpg": {
+  "keys": [
+   "npc_mentor"
+  ],
+  "name": "mentor",
+  "face": [
+   624,
+   92,
+   52
+  ]
+ },
+ "heroine.jpg": {
+  "keys": [
+   "npc_lengyue"
+  ],
+  "name": "lengyue"
+ },
+ "boss_tiandao.jpg": {
+  "keys": [
+   "boss_tiandao",
+   "boss_tiandao2"
+  ],
+  "name": "tiandao",
+  "face": [
+   516,
+   160,
+   54
+  ]
+ },
+ "rival.jpg": {
+  "keys": [
+   "npc_aotian"
+  ],
+  "name": "aotian",
+  "face": [
+   610,
+   82,
+   54
+  ]
+ },
+ "_title": {
+  "left": "player_m1.jpg",
+  "right": "heroine.jpg"
+ }
+}

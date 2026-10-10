@@ -403,7 +403,7 @@ UI.p_dev = function (b, re, close, tab) {
   b.onclick = async e => {
     const tb = e.target.closest('.dt'); if (tb) { DEV.tab = tb.dataset.t; re(tb.dataset.t); return; }
     const t = e.target.closest('[data-a]'); if (!t) return; const a = t.dataset.a; Sfx.play('click'); const v = id => b.querySelector(id).value; G.dev = 1;
-    const fake = n => Array.from({ length: n }, (_, k) => ({ tier: n === 1 ? +a[1] : (k === 9 ? 4 : k % 3 === 0 ? 3 : 2), n: '演出预览（不发奖）', ic: 'sword_o' }));
+    const fake = n => Array.from({ length: n }, (_, k) => ({ tier: n === 1 ? +a[1] : (k === 9 ? 4 : k % 3 === 0 ? 3 : 2), n: '演出预览（不发奖）', ic: 'sword_o', por: (n === 1 ? +a[1] : (k === 9 ? 4 : 0)) >= 4 ? 'npc_lengyue' : undefined }));
     switch (a) {
       case 'stone': G.stone += 1e4; break; case 'stone2': G.stone += 1e6; break; case 'xyf': Game.give('xyf', 10); break; case 'xyf2': Game.give('xyf', 100); break;
       case 'items': for (const k in ITEMS) Game.give(k, 5); break; case 'ap': G.ap = Game.apMax(); break; case 'debt0': G.debt = 0; break;

@@ -304,3 +304,10 @@ body:not(.ingame) #afkbtn,body:not(.ingame) #actbtn,body:not(.ingame) #tuthint,b
 .opt.on{outline:3px solid #2a9a5a}
 .verrow{text-align:center;color:#a08a6a;font-size:12px;padding:14px 0 4px;user-select:none}
 #title .ver{padding:12px 18px;margin-bottom:-12px}
+
+/* v2.3 AI 插画 */
+.dlg .dp.gbust{width:150px!important;height:200px!important;bottom:8px;left:6px;background-size:cover!important;background-position:center top!important;border-radius:12px 12px 10px 10px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.dlg.hasbust{min-height:216px!important;padding-left:166px!important}
+body.gentitle #title{background:linear-gradient(rgba(10,14,30,.05),rgba(10,14,30,.15) 45%,rgba(20,10,5,.7)),url(../assets/gen/title.webp) center/cover no-repeat}
+.gc-in .gcart{width:86%;flex:1;min-height:60px;border-radius:6px;background:center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.gcut-art .gcart{width:200px;height:300px;margin:-20px auto 0;border-radius:12px;background:center/cover no-repeat}
