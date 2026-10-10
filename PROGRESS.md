@@ -1,5 +1,7 @@
 # 我不仙 v2.2 进度清单（断点续做用；v2.1.0 已发布）
 
+> 规则：每轮工作结束都更新本文件和 `docs/ROADMAP.md` 的状态（做完什么、卡在哪、下一步）。
+
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
 - [x] mapdefs：longgong 东海龙宫 / guishi 鬼市 / cuizhai 天庭催债司

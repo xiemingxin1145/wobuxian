@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # 只改文档/测试截图/AI 插画源图的推送不触发构建发布（标签推送不受 paths 过滤影响）
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'test/**/*.png'
+      - 'test/human23/**'
+      - 'test/human_olaf/**'
+      - 'art/gen/**'
   workflow_dispatch:
 
 permissions:
@@ -73,7 +81,7 @@ jobs:
             echo "$SHA  $RUNNER_TEMP/$F" | sha256sum -c -
             unzip -q -o "$RUNNER_TEMP/$F" -d www/
             rm -f "$RUNNER_TEMP/$F"; du -sh www/assets; grep -o '"profile":"[a-z]*"' www/assets/assets.json
-            if [ -d art/gen/hd ]; then cp art/gen/hd/*.webp www/assets/gen/; [ -d art/gen/hd/cg ] && cp art/gen/hd/cg/*.webp www/assets/cg/; echo "AI 插画：已换成 HD 尺寸"; fi
+            if [ -d art/gen/hd ]; then cp art/gen/hd/*.webp www/assets/gen/; if ls art/gen/hd/cg/*.webp >/dev/null 2>&1; then cp art/gen/hd/cg/*.webp www/assets/cg/; fi; echo "AI 插画：已换成 HD 尺寸"; fi
           else
             echo "::warning::没有 hd-assets.json，使用仓库内的轻量资源构建"
           fi
@@ -124,6 +132,10 @@ jobs:
           else
             gh release create "$TAG" wobuxian.apk wobuxian-lite.apk --title "我不仙 v$NAME (build $CODE)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
           fi
+          # 每个发布都必须同时带高清版和精简版，否则 /releases/latest/download/wobuxian-lite.apk 会 404
+          A=$(gh release view "$TAG" --json assets -q '.assets[].name')
+          for F in wobuxian.apk wobuxian-lite.apk; do echo "$A" | grep -qx "$F" || { echo "::error::Release $TAG 缺少 $F"; exit 1; }; done
+          echo "Release $TAG 资产：$(echo $A)"
 
   # 在 GitHub 托管的 x86_64 模拟器（KVM + swiftshader，无窗口）中安装并启动 APK，检查崩溃与 JS 报错
   emulator-smoke:

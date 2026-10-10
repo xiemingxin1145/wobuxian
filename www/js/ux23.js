@@ -52,13 +52,13 @@ pickAt = function (sx, sy) {
   { // 先看是不是正好点在某人的名字牌上（名字牌互不重叠时最准确，避免旁边的大判定框抢走）
     let nb = null, nd = 1e9;
     for (const e of R.ents) { if (e.hidden || !e.label || (e.kind !== 'npc' && e.kind !== 'boss')) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s); const ty = y - b.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6;
-      if (Math.abs(wx - x) <= hw && wy >= ty - 38 && wy <= ty + 14) { const d = Math.hypot(wx - x, wy - (ty - 12)); if (d < nd) { nd = d; nb = e; } } }
+      const mk = e.mark ? 50 : 0; /* 名字牌上方的 ★/！ 标记也算名字牌 */ if (Math.abs(wx - x) <= hw && wy >= ty - 38 - mk && wy <= ty + 14) { const d = Math.hypot(wx - x, Math.max(0, wy - (ty - 12)) + Math.max(0, (ty - 38) - wy) * 0.3); if (d < nd) { nd = d; nb = e; } } }
     if (nb) return { ent: nb };
   }
   const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
-    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const s = PRI[e.kind] * 1e4 + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
+    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const [ex, ey] = t2p(e.i, e.j), sb = spriteBox(e.spr, e.s), inBody = Math.abs(wx - ex) <= sb.w * 0.42 && wy >= ey - sb.h && wy <= ey + 6; /* 点在谁的身体上就是谁 */ const s = PRI[e.kind] * 1e4 - (inBody ? 5000 - Math.abs(wy - (ey - sb.h / 2)) * 0.3 : 0) + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
   }
   if (best) return best;
   let fd = UX.w(36);

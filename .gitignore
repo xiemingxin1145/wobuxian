@@ -24,3 +24,7 @@ test/shots/
 test/*.log
 wobuxian.apk
 *.apk
+
+# 签名密钥永不进 git（只在 CI Secrets 里）
+*.keystore
+*.jks
