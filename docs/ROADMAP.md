@@ -148,7 +148,7 @@
 |---|---|---|---|
 | 1 | issue #2：战斗后 `R.onTap` 置空，整张地图点不动 | GitHub issue #2 | ✅ 2.3.0 修复，issue 已关闭 |
 | 2 | 2.2.0 线上：点名字/标记点不到 NPC、摇杆区吞点按、前两章不知道怎么推进 | design_feedback_v23 §0 | ✅ 2.3.0 |
-| 3 | human_olaf：T4 游走 NPC 点按、T9 自动任务重试验收未完成 | GitHub Issue #5 当前 OPEN；最近公开评论 `2026-10-10T04:25:19Z` 记录历史 T4=9/20、T9 单次约 13 秒推进 4→5。随后本地独立复测（证据见 `PROGRESS.md`）为 T4=1/20、T9-1 失败后 T9-2 至 T9-5 连续 4 次成功，但均使用开发者辅助；未达连续 5 次，也不是无辅助验收。公开 Issue 尚未记录这轮复测。 | ⬜ 2.3.1；不得记作已解决 |
+| 3 | human_olaf：T4 游走 NPC 点按、T9 自动任务重试验收未完成 | [GitHub Issue #5](https://github.com/xiemingxin1145/wobuxian/issues/5) 于 `2026-10-10 13:52:54 +08` 刷新核验仍为 OPEN；API `updated_at=2026-10-10T04:25:19Z`，共 1 条评论。该公开记录含历史 T4=9/20、T9 单次约 13 秒推进 4→5。随后本地独立复测（证据见 `PROGRESS.md`）为 T4=1/20、T9-1 失败后 T9-2 至 T9-5 连续 4 次成功，但均使用开发者辅助；未达连续 5 次，也不是无辅助验收。公开 Issue 尚未记录这轮复测。 | ⬜ 2.3.1；不得记作已解决 |
 | 4 | PR #3（human_olaf 门禁）在 GitHub 上仍 OPEN，目标 main；但已在 v23-wip 本地合并（`4af1fd2`） | GitHub | ⬜ 合并 v2.3 时一并处理 |
 | 5 | 精简版不在 latest Release 上 | gh release view | ✅ 2.3.0 起每个 Release 都带 HD+lite |
 | 6 | 每次推 main（含纯文档）都会发一个新 build 给玩家；README 写的安装包 214MB 已过时（实际约 275MB） | build.yml、Release | 🟡 v23-wip 的 workflow 已加 `paths-ignore`（docs/**、*.md、测试截图、art/gen/**）；README 体积待更新 |
