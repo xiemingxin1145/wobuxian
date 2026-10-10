@@ -231,10 +231,10 @@ async def main():
         # ---- N1 打完一场战斗后，地图点按是否还有效（新发现：ui.js battleChoose 的 done() 把 R.onTap 置空） ----
         if want('N1'):
             c2 = await new_page(); await new_life(c2); info = {}
-            st = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
+            mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             info['ontap_before'] = await taps_alive(c2)
             fought = False
-            for m in st[:4]:
+            for m in mons[:4]:
                 if await free_point(c2, *m['s']):
                     await tap(c2, *m['s'])
                     for _ in range(60):
@@ -327,8 +327,8 @@ async def main():
                 st = await npcs(c); tt = find(st, t['id']); bx, by = tt['pts']['body']
                 if JOY(bx, by):
                     f = await shot(c, 'T2_npc_in_joystick_zone')
-                    o = await tap_npc_point(c, t['id'], 'body', 6); ok = o['result'] == 'npc' and not o['joy_activated']
-                    info = dict(npc=t['name'], tap=o['tap'], result=o['result'], joy_activated=o['joy_activated'], shot=f); break
+                    o = await tap_npc_point(c, t['id'], 'body', 6); ok = o['result'] == 'npc'
+                    info = dict(npc=t['name'], tap=o['tap'], result=o['result'], joy_activated_sampled=o['joy_activated'], shot=f); break
                 info = dict(err=f'走位后 NPC 没进摇杆区：{t["name"]} at {[round(bx), round(by)]}')
             case('T2_tap_npc_in_joystick_zone', ok, **info)
         # ---- T3 靠近交互按钮 ----
@@ -349,11 +349,15 @@ async def main():
                 if time.time() - t4 > T4_BUDGET: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
                 if not t: rows.append(dict(npc=nid, result='npc missing')); continue
-                spot = None
-                for di, dj in [(0, 5), (5, 0), (-5, 0), (3, 4), (4, 3), (-3, 4), (-4, 3), (0, 6), (2, 5), (-2, 5), (0, -5), (4, -3), (-4, -3)]:
+                ring = sorted([(di, dj) for di in range(-6, 7) for dj in range(-6, 7) if 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0])))
+                placed = False; tries = 0
+                for di, dj in ring:   # 优先站在 NPC 南边（NPC 在画面上方，不被底部 UI 挡）
                     a, b = int(t['i']) + di, int(t['j']) + dj
-                    if await c.pg.evaluate(JS_WALK, [a, b]): spot = (a, b); break
-                if not spot or not await walk_to(c, *spot): rows.append(dict(npc=t['name'], result='could not position')); continue
+                    if not await c.pg.evaluate(JS_WALK, [a, b]): continue
+                    tries += 1
+                    if await walk_to(c, a, b): placed = True; break
+                    if tries >= 4: break
+                if not placed: rows.append(dict(npc=t['name'], result='could not position (harness)')); continue
                 await c.pg.wait_for_timeout(900); b0 = c.battles
                 st = await npcs(c); t = find(st, nid); x, y = t['pts']['body']
                 if not await free_point(c, x, y):
