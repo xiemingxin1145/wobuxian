@@ -212,6 +212,16 @@ async def main():
                 if not await tap_el(c, '#modals button, #modals [data-k], #modals .opt, #modals .tab, #modals [data-t]', lb, 600): return False
             c.cheats.append('dev:' + '>'.join(labels)); return True
 
+        # ---- v2.3 补：开发者面板造场景（只点 UI），关面板 ----
+        async def dev_close(c):
+            for _ in range(3):
+                if not await tap_el(c, '#modals .mwrap .x', None, 400): break
+        async def dev_setup(c, *steps):
+            ok = True
+            for st_ in steps: ok = await dev_tap(c, *st_) and ok; await dev_close(c); await clear_popups(c, 6)
+            return ok
+        JS_ST = "()=>{const G=Game.G,P=R.player;return {map:R.mapId,ap:G.ap,main:G.main,age:G.age,exp:G.exp,realm:G.realm,stage:G.stage,p:P?[P.i,P.j]:null,nav:P?P.nav||null:null,speed:P?P.speed:0,ts:R.ts||1,afk:typeof AFK!=='undefined'?{on:AFK.on,box:AFK.box,kills:AFK.st?(G.killsTotal||0)-AFK.st.kills0:0}:null}}"
+        gst = lambda c: c.pg.evaluate(JS_ST)
         def case(cid, ok, **info):
             row = dict(case=cid, ok=bool(ok), **info); cases.append(row)
             json.dump(dict(dpr=DPR, cases=cases, js_errors=errs, partial=True), open(OUT + 'results.json', 'w'), ensure_ascii=False, indent=1)
@@ -231,10 +241,10 @@ async def main():
         # ---- N1 打完一场战斗后，地图点按是否还有效（新发现：ui.js battleChoose 的 done() 把 R.onTap 置空） ----
         if want('N1'):
             c2 = await new_page(); await new_life(c2); info = {}
-            st = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
+            mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             info['ontap_before'] = await taps_alive(c2)
             fought = False
-            for m in st[:4]:
+            for m in mons[:4]:
                 if await free_point(c2, *m['s']):
                     await tap(c2, *m['s'])
                     for _ in range(60):
@@ -252,7 +262,7 @@ async def main():
                     p0 = st2['p']; await tap(c2, px + dx, py + dy); await c2.pg.wait_for_timeout(1500)
                     p1 = (await npcs(c2))['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
             info['ground_tap_moved_tiles'] = moved
-            t = (await npcs(c2))['npcs'][0]; info['npc'] = t['name']
+            t = next(x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc'); info['npc'] = t['name']   # v2.3：只挑普通 NPC（讨债史莱姆是 boss，点它本来就会开打）
             o = await tap_npc_point(c2, t['id'], 'body', 8) if await free_point(c2, *t['pts']['body']) else dict(result='npc not tappable on screen')
             info['npc_tap_after_battle'] = o['result']; info['shot'] = await shot(c2, 'N1_after_battle_tap_dead')
             case('N1_taps_still_work_after_battle', fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc', **info)
@@ -367,19 +377,43 @@ async def main():
                  fails=[r for r in rows if r['result'] != 'npc'])
         # ---- T5 空路径（需要开发者传送） ----
         if want('T5'):
-            if await has_dev(c):
-                case('T5_empty_path_edge', False, err='TODO: 当前构建有开发者模式，但面板 UI 未知；请按面板文案补 dev_tap() 步骤', cheats=c.cheats)
-            else:
-                case('T5_empty_path_edge', False, blocked='no dev mode（#devbtn / DEV 不存在），无法只用点按造出“站在目标格、NPC 距 1.7”的场景')
+            c5 = await new_page('#dev'); await new_life(c5); await ensure_map(c5)
+            okd = await dev_tap(c5, '传送', '站到最近NPC旁'); await c5.pg.wait_for_timeout(500)
+            st = await npcs(c5); t = st['npcs'][0] if st and st['npcs'] else None; res = None; f = await shot(c5, 'T5_setup')
+            if t:
+                x, y = t['pts']['body']; await tap(c5, x, y); o = await outcome(c5, t['name'], 5); res = o['result']
+            case('T5_empty_path_edge', okd and res == 'npc', npc=t and t['name'], dist=t and round(t['dist'], 2), result=res, shot=f, cheats=c5.cheats)
+            await c5.ctx.close()
         # ---- T10 ① 不带 #dev 时 #devbtn 不存在（主会话就是不带 #dev） ----
         if want('T10'):
             t10 = dict(no_devbtn_without_hash=not devbtn_title and not await c.pg.evaluate("()=>!!document.querySelector('#devbtn')"))
         # ---- T12 在线挂机 ----
         if want('T12'):
-            r2 = await rect(c, '#afkbtn') or await rect(c, '#autobar button', '挂机')
-            f = await shot(c, 'T12_afk_entry')
-            case('T12_online_afk', False, entry=r2 and r2[2], shot=f,
-                 note='没有 #afkbtn / 挂机按钮' if not r2 else 'TODO: 入口存在，5 分钟挂机断言需开发者速度×4，尚未实现')
+            T12_S = float(os.environ.get('T12_SECS', '150'))
+            c12 = await new_page('#dev'); await new_life(c12); await ensure_map(c12)
+            await dev_setup(c12, ('调试', '×5'))
+            r2 = await tap_el(c12, '#afkbtn', None, 700); await tap_el(c12, '#modals .mwrap .opt', '开始挂机', 700)
+            f = await shot(c12, 'T12_afk_on'); t0 = time.time(); outside = 0; samples = 0; kills = 0
+            while time.time() - t0 < T12_S:
+                await c12.pg.wait_for_timeout(1000); g = await gst(c12)
+                if not g['afk'] or not g['afk']['on']: break
+                b_ = g['afk']['box']; samples += 1; kills = g['afk']['kills']
+                if R_ := g['p']:
+                    if not (b_[0] - 1 <= R_[0] <= b_[2] + 2 and b_[1] - 1 <= R_[1] <= b_[3] + 2): outside += 1
+                s_ = await scr(c12)
+                if s_['opts'] and not s_['battle']:  # 挂机暂停等人选（年度事件）：像真人一样点第一个
+                    await tap_el(c12, '#modals .mwrap .opt', s_['opts'][0], 500)
+            f2 = await shot(c12, 'T12_afk_running')
+            await tap_el(c12, '#afkstop23', None, 900); summ = None
+            for _ in range(12):
+                s_ = await scr(c12)
+                if s_['title'] and '挂机' in s_['title']: summ = s_['text']; break
+                if s_['battle']: await ensure_map(c12); continue
+                if s_['opts']: await tap_el(c12, '#modals .mwrap .opt', s_['opts'][0], 500)
+                else: await c12.pg.wait_for_timeout(500)
+            f3 = await shot(c12, 'T12_afk_summary')
+            case('T12_online_afk', bool(r2) and kills > 0 and outside == 0 and summ is not None, kills=kills, samples=samples, outside_box=outside, summary=summ, shots=[f, f2, f3], cheats=c12.cheats)
+            await c12.ctx.close()
         case('info_recoveries_used', True, recoveries=getattr(c, 'recoveries', 0), battles=c.battles,
              note='T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数')
         await c.ctx.close()
@@ -425,12 +459,72 @@ async def main():
                 t10.update(ver_found=bool(r), wbx2_dev_after_7_taps=after, devbtn_in_game=devbtn, shot=f)
                 case('T10_dev_mode_entry', t10['no_devbtn_without_hash'] and after == '1' and devbtn, **t10,
                      note=None if devbtn else '点版本号 7 次没有开启开发者模式；面板 Tab 断言无法进行')
-            dev = devbtn or await has_dev(c)
-            for cid, nm in (('T7', 'T7_cross_map_nav'), ('T8', 'T8_cancel_nav'), ('T9', 'T9_auto_quest_loop'), ('T11', 'T11_offline_income')):
-                if want(cid):
-                    if not dev: case(nm, False, blocked='no dev mode：无法只用点按造出场景（练气 + 跳章/离线模拟）')
-                    else: case(nm, False, err='TODO: 开发者面板存在，按面板文案补 dev_tap() 步骤后再断言', cheats=c.cheats)
             await c.ctx.close()
+            async def market_setup():
+                cx = await new_page('#dev'); await new_life(cx); await ensure_map(cx)
+                ok = await dev_setup(cx, ('境界', '练气初期'), ('剧情', '坊市查账')); return cx, ok
+            async def tap_main_go(cx):
+                await tap_el(cx, '#qt .qbtn[data-q=main]', None, 700)
+                s_ = await scr(cx)
+                if any(o.startswith('前往') for o in s_['opts']): await tap_el(cx, '#modals .mwrap .opt', '前往', 300); return True
+                return False
+            if want('T7') or want('T8'):
+                c7, okd = await market_setup(); g0 = await gst(c7); t0 = time.time()
+                card = await tap_main_go(c7); who = None; f = await shot(c7, 'T7_after_confirm')
+                while time.time() - t0 < 40:
+                    s_ = await scr(c7)
+                    if s_['battle']: await ensure_map(c7); continue
+                    if s_['dlg']: who = s_['who']; break
+                    await c7.pg.wait_for_timeout(250)
+                g1 = await gst(c7); f2 = await shot(c7, 'T7_dialog')
+                if want('T7'):
+                    case('T7_cross_map_nav', okd and card and g1['map'] == 'market' and (who or '').startswith('钱多多') and g1['ap'] == g0['ap'] - 1,
+                         map=g1['map'], who=who, ap=[g0['ap'], g1['ap']], secs=round(time.time() - t0), shots=[f, f2], cheats=c7.cheats)
+                if want('T8'):
+                    await clear_popups(c7, 8); await ensure_map(c7)
+                    await dev_setup(c7, ('传送', '桃花村'))
+                    await tap_main_go(c7); nav_on = False; t0 = time.time()
+                    while time.time() - t0 < 15:   # 等它到坊市开始走
+                        g = await gst(c7)
+                        if g['map'] == 'market' and g['nav']: nav_on = True; break
+                        await c7.pg.wait_for_timeout(200)
+                    st = await npcs(c7); px, py = st['ps']; tapped = False
+                    for dx, dy in ((0, 130), (120, 60), (-120, 60), (0, -130)):
+                        if await free_point(c7, px + dx, py + dy): await tap(c7, px + dx, py + dy); tapped = True; break
+                    await c7.pg.wait_for_timeout(500); g = await gst(c7); bar = await rect(c7, '#navbar'); f = await shot(c7, 'T8_cancel')
+                    case('T8_cancel_nav', nav_on and tapped and g['nav'] is None and not bar, nav_before=nav_on, nav_after=g['nav'], navbar_visible=bool(bar), shot=f)
+                await c7.ctx.close()
+            if want('T9'):
+                T9_S = float(os.environ.get('T9_SECS', '180'))
+                c9, okd = await market_setup(); g0 = await gst(c9)
+                await tap_el(c9, '#qt .qauto', None, 500); jumps = 0; last = g0; t0 = time.time(); waits = 0
+                while time.time() - t0 < T9_S:
+                    await c9.pg.wait_for_timeout(1000); g = await gst(c9)
+                    if g['p'] and last['p'] and g['map'] == last['map']:
+                        d = math.hypot(g['p'][0] - last['p'][0], g['p'][1] - last['p'][1])
+                        if d > g['speed'] * g['ts'] * 1.0 * 1.5 + 0.5: jumps += 1
+                    last = g
+                    if g['main'] > g0['main']: break
+                g1 = await gst(c9); f = await shot(c9, 'T9_end')
+                case('T9_auto_quest_loop', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
+                await c9.ctx.close()
+            if want('T11'):
+                c11 = await new_page('#dev'); await new_life(c11); await ensure_map(c11); g0 = await gst(c11)
+                yexp = await c11.pg.evaluate("()=>Game.yearExp()")   # 只读：公式用的年修为
+                await dev_tap(c11, '调试', '离线模拟 +13'); await c11.pg.wait_for_timeout(1200); s_ = await scr(c11); g1 = await gst(c11)
+                txt = await c11.pg.evaluate("()=>{const t=[...document.querySelectorAll('#modals .mwrap')].pop();return t?t.innerText:''}")
+                f = await shot(c11, 'T11_offline_card')
+                want_exp = round(yexp * 0.25 * (4 + 4 * 0.7 + 4 * 0.4))
+                got = g1['exp'] - g0['exp'] if g1['realm'] == g0['realm'] and g1['stage'] == g0['stage'] else None
+                import re as _re
+                m_ = _re.search(r'应得 (\d+)', txt) or _re.search(r'修为 \+(\d+)', txt)
+                exp_ok = bool(m_) and abs(int(m_.group(1)) - want_exp) <= max(1, want_exp * 0.01)
+                await clear_popups(c11, 6)
+                await dev_tap(c11, '调试', '离线模拟 -1'); await c11.pg.wait_for_timeout(1500); s2 = await scr(c11)
+                neg_card = bool(s2['title'] and '闭关归来' in s2['title'])
+                case('T11_offline_income', '闭关归来' in txt and '12' in txt and g1['age'] == g0['age'] and exp_ok and not neg_card,
+                     card=txt[:120], exp_gain=got, formula=want_exp, age=[g0['age'], g1['age']], negative_time_card=neg_card, shot=f)
+                await c11.ctx.close()
         await br.close()
 
     # =============== T13 回归 ===============

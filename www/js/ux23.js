@@ -158,8 +158,8 @@ setInterval(() => {
 // ---------- B 任务追踪 + 一键寻路（跨图御剑需确认） ----------
 const Nav = {
   bar: mk('div', 'navbar'), cur: null,
-  set(txt) { this.cur = txt; this.bar.textContent = `自动寻路 → ${txt} · 点地面取消`; this.bar.className = 'show'; },
-  clear() { this.cur = null; this.bar.className = ''; if (R.player) R.player.safeWalk = false; },
+  set(txt) { this.cur = txt; if (R.player) R.player.nav = { txt }; this.bar.textContent = `自动寻路 → ${txt} · 点地面取消`; this.bar.className = 'show'; },
+  clear() { this.cur = null; this.bar.className = ''; if (R.player) { R.player.safeWalk = false; R.player.nav = null; } },
 };
 const Track = {
   mapOf(id) { const N = NPCS[id]; return N ? (N.roam ? N.roam(Game.G) : N.map) : null; },
@@ -338,12 +338,12 @@ const Offline = {
     this._busy = true; G.offAt = Date.now();
     try {
       const r = this.calc(dt); const exp0 = G.exp, st0 = G.stage; G.stone += r.stone; if (r.herbs) Game.give('herb', r.herbs);
-      Game.addExp(r.exp, true); // addExp 最多加到本境界瓶颈（大境界要自己渡劫）
+      const gained = Math.round(Game.addExp(r.exp, true) || 0); // addExp 最多加到本境界瓶颈（大境界要自己渡劫）
       const hrs = r.h >= 1 ? `${Math.floor(r.h)} 小时 ${Math.round((r.h % 1) * 60)} 分钟` : `${Math.round(r.h * 60)} 分钟`;
       (G.offLog = G.offLog || []).unshift({ t: Date.now(), h: +r.h.toFixed(2), exp: r.exp, stone: r.stone }); G.offLog.length = Math.min(5, G.offLog.length);
       Game.save(); UI.hud();
       const wait = () => new Promise(res => { const f = () => (UX.inMap() ? res() : setTimeout(f, 400)); f(); }); await wait();
-      await UI.card('闭关归来', `你离开了 ${hrs}${r.capped ? `（已达上限 ${r.capH} 小时）` : ''}，一直在打坐。\n\n修为 +${r.exp}${Game.canBreak() ? '\n瓶颈已至，可以突破！' : ''}\n灵石 +${r.stone}${r.herbs ? `\n灵草 ×${r.herbs}` : ''}\n\n（离线不长岁数；上限 12 小时，聚灵阵每级 +1 小时）`, 'i:sk_light', ['收下']);
+      await UI.card('闭关归来', `你离开了 ${hrs}${r.capped ? `（已达上限 ${r.capH} 小时）` : ''}，一直在打坐。\n\n修为 +${gained}${gained < r.exp ? `（应得 ${r.exp}，已到瓶颈，多出的修为散去了）` : ''}${Game.canBreak() ? '\n瓶颈已至，可以突破！' : ''}\n灵石 +${r.stone}${r.herbs ? `\n灵草 ×${r.herbs}` : ''}\n\n（离线不长岁数；上限 12 小时，聚灵阵每级 +1 小时）`, 'i:sk_light', ['收下']);
     } finally { this._busy = false; }
   },
 };
@@ -378,12 +378,12 @@ UI.p_dev = function (b, re, close, tab) {
   const TABS = [['res', '资源'], ['realm', '境界'], ['unlock', '解锁'], ['story', '剧情'], ['tp', '传送'], ['show', '演出'], ['dbg', '调试']];
   let body = '';
   if (tab === 'res') body = `<div class="devg">${btn('stone', '灵石 +1万')}${btn('stone2', '灵石 +100万')}${btn('xyf', '仙缘符 +10')}${btn('xyf2', '仙缘符 +100')}${btn('items', '全部物品 ×5')}${btn('ap', '行动力回满')}${btn('debt0', '欠款清零')}${btn('heal', '满血满蓝')}</div>`;
-  if (tab === 'realm') body = `<div class="devr">境界 ${sel('d_realm', REALMS.map((r, k) => [k, r.n]))} 小境界 ${sel('d_stage', [[0, '初期'], [1, '中期'], [2, '后期'], [3, '圆满']])}${btn('realm', '设定')}</div><div class="devg">${btn('expfull', '修为加满（到瓶颈）')}${btn('life', '寿元 +1000')}</div>`;
+  if (tab === 'realm') body = `<div class="devr">境界 ${sel('d_realm', REALMS.map((r, k) => [k, r.n]))} 小境界 ${sel('d_stage', [[0, '初期'], [1, '中期'], [2, '后期'], [3, '圆满']])}${btn('realm', '设定')}</div><div class="devg">${REALMS.slice(0, 5).map((r, k) => `<button class="opt" data-a="rq" data-v="${k}">${r.n}初期</button>`).join('')}</div><div class="devg">${btn('expfull', '修为加满（到瓶颈）')}${btn('life', '寿元 +1000')}</div>`;
   if (tab === 'unlock') body = `<div class="devg">${btn('maps', '解锁全部地图', G.flags.devmaps)}${btn('cg', '解锁全部插画')}${btn('mounts', '全部坐骑')}${btn('cos', '全部时装')}${btn('pets', '全部灵兽各 1')}${btn('aff', '全部 NPC 好感 100')}${btn('techs', '全部功法')}</div>`;
-  if (tab === 'story') body = `<div class="devr">章节 ${sel('d_main', MAIN.map((m, k) => [k, m.n]))}${btn('main', '跳到此章')}</div><div class="devr">Boss ${sel('d_boss', Object.keys(MONS).filter(k => MONS[k].boss).map(k => [k, MONS[k].n]))}${btn('boss', '开打')}</div><div class="devr">事件 ${sel('d_ev', EVENTS.map((e, k) => [k, e[0] + ' ' + e[1]]))}${btn('ev', '触发')}</div>`;
-  if (tab === 'tp') body = `<div class="devr">地图 ${sel('d_map', MAP_ORDER.map(id => [id, MAPINFO[id].n]))}${btn('tp', '传送')}</div><div class="devr">NPC ${sel('d_npc', Object.keys(NPCS).filter(k => Track.mapOf(k)).map(k => [k, `${NPCS[k].n}（${(MAPINFO[Track.mapOf(k)] || {}).n || ''}）`]))}${btn('tpnpc', '传送到他身边')}</div>`;
+  if (tab === 'story') body = `<div class="devg">${MAIN.map((m, k) => `<button class="opt" data-a="mq" data-v="${k}">${esc(m.n)}</button>`).join('')}</div>`+`<div class="devr">章节 ${sel('d_main', MAIN.map((m, k) => [k, m.n]))}${btn('main', '跳到此章')}</div><div class="devr">Boss ${sel('d_boss', Object.keys(MONS).filter(k => MONS[k].boss).map(k => [k, MONS[k].n]))}${btn('boss', '开打')}</div><div class="devr">事件 ${sel('d_ev', EVENTS.map((e, k) => [k, e[0] + ' ' + e[1]]))}${btn('ev', '触发')}</div>`;
+  if (tab === 'tp') body = `<div class="devg">${MAP_ORDER.map(id => `<button class="opt" data-a="tpm" data-v="${id}">${MAPINFO[id].n}</button>`).join('')}<button class="opt" data-a="t5">站到最近NPC旁 1.7 格</button></div>`+`<div class="devr">地图 ${sel('d_map', MAP_ORDER.map(id => [id, MAPINFO[id].n]))}${btn('tp', '传送')}</div><div class="devr">NPC ${sel('d_npc', Object.keys(NPCS).filter(k => Track.mapOf(k)).map(k => [k, `${NPCS[k].n}（${(MAPINFO[Track.mapOf(k)] || {}).n || ''}）`]))}${btn('tpnpc', '传送到他身边')}</div>`;
   if (tab === 'show') body = `<div class="devr">CG ${sel('d_cg', MAIN.map((m, k) => [k, m.n]))}${btn('showcg', '播放章节过场')}</div><div class="devg">${btn('g2', '抽卡演出·宝')}${btn('g3', '抽卡演出·仙')}${btn('g4', '抽卡演出·神')}${btn('g10', '十连演出')}${btn('brk', '突破演出·成功')}${btn('brkf', '突破演出·失败')}</div><p class="hint">演出只播放，不发任何奖励。</p>`;
-  if (tab === 'dbg') body = `<div class="devg">${btn('god', '无敌 ' + (DEV.god ? '开' : '关'), DEV.god)}${btn('ohk', '一击必杀 ' + (DEV.ohk ? '开' : '关'), DEV.ohk)}${btn('noenc', '不遇敌 ' + (DEV.noEnc ? '开' : '关'), DEV.noEnc)}${btn('off13', '离线模拟 +13 小时')}${btn('off1', '离线模拟 +1 小时')}${btn('offm', '离线模拟 -1 小时')}</div><div class="devr">速度 ${[1, 2, 4, 8].map(v => `<button class="opt spd${DEV.ts === v ? ' on' : ''}" data-a="ts" data-v="${v}">×${v}</button>`).join('')}</div>
+  if (tab === 'dbg') body = `<div class="devg">${btn('god', '无敌 ' + (DEV.god ? '开' : '关'), DEV.god)}${btn('ohk', '一击必杀 ' + (DEV.ohk ? '开' : '关'), DEV.ohk)}${btn('noenc', '不遇敌 ' + (DEV.noEnc ? '开' : '关'), DEV.noEnc)}${btn('off13', '离线模拟 +13 小时')}${btn('off1', '离线模拟 +1 小时')}${btn('offm', '离线模拟 -1 小时')}</div><div class="devr">速度 ${[1, 2, 5, 10].map(v => `<button class="opt spd${DEV.ts === v ? ' on' : ''}" data-a="ts" data-v="${v}">×${v}</button>`).join('')}</div>
     <details><summary>flags（${Object.keys(G.flags).length}）</summary><div class="devflags">${Object.entries(G.flags).map(([k, v]) => `${esc(k)}=${esc(String(v))}`).join('<br>')}</div></details>
     <details><summary>缺素材被隐藏的内容（${(window.ASSET_DROPPED || []).length}）</summary><div class="devflags">${(window.ASSET_DROPPED || []).map(esc).join('<br>') || '无'}</div></details>
     <div class="devg">${btn('reset', '重置存档')}${btn('devoff', '关闭开发者模式')}</div>`;
@@ -396,6 +396,7 @@ UI.p_dev = function (b, re, close, tab) {
       case 'stone': G.stone += 1e4; break; case 'stone2': G.stone += 1e6; break; case 'xyf': Game.give('xyf', 10); break; case 'xyf2': Game.give('xyf', 100); break;
       case 'items': for (const k in ITEMS) Game.give(k, 5); break; case 'ap': G.ap = Game.apMax(); break; case 'debt0': G.debt = 0; break;
       case 'heal': { const s = Game.stats(); G.hp = s.mhp; G.mp = s.mmp; break; }
+      case 'rq': b.querySelector('#d_realm').value = t.dataset.v; b.querySelector('#d_stage').value = 0; /* fallthrough */
       case 'realm': { G.realm = +v('#d_realm'); G.stage = +v('#d_stage'); G.exp = Math.floor(Game.need() * 0.5); G.flags.awakened = 1; G.flags.main0 = G.flags.main1 = 1; if (R.player) { R.player.spr = Game.playerSpr(); loadSprite(R.player.spr); } const s = Game.stats(); G.hp = s.mhp; G.mp = s.mmp; Game.checkMain(); Game.refreshNpcs(); break; }
       case 'expfull': Game.addExp(Game.need() * 10, true); break; case 'life': G.lifeBonus = (G.lifeBonus || 0) + 1000; break;
       case 'maps': G.flags.awakened = 1; G.flags.devmaps = 1; break;
@@ -405,9 +406,14 @@ UI.p_dev = function (b, re, close, tab) {
       case 'pets': for (const id in PET_SKILL) if (MONS[id]) Game.addPet(id, 1 + G.realm); break;
       case 'aff': for (const id in NPCS) G.aff[id] = 100; break;
       case 'techs': for (const id in TECHS) Game.learn(id); break;
+      case 'mq': b.querySelector('#d_main').value = t.dataset.v; /* fallthrough */
       case 'main': { const k = +v('#d_main'); G.main = k; G.flags.main0 = G.flags.main1 = G.flags.awakened = 1; G.realm = Math.max(G.realm, MAIN[k].realm || 0); if (k > MI('sect') && !G.sect) Game.joinSect(Object.keys(SECTS)[0]); for (let x = 0; x < k; x++) { const M = MAIN[x]; if (M.boss) { G.bosses[M.boss] = 1; G.flags['boss_' + M.boss] = 1; } } if (R.player) { R.player.spr = Game.playerSpr(); loadSprite(R.player.spr); } Game.checkMain(); Game.refreshNpcs(); break; }
+      case 'tpm': b.querySelector('#d_map').value = t.dataset.v; /* fallthrough */
       case 'tp': close(); G.flags.awakened = 1; await Game.travel(v('#d_map'), true); return;
       case 'tpnpc': { close(); const id = v('#d_npc'); const mp = Track.mapOf(id); G.flags.awakened = 1; if (mp !== R.mapId) await Game.travel(mp, true); const e2 = R.ents.find(x => x.kind === 'npc' && x.id === id); if (e2) { const t2 = UX.adj(e2, R.player); R.player.i = t2[0] + 0.5; R.player.j = t2[1] + 0.5; R.player.path = []; Game.interactEnt(e2); } return; }
+      case 't5': { close(); const P = R.player; const e2 = R.ents.filter(x => x.kind === 'npc').sort((x, y) => Math.hypot(x.i - P.i, x.j - P.j) - Math.hypot(y.i - P.i, y.j - P.j))[0]; if (!e2) return;
+        e2.talking = 8; for (const [di, dj] of [[1.2, 1.2], [-1.2, 1.2], [1.2, -1.2], [-1.2, -1.2], [1.7, 0], [0, 1.7], [-1.7, 0], [0, -1.7]]) if (walkable(Math.floor(e2.i + di), Math.floor(e2.j + dj))) { P.i = e2.i + di; P.j = e2.j + dj; P.path = []; break; }
+        const [px, py] = t2p(P.i, P.j); R.cam.x = px; R.cam.y = py - 60; UI.toast('T5 场景：已站到 ' + e2.label + ' 旁 ' + Math.hypot(P.i - e2.i, P.j - e2.j).toFixed(1) + ' 格'); return; }
       case 'boss': { close(); const id = v('#d_boss'); await Game.fight(id, { tier: (MAPINFO[MAP_ORDER.find(m => MAPINFO[m].boss === id) || 'village'] || {}).tier || G.realm }); UI.hud(); return; }
       case 'ev': close(); Game._busy = true; try { await Game.runEvent(EVENTS[+v('#d_ev')]); } finally { Game._busy = false; } UI.hud(); return;
       case 'showcg': { close(); const m = MAIN[+v('#d_cg')]; document.querySelectorAll('.chapter-fx').forEach(x => x.remove()); UI.chapterShow(m); return; }

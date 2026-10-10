@@ -1,0 +1,121 @@
+{
+ "dpr": 2.0,
+ "cases": [
+  {
+   "case": "T0a_new_life_enter_map",
+   "ok": true,
+   "age": 6,
+   "map": "village",
+   "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 附近有 1 个委托（！） | 路人甲有委托 | 前往▶",
+   "popups": [
+    "chapter",
+    "哇哇大哭",
+    "继续",
+    "明白了"
+   ],
+   "npcs": [
+    [
+     "翠花",
+     "cuihua",
+     "💬",
+     5,
+     [
+      52,
+      80
+     ]
+    ],
+    [
+     "路人甲",
+     "luren",
+     "!",
+     5,
+     [
+      52,
+      80
+     ]
+    ],
+    [
+     "讨债史莱姆",
+     "debt_slime",
+     "★",
+     8.2,
+     [
+      50,
+      77
+     ]
+    ],
+    [
+     "说书先生",
+     "villager",
+     "💬",
+     10,
+     [
+      52,
+      80
+     ]
+    ],
+    [
+     "娘",
+     "mom",
+     "💬",
+     10.4,
+     [
+      52,
+      80
+     ]
+    ],
+    [
+     "王大爷",
+     "farmer",
+     "💬",
+     11.7,
+     [
+      52,
+      80
+     ]
+    ]
+   ],
+   "hitbox_css_wxh": {
+    "翠花": [
+     52,
+     80
+    ],
+    "路人甲": [
+     52,
+     80
+    ],
+    "讨债史莱姆": [
+     50,
+     77
+    ],
+    "说书先生": [
+     52,
+     80
+    ],
+    "娘": [
+     52,
+     80
+    ],
+    "王大爷": [
+     52,
+     80
+    ]
+   },
+   "shot": "001_T0_enter_map.png"
+  },
+  {
+   "case": "N1_taps_still_work_after_battle",
+   "ok": false,
+   "ontap_before": true,
+   "battle_shot": "002_N1_battle.png",
+   "fought": true,
+   "ontap_after_battle": true,
+   "ground_tap_moved_tiles": 2.24,
+   "npc": "讨债史莱姆",
+   "npc_tap_after_battle": "battle",
+   "shot": "004_N1_after_battle_tap_dead.png"
+  }
+ ],
+ "js_errors": [],
+ "partial": true
+}
