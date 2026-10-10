@@ -69,7 +69,7 @@
 | 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
-| v2.5+ | 🔧 分支 `openworld-wip` 阶段 1 样例已生成，待视觉验收 | 主角男/女、剑仙的手工低模源文件、Blender 4.2.23 可编辑场景、A/B 与姿态预览已生成；结构验证通过。最新T0同一可走地砖替换图及15个手工标注遮挡区的alpha几何检查是离线静态证据（男女48/64px IoU=0.697/0.692，通过实现者自定0.70过滤值）；不等于真人盲测/运行时点按或层级验收，女主宽裙也仍待评审。样例仍未接入游戏；待独立评审后再转入独立遭遇战/ATB原型，最后做奇遇→NPC态度→债务后果小闭环。各阶段单独测试/提交；不改 `main`、不合并、不发布。 |
+| v2.5+ | 🔧 分支 `openworld-wip` 阶段 1 静态视觉候选已评审，最终干净 SHA 待签收 | `character_models.py` 唯一输入 blob=`3df62d345b5f5d005158d07d7267326ad6495a37`（与 `b6052ef` 一致）；已由官方 Blender 4.2.23 同源重建 `.blend`、12帧及四张预览，严格场景/PNG完整性/`validate22`通过。最终新帧 IoU 64/48px=`0.692308/0.697318`，45组静态热点检查、k=1.0和8px安全边距通过；玛丽卡对同一静态候选预览预审无阻断项。该0.70是项目自定门槛，不是行业标准或盲测结果；真实点按、5人盲测、设备/DPR、游戏接入均未做，姿势板非动画。当前仅待整理为干净本地提交并按精确SHA最终签收；未签收前阶段2冻结。样例仍未接入游戏，签收后再推进独立可玩遭遇战/ATB原型，之后做奇遇→NPC态度→债务后果小闭环。各阶段单独测试/提交；不改 `main`、不合并、不发布。 |
 
 **下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 
