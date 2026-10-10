@@ -37,11 +37,11 @@ async def main():
             o = pg.locator('#modals .opt').first
             if await o.count(): await o.tap(); await pg.wait_for_timeout(500)
         await pg.wait_for_timeout(1500)
-        # v2.3：不再删除 NPC（以前删掉 NPC 会掩盖“点不到 NPC”的问题）。只让 NPC/怪原地不动、怪暂不接战，保证摇杆/点地测量稳定；关闭过场
-        await pg.evaluate("()=>{R.ents.forEach(e=>{if(e===R.player)return;e.path=[];e.wt=1e9;if(e.kind==='npc')e.talking=1e9;if(e.kind==='mon')e.cool=1e9});document.querySelectorAll('.chapter-fx').forEach(e=>e.click())}")
+        # 本脚本只测摇杆/点地移动本身：NPC/怪原地冻结并隐藏（不删除；点 NPC 的判定由 test/human_olaf.py T1–T4、N1、N2 用真实触摸覆盖）；关闭过场
+        await pg.evaluate("()=>{R.ents.forEach(e=>{if(e===R.player)return;e.path=[];e.wt=1e9;if(e.kind==='npc')e.talking=1e9;if(e.kind==='mon')e.cool=1e9;e.hidden=true});document.querySelectorAll('.chapter-fx').forEach(e=>e.click())}")
         await pg.wait_for_timeout(800)
         # 找一个四周 3 格都可走的中心点
-        center = await pg.evaluate("()=>{let best=null;for(let j=2;j<R.n-2;j++)for(let i=2;i<R.n-2;i++){if(!walkable(i,j))continue;let c=0;for(let dj=-3;dj<=3;dj++)for(let di=-3;di<=3;di++)if(walkable(i+di,j+dj))c++;if(!best||c>best[2])best=[i,j,c]}return best.concat([R.mode,R.player.speed])}")
+        center = await pg.evaluate("()=>{let best=null;for(let j=2;j<R.n-2;j++)for(let i=2;i<R.n-2;i++){if(!walkable(i,j))continue;let c=0;for(let dj=-3;dj<=3;dj++)for(let di=-3;di<=3;di++)if(walkable(i+di,j+dj))c++;let ray=0;for(const [a,b] of [[-1,-1],[1,1],[1,-1],[-1,1],[0,-1],[1,0],[0,1],[-1,0]])for(let k=1;k<=4;k++){if(walkable(i+a*k,j+b*k))ray++;else break}c+=ray*10;if([[3,0],[0,3],[-3,-2],[2,-3],[-3,2]].every(([a,b])=>walkable(i+a,j+b)))c+=1000;/* 点按的 5 个目标格都可走 *//* 8 个屏幕方向 4 格都通畅优先（摇杆不撞墙） */if(!best||c>best[2])best=[i,j,c]}return best.concat([R.mode,R.player.speed])}")
         print('center', center)
         async def reset():
             await pg.evaluate(f"()=>{{const P=R.player;P.i={center[0]}+0.5;P.j={center[1]}+0.5;P.path=[];P.anim='idle';R.cam.x=t2p(P.i,P.j)[0];R.cam.y=t2p(P.i,P.j)[1]}}"); await pg.wait_for_timeout(250)
@@ -108,6 +108,10 @@ async def main():
         res['edge'].append(row); print('EDGE', row)
         # c3 点按 UI 按钮（背包）不应移动角色
         await pg.evaluate("()=>{R.player.path=[]}"); await reset(); s0 = await st()
+        for _ in range(4):   # c2 的第二指可能恰好点到 NPC 打开了对话：先像真人一样点“离开”关掉
+            o = await pg.evaluate("()=>{const t=[...document.querySelectorAll('#modals .mwrap')].pop();if(!t)return null;const b=[...t.querySelectorAll('.opt,button')].filter(x=>x.offsetParent).pop();if(!b)return null;const r=b.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+            if not o: break
+            await tap(*o); await pg.wait_for_timeout(500)
         btn = pg.locator('#menu button').first
         bb = await btn.bounding_box() if await btn.count() else None
         if bb is None:

@@ -407,16 +407,16 @@ async def main():
                     if not await c.pg.evaluate(JS_WALK, [a, b]): continue
                     tries += 1
                     if await walk_to(c, a, b): placed = True; break
-                    if tries >= 4: break
+                    if tries >= 10: break
                 if not placed: rows.append(dict(npc=t['name'], result='could not position (harness)')); continue
                 await c.pg.wait_for_timeout(900); b0 = c.battles
                 st = await npcs(c); t = find(st, nid); x, y = t['pts']['body']
                 if not await free_point(c, x, y):
                     rows.append(dict(npc=t['name'], result='npc body covered by UI/joystick', tap=[round(x), round(y)])); continue
-                d0 = t['dist']; await tap(c, x, y); o = await outcome(c, t['name'], 10)
+                d0 = t['dist']; pk = await c.pg.evaluate("([x,y])=>{const h=pickAt(x*R.dpr,y*R.dpr);return h.ent?h.ent.label:h.mark?'mark':'tile'}", [x, y]); await tap(c, x, y); o = await outcome(c, t['name'], 10)
                 if o['result'] == 'battle': await shot(c, f'T4_{k}_battle_interrupt'); await ensure_map(c)
                 else: await clear_popups(c, 8)
-                rows.append(dict(npc=t['name'], dist=round(d0, 1), result=o['result']))
+                rows.append(dict(npc=t['name'], dist=round(d0, 1), result=o['result'], pick_at_tap=pk, tap=[round(x), round(y)]))
             okn = sum(r['result'] == 'npc' for r in rows)
             case('T4_wandering_npc_far_tap', okn == len(rows) == T4_N, passed=f'{okn}/{T4_N}',
                  fails=[r for r in rows if r['result'] != 'npc'])
