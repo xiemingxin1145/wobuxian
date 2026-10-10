@@ -4,7 +4,7 @@
 
 ## v2.4 人形角色新模型（分支 v24-chars，交接见 HANDOFF_CHARS.md）
 - [x] 管线 art/v24（Quaternius UBC CC0 基础人体 + 程序化动漫头/脸/发/衣袍，192×224 帧，锚点 0.86；spriteBox 适配，热区仍 ≥56×88 CSS）
-- [ ] 转换进度 24/84；最近一批：批次2a：王大爷/长老/弟子（3 个 NPC）
+- [ ] 转换进度 32/84；最近一批：批次2b：商人/女巫/炼丹师/龙女/如烟/渔夫/村民/白狼（8 个 NPC）
 - [ ] HD 资源包需重新生成（Release assets-hd 里仍是旧精灵）；docs/art_specs.md 需重写为「基础人体+发型+配件+色板」
 
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
