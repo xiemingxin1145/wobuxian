@@ -18,7 +18,7 @@
      "翠花",
      "cuihua",
      "💬",
-     5,
+     2.8,
      [
       52,
       80
@@ -28,7 +28,7 @@
      "路人甲",
      "luren",
      "!",
-     5,
+     6.4,
      [
       52,
       80
@@ -45,20 +45,20 @@
      ]
     ],
     [
-     "说书先生",
-     "villager",
+     "娘",
+     "mom",
      "💬",
-     10,
+     10.4,
      [
       52,
       80
      ]
     ],
     [
-     "娘",
-     "mom",
+     "说书先生",
+     "villager",
      "💬",
-     10.4,
+     11.5,
      [
       52,
       80
@@ -88,11 +88,11 @@
      50,
      77
     ],
-    "说书先生": [
+    "娘": [
      52,
      80
     ],
-    "娘": [
+    "说书先生": [
      52,
      80
     ],
@@ -107,13 +107,71 @@
    "case": "N1_taps_still_work_after_battle",
    "ok": false,
    "ontap_before": true,
-   "battle_shot": "002_N1_battle.png",
-   "fought": true,
+   "fought": false,
    "ontap_after_battle": true,
-   "ground_tap_moved_tiles": 2.24,
-   "npc": "讨债史莱姆",
-   "npc_tap_after_battle": "battle",
-   "shot": "004_N1_after_battle_tap_dead.png"
+   "ground_tap_moved_tiles": null,
+   "npc": "说书先生",
+   "npc_tap_after_battle": "npc not tappable on screen",
+   "shot": "002_N1_after_battle_tap_dead.png"
+  },
+  {
+   "case": "T0_quest_giver_flow",
+   "ok": true,
+   "npc": "路人甲",
+   "accepted": "路人甲的名字",
+   "steps": {
+    "tap_mark": "npc",
+    "tap_name": "npc",
+    "tap_body": "npc",
+    "quest_option": "！路人甲的名字",
+    "detail": "路人甲想要一个名字。据说说书先生会起名——先去乱葬岗看看找灵感。需要：完成指定目标",
+    "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 支·路人甲的名字 | 乱葬岗需要筑基 | 修炼",
+    "quest_panel_lists_it": true,
+    "tracker_go_button": true
+   },
+   "shots": [
+    "003_T0_dialog.png",
+    "004_T0_quest_panel.png"
+   ],
+   "battles_on_way": 0
+  },
+  {
+   "case": "T1_hitbox_5_points",
+   "ok": true,
+   "map": "village",
+   "hit": "25/25",
+   "wrong_target": 0,
+   "by_part": {
+    "feet": "5/5",
+    "body": "5/5",
+    "head": "5/5",
+    "name": "5/5",
+    "mark": "5/5"
+   },
+   "misses": [],
+   "note": ""
+  },
+  {
+   "case": "T2_tap_npc_in_joystick_zone",
+   "ok": true,
+   "npc": "说书先生",
+   "tap": [
+    45,
+    580
+   ],
+   "result": "npc",
+   "joy_activated": false,
+   "shot": "005_T2_npc_in_joystick_zone.png"
+  },
+  {
+   "case": "T3_near_interact_button",
+   "ok": true,
+   "npc": "说书先生",
+   "dist": 1.41,
+   "button": "对话说书先生",
+   "result": "npc",
+   "shot": "006_T3_near_npc.png",
+   "note": null
   }
  ],
  "js_errors": [],

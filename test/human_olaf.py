@@ -243,6 +243,13 @@ async def main():
             c2 = await new_page(); await new_life(c2); info = {}
             mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             info['ontap_before'] = await taps_alive(c2)
+            # v2.3 回归：先点一次 NPC（应打开对话）→ 打一仗 → 再点 NPC（见下）
+            pre = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']; info['npc_tap_before_battle'] = None
+            for x in pre:
+                if await free_point(c2, *x['pts']['body']):
+                    o0 = await tap_npc_point(c2, x['id'], 'body', 8); info['npc_tap_before_battle'] = o0['result']; break
+            await clear_popups(c2, 8)
+            mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             fought = False
             for m in mons[:8]:
                 if await free_point(c2, *m['s']):
@@ -269,8 +276,26 @@ async def main():
             info['npc'] = t['name']   # v2.3：只挑普通 NPC（讨债史莱姆是 boss，点它本来就会开打）
             o = await tap_npc_point(c2, t['id'], 'body', 8) if await free_point(c2, *t['pts']['body']) else dict(result='npc not tappable on screen')
             info['npc_tap_after_battle'] = o['result']; info['shot'] = await shot(c2, 'N1_after_battle_tap_dead')
-            case('N1_taps_still_work_after_battle', fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc', **info)
+            case('N1_taps_still_work_after_battle', info['npc_tap_before_battle'] == 'npc' and fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc', **info)
             await c2.ctx.close()
+        # ---- N2 NPC 紧挨交互标记（洞府/古井/打坐…）时，点 NPC 名字/身体仍打开该 NPC（v2.3 回归） ----
+        if want('N2'):
+            st = await npcs(c); rows = []
+            pairs = []
+            for x in [y for y in st['npcs'] if y['kind'] == 'npc']:
+                for m in st['marks']:
+                    d = math.hypot(m['s'][0] - x['pts']['name'][0], m['s'][1] - x['pts']['name'][1])
+                    if d < 140: pairs.append((d, x['id'], m['label']))
+            pairs.sort(); done_ = set()
+            for d, nid, ml in pairs:
+                if nid in done_: continue
+                done_.add(nid)
+                for part in ('name', 'body'):
+                    o = await tap_npc_point(c, nid, part, 7)
+                    if not o['result'].startswith('skip'): rows.append(dict(npc=nid, near=ml, css_dist=round(d), part=part, result=o['result']))
+                if len(done_) >= 4: break
+            case('N2_mark_does_not_steal_npc_tap', all(r['result'] == 'npc' for r in rows), checked=len(rows), rows=rows,
+                 note=None if rows else '开局画面里没有挨着标记的 NPC（无可测对）')
         # ---- T0 找最近的“！”NPC → 点 → 对话 → 接任务 → 追踪栏 ----
         if want('T0'):
             giver = next((x for x in st['npcs'] if x['mark'] == '!' and x['kind'] == 'npc'), None)
