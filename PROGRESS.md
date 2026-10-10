@@ -1,6 +1,29 @@
-# 我不仙 进度清单（断点续做用；最新发布：v2.3.0，2026-10-10）
+# 我不仙 进度清单（断点续做用；最新发布：v2.3.0；v2.5 工作基线：main `3baa83f`，2026-10-10）
 
 > 规则：每轮工作结束都更新本文件和 `docs/ROADMAP.md` 的状态（做完什么、卡在哪、下一步）。
+
+## 当前接手基线（2026-10-10）
+- 工作分支：`openworld-wip`，从远端 `main` 的 `3baa83fbcedca3da96efd6e326885821ba10604d` 建立；本分支按用户最新顺序推进阶段 1 样例→隔离战斗原型→单条奇遇闭环；不改 `main`、不合并、不发布。
+- GitHub Issue #5 仍为 OPEN。历史报告与本轮定向复测分开记录，时间均为 UTC；原始结果文件未覆盖：
+
+| 证据 | 时间 | 结果 | 开发者辅助 | 原始证据路径 |
+|---|---|---|---|---|
+| Issue #5 历史报告 | 评论 `2026-10-10T04:25:19Z`；原文件备份于 `04:53:01Z` | T4=9/20；T9 单次 13 秒从主线 4→5、零瞬移；不是连续 5 次验收 | T9 记录 `dev:境界>练气圆满`、`dev:剧情>坊市查账`，属辅助结果 | 仓库原文件 `test/human_olaf/results.json`；逐字备份 `/workspace/wobuxian-test-evidence/issue5-before-20261010/results.json` |
+| 本轮 T4 独立复测 | 批次开始 `05:10:37Z`；JSON 写入 `05:11:09Z` | **1/20**；19 次记录为 `npc missing`；未通过 | JSON 未记录开发者作弊项 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T4/results.json`；退出码及截图同目录 |
+| 本轮 T9-1 | `05:11:38Z`–`05:16:08Z` | 失败；182 秒，主线 4→4，零瞬移 | 有辅助：`dev:境界>练气圆满`、`dev:剧情>坊市查账` | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-1/results.json` |
+| 本轮 T9-2 | `05:16:08Z`–`05:17:38Z` | 单次通过；14 秒，主线 4→5，零瞬移 | 有同样两项开发者辅助 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-2/results.json` |
+| 本轮 T9-3 | `05:17:38Z`–`05:19:08Z` | 单次通过；13 秒，主线 4→5，零瞬移 | 有同样两项开发者辅助 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-3/results.json` |
+| 本轮 T9-4 | `05:19:08Z`–`05:20:38Z` | 单次通过；14 秒，主线 4→5，零瞬移 | 有同样两项开发者辅助 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-4/results.json` |
+| 本轮 T9-5 | `05:20:38Z`–`05:22:08Z` | 单次通过；16 秒，主线 4→5，零瞬移 | 有同样两项开发者辅助 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-5/results.json` |
+
+历史 T4=9/20 与本轮 T4=1/20 是不同批次。本轮 T9 共 5 个独立运行，其中 T9-1 失败、T9-2 至 T9-5 连续 4 次通过，但每次都记录了两项开发者辅助；因此既不足连续 5 次，也不是无辅助自然流程验收。Issue #5 不得据此关闭。
+- 执行顺序：当前先完成基线与三款低模样例；完成并提交后，依次做一个隔离可玩的遭遇战/ATB 原型，再做一个“奇遇→NPC 态度→债务后果”可测小闭环。每段独立测试、提交并更新进度，不并行铺系统；不改 `main`、不合并、不发布。
+
+### 阶段 1 样例状态（2026-10-10）
+- 三款手工低模源模型与 Blender 4.2.23 场景已生成：`art/prototypes/openworld_v25/character_models.py`、`openworld_v25_models.blend`；构模基于 Cube/Cylinder 挤出轮廓、支撑环与 X Mirror，未改 `art/chars.py`、游戏精灵图集或运行时文件。
+- Blender 输出 12 张 320×352 帧（现有造型 idle ×3；新模型 idle/walk/attack ×3×3），总览图：A/B `1560×900`、姿态 `1540×1120`、桃花村比例静态叠图 `1648×900`，均位于 `art/prototypes/openworld_v25/previews/`。
+- Blender 场景结构验证通过：男主 35 个网格部件/3 个 Mirror，女主 38/3，剑仙 42/3；各模型有有限坐标、可编辑挤出轮廓且 `runtime_integrated=false`。首次检查发现验证器只识别“extrusion”而漏掉“extruded”命名，已修正规则并重跑通过；未改模型几何来绕过检查。
+- 验收边界：图片是 Blender 离线渲染与 T0 测试截图静态合成，不是游戏运行截图；叠图中的点击框是按现有规则估算，尚未做真实点击测试、5 人剪影辨认或负责人视觉签收。故阶段 1 仍待评审，不得标记完成；当前不启动阶段 2。
 
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
@@ -65,7 +88,7 @@
 - [x] CI 同时发布 wobuxian.apk（HD）与 wobuxian-lite.apk（SD，同一签名），更新检查按版本取对应 APK
 - [x] test/human23.py 纯触摸 13/13 通过（截图 test/human23/；新增步骤 11 重叠/摇杆区点身体、12 #actbtn 选最近 NPC）
 - [x] 摇杆：第二根手指不再顶掉摇杆（d8ad146）；点名字牌/★优先给其主人；开发者连点改为相邻间隔 ≤1.5 秒
-- [~] test/human_olaf.py：5c35c70 全量 13/18；发版提交上 `ONLY=T2,T3,T4,T9,T13` 6/7（T4 游走 NPC 9/20 未过 → issue #5，2.3.1）；controls.py 0 失败
+- [~] `test/human_olaf.py`：历史发版子集 `ONLY=T2,T3,T4,T9,T13` 为 6/7；Issue #5 仍 OPEN。历史报告与本轮隔离 T4/T9 复测分列于上表；本轮结果不覆盖 `test/human_olaf/results.json`，T4 未过，T9 未满足连续 5 次且使用开发者辅助。
 - [x] 合并 main（`f9bba18`，Fixes #2）、`VERSION` 2.3.0（`362172f`）、标签 v2.3.0 → CI 发布 https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0
 - [x] 核对（下载 Release 上的两个 APK 用 apksigner/aapt 查）：wobuxian.apk 278,341,061 B、wobuxian-lite.apk 47,679,345 B；都是 versionName 2.3.0、versionCode 151（> beta 的 147）、证书 SHA-256 436bf9221c08db212a13a9e8d64459f27cca9777223b7c21480fb33ce7ef29dc（= 2.2.0）；同包名+同证书+更高 versionCode → 可覆盖安装 2.2.0（CI 模拟器冒烟 API30/34 通过；未在真机实装验证）；latest/download 两个链接都 302 到 v2.3.0
 - [ ] 第 5 项内容 → 移到 2.3.1（research_v22 §7 台词 + §8 数值；草稿 drafts/content23.js 未接入）
@@ -73,11 +96,22 @@
 ## 新方向：开放世界 / 混合战斗（v2.5+）
 - [x] 新增方案文档 `docs/openworld_upgrade.md`（低模报出替代球体、即时/半即时战斗原型、随机奇遇链 + 债务强化）
 - [x] 新增即时遭遇战原型占位 `www/js/battle_realtime_prototype.js`（可导出 RealtimeBattle，后续接入移动/技能/弹道）
-- [ ] 建分支 `openworld-wip` 并开始低模角色样例
-- [ ] 完善即时战斗原型（接入现有 sprite 与输入）
-- [ ] 随机奇遇 + 债务后果草稿
+- [x] 建分支 `openworld-wip`，从最新已核实 `main` `3baa83f` 开出；分支起点工作区干净
+- [~] 阶段 1：三款手工低模源模型、可编辑 Blender 4.2.23 场景与离线预览已生成，结构验证通过；视觉评审和遮挡/剪影验收待完成；不接入精灵图集或游戏运行链
+- [ ] 阶段 2（阶段 1 完成后）：制作独立可玩的遭遇战/ATB 浏览器原型（点地/摇杆移动、普攻/技能/闪避、敌人攻击提示/弹道）；保留 `www/js/battle_realtime_prototype.js` 不动，不接入正式运行链
+- [ ] 阶段 3（阶段 2 单独验收后）：做一条可测的奇遇选择闭环，至少覆盖 NPC 态度与债务后果；先复用现有状态，任何正式游戏接线另行小步验证
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
+### 当前优先（v2.5+ 阶段 1）
+- [~] 三款隔离低模源模型与 Blender 离线对比图已产出（A/B 同正交镜头；另有 idle/walk/attack 冻结姿态）；留待野心家/玛丽卡视觉验收。静态桃花村叠图指出名称/点击框需继续人工检查；真人点按与剪影辨认未测。验收完成前不改战斗占位、不接入运行链。
+- [ ] Issue #5 保持未解决：本轮 T4=1/20；T9 为 1 次失败 + 4 次开发者辅助下的连续单次成功，仍未达到连续 5 次且不是无辅助流程；目标仍是 T4≥18/20 与 T9 连续 5 次成功，不能用历史 9/20 或辅助跑替代验收。
+
+### 后续产品清单（不与上述阶段并行）
+1. 主角“从弱到强”的成长小闭环：清楚的起点、可获得的资源/能力提升、一次可验证的突破及后果。
+2. 开发者调试面板可指定装备/能力：仅作测试工具，先保证可重复设定与可清理，不把作弊入口当玩家成长功能。
+3. 扩充多种分支奇遇：在阶段 3 的单条闭环通过后，再扩写多条事件及对 NPC 态度、债务、下一世的影响。
+4. 道侣与家庭线：先做一段可测关系/婚姻/子嗣传承，再扩展多道侣、多婚姻；尚未实现。
+
 ### 2.3.1（从 main 开 `v231-wip`）
 - [ ] issue #5 T9：自动任务 3 分钟内推进主线（依赖战斗胜负，打输后“变强”要等两年 → 缩短/改为立刻练级再试）
 - [ ] issue #5 T4：远处点游走 NPC 9/20（失败全是 “npc missing”）→ ≥18/20
