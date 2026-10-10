@@ -1,7 +1,7 @@
 # AGENTS.md —《我不仙》接手入口
 
 > 写给任何接手的 AI 编程工具或开发者（不需要任何之前的对话上下文）。
-> 更新：2026-10-10（UTC+8）。**最新正式发布仍为 v2.3.0**（tag `v2.3.0` = `362172f`）；当前 `main` 为 `3baa83f`，包含 v2.5+ 方案与尚未接入游戏的实时战斗占位。当前隔离开发分支 `openworld-wip` 从该 `main` 建立。[GitHub Issue #5](https://github.com/xiemingxin1145/wobuxian/issues/5) 仍开放：公开历史 T4=9/20；本轮独立复测 T4=1/20，T9 为 1 次失败后连续 4 次成功且每次使用开发者辅助；未达到连续 5 次，也不是无辅助验收。历史与本轮时间、路径、辅助状态见 `PROGRESS.md`，不覆盖原结果。只写在文件/git/GitHub 里核实过的内容，不确定的地方标了「⚠待核实」。
+> 更新：2026-10-10（UTC+8）。稳定正式版仍为 v2.3.0（tag `v2.3.0` = `362172f`）。v2.5 阶段 1/2 的合并提交为 `61d2eba`；CI `build-153` 成功并作为预发布发布，稳定版 `latest` 仍指向 v2.3.0。HD APK 为 278,378,225 B，lite APK 为 47,716,509 B。详细包体、模拟器和原型边界见 `PROGRESS.md`、`docs/ROADMAP.md`。Issue #5 仍开放：公开历史 T4=9/20；本轮独立复测 T4=1/20，T9 为 1 次失败后连续 4 次成功且每次使用开发者辅助；未达到连续 5 次，也不是无辅助验收。历史与本轮时间、路径、辅助状态见 `PROGRESS.md`，不覆盖原结果。只写在文件/git/GitHub 里核实过的内容，不确定的地方标了「⚠待核实」。
 > **从这里开始：先读 `docs/ROADMAP.md`（全局：故事、现状、待办），再读 `PROGRESS.md`（最近一次干到哪了）。**
 
 ## 1. 这是什么
@@ -9,7 +9,7 @@
 《我不仙》是一款 **2.5D 等距视角、Q 版国风的修仙人生模拟器**，安卓 APK（WebView 壳），完全离线，没有任何付费内容。
 - 前提：落魄剑仙一万年前订了这个世界，欠天道一万年的「世界建造尾款」，担保人一栏随手填了主角的生辰八字，于是天道（讨债司）上门讨债。
 - 玩法：投胎抽天赋 → 一年一年长大 → 凡人/练气/筑基/金丹/元婴/化神/渡劫/飞升；在 11 张地图上走路、对话、接任务、回合制斗法；寿尽进轮回殿再来一世。
-- 当前已发布版本：**2.3.0**（`VERSION`、tag `v2.3.0`）。`main` 的游戏运行链仍是离线 2.5D 与回合制斗法；`openworld-wip` 按序推进 v2.5 阶段 1 独立美术样例、阶段 2 独立遭遇战原型、阶段 3 奇遇债务小闭环；阶段 1 模型不接入正式地图或运行链。
+- 当前稳定版：**2.3.0**（`VERSION`、tag `v2.3.0`）。`main` 已包含 v2.5 阶段 1 离线低模样例与阶段 2 独立遭遇战练习页；它们仍未接入正式地图/战斗/存档。未验收的阶段 3 债务事件代码仍留在隔离开发工作区，未合并。
 
 ## 2. 技术栈与目录
 
@@ -36,8 +36,7 @@ python3 tools/gen_art.py [--debug]           # AI 插画 → www/assets/gen/（S
 `build.sh` 会自动生成 `www/js/version.js`（版本号 + 是否精简版），不要手改这个文件。
 
 ## 4. 发布流程（CI 已核实：`.github/workflows/build.yml`）
-
-- **推到 `main` 的提交（以及 `v*` 标签、手动 workflow_dispatch）会触发 CI：构建 → 签名 → 发布到 GitHub Release 并标为 latest。** v2.3 起 workflow 有 `paths-ignore`：只改 `docs/**`、`*.md`、测试截图（`test/human23/**`、`test/human_olaf/**`、`test/**/*.png`）、`art/gen/**` 的推送不触发（标签推送不受过滤）。之前（如 2026-10-10 PR #4 文档合并）只改文档也会发 build。所以 **未通过门禁的代码不要进 `main`**；开发在分支上做，走 PR。
+- **推到 `main` 的代码提交（以及 `v*` 标签、手动 workflow_dispatch）会触发 CI：构建并签名 APK、上传工作流附件并创建 GitHub Release。** main 推送生成的 `build-<code>` 标签含连字符，会作为预发布，不替换稳定版 `latest`；无连字符的正式 `vX.Y.Z` 标签才标为 latest。v2.3 起 workflow 有 `paths-ignore`：只改 `docs/**`、`*.md`、测试截图（`test/human23/**`、`test/human_olaf/**`、`test/**/*.png`）、`art/gen/**` 的推送不触发（标签推送不受过滤）。所以 **未通过门禁的代码不要进 `main`**；开发在分支上做，走 PR。
 - 版本：`versionName` = `VERSION` 文件（打 `v*` 标签时用标签名），`versionCode` = 100 + run_number；非标签构建发布为 `build-<code>`。
 - **发版步骤（2.3.0 就是这样发的）**：门禁全过 → 把开发分支 `--no-ff` 合进 `main`（不 force）→ 改 `VERSION` → 推 main（出一个 build-N）→ 等它绿了再推标签 `vX.Y.Z`（出正式 Release 并标 latest）→ 下载两个 APK 用 `apksigner verify --print-certs` 和 `aapt dump badging` 核对证书/versionName/versionCode → 更新 README/PROGRESS/ROADMAP。
 - 签名**只在 CI 里做**：密钥在仓库 **Secrets**（`ANDROID_KEYSTORE_B64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`），**不在代码里，永远不要把 keystore 提交进 git**（`.gitignore` 已排除）。CI 会校验证书 SHA-256 `436bf922…29dc`，与 v1/v2 不一致就失败（保证玩家能覆盖安装、存档保留）。

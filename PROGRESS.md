@@ -1,4 +1,4 @@
-# 我不仙 进度清单（断点续做用；最新发布：v2.3.0；v2.5 工作基线：main `3baa83f`，2026-10-10）
+# 我不仙 进度清单（断点续做用；稳定版：v2.3.0；v2.5 阶段1/2合并：`61d2eba`；CI build-153，2026-10-10）
 
 > 规则：每轮工作结束都更新本文件和 `docs/ROADMAP.md` 的状态（做完什么、卡在哪、下一步）。
 
@@ -101,14 +101,19 @@
 - [x] 新增即时遭遇战原型占位 `www/js/battle_realtime_prototype.js`（可导出 RealtimeBattle，后续接入移动/技能/弹道）
 - [x] 建分支 `openworld-wip`，从最新已核实 `main` `3baa83f` 开出；分支起点工作区干净
 - [x] 阶段 1：离线低模资产/预览、Blend 与静态几何检查完成；玛丽卡已按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收。仅签收离线资产，不代表实机/触控/盲测/设备验证，也不接入正式运行链。
-- [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已验证移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害、胜败重试和返回练习地图。2026-10-10 CDP合成触摸复测 8/8 PASS、0 FAIL、退出码0，pageerror/console.error/HTTP错误均为0；日志和胜利图为 `test/results/encounter-stage2-20261010T1458-touch.log`、`test/results/encounter-stage2-20261010T1458-touch-win.png`，本次回环入口 `http://127.0.0.1:41103/prototypes/encounter/`。测试用 `Input.dispatchTouchEvent` 合成触摸事件，不是实体触屏或Android真机；正式地图未接入，待玛丽卡按阶段2最终提交SHA独立签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
+- [x] 阶段 2（已签收并合并）：隔离浏览器练习场 `www/prototypes/encounter/` 包含移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害、胜败重试和返回练习地图。最终提交 `574ccede7ef8a730c8e9dd697dbd1be52828f372` 已按主人授权合入远端 `main`，合并提交 `61d2eba96e57a5655996eb93f8c9887dd665c77d`。2026-10-10 精确快照 CDP 合成触摸复测 8/8 PASS、0 FAIL，pageerror/console.error/HTTP错误均为0；非实体触屏或真机，正式地图/战斗/存档未接入。
 - [ ] 阶段 3（阶段 2 单独验收后）：做一条可测的奇遇选择闭环，至少覆盖 NPC 态度与债务后果；先复用现有状态，任何正式游戏接线另行小步验证
-- 2026-10-10 14:59 +08复核：阶段2仍待独立签收时，工作区有未提交的 `www/js/events22.js`、`www/js/game.js` 赊丹草稿及未跟踪测试 `test/v25_credit_encounter.py`，均未执行。最新草稿让部分还款后保留未结标记、余额归零时关闭，并以 `debt>0` 控制下一年度催收；延期继续留在催收链，拒付则结束财神直接催收并宣称转入天道总账。该行为与上一条14:52观察相比已调整，但未测试；不得计作阶段3完成，也不得在阶段2独立验收前接入正式流程。
+- 2026-10-10 14:59 +08 历史记录（当时阶段2尚待签收）：隔离工作区有阶段3赊丹草稿和未跟踪测试；这些债务事件/代码及后续 WIP 改动没有包含在本次合并中，阶段3仍未验收、未合入 main。
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
-### 当前优先（v2.5+ 阶段 2）
+### 当前状态与下一步（v2.5+）
 - [x] 阶段 1 已由玛丽卡按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收，范围仅为离线资产。真实点按、5人盲测、运行时/设备验证、正式游戏接入、APK/Android/真机均未做。
-- [~] 阶段 2 CDP合成触摸单实例复测：8 PASS/0 FAIL、退出码0，浏览器和HTTP错误均为0；完整日志/胜利截图见 `test/results/encounter-stage2-20261010T1458-touch.log` 与同目录 `encounter-stage2-20261010T1458-touch-win.png`。这是浏览器合成触摸，不是实体设备；仍待阶段2最终提交的玛丽卡独立签收。
+- [x] 阶段 2 最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372` 已签收并合入 main（merge `61d2eba`）；新鲜 CDP 合成触摸复测 8/8，错误 0。原型是独立练习页，不是正式游戏流程。
+- [x] GitHub Actions [run 38041626827](https://github.com/xiemingxin1145/wobuxian/actions/runs/38041626827) 成功，发布预发布 [build-153](https://github.com/xiemingxin1145/wobuxian/releases/tag/build-153)；稳定版 `latest` 仍是 `v2.3.0`。APK：HD `278,378,225 B`，lite `47,716,509 B`；相对上一稳定包分别增加 `37,164 B`。CI 同一证书校验通过；HD APK 在 API 30/34 模拟器安装并启动。
+- API 30/34 自动试玩约 120 秒，分别有 15/14 条 `WBXBOT` 进度，无 `WBXERR`、游戏进程 FATAL/ANR；API 34 截图可见系统 `Pixel Launcher isn't responding` 弹窗，游戏画面仍在其后推进，API 30 截图无此弹窗。模拟器测试不等同实体设备；lite APK 本轮仅构建/签名校验，未在模拟器安装。
+- 体积边界：Git 新增约 `3,103,143 B`，大部分为 `art/prototypes/` 离线资产，不进入 APK；真正加入 `www/` 的独立原型源文件共 `36,068 B`，APK 实测净增 `37,164 B`。阶段1模型仍未接入正式游戏。
+- 本次只验收阶段1/2，不代表全游戏发布门禁通过；Issue #5 仍未解决（详见下表），也未重跑完整 human_olaf/human23 门禁。新 APK 属预发布，不替换稳定版 `latest`。
+- [ ] 阶段 3 债务奇遇闭环：仍在隔离开发工作区，未验收、未合并；不要把其债务事件/代码带入 main。
 - [ ] Issue #5 保持未解决：本轮 T4=1/20；T9 为 1 次失败 + 4 次开发者辅助下的连续单次成功，仍未达到连续 5 次且不是无辅助流程；目标仍是 T4≥18/20 与 T9 连续 5 次成功，不能用历史 9/20 或辅助跑替代验收。
 
 ### 后续产品清单（不与上述阶段并行）

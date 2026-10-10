@@ -1,7 +1,7 @@
 # 《我不仙》路线图 ROADMAP（全局视图）
 
 > 写给任何接手的 AI 工具或开发者。入口是仓库根的 `AGENTS.md`（规则、命令、门禁）；本文是**全局**：故事、现状、待办、已知问题、交接方法。逐项进度看 `PROGRESS.md`。
-> 更新：2026-10-10（UTC+8）。**最新正式发布仍为 v2.3.0**（tag `v2.3.0` = `362172f`，CI build 151）；当前 `main` = `3baa83f`，当前隔离开发分支 `openworld-wip` 基于该主线。GitHub Issue #5 仍开放；T4/T9 最新有记录的结果见 §4。
+> 更新：2026-10-10（UTC+8）。稳定版仍为 v2.3.0（tag `v2.3.0` = `362172f`，CI build 151）。v2.5 阶段 1/2 合并提交 `61d2eba` 已进入 `main`；CI build-153 成功并作为预发布发布，未替换稳定版 `latest`。两个 APK 大小及模拟器边界见 `PROGRESS.md`。GitHub Issue #5 仍开放；T4/T9 最新有记录的结果见 §4。
 > 约定：✅ 已上线（在已发布 APK 里）· 🟡 已在开发分支完成但未合并/发布 · 🔧 进行中 · ⬜ 未开始 · ⚠ 待核实。
 > **每次工作结束更新本文“状态”列和 `PROGRESS.md`。**
 
@@ -69,7 +69,7 @@
 | 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
-| v2.5+ | 🔧 `openworld-wip`：阶段 1 已签收（仅离线资产）；阶段 2 隔离遭遇战原型进行中 | 阶段 1 由玛丽卡按精确提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收；签收仅覆盖离线模型/预览，不覆盖真实点按、5人盲测、设备/DPR、游戏接入、APK/Android/真机。阶段 2 在 `www/prototypes/encounter/` 独立实现移动、普攻/雷击、闪避、敌方预警/弹道、受伤、胜败重试/返回地图；无并发单实例 Chromium 测试8/8通过、退出码0，pageerror/console.error/HTTP错误均为0，逐项日志和胜利截图见 `test/results/encounter-stage2-20261010T1434.log` 与同目录PNG（摇杆为鼠标模拟指针拖动，非真实触控）。保持正式地图和 `www/js/battle_realtime_prototype.js` 不动，Boss/剧情战继续回合制；阶段2最终 SHA 独立签收待办。阶段 3 尚未开始；每阶段独立测试/提交，当前不改 `main`、不合并、不发布。 |
+| v2.5+ | 🟡 阶段 1/2 已签收并合入 `main`（合并提交 `61d2eba`）；阶段 3 未验收、未合并 | 阶段 1 仅是离线低模模型/预览，没有导入正式游戏资源；阶段 2 为 `www/prototypes/encounter/` 独立浏览器练习页，主人已签收最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372`。精确快照 CDP 合成触摸复测 8/8，浏览器/page/console/HTTP 错误 0；不是实体触屏或真机，也没有接入正式地图/战斗/存档。CI build-153 成功：HD APK 278,378,225 B、lite APK 47,716,509 B；相对 v2.3.0 稳定包各增加 37,164 B。HD APK 在 API 30/34 模拟器安装启动，自动试玩有推进；API 34 截图出现 Android 系统 Pixel Launcher 无响应对话框，游戏进程本身无 FATAL/ANR/JS 错误。预发布不替换稳定版 latest。未验收的阶段 3 债务事件代码仍在隔离工作区，未合入 `main`。 |
 
 **下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 
@@ -151,7 +151,7 @@
 | 3 | human_olaf：T4 游走 NPC 点按、T9 自动任务重试验收未完成 | [GitHub Issue #5](https://github.com/xiemingxin1145/wobuxian/issues/5) 于 `2026-10-10 14:11:36 +08` 刷新核验仍为 OPEN；API `updated_at=2026-10-10T04:25:19Z`，共 1 条评论，最新评论[永久链接](https://github.com/xiemingxin1145/wobuxian/issues/5#issuecomment-6093743735)。该公开记录含历史 T4=9/20、T9 单次约 13 秒推进 4→5。随后本地独立复测（证据见 `PROGRESS.md`）为 T4=1/20、T9-1 失败后 T9-2 至 T9-5 连续 4 次成功，但均使用开发者辅助；未达连续 5 次，也不是无辅助验收。公开 Issue 尚未记录这轮复测。 | ⬜ 2.3.1；不得记作已解决 |
 | 4 | PR #3（human_olaf 门禁）在 GitHub 上仍 OPEN，目标 main；但已在 v23-wip 本地合并（`4af1fd2`） | GitHub | ⬜ 合并 v2.3 时一并处理 |
 | 5 | 精简版不在 latest Release 上 | gh release view | ✅ 2.3.0 起每个 Release 都带 HD+lite |
-| 6 | 每次推 main（含纯文档）都会发一个新 build 给玩家；README 写的安装包 214MB 已过时（实际约 275MB） | build.yml、Release | 🟡 v23-wip 的 workflow 已加 `paths-ignore`（docs/**、*.md、测试截图、art/gen/**）；README 体积待更新 |
+| 6 | main 代码推送会生成 build 编号预发布包；仅正式版本标签更新稳定版 latest | build.yml、build-153 Release | 🟡 `paths-ignore` 忽略纯文档/测试截图等改动；README 的历史安装包体积仍待更新 |
 | 7 | 渡劫/飞升没有章节，最终 BOSS 化神可打 | research_v22 §0 | ⬜（P1 #7） |
 | 8 | content22.js 缺素材时静默删除 NPC/地图 | design_feedback_v23 §A.7 | ⬜ |
 | 9 | AI 生成插画的工具/授权未在 CREDITS.md 登记 | CREDITS.md | ✅ 已登记 |
