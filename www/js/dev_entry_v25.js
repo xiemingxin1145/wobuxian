@@ -1,5 +1,5 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗
 
 (function () {
   function addEntry() {
@@ -33,13 +33,24 @@
       if (window.UI && UI.hud) UI.hud();
     };
     document.body.appendChild(eqBtn);
+
+    // 即时战斗按钮
+    const rtBtn = document.createElement('button');
+    rtBtn.id = 'v25-rt';
+    rtBtn.textContent = '即时战';
+    rtBtn.style.cssText = 'position:fixed;right:12px;bottom:220px;z-index:9999;padding:8px 14px;background:#2a5a3a;color:#b0ffb0;border:1px solid #b0ffb0;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    rtBtn.onclick = async () => {
+      if (window.RealtimeBattle) {
+        await RealtimeBattle.start();
+      }
+    };
+    document.body.appendChild(rtBtn);
   }
 
   function giveFullGodGear() {
     const G = Game.G;
     if (!G.eqs) G.eqs = [];
     if (!G.eq) G.eq = {};
-    // 简单生成高品装备占位（实际结构按游戏现有装备系统调整）
     const slots = ['weapon', 'armor', 'acc1', 'acc2', 'treasure'];
     slots.forEach((slot, i) => {
       const eq = {
