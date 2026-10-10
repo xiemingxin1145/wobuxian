@@ -53,5 +53,6 @@ const GACHA = g('GACHA'), MOUNTS = g('MOUNTS'), COSTUMES = g('COSTUMES');
 for (const t in GACHA.pool) for (const [k, a] of GACHA.pool[t]) { if (k === 'mount' && !MOUNTS[a]) errs.push('gacha mount ' + a); if (k === 'cos' && !COSTUMES[a]) errs.push('gacha cos ' + a); if (k === 'pet' && a !== 'rand' && !PET_SKILL[a]) errs.push('gacha pet ' + a); }
 for (const k in MOUNTS) if (!sprOK(MOUNTS[k].spr)) errs.push(`mount ${k} spr ${MOUNTS[k].spr}`);
 const CG_OF = g('CG_OF') || {}; for (const k in CG_OF) if (!fs.existsSync(path.join(W, 'assets/cg', CG_OF[k] + '.webp'))) errs.push('cg missing ' + CG_OF[k]);
+{ const D = g('ASSET_DROPPED') || ctx.ASSET_DROPPED || []; if (D.length) errs.push('asset-guard dropped: ' + D.join(', ')); }
 console.log(JSON.stringify({ events: EVENTS.length, events_v22: n22, quests: Object.keys(QUESTS).length, npcs: Object.keys(NPCS).length, mons: Object.keys(MONS).length, maps: MAP_ORDER.length, chapters: MAIN.map(m => m.n), errors: errs }, null, 1));
 process.exit(errs.length ? 1 : 0);

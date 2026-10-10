@@ -42,6 +42,27 @@ jobs:
           echo "name=$NAME" >> $GITHUB_OUTPUT; echo "code=$CODE" >> $GITHUB_OUTPUT; echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "versionName=$NAME versionCode=$CODE tag=$TAG"
 
+      - name: 还原签名密钥（与 v1/v2 相同的 keystore）
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "::error::缺少 ANDROID_KEYSTORE_B64 secret"; exit 1; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/wbx.keystore"
+          echo "WBX_KEYSTORE=$RUNNER_TEMP/wbx.keystore" >> $GITHUB_ENV
+
+      - name: 构建精简版 APK（仓库内 SD 资源，同一签名）→ wobuxian-lite.apk
+        env:
+          WBX_VERSION_NAME: ${{ steps.ver.outputs.name }}
+          WBX_VERSION_CODE: ${{ steps.ver.outputs.code }}
+          WBX_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          WBX_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          WBX_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GRADLE: gradle
+        run: |
+          grep -o '"profile":"[a-z]*"' www/assets/assets.json
+          ./build.sh
+          mv wobuxian.apk wobuxian-lite.apk
+
       - name: 下载高清资源包（release assets-hd，按 hd-assets.json 校验后覆盖 www/assets）
         env:
           GH_TOKEN: ${{ github.token }}
@@ -56,15 +77,7 @@ jobs:
             echo "::warning::没有 hd-assets.json，使用仓库内的轻量资源构建"
           fi
 
-      - name: 还原签名密钥（与 v1/v2 相同的 keystore）
-        env:
-          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
-        run: |
-          if [ -z "$KS_B64" ]; then echo "::error::缺少 ANDROID_KEYSTORE_B64 secret"; exit 1; fi
-          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/wbx.keystore"
-          echo "WBX_KEYSTORE=$RUNNER_TEMP/wbx.keystore" >> $GITHUB_ENV
-
-      - name: 构建 APK
+      - name: 构建高清版 APK → wobuxian.apk，并校验两个 APK 的签名
         env:
           WBX_VERSION_NAME: ${{ steps.ver.outputs.name }}
           WBX_VERSION_CODE: ${{ steps.ver.outputs.code }}
@@ -74,15 +87,22 @@ jobs:
           GRADLE: gradle
         run: |
           ./build.sh
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs wobuxian.apk | tee certs.txt
-          grep -qi "436bf9221c08db212a13a9e8d64459f27cca9777223b7c21480fb33ce7ef29dc" certs.txt || { echo "::error::签名证书与 v1/v2 不一致"; exit 1; }
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging wobuxian.apk | head -1
+          for A in wobuxian.apk wobuxian-lite.apk; do
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$A" | tee certs.txt
+            grep -qi "436bf9221c08db212a13a9e8d64459f27cca9777223b7c21480fb33ce7ef29dc" certs.txt || { echo "::error::$A 签名证书与 v1/v2 不一致"; exit 1; }
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$A" | head -1; ls -la "$A"
+          done
           rm -f "$WBX_KEYSTORE"
 
       - uses: actions/upload-artifact@v4
         with:
           name: wobuxian-apk
           path: wobuxian.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wobuxian-lite-apk
+          path: wobuxian-lite.apk
 
       - name: 发布到 GitHub Release（latest）
         env:
@@ -93,13 +113,15 @@ jobs:
           versionName: $NAME
           versionCode: $CODE
 
-          下载：https://github.com/${{ github.repository }}/releases/latest/download/wobuxian.apk
+          高清版：https://github.com/${{ github.repository }}/releases/latest/download/wobuxian.apk
+          精简版（标清资源，国内下载更快）：https://github.com/${{ github.repository }}/releases/latest/download/wobuxian-lite.apk
+          两个版本签名相同，可互相覆盖安装。
           可直接覆盖安装旧版本，存档保留。"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" wobuxian.apk --clobber
+            gh release upload "$TAG" wobuxian.apk wobuxian-lite.apk --clobber
             gh release edit "$TAG" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" wobuxian.apk --title "我不仙 v$NAME (build $CODE)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
+            gh release create "$TAG" wobuxian.apk wobuxian-lite.apk --title "我不仙 v$NAME (build $CODE)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
           fi
 
   # 在 GitHub 托管的 x86_64 模拟器（KVM + swiftshader，无窗口）中安装并启动 APK，检查崩溃与 JS 报错

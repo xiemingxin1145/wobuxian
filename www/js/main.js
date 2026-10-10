@@ -98,7 +98,7 @@ window.BOT = {
       const jy = R.marks.find(m => m.act === 'jiyuan' && !m.hidden); if (jy) { Game.interactMark(jy); return 'jiyuan'; }
     }
     // 主线
-    const mainE = R.ents.find(e => (e.kind === 'npc' || e.kind === 'boss') && (e.mark === '!' || e.mark === '?') && (e.kind === 'boss' ? G.realm >= MAIN[G.main].realm : true) && !(this.talked || {})[e.id + G.year]);
+    const mainE = R.ents.find(e => (e.kind === 'npc' || e.kind === 'boss') && (e.mark === '!' || e.mark === '?' || e.mark === '★') && (e.kind === 'boss' ? G.realm >= MAIN[G.main].realm : true) && !(this.talked || {})[e.id + G.year]);
     if (mainE) { (this.talked = this.talked || {})[mainE.id + G.year] = 1; P.i = mainE.i; P.j = mainE.j + 1; Game.interactEnt(mainE); return 'talk:' + mainE.id; }
     if (!G.sect && G.flags.awakened && G.realm >= 1) { if (R.mapId !== 'sect' && G.ap > 0) { Game.travel('sect'); return 'go sect'; } const el = R.ents.find(e => e.id === 'elder'); if (el && !(this.talked || {})['join' + G.year]) { this.talked['join' + G.year] = 1; Game.interactEnt(el); return 'join'; } }
     const s = Game.stats();
@@ -117,7 +117,7 @@ window.BOT = {
 };
 boot();
 // ======================= 设备端自动试玩（CI 模拟器冒烟测试用：index.html#bot） =======================
-if (location.hash === '#bot') (async () => {
+if (location.hash.includes('bot')) (async () => {
   window.onerror = (m, s, l) => { console.error('WBXERR ' + m + ' @' + s + ':' + l); };
   addEventListener('unhandledrejection', e => console.error('WBXERR rej ' + ((e.reason && e.reason.stack) || e.reason)));
   const sleep = ms => new Promise(r => setTimeout(r, ms)); const q = s => document.querySelector(s);

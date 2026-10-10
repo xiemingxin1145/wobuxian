@@ -37,8 +37,8 @@ async def main():
             o = pg.locator('#modals .opt').first
             if await o.count(): await o.tap(); await pg.wait_for_timeout(500)
         await pg.wait_for_timeout(1500)
-        # 清空地图上的 NPC/怪物，避免触发对话/战斗干扰测量；关闭过场
-        await pg.evaluate("()=>{R.ents=R.ents.filter(e=>e===R.player);R.marks.forEach(m=>m.hidden=true);document.querySelectorAll('.chapter-fx').forEach(e=>e.click())}")
+        # v2.3：不再删除 NPC（以前删掉 NPC 会掩盖“点不到 NPC”的问题）。只让 NPC/怪原地不动、怪暂不接战，保证摇杆/点地测量稳定；关闭过场
+        await pg.evaluate("()=>{R.ents.forEach(e=>{if(e===R.player)return;e.path=[];e.wt=1e9;if(e.kind==='npc')e.talking=1e9;if(e.kind==='mon')e.cool=1e9});document.querySelectorAll('.chapter-fx').forEach(e=>e.click())}")
         await pg.wait_for_timeout(800)
         # 找一个四周 3 格都可走的中心点
         center = await pg.evaluate("()=>{let best=null;for(let j=2;j<R.n-2;j++)for(let i=2;i<R.n-2;i++){if(!walkable(i,j))continue;let c=0;for(let dj=-3;dj<=3;dj++)for(let di=-3;di<=3;di++)if(walkable(i+di,j+dj))c++;if(!best||c>best[2])best=[i,j,c]}return best.concat([R.mode,R.player.speed])}")

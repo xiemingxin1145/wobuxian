@@ -1,0 +1,68 @@
+[
+ {
+  "step": "1 新开一局",
+  "ok": true,
+  "note": "郝无名 凡人·锻体一层 6岁 / 寿80 150/160 0/80",
+  "shot": "/workspace/game/test/human23/01_new_game.png"
+ },
+ {
+  "step": "2 跟着指引点主线目标",
+  "ok": true,
+  "note": "指引在(344,276)，点指引下方的★标记 → 讨债的来了",
+  "shot": "/workspace/game/test/human23/03_tapped_target.png"
+ },
+ {
+  "step": "3 序章：打跑讨债史莱姆",
+  "ok": true,
+  "note": "战斗=True 卡片='' 追踪栏='任务\\n自动\\n主·剑仙路过\\n找落魄剑仙\\n前往▶\\n附近有 1 个委托（！）\\n路人甲有'",
+  "shot": "/workspace/game/test/human23/04_prologue_done.png"
+ },
+ {
+  "step": "4 追踪栏寻路→剑仙对话→测灵根",
+  "ok": true,
+  "note": "对话='落魄剑仙' 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n附近有 1 个委托（！）\\n路人甲有委托\\n前往▶'",
+  "shot": "/workspace/game/test/human23/06_awakened.png"
+ },
+ {
+  "step": "5 「对话」交互按钮",
+  "ok": true,
+  "note": "对话落魄剑仙",
+  "shot": "/workspace/game/test/human23/07_actbtn_dialog.png"
+ },
+ {
+  "step": "6 接受支线任务",
+  "ok": true,
+  "note": "！娘的灵草汤 | 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n支·路人甲的名字\\n乱葬岗需要筑基\\n修炼\\n支·娘的灵草汤\\n这里的药采'",
+  "shot": "/workspace/game/test/human23/08_quest_accepted.png"
+ },
+ {
+  "step": "7 寻路完成并交付支线",
+  "ok": false,
+  "note": "仙缘符+1",
+  "shot": "/workspace/game/test/human23/10_quest_done.png"
+ },
+ {
+  "step": "8 挂机",
+  "ok": true,
+  "note": "'挂机中\\n\\n0:52 · 20岁 练气初期 · 击败 1 · 灵石 +8' | ['郝无名', '练气初期', '19岁 / 寿140'] → ['郝无名', '练气初期', '20岁 / 寿140'] | 总结='挂机总结'",
+  "shot": "/workspace/game/test/human23/12_afk_progress.png"
+ },
+ {
+  "step": "9 开发者面板",
+  "ok": false,
+  "note": "开启前无🛠=True",
+  "shot": "/workspace/game/test/human23/15_dev_panel.png"
+ },
+ {
+  "step": "10 切换地图",
+  "ok": true,
+  "note": "前往 青云宗 → 当前所在 '青云宗'",
+  "shot": "/workspace/game/test/human23/17_map_switched.png"
+ },
+ {
+  "step": "无 JS 错误",
+  "ok": true,
+  "note": "",
+  "shot": null
+ }
+]

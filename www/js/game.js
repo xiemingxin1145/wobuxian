@@ -427,7 +427,7 @@ const Game = {
     for (const id in NPCS) {
       const N = NPCS[id]; if ((N.roam ? N.roam(G) : N.map) !== R.mapId) continue;
       if (N.minAge && G.age < N.minAge) continue; if (N.minRealm && G.realm < N.minRealm) continue;
-      if (id === 'mentor' && !G.flags.main1) continue;
+      if (id === 'mentor' && !G.flags.main0) continue; // v2.3：打跑讨债史莱姆后剑仙就出现（以前要等到 10 岁）
       if (G.follower === id) continue;
       const [i, j] = nearestWalk(N.at[0], N.at[1]);
       const e = addEnt({ kind: 'npc', id, spr: N.spr, i: i + 0.5, j: j + 0.5, dir: 'S', label: N.n, s: N.spr.startsWith('mon_') ? 0.95 : 1, home: [i, j], ai: npcAI });
@@ -509,7 +509,7 @@ function monAI(e, dt) {
   if (e.gone) return; const P = R.player; if (!P) return;
   if (e.cool > 0) { e.cool -= dt; }
   const d = Math.hypot(e.i - P.i, e.j - P.j);
-  if (d < 0.95 && !(e.cool > 0) && !UI.modal && !Game._busy) { P.path = []; Game.monBattle(e); return; }
+  if (d < 0.95 && !(e.cool > 0) && !UI.modal && !Game._busy && !(P.safeWalk && P.path && P.path.length)) { /* v2.3：去找 NPC 的路上不被闲逛怪截胡 */ P.path = []; Game.monBattle(e); return; }
   if (P.chase === e && d < 1.7 && !UI.modal && !Game._busy) { P.path = []; P.chase = null; Game.monBattle(e); return; }
   e.wt = (e.wt || rnd(1, 4)) - dt;
   if (e.wt <= 0) { e.wt = rnd(2, 5); const [i, j] = e.home; const ti = i + ri(-3, 3), tj = j + ri(-3, 3); if (walkable(ti, tj)) moveTo(e, ti, tj); }

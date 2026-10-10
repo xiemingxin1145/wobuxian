@@ -11,7 +11,8 @@ GRADLE_ABS="${GRADLE:-$(command -v gradle || echo "$PWD/tools/gradle-8.9/bin/gra
 export WBX_VERSION_NAME="${WBX_VERSION_NAME:-$(cat VERSION)}"
 export WBX_VERSION_CODE="${WBX_VERSION_CODE:-3}"
 if [ "${1:-}" = "assets" ]; then python3 tools/build_assets.py "$PWD/www"; fi
-printf "// 由 build.sh / CI 自动生成：当前版本号（用于检查更新）\nwindow.APP_VERSION = { name: '%s', code: %s };\n" "$WBX_VERSION_NAME" "$WBX_VERSION_CODE" > www/js/version.js
+PROFILE=$(grep -o '"profile":"[a-z]*"' www/assets/assets.json 2>/dev/null | cut -d'"' -f4 || true)
+printf "// 由 build.sh / CI 自动生成：当前版本号（用于检查更新）；lite=标清资源包，更新时下载 wobuxian-lite.apk\nwindow.APP_VERSION = { name: '%s', code: %s, lite: %s };\n" "$WBX_VERSION_NAME" "$WBX_VERSION_CODE" "$([ "$PROFILE" = sd ] && echo true || echo false)" > www/js/version.js
 rm -rf android/app/src/main/assets/www && mkdir -p android/app/src/main/assets/www
 cp -r www/* android/app/src/main/assets/www/
 (cd android && "$GRADLE_ABS" assembleRelease --no-daemon -q)

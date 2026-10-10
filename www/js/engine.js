@@ -62,7 +62,7 @@ function initEngine(cv) {
   R.cloudImg = c;
   setupInput();
   let last = performance.now();
-  const loop = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now; R.t += dt; try { if (!R.paused) update(dt); render(); } catch (e) { console.error(e); } requestAnimationFrame(loop); };
+  const loop = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now; R.t += dt; try { if (!R.paused) update(dt * (R.ts || 1)); render(); } catch (e) { console.error(e); } requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
 }
 // 坐标换算
@@ -121,7 +121,7 @@ function moveTo(e, ti, tj, cb) {
   const si = Math.floor(e.i), sj = Math.floor(e.j);
   if (!walkable(ti, tj)) [ti, tj] = nearestWalk(ti, tj);
   const p = findPath(si, sj, ti, tj); if (!p) { cb && cb(false); return false; }
-  e.path = p; e.onArrive = cb; return true;
+  e.path = p; e.onArrive = cb; if (!p.length) { e.onArrive = null; cb && cb(true); } return true; // v2.3：已在目标格时立即回调
 }
 function stepEnt(e, dt) {
   if (e.path && e.path.length) {
@@ -231,8 +231,17 @@ function render() {
   for (const e of R.ents) {
     if (e.hidden || !e.label) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s);
     const ty = y - b.h - 6 - (e.lift || 0);
-    ctx.font = 'bold 22px WBXKai,sans-serif'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(e.label, x, ty); ctx.fillStyle = e.lc || '#fff'; ctx.fillText(e.label, x, ty);
-    if (e.mark) { const by = ty - 30 + Math.sin(R.t * 4) * 5; ctx.font = 'bold 40px WBXKai,sans-serif'; ctx.strokeText(e.mark, x, by); ctx.fillStyle = e.mark === '!' ? '#ffd23a' : e.mark === '?' ? '#7affb0' : '#ff6a6a'; ctx.fillText(e.mark, x, by); }
+    const big = e.kind === 'npc' || e.kind === 'boss'; const fs = big ? 30 : 22; // v2.3：NPC 名字更大、带底牌，可点
+    ctx.font = `bold ${fs}px WBXKai,sans-serif`;
+    if (big) { const tw = ctx.measureText(e.label).width + 22; ctx.fillStyle = e.kind === 'boss' ? 'rgba(90,20,10,0.72)' : 'rgba(20,14,8,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - tw / 2, ty - fs - 2, tw, fs + 12, 12) : ctx.rect(x - tw / 2, ty - fs - 2, tw, fs + 12); ctx.fill(); }
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(e.label, x, ty); ctx.fillStyle = e.lc || '#fff'; ctx.fillText(e.label, x, ty);
+    if (e.mark) { // 任务标记：金色“！”= 有新任务/主线，绿色“？”= 可交付
+      const sm = e.mark === '💬' || e.mark === '…'; const rr = sm ? 17 : 26;
+      const by = ty - fs - (sm ? 24 : 34) + Math.sin(R.t * 4) * (sm ? 2 : 6), col = { '!': '#ffcf2a', '★': '#ffd23a', '?': '#5af09a', '…': '#c8c8c8', '💬': 'rgba(255,255,255,0.75)' }[e.mark] || '#ff6a6a';
+      if (e.mark === '★') { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,210,60,${0.18 + 0.12 * Math.sin(R.t * 6)})`; ctx.fillRect(x - 4, y - 200, 8, 200); ctx.restore(); }
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(x, by + 3, rr + 1, 0, 7); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, by, rr, 0, 7); ctx.fill(); ctx.lineWidth = sm ? 2 : 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.font = `bold ${sm ? 22 : 40}px WBXKai,sans-serif`; ctx.fillStyle = '#3a1a00'; ctx.fillText({ '!': '！', '?': '？' }[e.mark] || e.mark, x, by + (sm ? 8 : 14)); }
   }
   // 交互点
   for (const m of R.marks) {
@@ -289,17 +298,24 @@ function makeBolt(x0, y0, x1, y1, life = 0.35) {
 }
 // ======================= 输入 =======================
 function setupInput() {
+  // v2.3：左下区域按下只是“摇杆候选”，移动 ≥8 CSS px 才变成摇杆；没动就当普通点按（以前整块区域吞掉点击）
   const cv = R.cv; R.joy = { active: false, dx: 0, dy: 0 }; R.showJoy = true;
-  let down = null;
+  let down = null, cand = null;
   cv.addEventListener('pointerdown', e => {
     const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
-    if (R.mode === 'map' && R.showJoy && x < R.W * 0.4 && y > R.H * 0.62) { R.joy = { active: true, ox: x, oy: y, dx: 0, dy: 0, id: e.pointerId }; cv.setPointerCapture(e.pointerId); return; }
+    if (R.mode === 'map' && R.showJoy && x < R.W * 0.4 && y > R.H * 0.62) { cand = { id: e.pointerId, ox: x, oy: y, t: performance.now() }; try { cv.setPointerCapture(e.pointerId); } catch (er) { } return; }
     down = { x, y, t: performance.now() };
   });
-  cv.addEventListener('pointermove', e => { if (R.joy.active && e.pointerId === R.joy.id) { R.joy.dx = e.clientX * R.dpr - R.joy.ox; R.joy.dy = e.clientY * R.dpr - R.joy.oy; } });
+  cv.addEventListener('pointermove', e => {
+    const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
+    if (cand && e.pointerId === cand.id && !R.joy.active && Math.hypot(x - cand.ox, y - cand.oy) >= 8 * R.dpr) { R.joy = { active: true, ox: cand.ox, oy: cand.oy, dx: 0, dy: 0, id: cand.id }; if (R.onJoy) R.onJoy(); }
+    if (R.joy.active && e.pointerId === R.joy.id) { R.joy.dx = x - R.joy.ox; R.joy.dy = y - R.joy.oy; }
+  });
   const up = e => {
-    if (R.joy.active && e.pointerId === R.joy.id) { R.joy.active = false; R.joy.dx = R.joy.dy = 0; return; }
-    if (!down) return; const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
+    const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
+    if (R.joy.active && e.pointerId === R.joy.id) { R.joy.active = false; R.joy.dx = R.joy.dy = 0; cand = null; return; }
+    if (cand && e.pointerId === cand.id) { const c = cand; cand = null; if (e.type === 'pointerup' && Math.hypot(x - c.ox, y - c.oy) < 8 * R.dpr && performance.now() - c.t < 600 && R.onTap) R.onTap(x, y); return; }
+    if (!down) return;
     if (Math.hypot(x - down.x, y - down.y) < 30 * R.dpr && R.onTap) R.onTap(x, y);
     down = null;
   };

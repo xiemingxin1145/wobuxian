@@ -2,7 +2,7 @@
 // 启动时检查 GitHub 最新发布版本；离线或出错时静默失败
 const Updater = {
   REPO: 'xiemingxin1145/wobuxian',
-  URL: 'https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk',
+  get URL() { return 'https://github.com/xiemingxin1145/wobuxian/releases/latest/download/' + (window.APP_VERSION && APP_VERSION.lite ? 'wobuxian-lite.apk' : 'wobuxian.apk'); },
   parse(rel) {
     const t = (rel.body || '') + ' ' + (rel.name || '');
     const m = t.match(/versionCode[:：=\s]*(\d+)/i); const n = t.match(/versionName[:：=\s]*([\d.]+)/i) || (rel.tag_name || '').match(/(\d+\.\d+\.\d+)/);
