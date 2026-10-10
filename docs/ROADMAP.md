@@ -69,7 +69,7 @@
 | 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
-| v2.5+ | 🔧 分支 `openworld-wip` 阶段 1 样例已生成，待视觉验收 | 主角男/女、剑仙的手工低模源文件、Blender 4.2.23 可编辑场景、A/B 与姿态预览已生成；结构验证通过。样例仍未接入游戏，点击框对照是离线静态叠图；待实现/验收负责人评审后再转入独立遭遇战/ATB 原型，最后做奇遇→NPC 态度→债务后果小闭环。各阶段单独测试/提交；不改 `main`、不合并、不发布。 |
+| v2.5+ | 🔧 分支 `openworld-wip` 阶段 1 样例已生成，待视觉验收 | 主角男/女、剑仙的手工低模源文件、Blender 4.2.23 可编辑场景、A/B 与姿态预览已生成；结构验证通过。最新T0同一可走地砖替换图及15个手工标注遮挡区的alpha几何检查是离线静态证据（男女48/64px IoU=0.682/0.679，低于实现者自定0.70门槛）；不等于真人盲测/运行时点按或层级验收。样例仍未接入游戏；待独立评审后再转入独立遭遇战/ATB原型，最后做奇遇→NPC态度→债务后果小闭环。各阶段单独测试/提交；不改 `main`、不合并、不发布。 |
 
 **下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 

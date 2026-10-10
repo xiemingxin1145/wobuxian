@@ -1,37 +1,54 @@
 #!/usr/bin/env python3
-"""Verify full-scale offline sprite-frame bounds against T3 screenshot regions."""
+"""Check static T0 player-tile replacement alternatives; not runtime hit testing."""
 from preview_geometry import (
-    CANDIDATES, FRAME_H, FRAME_W, HOTSPOTS, MOCKUP_SCALE, R_Z, SAFE_MARGIN,
-    model_pixel_size, placement_geometry, validate_geometry,
+    BACKGROUND_CONTEXT,
+    CANDIDATES,
+    FRAME_H,
+    FRAME_W,
+    HOTSPOTS,
+    MOCKUP_SCALE,
+    PANEL_CROP,
+    R_Z,
+    SAFE_MARGIN,
+    FOOT_POINT,
+    model_pixel_size,
+    placement_geometry,
+    validate_geometry,
 )
 
 
 def main():
     result = validate_geometry()
-    hotspot_pairs = len(CANDIDATES) * len(HOTSPOTS)
-    candidate_pairs = len(CANDIDATES) * (len(CANDIDATES) - 1) // 2
-    sizes = model_pixel_size()
+    pair_count = len(CANDIDATES) * len(HOTSPOTS)
+    frame_size = model_pixel_size()
     print(
-        "RECTANGLE_CLEARANCE_PASS "
-        f"candidates={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
-        f"candidate_hotspot_pairs={hotspot_pairs} candidate_pairs={candidate_pairs} "
-        f"source_frame={FRAME_W}x{FRAME_H} rendered_frame={sizes[0]}x{sizes[1]} "
+        "STATIC_T0_PLACEMENT_PASS "
+        f"alternative_models={len(CANDIDATES)} same_screen_footpoint={FOOT_POINT} "
+        f"blockers={len(HOTSPOTS)} alpha_box_blocker_pairs={pair_count} "
+        f"full_source_frame={FRAME_W}x{FRAME_H} displayed={frame_size[0]}x{frame_size[1]} "
         f"mockup_scale={MOCKUP_SCALE:.2f}x R_Z={R_Z:.4f} "
-        f"required_clearance>={SAFE_MARGIN}px; runtime_taps=NOT_TESTED"
+        f"required_alpha_clearance>={SAFE_MARGIN}px runtime_taps=NOT_TESTED"
     )
+    print(f"PANEL_CROP={PANEL_CROP}; each full sprite frame has an 8px-or-greater crop margin")
     for candidate in CANDIDATES:
-        ident, title, _kind, _x, _y = candidate
-        box, sprite, tag = placement_geometry(candidate)
-        details = result[ident]
+        placement = placement_geometry(candidate)
+        details = result[placement["id"]]
+        pink_tree_gap = details["blocker_clearances"]["H15"]
         print(
-            f"{ident} {title}: box={box} sprite={sprite} label={tag} "
-            f"nearest_hotspot={details['nearest_hotspot']} "
-            f"hotspot_clearance={details['clearance_px']:.1f}px "
-            f"canvas_clearance={details['canvas_clearance_px']:.1f}px "
-            f"candidate_clearances={details.get('candidate_clearances', {})}"
+            f"{placement['id']} {placement['title']}: frame={placement['frame']} "
+            f"opaque_bbox={placement['visible']} alpha_safety_box={placement['safe']} "
+            f"nearest={details['nearest_blocker']} gap={details['clearance_px']:.1f}px "
+            f"pink_tree_gap={pink_tree_gap:.1f}px "
+            f"panel_frame_margin={details['panel_frame_clearance_px']}px "
+            f"background_context={details['background_context_overlap']}"
         )
+    print("--- conservatively marked T0 UI/NPC/foreground blocking regions ---")
     for hotspot_id, name, rect in HOTSPOTS:
         print(f"{hotspot_id} {name}: {rect}")
+    print("--- observed background-depth context (not a blocker) ---")
+    for bg_id, name, rect in BACKGROUND_CONTEXT:
+        print(f"{bg_id} {name}: {rect}")
+    print("NOTE: same-position alternatives replace the screenshot's existing player; no runtime coordinate, touch, depth-sort, Android, or blind-test claim.")
     return result
 
 

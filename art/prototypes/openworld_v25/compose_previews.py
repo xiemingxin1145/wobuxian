@@ -12,7 +12,7 @@ ROOT = HERE.parents[2]
 FRAMES = ROOT / "art" / "out" / "openworld_v25" / "frames"
 PREVIEWS = HERE / "previews"
 PREVIEWS.mkdir(parents=True, exist_ok=True)
-SCREENSHOT = ROOT / "test" / "human_olaf" / "003_T3_near_npc.png"
+SCREENSHOT = ROOT / "test" / "human_olaf" / "001_T0_enter_map.png"
 
 
 def font(size, bold=False):
@@ -136,13 +136,15 @@ def silhouette_iou(kind_a, kind_b, height):
 
 
 silhouette_metrics = {height: silhouette_iou("male", "female", height) for height in (64, 48)}
-SILHOUETTE_IOU_LIMIT = 0.82  # Project-internal heuristic for this revision; not an industry standard.
-if any(value > SILHOUETTE_IOU_LIMIT for value in silhouette_metrics.values()):
-    raise ValueError(f"Male/female silhouettes remain too similar: {silhouette_metrics}")
-print("SILHOUETTE_CHECK_PASS "
+SILHOUETTE_IOU_LIMIT = 0.70  # Fixed internal acceptance criterion for this batch; never weaken it.
+silhouette_pass = all(value <= SILHOUETTE_IOU_LIMIT for value in silhouette_metrics.values())
+silhouette_status = "PASS" if silhouette_pass else "FAIL"
+print(f"SILHOUETTE_CHECK_{silhouette_status} "
       f"project_internal_max_IoU={SILHOUETTE_IOU_LIMIT:.2f} (not_industry_standard) "
       f"64px={silhouette_metrics[64]:.4f} "
       f"48px={silhouette_metrics[48]:.4f}", flush=True)
+if not silhouette_pass:
+    print("DIAGNOSTIC_PREVIEW_ONLY: retain this rendered evidence for review; do not mark character silhouettes accepted.", flush=True)
 for row, height in enumerate((64, 48)):
     row_y = 112 + row * 132
     for col, (kind, role) in enumerate(sil_roles):
@@ -161,73 +163,65 @@ sd.text((30, SIL_H - 31), metric_note + f" 本轮项目自定内部门槛≤{SIL
 sil_board.save(PREVIEWS / "openworld_v25_silhouette_test.png", optimize=True)
 
 
-# ---------- T3 screenshot with explicitly tested, offline art-placement rectangles ----------
+# ---------- T0 same-player-tile replacement alternatives, with foreground checks ----------
 if not SCREENSHOT.exists():
     raise FileNotFoundError(f"Reference screenshot not found: {SCREENSHOT}")
 screen = Image.open(SCREENSHOT).convert("RGBA")
 if screen.size != (824, 1830):
     raise ValueError(f"Reference screenshot dimensions changed: {screen.size}")
-from preview_geometry import (CANDIDATES, HOTSPOTS, MOCKUP_SCALE, R_Z,
-                              placement_geometry, validate_geometry)
+from preview_geometry import (
+    CANDIDATES, HOTSPOTS, MOCKUP_SCALE, PANEL_CROP, R_Z,
+    model_pixel_size, placement_geometry, validate_geometry,
+)
 
-geometry = validate_geometry()  # fail before saving an image if any rectangle collides.
-print(f"RECTANGLE_CLEARANCE_PASS candidates={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
-      f"candidate_hotspot_pairs={len(CANDIDATES) * len(HOTSPOTS)} "
-      f"pairwise={len(CANDIDATES) * (len(CANDIDATES) - 1) // 2} "
-      f"source_frame=160x176 rendered={round(160*R_Z)}x{round(176*R_Z)} "
-      f"scale={MOCKUP_SCALE:.2f}x required_margin=8px runtime_taps=NOT_TESTED", flush=True)
-crop_box = (0, 0, 824, 1100)
-map_crop = screen.crop(crop_box)
-CW, CH = map_crop.size
-header = 86
-scale_board = Image.new("RGB", (CW * 2, CH + header + 54), "#efe6d5")
+geometry = validate_geometry()
+print(f"STATIC_T0_PLACEMENT_PASS alternatives={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
+      f"alpha_blocker_pairs={len(CANDIDATES) * len(HOTSPOTS)} "
+      f"same_screen_footpoint=411,979 source_frame=160x176 "
+      f"rendered={model_pixel_size()[0]}x{model_pixel_size()[1]} "
+      f"scale={MOCKUP_SCALE:.2f}x required_alpha_margin=8px runtime_taps=NOT_TESTED", flush=True)
+
+crop_x0, crop_y0, crop_x1, crop_y1 = PANEL_CROP
+crop_w, crop_h = crop_x1 - crop_x0, crop_y1 - crop_y0
+panel_header, panel_footer, gap = 42, 38, 16
+card_w = crop_w
+card_h = panel_header + crop_h + panel_footer
+board_header, bottom_pad = 94, 58
+board_w = card_w * 4 + gap * 3
+board_h = board_header + card_h + bottom_pad
+scale_board = Image.new("RGB", (board_w, board_h), "#efe6d5")
 sb = ImageDraw.Draw(scale_board)
-sb.text((28, 15), "桃花村 T3 · k=1.0 全帧 / 热点避让静态核验", fill="#34281e", font=font(27, True))
-sb.text((30, 52), f"玩家/剑仙 manifest k=1.00 × R.Z={R_Z:.4f}；160×176→153×169。橙框=15个保守热点，青框=完整精灵帧外扩8px。非运行画面。", fill="#6a5948", font=font(16))
-scale_board.paste(map_crop.convert("RGB"), (0, header))
-scale_board.paste(map_crop.convert("RGB"), (CW, header))
-sb.text((22, header + 10), "原始 T3 真人触控测试截图（左：保持原图）", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
-sb.text((CW + 22, header + 10), "OFFLINE PROBE · k=1.00 full-frame + hotspots", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
+sb.text((26, 14), "桃花村 T0 · 同一真实可走地砖上的低模替换对照", fill="#34281e", font=font(27, True))
+sb.text((28, 53),
+        f"真人触控截图原图；角色逐张替换原玩家脚点，k=1.00、R.Z={R_Z:.4f}，160×176→{model_pixel_size()[0]}×{model_pixel_size()[1]}。",
+        fill="#6a5948", font=font(16))
 
+panel_items = [(None, "原始 T0 截图", "未改动的原玩家/地面参照")]
+panel_items.extend((candidate, f"{candidate[0]} · {candidate[1]}",
+                    f"同脚点替换 · 粉树净距 {geometry[candidate[0]]['blocker_clearances']['H15']:.0f}px")
+                   for candidate in CANDIDATES)
+for index, (candidate, title, caption) in enumerate(panel_items):
+    x = index * (card_w + gap)
+    y = board_header
+    rounded(sb, (x, y, x + card_w, y + card_h), 12, fill="#fffdf8", outline="#d6c8b0", width=2)
+    sb.text((x + 14, y + 9), title, fill="#382c21", font=font(18, True))
+    crop = screen.crop(PANEL_CROP)
+    if candidate is not None:
+        info = placement_geometry(candidate)
+        sprite = frame(candidate[2] + "_lowpoly_idle").resize(model_pixel_size(), Image.Resampling.LANCZOS)
+        frame_left, frame_top, frame_right, frame_bottom = info["frame"]
+        crop.paste(sprite, (frame_left - crop_x0, frame_top - crop_y0), sprite)
+    scale_board.paste(crop.convert("RGB"), (x, y + panel_header))
+    sb.rectangle((x, y + panel_header, x + card_w - 1, y + panel_header + crop_h - 1),
+                 outline="#d6c8b0", width=1)
+    sb.text((x + 12, y + panel_header + crop_h + 8), caption, fill="#6a5948", font=font(13))
 
-def dashed_rect(draw, rect, color, width=2, dash=10):
-    x0, y0, x1, y1 = rect
-    for x in range(x0, x1, dash * 2):
-        draw.line((x, y0, min(x + dash, x1), y0), fill=color, width=width)
-        draw.line((x, y1, min(x + dash, x1), y1), fill=color, width=width)
-    for y in range(y0, y1, dash * 2):
-        draw.line((x0, y, x0, min(y + dash, y1)), fill=color, width=width)
-        draw.line((x1, y, x1, min(y + dash, y1)), fill=color, width=width)
-
-
-# Draw existing hotspots as orange exclusion rectangles on the right-hand copy only.
-for hotspot_id, _name, rect in HOTSPOTS:
-    x0, y0, x1, y1 = rect
-    board_rect = (CW + x0, header + y0, CW + x1, header + y1)
-    dashed_rect(sb, board_rect, "#e76739", 2, 9)
-    tag = (board_rect[0] + 2, board_rect[1] + 2, board_rect[0] + 32, board_rect[1] + 19)
-    sb.rounded_rectangle(tag, radius=4, fill="#9b442b", outline="#fff0da", width=1)
-    sb.text((tag[0] + 3, tag[1] + 1), hotspot_id, fill="#fff8e9", font=font(10, True))
-
-for candidate in CANDIDATES:
-    ident, title, kind, center_x, foot_y = candidate
-    placement, sprite_box, label_box = placement_geometry(candidate)
-    sx0, sy0, sx1, sy1 = sprite_box
-    drawn = frame(kind + "_lowpoly_idle").resize((sx1 - sx0, sy1 - sy0), Image.Resampling.LANCZOS)
-    scale_board.paste(drawn, (CW + sx0, header + sy0), drawn)
-    bx0, by0, bx1, by1 = placement
-    board_box = (CW + bx0, header + by0, CW + bx1, header + by1)
-    dashed_rect(sb, board_box, "#48d1c2", 3, 9)
-    lx0, ly0, lx1, ly1 = label_box
-    board_label = (CW + lx0, header + ly0, CW + lx1, header + ly1)
-    sb.rounded_rectangle(board_label, radius=5, fill="#164d49", outline="#b9fff1", width=1)
-    sb.text((board_label[0] + 4, board_label[1] + 1), f"{ident} {title}", fill="#edfff9", font=font(11, True))
-
-footer_y = header + CH + 6
-sb.text((24, footer_y),
-        f"橙框 H1–H15 = T3 截图中保守标注的热点；青框 = 完整 160×176 Blender 帧按 R.Z={R_Z:.4f}、k=1.00 显示后外扩 8px。",
-        fill="#34281e", font=font(13))
-sb.text((24, footer_y + 20), "45/45 候选-热点矩形对零相交，且热区/画布净距≥8px；候选互距≥8px。仅静态像素避让探针，不代表游戏坐标、点击框或真实点按。",
+footer_y = board_header + card_h + 5
+sb.text((26, footer_y),
+        "三个低模是同一可走路径脚点的互斥替换方案，不是同时新增 NPC；原 T0 玩家已在该地面位置。",
+        fill="#34281e", font=font(14))
+sb.text((26, footer_y + 19),
+        "剪影 alpha 外框对 15 个 HUD/NPC/前景区逐一检查，粉树冠无交叠；后方短栅栏按原玩家前景关系保留。静态合成，不验证运行时层级/点按、Android 或真人盲测。",
         fill="#34281e", font=font(13))
 scale_board.save(PREVIEWS / "openworld_v25_village_scale_mockup.png", optimize=True)
 

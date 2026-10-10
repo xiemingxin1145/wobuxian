@@ -233,13 +233,14 @@ def build_lowpoly(kind):
     pants = material("v25_pants_" + kind, pants_col, 0.82)
 
     # Large silhouette split: male = broad shoulders/straight tunic; female =
-    # visibly waisted A-line skirt. These proportions survive monochrome thumbnails.
+    # visibly waisted A-line skirt plus twin buns/side locks. Keep female shoulders
+    # and cuffs distinct but restrained; never use a cape-like shoulder flare.
     if kind == "female":
         robe_rings = [
-            (0.40, 0.48, 0.235), (0.46, 0.47, 0.225), (0.65, 0.38, 0.19),
+            (0.40, 0.67, 0.235), (0.46, 0.64, 0.225), (0.65, 0.44, 0.19),
             (0.79, 0.26, 0.16), (1.04, 0.27, 0.16), (1.18, 0.32, 0.18),
             (1.27, 0.31, 0.17)]
-        hem_rings = [(0.39, 0.49, 0.245), (0.435, 0.49, 0.245), (0.47, 0.45, 0.23)]
+        hem_rings = [(0.39, 0.68, 0.245), (0.435, 0.68, 0.245), (0.47, 0.63, 0.23)]
     elif kind == "male":
         robe_rings = [
             (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
@@ -333,9 +334,15 @@ def build_lowpoly(kind):
                                                        (1.98, 0.105, 0.09)], haircap, body, 8)
             bun = bpy.data.objects.get("female_bun_" + side)
             if bun:
-                bun.location.x = sign * 0.29
+                bun.location.x = sign * 0.32
             _box("female_red_ribbon_" + side, (0.11, 0.03, 0.05),
-                 (sign * 0.29, -0.085, 1.89), red, body, bevel=0.005)
+                 (sign * 0.32, -0.085, 1.89), red, body, bevel=0.005)
+            _cube_loft("female_side_lock_cube_extrusion_" + side, [
+                (1.79, sign * 0.28, 0.045, 0.045),
+                (1.64, sign * 0.30, 0.060, 0.050),
+                (1.44, sign * 0.33, 0.070, 0.060),
+                (1.26, sign * 0.34, 0.055, 0.050),
+            ], haircap, body, 0.008)
         for i, x in enumerate((-0.12, -0.04, 0.04, 0.12)):
             _box("female_angular_fringe_" + str(i), (0.06, 0.06, 0.09),
                  (x, -0.203, 1.80), haircap, body, rot=(0, 0, math.radians((i - 1.5) * 5)), bevel=0.01)
