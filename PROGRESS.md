@@ -1,4 +1,4 @@
-# 我不仙 v2.2 进度清单（断点续做用；v2.1.0 已发布）
+# 我不仙 进度清单（断点续做用；最新发布：v2.3.0，2026-10-10）
 
 > 规则：每轮工作结束都更新本文件和 `docs/ROADMAP.md` 的状态（做完什么、卡在哪、下一步）。
 
@@ -63,7 +63,19 @@
 - [x] 开发者模式（标题/设置里版本号连点 7 次，或 #dev）：资源/境界/解锁/剧情/传送/演出/调试（无敌、一击、倍速 x1/2/5/10、离线模拟、重置）
 - [x] 桃花村补两处采药点（娘的灵草汤支线原来做不了）；过年后已采标记恢复
 - [x] CI 同时发布 wobuxian.apk（HD）与 wobuxian-lite.apk（SD，同一签名），更新检查按版本取对应 APK
-- [x] test/human23.py 纯触摸 11/11 通过（截图 test/human23/）
-- [ ] test/human_olaf.py（N1、T0–T12）全部通过
-- [ ] 合并 main、2.3.0 发布并核对两个 APK 签名/版本
-- [ ] 第 5 项内容（docs/research_v22.md §7：ch17/ch18/终章 + 新地图等）
+- [x] test/human23.py 纯触摸 13/13 通过（截图 test/human23/；新增步骤 11 重叠/摇杆区点身体、12 #actbtn 选最近 NPC）
+- [x] 摇杆：第二根手指不再顶掉摇杆（d8ad146）；点名字牌/★优先给其主人；开发者连点改为相邻间隔 ≤1.5 秒
+- [~] test/human_olaf.py：5c35c70 全量 13/18；发版提交上 `ONLY=T2,T3,T4,T9,T13` 6/7（T4 游走 NPC 9/20 未过 → issue #5，2.3.1）；controls.py 0 失败
+- [x] 合并 main（`f9bba18`，Fixes #2）、`VERSION` 2.3.0（`362172f`）、标签 v2.3.0 → CI 发布 https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0
+- [x] 核对（下载 Release 上的两个 APK 用 apksigner/aapt 查）：wobuxian.apk 278,341,061 B、wobuxian-lite.apk 47,679,345 B；都是 versionName 2.3.0、versionCode 151（> beta 的 147）、证书 SHA-256 436bf9221c08db212a13a9e8d64459f27cca9777223b7c21480fb33ce7ef29dc（= 2.2.0）；同包名+同证书+更高 versionCode → 可覆盖安装 2.2.0（CI 模拟器冒烟 API30/34 通过；未在真机实装验证）；latest/download 两个链接都 302 到 v2.3.0
+- [ ] 第 5 项内容 → 移到 2.3.1（research_v22 §7 台词 + §8 数值；草稿 drafts/content23.js 未接入）
+
+## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
+### 2.3.1（从 main 开 `v231-wip`）
+- [ ] issue #5 T9：自动任务 3 分钟内推进主线（依赖战斗胜负，打输后“变强”要等两年 → 缩短/改为立刻练级再试）
+- [ ] issue #5 T4：远处点游走 NPC 9/20（失败全是 “npc missing”）→ ≥18/20
+- [ ] issue #5 controls 回归：已修并通过；补一个“附近有 NPC 时点地”的用例
+- [ ] 第十七章～终章（下）：接入 drafts/content23.js（research_v22 §7/§8），validate22 0 错误、multilife 跑到新结局、自动任务不碰结局选项
+### 2.4
+- [ ] 角色模型换 proto v2：分支 `v24-chars`（见该分支 HANDOFF_CHARS.md、docs/art_specs.md）
+- [ ] 地图扩大（>22×22）到 15+ 张 + 世界地图

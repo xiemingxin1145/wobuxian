@@ -1,7 +1,7 @@
 # AGENTS.md —《我不仙》接手入口
 
 > 写给任何接手的 AI 编程工具或开发者（不需要任何之前的对话上下文）。
-> 编写：2026-10-10（UTC+8），基于分支 `v23-wip` @ `c9d4793` 和 `main` @ `db75922`。只写在文件/git/GitHub 里核实过的内容，不确定的地方标了「⚠待核实」。
+> 编写：2026-10-10（UTC+8）；12:30 更新：**v2.3.0 已发布**（`main` = tag `v2.3.0` = `362172f`，https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0）。下一版 2.3.1 / 2.4 的待办在 `docs/ROADMAP.md` §3 与 `PROGRESS.md` 末尾。只写在文件/git/GitHub 里核实过的内容，不确定的地方标了「⚠待核实」。
 > **从这里开始：先读 `docs/ROADMAP.md`（全局：故事、现状、待办），再读 `PROGRESS.md`（最近一次干到哪了）。**
 
 ## 1. 这是什么
@@ -39,8 +39,9 @@ python3 tools/gen_art.py [--debug]           # AI 插画 → www/assets/gen/（S
 
 - **推到 `main` 的提交（以及 `v*` 标签、手动 workflow_dispatch）会触发 CI：构建 → 签名 → 发布到 GitHub Release 并标为 latest。** v2.3 起 workflow 有 `paths-ignore`：只改 `docs/**`、`*.md`、测试截图（`test/human23/**`、`test/human_olaf/**`、`test/**/*.png`）、`art/gen/**` 的推送不触发（标签推送不受过滤）。之前（如 2026-10-10 PR #4 文档合并）只改文档也会发 build。所以 **未通过门禁的代码不要进 `main`**；开发在分支上做，走 PR。
 - 版本：`versionName` = `VERSION` 文件（打 `v*` 标签时用标签名），`versionCode` = 100 + run_number；非标签构建发布为 `build-<code>`。
+- **发版步骤（2.3.0 就是这样发的）**：门禁全过 → 把开发分支 `--no-ff` 合进 `main`（不 force）→ 改 `VERSION` → 推 main（出一个 build-N）→ 等它绿了再推标签 `vX.Y.Z`（出正式 Release 并标 latest）→ 下载两个 APK 用 `apksigner verify --print-certs` 和 `aapt dump badging` 核对证书/versionName/versionCode → 更新 README/PROGRESS/ROADMAP。
 - 签名**只在 CI 里做**：密钥在仓库 **Secrets**（`ANDROID_KEYSTORE_B64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`），**不在代码里，永远不要把 keystore 提交进 git**（`.gitignore` 已排除）。CI 会校验证书 SHA-256 `436bf922…29dc`，与 v1/v2 不一致就失败（保证玩家能覆盖安装、存档保留）。
-- 高清版：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载 zip、校验 sha256、覆盖 `www/assets` 后打 `wobuxian.apk`（约 275MB）。`v23-wip` 的 workflow 还会先用仓库内 SD 资源打 `wobuxian-lite.apk`（约 47MB），两个 APK 都校验签名、都传到同一个 Release，并在最后检查 Release 里两个文件都在（缺一个就失败）。**`main` 上的 workflow 目前还没有 lite 步骤**，合并 v2.3 后才有；在那之前只有 v2.2.0 的 Release 带精简版，`latest/download/wobuxian-lite.apk` 可能 404。AI 插画：仓库里是 SD 尺寸（`www/assets/gen/`），HD 尺寸在 `art/gen/hd/`，CI 打高清版时覆盖过去。HD 资源包本身不进 git，只作为 Release `assets-hd` 的附件。
+- 高清版：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载 zip、校验 sha256、覆盖 `www/assets` 后打 `wobuxian.apk`（2.3.0 约 265MB）。workflow 还会先用仓库内 SD 资源打 `wobuxian-lite.apk`（约 45MB），两个 APK 都校验签名、都传到同一个 Release，并在最后检查 Release 里两个文件都在（缺一个就失败）。2.3.0 起 `latest/download/wobuxian-lite.apk` 可用（已核实）。带 `-` 的标签（如 `v2.3.0-beta1`）发为预发布、不标 latest，游戏内更新检查也忽略预发布。AI 插画：仓库里是 SD 尺寸（`www/assets/gen/`），HD 尺寸在 `art/gen/hd/`，CI 打高清版时覆盖过去。HD 资源包本身不进 git，只作为 Release `assets-hd` 的附件。
 - CI 之后还会在 x86_64 模拟器（API 30/34）里装包冒烟（`continue-on-error`，不挡发布）。
 - 固定下载链接：`https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（精简版把文件名换成 `wobuxian-lite.apk`）。国内用户可用镜像，如 `https://ghfast.top/<上面的 github 链接>`。
 - **新换的 AI 工具只需要 GitHub 仓库访问权限**（读写代码、开 PR、合并）就能发版，不需要本机签名密钥、也不需要本地安卓环境。
@@ -51,7 +52,7 @@ python3 tools/gen_art.py [--debug]           # AI 插画 → www/assets/gen/（S
 pip install playwright   # 测试依赖（Python 3 + Node）；测试默认用 /opt/google/chrome/chrome（human_olaf 可用 CHROME=… 覆盖）
 python3 test/human_olaf.py        # 真人点按门禁：N1、N2、T0–T13（含 T13 回归），约 30–40 分钟；退出码 = 失败数，必须为 0
                                   # 部分：ONLY=N1,T0,T1 python3 test/human_olaf.py；DPR=2.625 模拟真机；HUMAN_OLAF_T13=0 跳过回归
-python3 test/human23.py           # v2.3 纯触摸流程试玩（11 步），结果 test/human23/result.json，必须全过
+python3 test/human23.py           # v2.3 纯触摸流程试玩（12 步 + 无 JS 错误 = 13 项），结果 test/human23/result.json，必须全过
 node test/validate22.js           # 内容数据校验（章节/NPC/任务/BOSS/资源引用），必须 0 错误
 ```
 发版前清单（**ALL must pass before any release**）：

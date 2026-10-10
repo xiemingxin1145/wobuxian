@@ -1,7 +1,7 @@
 # 《我不仙》路线图 ROADMAP（全局视图）
 
 > 写给任何接手的 AI 工具或开发者。入口是仓库根的 `AGENTS.md`（规则、命令、门禁）；本文是**全局**：故事、现状、待办、已知问题、交接方法。逐项进度看 `PROGRESS.md`。
-> 编写：2026-10-10 09:4x（UTC+8），核对基准：`main` @ `db75922`，`v23-wip` @ `c9d4793`（比 main 多约 20 个提交），GitHub issues/PR #1–#4、Release 列表。
+> 编写：2026-10-10 09:4x（UTC+8）；**2026-10-10 12:30 更新：v2.3.0 已发布**（`main` = tag `v2.3.0` = `362172f`，CI build 151）。
 > 约定：✅ 已上线（在已发布 APK 里）· 🟡 已在 `v23-wip` 做完但未发布 · 🔧 进行中 · ⬜ 未开始 · ⚠ 待核实。
 > **每次工作结束更新本文“状态”列和 `PROGRESS.md`。**
 
@@ -66,11 +66,13 @@
 | 2.0 | ✅ | Blender 程序化 3D 预渲染 2.5D 美术、可走地图、A* 寻路、摇杆、回合制斗法、8 地图、153 事件 |
 | 2.1.0 | ✅ | 15 章主线、23 张 CG、技能序列帧特效、抽卡（仅游戏币）、坐骑/时装/称号/洞府/逆天改命、立体声 BGM、HD 资源包管线、CI 自动发版 + 模拟器冒烟 |
 | 2.2.0 | ✅ 已发布（tag `v2.2.0` = build 144；latest = build 147，2026-10-10 07:23） | 4 新章（龙宫/鬼市/催债司/天道真身）、3 新地图（共 11）、12 新 NPC、3 新 BOSS、115 新事件（共 433）、17 新支线（共 61）、抽卡与突破演出重做、抽卡平衡、可选赛璐璐着色 |
-| 2.3 | 🔧 开发中（分支 `v23-wip`） | 见下 |
+| 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
+| 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
+| 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
 
-**下载**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（约 275MB，已核实 275,311,747 字节）。精简版 `wobuxian-lite.apk`（46,797,879 字节 ≈ 47MB）**目前只挂在 `v2.2.0` 标签的 Release 上**；latest（build 147）没有 lite，因为 `main` 的 workflow 还没有 lite 步骤 → `latest/download/wobuxian-lite.apk` ⚠ 很可能 404，v2.3 合并后才恢复。国内镜像：`https://ghfast.top/<github 链接>`。
+**下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 
-### 2.1 v2.3 进度（来源：`PROGRESS.md`、`git log main..v23-wip`、`git status`）
+### 2.1 v2.3 进度（✅ 已全部随 2.3.0 发布；下表 🟡 均视为 ✅）
 
 起因：主人试玩 2.2.0：点 NPC/对话没反应、要自动寻路/自动任务、挂机、开发者作弊面板、更多内容、角色像“鸡蛋”。根因（已核实，见 `design_feedback_v23.md` §0 与 issue #2）：①NPC 判定框只有身体（2.2.0 `engine.js:313`）；②序章/第一章无法靠点按推进；③摇杆区吞掉左下点按（2.2.0 `engine.js:296`）；④打完任何一场仗后 `R.onTap` 被置 null（2.2.0 `ui.js:253`）且只在 `enterMap`（`game.js:402`）恢复 → 整张地图点不动（issue #2）；⑤旧测试会瞬移/删 NPC，测不出来。
 
@@ -88,10 +90,10 @@
 | 桃花村加两处采药点（娘的灵草汤支线可做） | 🟡 |
 | CI 同时发 HD + lite 两个 APK | 🟡（仅 v23-wip 的 workflow） |
 | AI 插画管线 `tools/gen_art.py`（头像/半身/卡面/标题/CG/图标）；已启用 5 张：男主弟子、剑仙、冷月、天道、龙傲天 | 🟡 其余见 `art/gen/NEEDED.md` ⬜ |
-| `test/human23.py` 11/11 通过 | 🟡 |
-| `test/human_olaf.py` 全部通过 | 🔧 **未通过**：工作区最新 `results.json`（未提交）显示 **N2_mark_does_not_steal_npc_tap、T1_hitbox_5_points、T11_offline_income 失败**，其余已跑用例（T0a、N1、T6、T8、T9）通过；这次是部分运行，T2–T5/T7/T10/T12/T13 不在此结果里 ⚠ |
-| 合并 main、发布 2.3.0、核对两个 APK 签名/版本 | ⬜ |
-| 内容：第十七章～终章（下）（research_v22 §7） | ⬜ |
+| `test/human23.py` 13/13 通过（含重叠点按、#actbtn 最近 NPC 回归） | ✅ |
+| `test/human_olaf.py` | 🟡 5c35c70 全量 13/18；最新提交 `ONLY=T2,T3,T4,T9,T13` → 6/7（T2/T3/T9/T13 过，T4 9/20 未过 → issue #5，2.3.1） |
+| 合并 main、发布 2.3.0、核对两个 APK 签名/版本 | ✅ |
+| 内容：第十七章～终章（下）（research_v22 §7/§8） | ⬜ 草稿 `drafts/content23.js`（未接入），移到 2.3.1 |
 
 **工作区**：`test/human_olaf/*.png` 截图默认不提交（体积大，CI 也忽略它们）；结果以 `test/human_olaf/results.json` 为准。正在进行的工作以 `PROGRESS.md` 为准。
 
@@ -101,13 +103,16 @@
 
 格式：目标 · 规格在哪 · 验收标准 · 状态。
 
-### P0（发 2.3.0 之前必须完成）
-1. **human_olaf 全绿** · `test/human_olaf.py`、`design_feedback_v23.md` §G.2 · 退出码 0，含 N1、N2、T0–T13 · 🔧（N2/T1/T11 失败）
-2. **修 N2/T1：头顶标记/名字不抢、5 点命中率 100%** · `design_feedback_v23.md` §A.1、§I · T1 每个 NPC 脚/身/头/名字/标记 5 点都打开该 NPC 对话；N2 通过 · 🔧
-3. **修 T11 离线收益** · §C.2、§G.2 T11 · 开发者“离线 +13h”后弹“闭关归来”卡，显示 12 小时，修为=公式±1%，年龄不变，“-1h”不弹 · 🔧（最新结果 card 为空、exp_gain 0）
-4. **v2.3 合并进 main 并发布 2.3.0** · `PROGRESS.md` · `VERSION`=2.3.0；CI 绿；HD+lite 两个 APK 签名证书 `436bf922…` 一致；`latest/download/wobuxian-lite.apk` 可下；README 2.3 段+截图；关闭 issue #2、处理 PR #3 · ⬜
-5. **自动任务安全回归** · `AGENTS.md` 硬规则 2、§B.4 · 新增任何对话选项后检查 `SAFE/UNSAFE`；T9 自动任务 3 分钟不碰到道侣/借贷/结局/渡劫 · 🟡（需持续）
-6. **门禁进 CI**（可选但强烈建议）· §G.3 · 构建前跑 headless 触控测试，失败不发版 · ⬜
+### 2.3.1（下一个版本，从 `main` 开分支 `v231-wip`）
+1. **issue #5：自动任务不推进主线** · `design_feedback_v23.md` §B.4、`test/human_olaf.py` T9 · 在 5c35c70 上 3 分钟停在主线第 4 步（坊市查账，讨债鬼头子打不过 → “先去变强”要等两年/境界提升）；最新提交上 T9 13 秒就推进（4→5），说明依赖战斗随机性。验收：T9 连跑 5 次都过；打输后的“变强”循环在 3 分钟内重试 · ⬜
+2. **issue #5：T4 从远处点游走的 NPC 9/20** · 失败全是 “npc missing”：点完后 NPC 已走开。验收：T4 ≥18/20；先判断是 harness（取位置→点按之间 NPC 移动）还是游戏（点按瞬间判定用了旧位置）。可考虑：被点中的 NPC 立即停步（`talking`）、移动中 NPC 判定框加大 · ⬜
+3. **issue #5：controls 三项回归**（点地停在 3.6 格外、拖出摇杆区不走、第二指断开摇杆）· `d8ad146` 已修第二指/摇杆候选被顶掉；最新 `test/controls.py` 0 失败、human_olaf T13 通过。⚠ `test/controls.py` 现在把 NPC 隐藏后测纯移动；“点地附近有 NPC 时被放大的判定框吸走”这一点未单独覆盖，2.3.1 加一个带 NPC 的点地用例 · 🟡
+4. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（下）南天门竣工验收、4 结局** · `docs/research_v22.md` §7（台词）+ §8（MONS/技能/剑仙伙伴/难度自检）；草稿 `drafts/content23.js` 已写好技能/MONS/章节/对话/结局逻辑，需接入 `index.html`（放在 `content22.js` 之后、`ux23.js` 之前）并按 §8 校数值 · 验收：`node test/validate22.js` 0 错误；`test/multilife.py` 能从渡劫跑到新结局；旧存档在 `zhenshen` 正常；human23/human_olaf 不回退；自动任务不碰结局选项（加进 `UNSAFE`） · ⬜
+5. 发版前门禁照 `AGENTS.md` §5；发版同 2.3.0（合并 main → `VERSION` → 推 `v2.3.1` 标签）。
+
+### 2.4（大版本）
+- **角色模型替换**：所有人形角色换成 proto v2 模型，分支 **`v24-chars`**（已在进行，最新 `1401ef8` 批次 2b 已做 8 个 NPC），交接说明见该分支的 **`HANDOFF_CHARS.md`**，造型以 `docs/art_specs.md` 为准。验收：全部人形 NPC/主角/BOSS 替换，human23/human_olaf/controls 不回退（判定框尺寸会变，重点复测 T1/T2/N2），A/B 截图主人认可。
+- **地图扩展**：地图从 22×22 扩大（桃花村→36、青云宗/天外天→32），总数 15+ 张，加世界地图（见下方 P2 #14 的细节）。验收：寻路/分块绘制性能在低端机可接受；追踪栏跨图寻路仍过 T7；存档兼容（旧坐标迁移）。
 
 ### P1（2.3.x）
 7. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（上）改渡劫圆满、终章（下）南天门竣工验收 + `tiandao3` 三阶段 + 结局判定 + `jiaxiang`** · `docs/research_v22.md` §4.4、§7（台词可直接抄进 `content23.js`）· `node test/validate22.js` 0 错误；`test/multilife.py` 从渡劫跑到飞升结局；旧存档在 `zhenshen` 时显示“需要渡劫期” · ⬜
@@ -139,15 +144,15 @@
 
 | # | 问题 | 来源 | 状态 |
 |---|---|---|---|
-| 1 | issue #2：战斗后 `R.onTap` 置空，整张地图点不动（2.2.0 线上版本仍有） | GitHub issue #2（OPEN） | 🟡 v23-wip 已修（`3f0001a`、`180dbd8`），待发布后关闭 |
-| 2 | 2.2.0 线上：点名字/标记点不到 NPC、摇杆区吞点按、前两章不知道怎么推进 | design_feedback_v23 §0 | 🟡 v23-wip 已修，待发布 |
-| 3 | human_olaf 最近一次部分运行：N2、T1、T11 失败 | `test/human_olaf/results.json`（未提交） | 🔧 |
+| 1 | issue #2：战斗后 `R.onTap` 置空，整张地图点不动 | GitHub issue #2 | ✅ 2.3.0 修复，issue 已关闭 |
+| 2 | 2.2.0 线上：点名字/标记点不到 NPC、摇杆区吞点按、前两章不知道怎么推进 | design_feedback_v23 §0 | ✅ 2.3.0 |
+| 3 | human_olaf：T4 游走 NPC 9/20、T9 自动任务偶发不推进 | issue #5 | ⬜ 2.3.1 |
 | 4 | PR #3（human_olaf 门禁）在 GitHub 上仍 OPEN，目标 main；但已在 v23-wip 本地合并（`4af1fd2`） | GitHub | ⬜ 合并 v2.3 时一并处理 |
-| 5 | 精简版不在 latest Release 上（main workflow 无 lite 步骤） | gh release view | 🟡 v23-wip 的 workflow 每次发布都传 HD+lite，并校验两个文件都在 Release 上；合并后生效 |
+| 5 | 精简版不在 latest Release 上 | gh release view | ✅ 2.3.0 起每个 Release 都带 HD+lite |
 | 6 | 每次推 main（含纯文档）都会发一个新 build 给玩家；README 写的安装包 214MB 已过时（实际约 275MB） | build.yml、Release | 🟡 v23-wip 的 workflow 已加 `paths-ignore`（docs/**、*.md、测试截图、art/gen/**）；README 体积待更新 |
 | 7 | 渡劫/飞升没有章节，最终 BOSS 化神可打 | research_v22 §0 | ⬜（P1 #7） |
 | 8 | content22.js 缺素材时静默删除 NPC/地图 | design_feedback_v23 §A.7 | ⬜ |
-| 9 | AI 生成插画的工具/授权未在 CREDITS.md 登记 | CREDITS.md | 🟡 v23-wip 已登记 |
+| 9 | AI 生成插画的工具/授权未在 CREDITS.md 登记 | CREDITS.md | ✅ 已登记 |
 | 10 | 角色是程序化“鸡蛋”造型，主人不满意 | 主人试玩反馈 | ⬜（P2 #15） |
 | 11 | PR #1（boss4 成就）已合并 | GitHub | ✅ |
 
