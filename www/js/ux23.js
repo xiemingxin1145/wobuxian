@@ -48,7 +48,7 @@ function entHitRect(e) {
   return { x0: x - hw, x1: x + hw, y0: Math.min(top, bot - UX.w(88)), y1: bot, cx: x, cy: y - b.h / 2 };
 }
 pickAt = function (sx, sy) {
-  const [wx, wy] = s2w(sx, sy); const PRI = { boss: 0, npc: 1, mon: 2 }; let best = null, bs = 1e9;
+  const [wx, wy] = s2w(sx, sy); const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
     if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const s = PRI[e.kind] * 1e4 + Math.hypot(wx - r.cx, (wy - r.cy) * 0.6); if (s < bs) { bs = s; best = { ent: e }; } }

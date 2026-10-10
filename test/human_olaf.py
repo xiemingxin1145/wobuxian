@@ -264,9 +264,12 @@ async def main():
             info['fought'] = fought; info['ontap_after_battle'] = await taps_alive(c2)
             # 点空地：主角应当开始走
             st2 = await npcs(c2); px, py = st2['ps']; moved = None
-            for dx, dy in ((0, -120), (110, -60), (-110, -60), (100, 60)):
+            for dx, dy in ((0, -120), (110, -60), (-110, -60), (100, 60), (-100, 60), (0, 130), (150, 0), (-150, 0)):
                 if await free_point(c2, px + dx, py + dy):
                     p0 = st2['p']; await tap(c2, px + dx, py + dy); await c2.pg.wait_for_timeout(1500)
+                    s_ = await scr(c2)
+                    if s_['modal']:   # 点到的地方恰好是 NPC/交互点 → 打开了对话，也说明点按有效；关掉后换个点再试走路
+                        info.setdefault('ground_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); continue
                     p1 = (await npcs(c2))['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
             info['ground_tap_moved_tiles'] = moved
             cand_ = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']
@@ -459,7 +462,7 @@ async def main():
                 await ensure_map(c)   # v2.3：主线目标本身就是一场战斗（讨债史莱姆），真人会点“自动”打完
                 s = await scr(c)
                 if s['awakened'] and s['main'] == 'sect': break
-                go = await rect(c, '#qt button, #qt [data-go], #qt .go', None)
+                go = await rect(c, '#qt .qbtn[data-q=main]', None) or await rect(c, '#qt button, #qt [data-go], #qt .go', None)   # v2.3：真人点的是“主线”那一行的前往
                 go = go if go and any(w in (go[2] or '') for w in ('前往', '寻路', '▶')) else None
                 if go: await tap(c, go[0], go[1]); trail.append('tap 前往')
                 else:
@@ -522,7 +525,12 @@ async def main():
                         g = await gst(c7)
                         if g['map'] == 'market' and g['nav']: nav_on = True; break
                         await c7.pg.wait_for_timeout(200)
-                    st = await npcs(c7); px, py = st['ps']; tapped = False
+                    st = None
+                    for _ in range(20):
+                        st = await npcs(c7)
+                        if st: break
+                        await c7.pg.wait_for_timeout(300)
+                    px, py = st['ps'] if st else (VW / 2, VH / 2); tapped = False
                     for dx, dy in ((0, 130), (120, 60), (-120, 60), (0, -130)):
                         if await free_point(c7, px + dx, py + dy): await tap(c7, px + dx, py + dy); tapped = True; break
                     await c7.pg.wait_for_timeout(500); g = await gst(c7); bar = await rect(c7, '#navbar'); f = await shot(c7, 'T8_cancel')
