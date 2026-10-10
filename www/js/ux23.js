@@ -48,7 +48,14 @@ function entHitRect(e) {
   return { x0: x - hw, x1: x + hw, y0: Math.min(top, bot - UX.w(88)), y1: bot, cx: x, cy: y - b.h / 2 };
 }
 pickAt = function (sx, sy) {
-  const [wx, wy] = s2w(sx, sy); const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
+  const [wx, wy] = s2w(sx, sy);
+  { // 先看是不是正好点在某人的名字牌上（名字牌互不重叠时最准确，避免旁边的大判定框抢走）
+    let nb = null, nd = 1e9;
+    for (const e of R.ents) { if (e.hidden || !e.label || (e.kind !== 'npc' && e.kind !== 'boss')) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s); const ty = y - b.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6;
+      if (Math.abs(wx - x) <= hw && wy >= ty - 38 && wy <= ty + 14) { const d = Math.hypot(wx - x, wy - (ty - 12)); if (d < nd) { nd = d; nb = e; } } }
+    if (nb) return { ent: nb };
+  }
+  const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
     if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const s = PRI[e.kind] * 1e4 + Math.hypot(wx - r.cx, (wy - r.cy) * 0.6); if (s < bs) { bs = s; best = { ent: e }; } }
