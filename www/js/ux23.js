@@ -370,13 +370,13 @@ const hookApp23 = () => { if (window.onAppResume && window.onAppResume._ux23) re
 if (document.readyState === 'complete') hookApp23(); else window.addEventListener('load', hookApp23);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { Offline.mark(); Game.save(); } else Offline.check(); });
 setInterval(() => { if (!Offline._first && UX.inMap()) { Offline._first = 1; Offline.check(); } }, 1000);
-// ---------- D 开发者模式（标题/设置里的版本号 3 秒内连点 7 次，或 URL #dev） ----------
+// ---------- D 开发者模式（标题/设置里的版本号连点 7 次（每下间隔 ≤1.5 秒），或 URL #dev） ----------
 const DEV = { ts: 1, god: false, ohk: false, noEnc: false, taps: 0, t0: 0 };
 window.DEV = DEV;
 const devOn = () => localStorage.getItem('wbx2_dev') === '1';
 if (location.hash.includes('dev')) localStorage.setItem('wbx2_dev', '1');
 function devTap() {
-  const now = Date.now(); if (now - DEV.t0 > 3000) DEV.taps = 0; if (!DEV.taps) DEV.t0 = now; DEV.taps++;
+  const now = Date.now(); if (now - DEV.t0 > 1500) DEV.taps = 0; DEV.t0 = now; DEV.taps++;  // 两次点按间隔 ≤1.5 秒就算连点（手慢/机器卡也能开）
   if (DEV.taps >= 7) { DEV.taps = 0; if (devOn()) localStorage.removeItem('wbx2_dev'); else localStorage.setItem('wbx2_dev', '1'); UI.toast(devOn() ? '开发者模式已开启 🛠' : '已关闭开发者模式'); devBtn(); }
   else if (DEV.taps >= 4) UI.toast(`再点 ${7 - DEV.taps} 次${devOn() ? '关闭' : '进入'}开发者模式`);
 }

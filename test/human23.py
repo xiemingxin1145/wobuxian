@@ -230,8 +230,14 @@ async def main():
         await settle()  # 关掉面板（.x）
         # 10 切换地图：开发者“解锁全部地图” → 关面板 → 御剑 → 第一张可去的新地图
         if ok:
-            if not await vis('.devtabs'): await tap('#devbtn', 700)
-            await tap(pg.locator('.devtabs .dt', has_text='解锁'), 400); await tap('.opt[data-a=maps]', 500); await tap('#modals .mwrap:last-child .ph .x', 500)
+            for _try in range(3):  # 只读检查 G.flags.devmaps；没生效（被弹窗/战斗挡住）就收拾一下再点一次
+                await settle()
+                if not await vis('.devtabs'): await tap('#devbtn', 900)
+                await tap(pg.locator('.devtabs .dt', has_text='解锁'), 500); await tap('.opt[data-a=maps]', 600)
+                dm = await pg.evaluate('()=>!!(G.flags&&G.flags.devmaps)')
+                print(f'[step10] 尝试 {_try+1}: devtabs={bool(await vis(".devtabs"))} devmaps={dm}', flush=True)
+                if await vis('.devtabs'): await tap('#modals .mwrap:last-child .ph .x', 500)
+                if dm: break
         if not await pg.locator('#ap i.on').count():  # 行动力用完了就先过年（御剑要 1 点行动力）
             await tap('#yearbtn', 900); await clear_popups(r'过年|确定|继续|好|收下|知道了', 20); await settle()
         await tap('#menu .mb[data-p=travel]', 700); m = pg.locator('.mapb:not(.lock):not(.here)'); target = ''
