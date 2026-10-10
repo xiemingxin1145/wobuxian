@@ -82,6 +82,13 @@ Game.npcMark = function (id) {
 // 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
 const _fight23 = Game.fight.bind(Game);
 Game.fight = async function (...a) { try { return await _fight23(...a); } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
+// 桃花村原本没有采药点，但娘的「灵草汤」7 岁就给 → 支线做不了。给村子加两处野草丛采药点（每年可采）
+const VILLAGE_HERBS = [[8, 14], [17, 6]];
+const _mm23 = Game.makeMarks.bind(Game);
+Game.makeMarks = function (...a) { const r = _mm23(...a); const G = this.G;
+  if (R.mapId === 'village') VILLAGE_HERBS.forEach(([ti, tj], k) => { const [i, j] = nearestWalk(ti, tj); const key = `village_herb23_${k}`; if (!R.marks.some(m => m.i === i && m.j === j)) R.marks.push({ i, j, label: '采药', act: 'herb', key, prop: { t: 'herb', i, j, fw: 1, fh: 1 }, h: 60, hidden: !!G.used[key] }); });
+  return r; };
+const HERB_MAPS = ['village', ...Object.keys((window.ASSETS && ASSETS.maps) || {}).filter(id => (ASSETS.maps[id].props || []).some(p => (Array.isArray(p) ? p[0] : p.t) === 'herb'))];
 // 修 bug：过年会清空 G.used，但地图上已采的药/开过的箱子标记一直隐藏到换地图才回来 → 过年后立即恢复
 const _ye23 = Game.yearEnd.bind(Game);
 Game.yearEnd = async function (...a) { const r = await _ye23(...a); const G = this.G; if (G && R.marks) for (const m of R.marks) if (m.hidden && m.key && !G.used[m.key] && ['herb', 'chest', 'peach', 'bell', 'well', 'incense', 'coffin'].includes(m.act)) m.hidden = false; return r; };
@@ -178,7 +185,12 @@ const Track = {
     }
     if (Q.need.i) {
       const e = Object.entries(Q.need.i).find(([i, c]) => !Game.has(i, c)); if (!e) return null; const it = e[0]; const iname = ITEMS[it] ? ITEMS[it].n : it;
-      if (['herb', 'lz'].includes(it)) return R.marks.some(m => m.act === 'herb' && !m.hidden) ? { kind: 'mark', map: R.mapId, act: ['herb'], btn: '前往', txt: `采药得${iname}` } : { kind: 'year', btn: '过年', txt: `这里的药采完了，过年后再长（还差${iname}）` };
+      if (['herb', 'lz'].includes(it)) {
+        if (R.marks.some(m => m.act === 'herb' && !m.hidden)) return { kind: 'mark', map: R.mapId, act: ['herb'], btn: '前往', txt: `采药得${iname}` };
+        const mp = HERB_MAPS.find(id => id !== R.mapId && Game.canEnter(id) && MAPINFO[id]);
+        if (mp && G.ap > 0) return { kind: 'mark', map: mp, act: ['herb'], btn: '前往', txt: `去${MAPINFO[mp].n}采药` };
+        return { kind: 'year', btn: '过年', txt: `药采完了，过年后再长（还差${iname}）` };
+      }
       for (const id of MAP_ORDER) { if (!Game.canEnter(id)) continue; const mon = MAPINFO[id].mons.find(m => (MONS[m].drop || []).includes(it)); if (mon) return { kind: 'mon', map: id, id: mon, btn: '前往', txt: `打${MONS[mon].n}掉${iname}` }; }
       return { kind: 'none', txt: `${iname}：打怪/事件掉落` };
     }
