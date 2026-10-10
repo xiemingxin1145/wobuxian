@@ -1,5 +1,6 @@
 {
  "dpr": 2.0,
+ "www": "/workspace/game/www",
  "cases": [
   {
    "case": "T0a_new_life_enter_map",
@@ -45,6 +46,16 @@
      ]
     ],
     [
+     "娘",
+     "mom",
+     "💬",
+     8.5,
+     [
+      52,
+      80
+     ]
+    ],
+    [
      "说书先生",
      "villager",
      "💬",
@@ -55,20 +66,10 @@
      ]
     ],
     [
-     "娘",
-     "mom",
-     "💬",
-     11.4,
-     [
-      52,
-      80
-     ]
-    ],
-    [
      "王大爷",
      "farmer",
      "💬",
-     11.7,
+     9.2,
      [
       52,
       80
@@ -88,11 +89,11 @@
      50,
      77
     ],
-    "说书先生": [
+    "娘": [
      52,
      80
     ],
-    "娘": [
+    "说书先生": [
      52,
      80
     ],
@@ -104,129 +105,145 @@
    "shot": "001_T0_enter_map.png"
   },
   {
-   "case": "N1_taps_still_work_after_battle",
+   "case": "T2_tap_npc_in_joystick_zone",
    "ok": true,
-   "ontap_before": true,
-   "npc_tap_before_battle": "npc",
-   "battle_shot": "002_N1_battle.png",
-   "fought": true,
-   "ontap_after_battle": true,
-   "ground_tap_moved_tiles": 4.83,
-   "npc": "说书先生",
-   "npc_tap_after_battle": "npc",
-   "shot": "003_N1_after_battle_tap_dead.png"
+   "npc": "翠花",
+   "tap": [
+    137,
+    580
+   ],
+   "result": "npc",
+   "joy_activated_sampled": false,
+   "shot": "002_T2_npc_in_joystick_zone.png"
   },
   {
-   "case": "N2_mark_does_not_steal_npc_tap",
-   "ok": false,
-   "checked": 8,
-   "rows": [
-    {
-     "npc": "cuihua",
-     "near": "采药",
-     "css_dist": 53,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "cuihua",
-     "near": "采药",
-     "css_dist": 53,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "villager",
-     "near": "古井",
-     "css_dist": 76,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "villager",
-     "near": "古井",
-     "css_dist": 76,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "mom",
-     "near": "打坐",
-     "css_dist": 85,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "mom",
-     "near": "打坐",
-     "css_dist": 85,
-     "part": "body",
-     "result": "card:讨债的来了"
-    },
-    {
-     "npc": "farmer",
-     "near": "采药",
-     "css_dist": 101,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "farmer",
-     "near": "采药",
-     "css_dist": 101,
-     "part": "body",
-     "result": "npc"
-    }
-   ],
+   "case": "T3_near_interact_button",
+   "ok": true,
+   "npc": "翠花",
+   "dist": 1.41,
+   "button": "对话翠花",
+   "result": "npc",
+   "shot": "003_T3_near_npc.png",
    "note": null
   },
   {
-   "case": "T1_hitbox_5_points",
+   "case": "T4_wandering_npc_far_tap",
    "ok": false,
-   "map": "village",
-   "hit": "28/30",
-   "wrong_target": 2,
-   "by_part": {
-    "feet": "5/6",
-    "body": "6/6",
-    "head": "6/6",
-    "name": "6/6",
-    "mark": "5/6"
-   },
-   "misses": [
+   "passed": "9/20",
+   "fails": [
     {
-     "npc": "落魄剑仙",
-     "part": "feet",
-     "result": "other_npc:翠花  ♥0",
-     "tap": [
-      160,
-      415
-     ],
-     "dom_at_point": "#cv",
-     "dist_before": 4.47
+     "npc": "farmer",
+     "result": "npc missing"
     },
     {
-     "npc": "翠花",
-     "part": "mark",
-     "result": "other_npc:落魄剑仙",
-     "tap": [
-      249,
-      375
-     ],
-     "dom_at_point": "#cv",
-     "dist_before": 2
+     "npc": "cuihua",
+     "result": "npc missing"
+    },
+    {
+     "npc": "luren",
+     "result": "npc missing"
+    },
+    {
+     "npc": "mom",
+     "result": "npc missing"
+    },
+    {
+     "npc": "villager",
+     "result": "npc missing"
+    },
+    {
+     "npc": "farmer",
+     "result": "npc missing"
+    },
+    {
+     "npc": "cuihua",
+     "result": "npc missing"
+    },
+    {
+     "npc": "luren",
+     "result": "npc missing"
+    },
+    {
+     "npc": "mom",
+     "result": "npc missing"
+    },
+    {
+     "npc": "villager",
+     "result": "npc missing"
+    },
+    {
+     "npc": "farmer",
+     "result": "npc missing"
     }
-   ],
-   "note": ""
+   ]
   },
   {
    "case": "info_recoveries_used",
    "ok": true,
    "recoveries": 0,
-   "battles": 2,
+   "battles": 8,
    "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
+  },
+  {
+   "case": "T9_auto_quest_loop",
+   "ok": true,
+   "main": [
+    4,
+    5
+   ],
+   "teleport_jumps": 0,
+   "secs": 13,
+   "shot": "005_T9_end.png",
+   "cheats": [
+    "dev:境界>练气圆满",
+    "dev:剧情>坊市查账"
+   ]
+  },
+  {
+   "case": "T13_regression",
+   "ok": true,
+   "runs": {
+    "python3 test/controls.py": {
+     "rc": 0,
+     "secs": 47,
+     "tail": [
+      "EDGE {'case': '关闭面板后摇杆', 'dir': 'W', 'moved_left': True, 'ok': True}",
+      "JS errors 0 []",
+      "FAILS 0"
+     ]
+    },
+    "python3 test/panels21.py": {
+     "rc": 0,
+     "secs": 113,
+     "tail": [
+      "l quests [395, 760, 412, 915, 'opt qgo']",
+      "l comps [395, 760, 412, 915, '']",
+      "l ERRORS 0"
+     ]
+    },
+    "python3 test/multilife.py 1 120": {
+     "rc": 0,
+     "secs": 134,
+     "tail": [
+      "L0 END meta {\"lives\":1,\"endings\":{\"sit\":1},\"pts\":93,\"cg\":{\"cg_debt\":1,\"cg_mentor\":1,\"cg_sect\":1,\"cg_rival\":1,\"cg_market\":1,\"cg_sit\":1},\"gacha\":{\"n\":10,\"pity\":10,\"ssr\":0,\"total\":10}}",
+      "ISSUES 0",
+      "ERRORS 0"
+     ]
+    },
+    "node test/validate22.js": {
+     "rc": 0,
+     "secs": 0,
+     "tail": [
+      " ],",
+      " \"errors\": []",
+      "}"
+     ]
+    }
+   }
   }
  ],
- "js_errors": [],
- "partial": true
+ "fails": [
+  "T4_wandering_npc_far_tap"
+ ],
+ "js_errors": []
 }
