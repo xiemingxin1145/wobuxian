@@ -179,7 +179,14 @@ async def main():
         async def tap_npc_point(c, nid, part, wait_s=6.0):
             await ensure_map(c); await recover(c); st = await npcs(c); t = find(st, nid)
             if not t or not t['pts'].get(part): return dict(result='skip(no point)')
-            x, y = t['pts'][part]; hit = await c.pg.evaluate(JS_HIT, [x, y])
+            x, y = t['pts'][part]
+            for _ in range(2):   # 点位在屏幕外（真人点不到）：先走近再取点；仍不行就跳过而不是点空气
+                if 8 <= x <= VW - 8 and 8 <= y <= VH - 8: break
+                await stand_near(c, nid); st = await npcs(c); t = find(st, nid)
+                if not t or not t['pts'].get(part): return dict(result='skip(no point)')
+                x, y = t['pts'][part]
+            if not (8 <= x <= VW - 8 and 8 <= y <= VH - 8): return dict(result='skip(offscreen)')
+            hit = await c.pg.evaluate(JS_HIT, [x, y])
             d0 = round(t['dist'], 2); await tap(c, x, y); o = await outcome(c, t['name'], wait_s)
             o.update(tap=[round(x), round(y)], dom_at_point=hit, in_joy_zone=JOY(x, y), dist_before=d0)
             if o['result'] == 'battle': await shot(c, f'interrupt_{nid}'); await ensure_map(c)
