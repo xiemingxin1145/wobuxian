@@ -121,7 +121,7 @@ viewport_css_w, dpr = 412, 2
 z_scale = viewport_css_w * dpr / 860.0
 # Game's drawSprite uses 160x176 frame, x-centred, feet at y=0.86*176.
 frame_w, frame_h, anchor_y = 160, 176, 176 * 0.86
-crop_box = (0, 390, 824, 1050)
+crop_box = (0, 450, 824, 1110)
 map_crop = screen.crop(crop_box)
 CW, CH = map_crop.size
 header = 86
@@ -136,7 +136,7 @@ sb.text((CW + 22, header + 10), "OFFLINE MOCKUP · 三个候选样例叠加", fi
 # Positions are inside the same 824 px-wide captured map crop. Each frame retains
 # the game's actual anchor and is scaled only by the measured engine R.Z.
 centres = [(145, "male", "主角男"), (412, "female", "主角女"), (679, "swordsman", "剑仙")]
-foot_y = 420
+foot_y = 360
 sprite_box_w = frame_w * 0.55
 sprite_box_h = frame_h * 0.78
 # UX.entHitRect dimensions for a labelled NPC at s=1, transformed by R.Z.

@@ -17,13 +17,13 @@
 | 本轮 T9-5 | `05:20:38Z`–`05:22:08Z` | 单次通过；16 秒，主线 4→5，零瞬移 | 有同样两项开发者辅助 | `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/T9-5/results.json` |
 
 历史 T4=9/20 与本轮 T4=1/20 是不同批次。本轮 T9 共 5 个独立运行，其中 T9-1 失败、T9-2 至 T9-5 连续 4 次通过，但每次都记录了两项开发者辅助；因此既不足连续 5 次，也不是无辅助自然流程验收。Issue #5 不得据此关闭。
-- 执行顺序：当前先完成基线与三款低模样例；完成并提交后，依次做一个隔离可玩的遭遇战/ATB 原型，再做一个“奇遇→NPC 态度→债务后果”可测小闭环。每段独立测试、提交并更新进度，不并行铺系统；不改 `main`、不合并、不发布。
+- 执行顺序：阶段 1 样例补丁提交后，交玛丽卡独立复核剪影/可读性、名牌与点击目标遮挡、交付清洁度；未通过就先修复并复核，阶段 1 签收前不启动阶段 2。阶段 2 单独验收通过后，再做阶段 3；每段独立测试/提交/更新，不改 `main`、不合并、不发布。
 
 ### 阶段 1 样例状态（2026-10-10）
 - 三款手工低模源模型与 Blender 4.2.23 场景已生成：`art/prototypes/openworld_v25/character_models.py`、`openworld_v25_models.blend`；构模基于 Cube/Cylinder 挤出轮廓、支撑环与 X Mirror，未改 `art/chars.py`、游戏精灵图集或运行时文件。
-- Blender 输出 12 张 320×352 帧（现有造型 idle ×3；新模型 idle/walk/attack ×3×3），总览图：A/B `1560×900`、姿态 `1540×1120`、桃花村比例静态叠图 `1648×900`，均位于 `art/prototypes/openworld_v25/previews/`。
-- Blender 场景结构验证通过：男主 35 个网格部件/3 个 Mirror，女主 38/3，剑仙 42/3；各模型有有限坐标、可编辑挤出轮廓且 `runtime_integrated=false`。首次检查发现验证器只识别“extrusion”而漏掉“extruded”命名，已修正规则并重跑通过；未改模型几何来绕过检查。
-- 验收边界：图片是 Blender 离线渲染与 T0 测试截图静态合成，不是游戏运行截图；叠图中的点击框是按现有规则估算，尚未做真实点击测试、5 人剪影辨认或负责人视觉签收。故阶段 1 仍待评审，不得标记完成；当前不启动阶段 2。
+- Blender 输出 12 张 `320×352` 帧（现有造型 idle×3；新模型 idle/walk/attack×3×3）；总览图：A/B `1560×900`、姿态 `1540×1120`、T3 桃花村比例静态叠图 `1648×800`，均在 `art/prototypes/openworld_v25/previews/`。
+- Blender 4.2.23 LTS 重新打开 `.blend` 并以 `--python-exit-code 1` 严格验证通过：男主 35 个网格/3 个 Mirror/8 个挤出或环线命名部件；女主 38/3/7；剑仙 42/3/10；坐标有限且各根节点 `runtime_integrated=false`。
+- 验收边界：图像为 Blender 离线渲染及 T3 真人触控测试截图静态合成，不是运行中游戏画面；青色框按现有 `UX.entHitRect` 公式估算，未做实际点按、5 人剪影测试或设备验证；未导出游戏资源、未构建 APK、未在 Android/真机验证。阶段 1 待玛丽卡独立评审；评审通过前不启动阶段 2。
 
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）

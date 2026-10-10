@@ -1,4 +1,4 @@
-"""Run with: blender -b openworld_v25_models.blend -P validate_blend.py"""
+"""Run with: blender -b --python-exit-code 1 openworld_v25_models.blend -P validate_blend.py"""
 import json
 import math
 import bpy
@@ -8,13 +8,7 @@ summary = []
 
 
 def descendants(root):
-    found = []
-    stack = list(root.children)
-    while stack:
-        obj = stack.pop()
-        found.append(obj)
-        stack.extend(obj.children)
-    return found
+    return list(root.children_recursive)
 
 
 roots = [bpy.data.objects.get(f"v25_{kind}_root") for kind in EXPECTED]
@@ -42,7 +36,7 @@ for kind, root in zip(EXPECTED, roots):
         for vertex in obj.data.vertices:
             assert all(math.isfinite(float(c)) for c in vertex.co), (kind, obj.name)
     assert mirror_count >= 3, (kind, "Mirror modifier count", mirror_count)
-    assert loop_profile_count >= 5, (kind, "extruded/loop-cut profile evidence", loop_profile_count)
+    assert loop_profile_count >= 7, (kind, "extruded/loop-cut profile evidence", loop_profile_count)
     summary.append({
         "kind": kind,
         "mesh_parts": len(meshes),
