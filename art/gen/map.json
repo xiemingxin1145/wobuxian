@@ -49,5 +49,16 @@
  "_title": {
   "left": "player_m1.jpg",
   "right": "heroine.jpg"
+ },
+ "npc_merchant.jpg": {
+  "keys": [
+   "npc_merchant"
+  ],
+  "name": "npc_merchant",
+  "face": [
+   516,
+   98,
+   58
+  ]
  }
 }

@@ -4,7 +4,7 @@
 
 ## AI 生成插画（v2.3 起，`art/gen/`）
 
-`art/gen/` 下的插画源图（`player_m1.jpg`、`mentor.jpg`、`heroine.jpg`、`boss_tiandao.jpg`、`rival.jpg`，以及今后按 `art/gen/NEEDED.md` 补充的文件）由 Grok Bot 的图像生成工具于 2026-10-10 为本项目生成，为原创作品，未使用任何第三方素材或商业游戏素材。`tools/gen_art.py` 将其裁切缩放为头像/半身/卡面/标题图（`www/assets/gen/`、`art/gen/hd/`）。地图上行走的角色仍是 Blender 程序化 3D 渲染。
+`art/gen/` 下的插画源图（`player_m1.jpg`、`mentor.jpg`、`heroine.jpg`、`boss_tiandao.jpg`、`rival.jpg`，批次 2：`player_f0/f1/m0`、`npc_mom`、`npc_merchant`、`npc_taizi`、`npc_sanniang`、`boss_guiwang`，以及今后按 `art/gen/NEEDED.md` 补充的文件）由 Grok Bot 的图像生成工具于 2026-10-10 为本项目生成，为原创作品，未使用任何第三方素材或商业游戏素材。`tools/gen_art.py` 将其裁切缩放为头像/半身/卡面/标题图（`www/assets/gen/`、`art/gen/hd/`）。地图上行走的角色仍是 Blender 程序化 3D 渲染。
 
 ## 第三方素材
 

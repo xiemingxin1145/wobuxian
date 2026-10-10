@@ -131,7 +131,7 @@ def main():
     for f in sorted(os.listdir(SRC)):   # 约定命名：npc_xxx.jpg 等直接对应同名头像键，无需写进 map.json
         stem, ext = os.path.splitext(f)
         if f not in used and ext.lower() in ('.jpg', '.jpeg', '.png', '.webp') and stem.startswith(AUTO_PREFIX) and stem != 'player_m1':
-            conf[f] = {'keys': [stem], 'name': stem}
+            conf[f] = {'keys': [stem + '*' if stem.startswith('player_') else stem], 'name': stem}
     s = open(os.path.join(ROOT, 'www/assets/assets.js')).read(); A = json.loads(s[s.find('{'): s.rfind('}') + 1])
     keys = list(A['portraits']['f'].keys()); M = dict(por={}, bust={}, card={})
     for src, c in conf.items():

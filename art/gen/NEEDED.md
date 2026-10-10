@@ -9,23 +9,24 @@
 
 造型/配色以 `docs/art_specs.md`（奥拉夫的设定稿：taizi、xiabing、sanniang、guizu、baiwuchang、xiaoyao、caishen、zhuiming、suanpan、tianbing、leigong、guanghan、guiwang、dasiming、tiandao2、carp、abacus）为准，描述冲突时以设定稿为准。
 
+已完成（批次 2，2026-10-10）：player_f1、player_m0、player_f0、npc_mom、npc_merchant、npc_taizi、npc_sanniang、boss_guiwang。
 已完成：player_m1.jpg（男主·弟子）、mentor.jpg（落魄剑仙，同时用于 mentor2）、heroine.jpg（冷月仙子）、boss_tiandao.jpg（讨尾款的天道，暂时也用于天道真身）、rival.jpg（龙傲天）。
 
 ## 1. 主角（按境界换装；0=孩童，1=宗门弟子，2=金丹/元婴，3=化神以上）
 | 文件名 | 描述 |
 |---|---|
-| player_m0.jpg | 6-year-old village boy, messy topknot, patched brown cotton tunic, bare feet, holding a broom, peach blossoms behind, cheeky determined grin |
+| ~~player_m0.jpg~~ ✅ | 6-year-old village boy, messy topknot, patched brown cotton tunic, bare feet, holding a broom, peach blossoms behind, cheeky determined grin |
 | player_m2.jpg | young male cultivator (golden core), sky-blue and silver layered robes, jade hairpiece, flying sword circling him, confident calm, sea clouds |
 | player_m3.jpg | male immortal-to-be, flowing white-gold robes with cloud embroidery, faint halo of lightning scars, serene powerful gaze, heavenly gate in mist |
-| player_f0.jpg | 6-year-old village girl, twin buns with red strings, patched pink tunic, clutching a wooden ladle, peach blossoms, stubborn pout |
-| player_f1.jpg | young female sect disciple, white-and-jade hanfu matching player_m1, long black hair half-up, slim sword at waist, bright eyes, misty peaks |
+| ~~player_f0.jpg~~ ✅ | 6-year-old village girl, twin buns with red strings, patched pink tunic, clutching a wooden ladle, peach blossoms, stubborn pout |
+| ~~player_f1.jpg~~ ✅ | young female sect disciple, white-and-jade hanfu matching player_m1, long black hair half-up, slim sword at waist, bright eyes, misty peaks |
 | player_f2.jpg | female cultivator (golden core), lavender and silver robes, crescent hairpin, flying sword trail, elegant confident smile, sea of clouds |
 | player_f3.jpg | female immortal-to-be, white-gold layered robes, glowing lotus aura, lightning-tempered calm expression, heavenly gate in mist |
 
 ## 2. NPC（文件名 = 头像键）
 | 文件名 | 角色 | 描述 |
 |---|---|---|
-| npc_mom.jpg | 娘 | warm middle-aged village mother, plain blue headscarf, apron over hemp dress, holding a steaming bowl of herb soup, worried but loving smile, cottage doorway |
+| ~~npc_mom.jpg~~ ✅ | 娘 | warm middle-aged village mother, plain blue headscarf, apron over hemp dress, holding a steaming bowl of herb soup, worried but loving smile, cottage doorway |
 | npc_farmer.jpg | 王大爷 | old farmer with straw hat and white stubble, rolled sleeves, hoe on shoulder, guarding a peach tree, grumpy-kind face |
 | npc_girl.jpg | 翠花 | lively village girl ~14, twin braids, green floral jacket, basket of peaches, mischievous wink |
 | npc_storyteller.jpg | 说书先生 | thin storyteller in grey scholar robe, folding fan and wooden clapper, dramatic mid-tale gesture, teahouse lanterns |
@@ -33,7 +34,7 @@
 | npc_sister.jpg | 师姐·林小满 | cheerful senior sister, ponytail, sky-blue sect uniform, wooden practice sword, encouraging thumbs-up |
 | npc_disciple.jpg | 师兄·萧逸 / 迷路的弟子 | earnest male disciple, blue-white sect uniform, scroll under arm, slightly lost expression, sect courtyard |
 | npc_alchemist.jpg | 丹房长老 | portly alchemy elder, singed eyebrows, red-brown robe with soot, holding a smoking pill furnace lid, proud grin |
-| npc_merchant.jpg | 奸商·钱多多 | plump sly merchant, gold-trimmed maroon robe, coin-shaped hat, abacus and stack of IOUs, shifty smile, market stall |
+| ~~npc_merchant.jpg~~ ✅ | 奸商·钱多多 | plump sly merchant, gold-trimmed maroon robe, coin-shaped hat, abacus and stack of IOUs, shifty smile, market stall |
 | npc_yaopu.jpg | 药铺掌柜·杜仲 | calm herbalist shopkeeper, green robe, spectacles, mortar and pestle, drawers of herbs behind |
 | npc_xiaoer.jpg | 茶馆小二 | young teahouse waiter, towel over shoulder, teapot raised, cheeky grin, busy teahouse |
 | npc_fisher.jpg | 钓鱼佬 / 老渔夫 | relaxed old fisherman, bamboo hat, long fishing rod, a glowing spirit fish on the line, river at dusk |
@@ -50,9 +51,9 @@
 | npc_yuelao.jpg | 月老 | jolly old matchmaker god, red robe, long white beard, red threads tangled around his fingers, moon behind |
 | npc_judge.jpg | 讨债司判官·钱不够 | stern heavenly debt judge, black official hat, red-black robe, giant brush and overdue ledger, fierce eyebrows |
 | npc_luren.jpg | 路人甲 | very ordinary young villager, grey tunic, forgettable face, holding a blank name tag, slightly sad |
-| npc_taizi.jpg | 龙宫太子·敖小白 | young dragon prince with a forced dignified smile, white-silver hair, small horns, white-blue dragon robe, nervous about inherited debts, coral palace |
+| ~~npc_taizi.jpg~~ ✅ | 龙宫太子·敖小白 | young dragon prince with a forced dignified smile, white-silver hair, small horns, white-blue dragon robe, nervous about inherited debts, coral palace |
 | npc_xiabing.jpg | 虾兵队长·阿虾 | shrimp soldier captain, red shell armour, spear, wide-eyed shouting 'report!' salute, underwater palace |
-| npc_sanniang.jpg | 鬼市掌柜·阴三娘 | ghost-market pawnshop owner, pale beauty, dark violet robe, pipe and abacus, smiling eyes of a shrewd dealer, paper lanterns |
+| ~~npc_sanniang.jpg~~ ✅ | 鬼市掌柜·阴三娘 | ghost-market pawnshop owner, pale beauty, dark violet robe, pipe and abacus, smiling eyes of a shrewd dealer, paper lanterns |
 | npc_guizu.jpg | 鬼卒·小六 | small ghost soldier, translucent blue skin, oversized helmet, chain and tally board, aggrieved overworked look |
 | npc_baiwuchang.jpg | 白无常 | tall white impermanence, white robe and tall hat reading 一见生财, squinting eyes, small open mouth (gentle take on the hanging tongue), oddly polite |
 | npc_xiaoyao.jpg | 逍遥散人 | carefree wandering immortal, loose grey-green robe, go board under arm, gourd, lying on a cloud, eyes closed smiling in the sun |
@@ -74,7 +75,7 @@
 | boss_corpse.jpg | 尸王·欠一世: towering jiangshi king, ragged imperial robe, talisman on forehead, chains of IOUs, graveyard moonlight |
 | boss_dragon.jpg | 东海龙王·敖铁公: stingy dragon king, golden scale armour, pearl abacus, offshore bank vault of spirit stones, stormy sea |
 | boss_mozun.jpg | 魔尊·赊刀人: demon lord selling knives on credit, black cloak with blades hanging, red eyes, rift canyon of fire |
-| boss_guiwang.jpg | 鬼王·千面: Peking-opera ghost king, painted opera face mid-aria with mouth open, a thousand masks orbiting him, icy blue flames, pawnshop of souls |
+| ~~boss_guiwang.jpg~~ ✅ | 鬼王·千面: Peking-opera ghost king, painted opera face mid-aria with mouth open, a thousand masks orbiting him, icy blue flames, pawnshop of souls |
 | boss_dasiming.jpg | 催债司·大司命: grand arbiter of fate, black-gold robe, stern official dignity, book of life and death, lightning, judgment hall |
 | boss_tiandao2.jpg | 天道真身·总账房: the true Heavenly Dao as an exhausted chief accountant, half-closed amber eyes, endless ledger pages swirling, golden abacus throne, underground vault |
 
