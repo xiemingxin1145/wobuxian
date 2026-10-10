@@ -126,11 +126,13 @@ jobs:
           精简版（标清资源，国内下载更快）：https://github.com/${{ github.repository }}/releases/latest/download/wobuxian-lite.apk
           两个版本签名相同，可互相覆盖安装。
           可直接覆盖安装旧版本，存档保留。"
+          # 带“-”的标签（如 v2.3.0-beta1）是预发布：不标 latest，游戏内更新检查也会忽略
+          if [[ "$TAG" == *-* ]]; then FLAG="--prerelease"; EFLAG="--prerelease"; else FLAG="--latest"; EFLAG="--latest"; fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" wobuxian.apk wobuxian-lite.apk --clobber
-            gh release edit "$TAG" --notes "$NOTES" --latest
+            gh release edit "$TAG" --notes "$NOTES" $EFLAG
           else
-            gh release create "$TAG" wobuxian.apk wobuxian-lite.apk --title "我不仙 v$NAME (build $CODE)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
+            gh release create "$TAG" wobuxian.apk wobuxian-lite.apk --title "我不仙 v$NAME (build $CODE)" --notes "$NOTES" --target "$GITHUB_SHA" $FLAG
           fi
           # 每个发布都必须同时带高清版和精简版，否则 /releases/latest/download/wobuxian-lite.apk 会 404
           A=$(gh release view "$TAG" --json assets -q '.assets[].name')
