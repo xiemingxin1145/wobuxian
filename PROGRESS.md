@@ -128,7 +128,10 @@
 - [ ] issue #5 controls 回归：已修并通过；补一个“附近有 NPC 时点地”的用例
 - [ ] 第十七章～终章（下）：接入 drafts/content23.js（research_v22 §7/§8），validate22 0 错误、multilife 跑到新结局、自动任务不碰结局选项
 ### 2.4
-- [ ] 角色模型换 proto v2：分支 `v24-chars`（见该分支 HANDOFF_CHARS.md、docs/art_specs.md）
+- [x] 角色模型换 proto v2：分支 `v24-chars` 已合并（2026-10-10；见 HANDOFF_CHARS.md、docs/art_specs.md）
+- [x] 管线 art/v24（Quaternius UBC CC0 基础人体 + 程序化动漫头/脸/发/衣袍，192×224 帧，锚点 0.86；spriteBox 适配，热区仍 ≥56×88 CSS）
+- [ ] 转换进度 41/84；最近一批：批次2c：冷月/说书人/谷主/保险/小二/守门人/黑心/药铺/判官（9 个 NPC）
+- [ ] HD 资源包需重新生成（Release assets-hd 里仍是旧精灵）；docs/art_specs.md 需重写为「基础人体+发型+配件+色板」
 - [ ] 地图扩大（>22×22）到 15+ 张 + 世界地图
 
 ### 新增：v2.5 开放世界混合方向（见 docs/openworld_upgrade.md）
