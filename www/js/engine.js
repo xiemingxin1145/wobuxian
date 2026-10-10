@@ -30,7 +30,8 @@ function drawSprite(ctx, id, anim, dir, f, x, y, s = 1, alpha = 1, tint = null) 
   ctx.restore();
   return { top: y + (fr[5] - ay) * s / K, h: S.fh * s / K };
 }
-function spriteBox(id, s = 1) { const S = AS.sprites[id]; if (!S) return { w: 80, h: 120 }; const K = S.k || 1; const big = S.fw / K >= 300; return { w: S.fw / K * 0.55 * s, h: S.fh / K * (big ? 0.8 : 0.78) * s }; }
+// v2.4：新人形模型帧 192×224（fh/K ≥ 200 且非 big）身体在帧内占比更小 → 包围盒按 0.45/0.70；点击热区另由 ux23 entHitRect 保底 ≥56×88 CSS px
+function spriteBox(id, s = 1) { const S = AS.sprites[id]; if (!S) return { w: 80, h: 120 }; const K = S.k || 1; const big = S.fw / K >= 300; const v24 = !big && S.fh / K >= 200; return { w: S.fw / K * (v24 ? 0.45 : 0.55) * s, h: S.fh / K * (big ? 0.8 : v24 ? 0.70 : 0.78) * s }; }
 // UI 图集：头像 / 图标（CSS）
 function iconCss(key, size = 48) {
   const I = AS.icons; const f = I.f[key] || I.f['scroll']; const k = size / I.size;

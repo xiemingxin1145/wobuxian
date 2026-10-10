@@ -17,7 +17,14 @@
 ## 渲染风格参考与评估素材（v2.2）
 
 - 赛璐璐/边缘光/描边着色（`art/lib.py` 的 `_cel()`，`WBX_CEL=1` 启用）为本项目自行实现，基于 Blender 内置 Toon BSDF + Layer Weight + Freestyle。NprEevee、miHoYo 风格着色等 GPL 开源项目仅作思路参考，**未复制任何代码或节点组**。
-- Quaternius「Universal Base Characters」（https://quaternius.com/packs/universalbasecharacters.html ，作者 Quaternius）：评估用，授权 **CC0 1.0**（官网页面 2026-10-09 存档：`docs/licenses/quaternius_universalbasecharacters_2026-10-09.html`）。Quaternius 自 2026-08-28 起对新发布素材使用 Quaternius Asset License v1.0（存档：`docs/licenses/quaternius_license_page_2026-10-09.html`），本包页面仍标注 CC0。截至 v2.2.0，游戏内未打包任何 Quaternius 模型；若日后采用，仅从官网/官方 itch.io 页面下载并在此登记。
+- Quaternius「Universal Base Characters [Standard]」（https://quaternius.com/packs/universalbasecharacters.html ，官方 itch.io：https://quaternius.itch.io/universal-base-characters ，作者 Quaternius）：授权 **CC0 1.0**（包内 `License_Standard.txt` 原文已存 `docs/licenses/quaternius_ubc_License_Standard.txt` 与 `art/third_party/quaternius_ubc/License_Standard.txt`；官网页面 2026-10-10 存档 `docs/licenses/quaternius_universalbasecharacters_2026-10-10.html`，itch 页面 `docs/licenses/quaternius_ubc_itch_2026-10-10.html`；更早评估存档 2026-10-09 仍保留）。Quaternius 自 2026-08-28 起对**新发布**素材使用 Quaternius Asset License v1.0（存档 `docs/licenses/quaternius_license_page_2026-10-10.html`，不溯及既往），本包页面与包内许可均为 CC0。下载包 sha256 `fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40`（仅官网/官方 itch 下载）。
+  - **v2.4 起游戏内使用**（v24-chars 分支，人形角色新模型管线 `art/v24/`）：以下文件作为人体基础网格/骨架/发型渲染进角色精灵帧，原文件存于 `art/third_party/quaternius_ubc/`（未复制贴图，仅网格+骨架）：
+    - `Superhero_Male_FullBody.gltf/.bin`（男性基础人体）
+    - `Superhero_Female_FullBody.gltf/.bin`（女性基础人体）
+    - `Hair_Long.gltf/.bin`（长发，女性/束发角色）
+    - `Hair_SimpleParted.gltf/.bin`（短发）
+    - `Hair_Buns.gltf/.bin`（备用发髻，暂未使用）
+  - 头部、脸部贴图（`art/v24/face_tex.py` 程序化绘制）、刘海/发髻/衣袍/袖/裙/腰带/配件均为本项目自行建模，无其它第三方素材。
 
 ## 工具
 
