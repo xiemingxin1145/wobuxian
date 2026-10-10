@@ -69,7 +69,7 @@
 | 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
-| v2.5+ | 🔧 分支 `openworld-wip` 阶段 1 静态视觉候选已评审，最终干净 SHA 待签收 | `character_models.py` 唯一输入 blob=`3df62d345b5f5d005158d07d7267326ad6495a37`（与 `b6052ef` 一致）；已由官方 Blender 4.2.23 同源重建 `.blend`、12帧及四张预览，严格场景/PNG完整性/`validate22`通过。最终新帧 IoU 64/48px=`0.692308/0.697318`，45组静态热点检查、k=1.0和8px安全边距通过；玛丽卡对同一静态候选预览预审无阻断项。该0.70是项目自定门槛，不是行业标准或盲测结果；真实点按、5人盲测、设备/DPR、游戏接入均未做，姿势板非动画。当前仅待整理为干净本地提交并按精确SHA最终签收；未签收前阶段2冻结。样例仍未接入游戏，签收后再推进独立可玩遭遇战/ATB原型，之后做奇遇→NPC态度→债务后果小闭环。各阶段单独测试/提交；不改 `main`、不合并、不发布。 |
+| v2.5+ | 🔧 `openworld-wip`：阶段 1 已签收（仅离线资产）；阶段 2 隔离遭遇战原型进行中 | 阶段 1 由玛丽卡按精确提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收；签收仅覆盖离线模型/预览，不覆盖真实点按、5人盲测、设备/DPR、游戏接入、APK/Android/真机。阶段 2 在 `www/prototypes/encounter/` 独立实现移动、普攻/雷击、闪避、敌方预警/弹道、受伤、胜败重试/返回地图；保持正式地图和 `www/js/battle_realtime_prototype.js` 不动，Boss/剧情战继续回合制。阶段 3 尚未开始；每阶段独立测试/提交，当前不改 `main`、不合并、不发布。 |
 
 **下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 
