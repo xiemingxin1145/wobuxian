@@ -70,6 +70,12 @@
 - [x] 核对（下载 Release 上的两个 APK 用 apksigner/aapt 查）：wobuxian.apk 278,341,061 B、wobuxian-lite.apk 47,679,345 B；都是 versionName 2.3.0、versionCode 151（> beta 的 147）、证书 SHA-256 436bf9221c08db212a13a9e8d64459f27cca9777223b7c21480fb33ce7ef29dc（= 2.2.0）；同包名+同证书+更高 versionCode → 可覆盖安装 2.2.0（CI 模拟器冒烟 API30/34 通过；未在真机实装验证）；latest/download 两个链接都 302 到 v2.3.0
 - [ ] 第 5 项内容 → 移到 2.3.1（research_v22 §7 台词 + §8 数值；草稿 drafts/content23.js 未接入）
 
+## 新方向：开放世界 / 混合战斗（v2.5+）
+- [x] 新增方案文档 `docs/openworld_upgrade.md`（低模报出替代球体、即时/半即时战斗原型、随机奇遇链 + 债务强化）
+- [ ] 建分支 `openworld-wip` 并开始低模角色样例
+- [ ] 即时战斗原型（遭遇战）
+- [ ] 随机奇遇 + 债务后果草稿
+
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
 ### 2.3.1（从 main 开 `v231-wip`）
 - [ ] issue #5 T9：自动任务 3 分钟内推进主线（依赖战斗胜负，打输后“变强”要等两年 → 缩短/改为立刻练级再试）
@@ -79,3 +85,8 @@
 ### 2.4
 - [ ] 角色模型换 proto v2：分支 `v24-chars`（见该分支 HANDOFF_CHARS.md、docs/art_specs.md）
 - [ ] 地图扩大（>22×22）到 15+ 张 + 世界地图
+
+### 新增：v2.5 开放世界混合方向（见 docs/openworld_upgrade.md）
+- 低模报出建模替代球体
+- 即时/半即时遭遇战原型
+- 随机奇遇链 + 债务强化贯穿
