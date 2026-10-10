@@ -248,9 +248,10 @@ Object.assign(ACHS, {
 })();
 // 资源保护：缺少素材时隐藏对应内容（避免半成品构建报错）
 (function () {
-  const A = window.ASSETS || {}; const S = A.sprites || {}, MP = A.maps || {};
-  for (const k of Object.keys(NPCS)) if (NPCS[k].spr && !S[NPCS[k].spr]) delete NPCS[k];
-  for (let i = MAP_ORDER.length - 1; i >= 0; i--) if (!MP[MAP_ORDER[i]]) MAP_ORDER.splice(i, 1);
+  const A = window.ASSETS || {}; const S = A.sprites || {}, MP = A.maps || {}; const D = window.ASSET_DROPPED = [];
+  const drop = (kind, k, a) => { D.push(`${kind}:${k}(${a})`); console.warn('[asset-guard] drop', kind, k, a); };
+  for (const k of Object.keys(NPCS)) if (NPCS[k].spr && !S[NPCS[k].spr]) { drop('npc', k, NPCS[k].spr); delete NPCS[k]; }
+  for (let i = MAP_ORDER.length - 1; i >= 0; i--) if (!MP[MAP_ORDER[i]]) { drop('map', MAP_ORDER[i], 'map'); MAP_ORDER.splice(i, 1); }
   for (const id of Object.keys(MAPINFO)) if (MAPINFO[id].mons) MAPINFO[id].mons = MAPINFO[id].mons.filter(m => MONS[m] && S[MONS[m].spr]);
   for (const k of Object.keys(PET_SKILL)) if (!MONS[k] || !S[MONS[k].spr]) delete PET_SKILL[k];
 })();

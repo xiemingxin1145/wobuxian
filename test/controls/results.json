@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 106.0,
+   "moved_px": 104.0,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 134.0,
+   "moved_px": 132.4,
    "ok": true
   },
   {
@@ -30,7 +30,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 219.6,
+   "moved_px": 209.4,
    "ok": true
   },
   {
@@ -41,7 +41,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 131.6,
+   "moved_px": 126.7,
    "ok": true
   },
   {
@@ -52,18 +52,18 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 105.3,
+   "moved_px": 100.2,
    "ok": true
   },
   {
    "drag": "左下",
    "expect": "SW",
    "got": "SW",
-   "move_angle_err": 10.4,
-   "facing_vs_motion_err": 22.1,
+   "move_angle_err": 0.0,
+   "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 86.4,
+   "moved_px": 126.7,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 209.4,
+   "moved_px": 208.1,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 129.2,
+   "moved_px": 126.7,
    "ok": true
   }
  ],
@@ -110,9 +110,9 @@
     516
    ],
    "end_dist_tiles": 0.0,
-   "first_facing": "NW",
+   "first_facing": "SW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 12,
+   "path_tiles": 8,
    "idle_on_arrival": true,
    "ok": true
   },
@@ -123,7 +123,7 @@
     424
    ],
    "end_dist_tiles": 0.0,
-   "first_facing": "N",
+   "first_facing": "NW",
    "mismatch_frames_pct": 0.0,
    "path_tiles": 10,
    "idle_on_arrival": true,
@@ -149,7 +149,7 @@
     470
    ],
    "end_dist_tiles": 0.0,
-   "first_facing": "NW",
+   "first_facing": "W",
    "mismatch_frames_pct": 0.0,
    "path_tiles": 12,
    "idle_on_arrival": true,

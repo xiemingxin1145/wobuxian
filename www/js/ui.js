@@ -250,7 +250,8 @@ const UI = {
   battleChoose(P) {
     return new Promise(res => {
       const bb = $('#battlebar'); this.renderBB(); B.sel = null; let pending = null;
-      const done = a => { B.sel = null; R.onTap = null; bb.onclick = null; bb.classList.add('wait'); res(a); };
+      const mapTap = (x, y) => Game.onTap(x, y); /* v2.3（奥拉夫 issue #2）：选完目标要把点按还给地图，以前置 null 后打一场仗整张地图就点不动了 */
+      const done = a => { B.sel = null; R.onTap = mapTap; bb.onclick = null; bb.classList.add('wait'); res(a); };
       bb.classList.remove('wait');
       const target = (sk, side) => { pending = sk; const cands = B.units.filter(u => u.alive && u.side === side); if (cands.length === 1) return done(Object.assign(sk, { t: cands })); B.sel = { targets: cands }; this.renderBB('target');
         R.onTap = (x, y) => { let best = null, bd = 1e9; for (const u of cands) { const [ux, uy] = uPos(u); const d = Math.hypot(ux - x, uy - 70 * R.dpr - y); if (d < bd) { bd = d; best = u; } } if (best && bd < 160 * R.dpr) done(Object.assign(pending, { t: [best] })); }; };
@@ -260,7 +261,7 @@ const UI = {
         if (a === 'atk') return target({ u: P, sk: 'atk' }, 1);
         if (a === 'skill') return this.renderBB('skill');
         if (a === 'item') return this.renderBB('item');
-        if (a === 'back') { B.sel = null; R.onTap = null; return this.renderBB(); }
+        if (a === 'back') { B.sel = null; R.onTap = mapTap; return this.renderBB(); }
         if (a === 'defend') return done({ u: P, sk: 'defend' });
         if (a === 'flee') return done({ u: P, sk: 'flee' });
         if (a === 'auto') { B.auto = true; return done(chooseAI(P)); }
@@ -296,7 +297,7 @@ const UI = {
   title() {
     return new Promise(res => {
       const t = $('#title'); t.style.display = 'flex'; const sv = Game.hasSave();
-      t.innerHTML = `<div class="logo"><b>我不仙</b><span>修仙人生模拟器 · ${APP_VERSION.name}</span></div><div class="tbtns">${sv ? `<button class="opt" data-k="cont">继续人生<small>${esc(sv.name)} · ${sv.age}岁 · ${REALMS[sv.realm].n}</small></button>` : ''}<button class="opt" data-k="new">开始新人生</button><button class="opt" data-k="meta">轮回殿（${Game.meta.pts}点）</button><button class="opt" data-k="ach">成就与结局</button></div><p class="ver">v${APP_VERSION.name}　全部美术为 Blender 原创建模渲染</p>`;
+      t.innerHTML = `<div class="logo"><b>我不仙</b><span>修仙人生模拟器 · ${APP_VERSION.name}</span></div><div class="tbtns">${sv ? `<button class="opt" data-k="cont">继续人生<small>${esc(sv.name)} · ${sv.age}岁 · ${REALMS[sv.realm].n}</small></button>` : ''}<button class="opt" data-k="new">开始新人生</button><button class="opt" data-k="meta">轮回殿（${Game.meta.pts}点）</button><button class="opt" data-k="ach">成就与结局</button></div><p class="ver">v${APP_VERSION.name}　立绘为 AI 生成插画 · 地图角色为 Blender 3D 渲染</p>`;
       t.onclick = async e => {
         const b = e.target.closest('.opt'); if (!b) return; Sfx.play('click'); Audio2.unlock(); const k = b.dataset.k;
         if (k === 'cont') { Game.G = sv; t.style.display = 'none'; res('cont'); }

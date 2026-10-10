@@ -2,7 +2,7 @@
 // 启动时检查 GitHub 最新发布版本；离线或出错时静默失败
 const Updater = {
   REPO: 'xiemingxin1145/wobuxian',
-  URL: 'https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk',
+  get URL() { return 'https://github.com/xiemingxin1145/wobuxian/releases/latest/download/' + (window.APP_VERSION && APP_VERSION.lite ? 'wobuxian-lite.apk' : 'wobuxian.apk'); },
   parse(rel) {
     const t = (rel.body || '') + ' ' + (rel.name || '');
     const m = t.match(/versionCode[:：=\s]*(\d+)/i); const n = t.match(/versionName[:：=\s]*([\d.]+)/i) || (rel.tag_name || '').match(/(\d+\.\d+\.\d+)/);
@@ -15,7 +15,8 @@ const Updater = {
       const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
       const r = await fetch(`https://api.github.com/repos/${this.REPO}/releases/latest`, { signal: ctl.signal, headers: { Accept: 'application/vnd.github+json' } });
       clearTimeout(to); if (!r.ok) return;
-      const v = this.parse(await r.json());
+      const j = await r.json(); if (j.prerelease || j.draft || /-/.test(j.tag_name || '')) return; // 预发布（如 v2.3.0-beta1）不提示
+      const v = this.parse(j);
       if (v.code > APP_VERSION.code) this.show(v);
       return v;
     } catch (e) { /* 离线：静默 */ }

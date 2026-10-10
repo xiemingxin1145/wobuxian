@@ -83,7 +83,7 @@
       S.col = TC[best];
       // ③ 光柱 + 闪屏
       const grid = h('div', 'gfx-cards g22c' + (items.length > 1 ? ' many' : '')); w.appendChild(grid);
-      grid.innerHTML = items.map((it, k) => `<div class="gcard t${it.tier}"><div class="gc-flip"><div class="gc-back"><span>缘</span></div><div class="gc-in">${it.spr && AS.sprites[it.spr] ? `<div class="sprbox" data-spr="${it.spr}"></div>` : `<i style="${iconCss(it.ic || 'chest', 64)}"></i>`}<b>${esc(it.n)}</b><small>${TN[it.tier]}</small></div></div></div>`).join('');
+      grid.innerHTML = items.map((it, k) => `<div class="gcard t${it.tier}"><div class="gc-flip"><div class="gc-back"><span>缘</span></div><div class="gc-in">${window.genCard && genCard(it.por || it.spr) ? `<div class="gcart" style="background-image:url(${genCard(it.por || it.spr)})"></div>` : it.spr && AS.sprites[it.spr] ? `<div class="sprbox" data-spr="${it.spr}"></div>` : `<i style="${iconCss(it.ic || 'chest', 64)}"></i>`}<b>${esc(it.n)}</b><small>${TN[it.tier]}</small></div></div></div>`).join('');
       UI.drawSprBoxes(grid);
       const cards = [...grid.querySelectorAll('.gcard')];
       S.flash = S.skipped ? 0.4 : 1.0; S.shake = best >= 4 ? 1 : 0.5; Sfx.play(best >= 4 ? 'thunder' : 'fire', 0.8);
@@ -110,7 +110,8 @@
   async function cutin(w, it, S) {
     const c = h('div', 'gcut'); c.innerHTML = `<div class="gcut-band"></div><div class="gcut-art"></div><div class="gcut-txt"><em>神品</em><b>${esc(it.n)}</b></div><div class="gcut-seal">天选</div>`;
     w.appendChild(c); const art = c.querySelector('.gcut-art');
-    if (it.spr && AS.sprites[it.spr]) {
+    if (window.genCard && genCard(it.por || it.spr)) art.innerHTML = `<div class="gcart" style="background-image:url(${genCard(it.por || it.spr)})"></div>`;
+    else if (it.spr && AS.sprites[it.spr]) {
       const cv = document.createElement('canvas'); const D = 2; cv.width = 260 * D; cv.height = 260 * D; art.appendChild(cv);
       try { await loadSprite(it.spr); const g = cv.getContext('2d'); g.scale(D, D); drawSprite(g, it.spr, 'idle', 'S', 0, 130, 240, it.spr.startsWith('mount_') ? 1.2 : 1.45); } catch (e) {}
     } else art.innerHTML = `<i style="${iconCss(it.ic || 'chest', 150)}"></i>`;
