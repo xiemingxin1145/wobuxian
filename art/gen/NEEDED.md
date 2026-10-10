@@ -7,6 +7,8 @@
 **统一风格（每条描述前都加上）**：painterly semi-realistic xianxia illustration, soft cinematic light, rich but clean colors, detailed hanfu costume, consistent with existing set (player_m1 / mentor / heroine / boss_tiandao / rival); lighthearted world where the Heavenly Dao is a loan shark — characters can carry ledgers, IOUs, abacuses, but keep them dignified, not chibi.
 **规格**：角色 1280x720 横图，人物全身或大半身站在画面中间 1/2 内、头部在上 1/4（方便自动裁头像/半身/卡面）；CG 与地图 1920x1080（≥1280x720）横图；图标 512x512 方图，单个物体居中，纯色或透明背景。
 
+造型/配色以 `docs/art_specs.md`（奥拉夫的设定稿：taizi、xiabing、sanniang、guizu、baiwuchang、xiaoyao、caishen、zhuiming、suanpan、tianbing、leigong、guanghan、guiwang、dasiming、tiandao2、carp、abacus）为准，描述冲突时以设定稿为准。
+
 已完成：player_m1.jpg（男主·弟子）、mentor.jpg（落魄剑仙，同时用于 mentor2）、heroine.jpg（冷月仙子）、boss_tiandao.jpg（讨尾款的天道，暂时也用于天道真身）、rival.jpg（龙傲天）。
 
 ## 1. 主角（按境界换装；0=孩童，1=宗门弟子，2=金丹/元婴，3=化神以上）
@@ -48,18 +50,18 @@
 | npc_yuelao.jpg | 月老 | jolly old matchmaker god, red robe, long white beard, red threads tangled around his fingers, moon behind |
 | npc_judge.jpg | 讨债司判官·钱不够 | stern heavenly debt judge, black official hat, red-black robe, giant brush and overdue ledger, fierce eyebrows |
 | npc_luren.jpg | 路人甲 | very ordinary young villager, grey tunic, forgettable face, holding a blank name tag, slightly sad |
-| npc_taizi.jpg | 龙宫太子·敖小白 | young dragon prince, white-silver hair, small horns, white-blue dragon robe, nervous about inherited debts, coral palace |
-| npc_xiabing.jpg | 虾兵队长·阿虾 | shrimp soldier captain, red shell armour, spear, comically serious salute, underwater palace |
-| npc_sanniang.jpg | 鬼市掌柜·阴三娘 | ghost-market pawnshop owner, pale beauty, dark violet qipao-style robe, pipe and abacus, paper lanterns |
-| npc_guizu.jpg | 鬼卒·小六 | small ghost soldier, translucent blue skin, oversized helmet, chain and tally board, timid |
-| npc_baiwuchang.jpg | 白无常 | tall white impermanence, white robe and tall hat reading 一见生财, long tongue, oddly polite smile |
-| npc_xiaoyao.jpg | 逍遥散人 | carefree wandering immortal, loose grey-green robe, go board under arm, gourd, lying on a cloud |
+| npc_taizi.jpg | 龙宫太子·敖小白 | young dragon prince with a forced dignified smile, white-silver hair, small horns, white-blue dragon robe, nervous about inherited debts, coral palace |
+| npc_xiabing.jpg | 虾兵队长·阿虾 | shrimp soldier captain, red shell armour, spear, wide-eyed shouting 'report!' salute, underwater palace |
+| npc_sanniang.jpg | 鬼市掌柜·阴三娘 | ghost-market pawnshop owner, pale beauty, dark violet robe, pipe and abacus, smiling eyes of a shrewd dealer, paper lanterns |
+| npc_guizu.jpg | 鬼卒·小六 | small ghost soldier, translucent blue skin, oversized helmet, chain and tally board, aggrieved overworked look |
+| npc_baiwuchang.jpg | 白无常 | tall white impermanence, white robe and tall hat reading 一见生财, squinting eyes, small open mouth (gentle take on the hanging tongue), oddly polite |
+| npc_xiaoyao.jpg | 逍遥散人 | carefree wandering immortal, loose grey-green robe, go board under arm, gourd, lying on a cloud, eyes closed smiling in the sun |
 | npc_caishen.jpg | 财神 | god of wealth, red-gold robe, ingot in hand, round cheerful face, surrounded by coins and IOUs he is owed |
-| npc_zhuiming.jpg | 催债司主簿·追命 | sharp clerk of the debt bureau, dark blue official robe, rolled warrants, chain talisman, cold efficient look |
-| npc_suanpan.jpg | 天道会计·算无遗 | meticulous heavenly accountant, spectacles, grey-gold robe, giant floating abacus, ink-stained fingers |
-| npc_tianbing.jpg | 天兵甲 | heavenly soldier, gold armour, halberd, bored expression, clouds and gate |
-| npc_leigong.jpg | 雷公 | thunder god, blue skin, bird-like beak, drum ring on back, hammer and chisel, crackling lightning, a bit near-sighted |
-| npc_guanghan.jpg | 广寒仙子 | moon palace fairy, pale blue-white gown, jade rabbit, crescent moon, melancholic |
+| npc_zhuiming.jpg | 催债司主簿·追命 | sharp clerk of the debt bureau, dark blue official robe, rolled warrants, chain talisman, weary office-worker face — dislikes the job but is very good at it |
+| npc_suanpan.jpg | 天道会计·算无遗 | meticulous heavenly accountant, spectacles, grey-gold robe, giant floating abacus, ink-stained fingers, nervous and earnest (secret ally) |
+| npc_tianbing.jpg | 天兵甲 | heavenly soldier, gold armour, halberd, dozing on guard with eyes shut, clouds and gate |
+| npc_leigong.jpg | 雷公 | thunder god, blue skin, bird-like beak, drum ring on back, hammer and chisel, round spectacles over glowing angry red eyes, crackling lightning, short-tempered |
+| npc_guanghan.jpg | 广寒仙子 | moon palace fairy, pale blue-white gown, jade rabbit, crescent moon, cool aloof eyes half-closed, never smiles |
 | npc_dianmu.jpg | 电母（新） | goddess of lightning, two mirrors flashing, purple-silver robes, hair crackling like wires, holding an electricity bill |
 | npc_guichengxiang.jpg | 龟丞相（新） | old turtle chancellor, huge shell full of scrolls, green official robe, spectacles, back pain |
 | npc_guolucai.jpg | 过路财（新） | toll-gate immortal, gold-trim official hat, toll booth with barrier pole at the Southern Heavenly Gate, ledger and stamp |
@@ -72,9 +74,9 @@
 | boss_corpse.jpg | 尸王·欠一世: towering jiangshi king, ragged imperial robe, talisman on forehead, chains of IOUs, graveyard moonlight |
 | boss_dragon.jpg | 东海龙王·敖铁公: stingy dragon king, golden scale armour, pearl abacus, offshore bank vault of spirit stones, stormy sea |
 | boss_mozun.jpg | 魔尊·赊刀人: demon lord selling knives on credit, black cloak with blades hanging, red eyes, rift canyon of fire |
-| boss_guiwang.jpg | 鬼王·千面: ghost king with a thousand masks orbiting him, icy blue flames, pawnshop of souls |
-| boss_dasiming.jpg | 催债司·大司命: grand arbiter of fate, black-gold robe, book of life and death, lightning, judgment hall |
-| boss_tiandao2.jpg | 天道真身·总账房: the true Heavenly Dao as chief accountant, endless ledger pages swirling, golden abacus throne, underground vault |
+| boss_guiwang.jpg | 鬼王·千面: Peking-opera ghost king, painted opera face mid-aria with mouth open, a thousand masks orbiting him, icy blue flames, pawnshop of souls |
+| boss_dasiming.jpg | 催债司·大司命: grand arbiter of fate, black-gold robe, stern official dignity, book of life and death, lightning, judgment hall |
+| boss_tiandao2.jpg | 天道真身·总账房: the true Heavenly Dao as an exhausted chief accountant, half-closed amber eyes, endless ledger pages swirling, golden abacus throne, underground vault |
 
 ## 4. 时装 / 坐骑（抽卡卡面，各一张全身；时装分男女）
 cos_xifu_m/f（红色喜服, wedding red with gold phoenix）、cos_xiake_m/f（wandering knight, black-blue, bamboo hat）、cos_yuyi_m/f（white crane-feather robe）、cos_mowang_m/f（demon king armour, black-red）、cos_taohua_m/f（peach-blossom fairy robe, pink）、cos_longpao_m/f（imperial dragon robe, gold crown）、cos_longwang_m/f（dragon prince attire, white-blue）、cos_guishi_m/f（ghost market night-walker, dark violet with lantern）、cos_tianjia_m/f（heavenly gold armour）、cos_caishen_m/f（god-of-wealth robe, red-gold）——每张：该服装穿在 player 角色身上，全身站姿，背景对应主题。
@@ -95,6 +97,6 @@ cg_debt（slime debt collectors at a peach-village cottage door, child with broo
 丹药：pill_red（healing pill, red）、pill_blue（mana pill, blue）、pill_green（vitality pill）、pill_gold（foundation pill, gold）、pill_purple（breakthrough pill, purple swirl）、pill_white（longevity pill, pearl white）。
 符：tal_r（red talisman, also 仙缘符）、tal_b（blue beast-taming talisman）、seal（jade seal）。
 材料：herb（spirit herb）、lingzhi（thousand-year lingzhi）、ore（black iron crystal）、peach（immortal peach）、stone（spirit stone）、stone_r（demon core, red）、egg（spirit beast egg）。
-道具：bill（ancestral IOU scroll）、debtbook（torn page of the Dao ledger）、key（secret realm key）、scroll（tattered technique scroll）、book_r/b/g/o/p（technique manuals in 5 colors）、gourd（wine gourd）、gourd_g（green gourd）、jade（warm jade）、fan（calligraphy fan）、coin（ancient coin）、bag（storage pouch）、chest（treasure chest）、bell（bronze bell）、furnace（pill furnace）、pagoda（mini pagoda）、mirror（bronze mirror）、umbrella（oil-paper umbrella）、flag（banner）、abacus（golden abacus）。
-装备：sword_w/g/b/p/o（swords white/green/blue/purple/orange rarity）、robe_w/g/b/p/o（robes by rarity）、hat、boots、ring、ring_b。
+道具：bill（ancestral IOU scroll）、debtbook（torn page of the Dao ledger）、key（secret realm key）、scroll（tattered technique scroll）、book_r、book_b、book_g、book_o、book_p（technique manuals: red/blue/green/orange/purple covers）、gourd（wine gourd）、gourd_g（green gourd）、jade（warm jade）、fan（calligraphy fan）、coin（ancient coin）、bag（storage pouch）、chest（treasure chest）、bell（bronze bell）、furnace（pill furnace）、pagoda（mini pagoda）、mirror（bronze mirror）、umbrella（oil-paper umbrella）、flag（banner）、abacus（golden abacus）。
+装备：sword_w、sword_g、sword_b、sword_p、sword_o（swords, glow white/green/blue/purple/orange by rarity）、robe_w、robe_g、robe_b、robe_p、robe_o（folded robes, trim color by rarity white/green/blue/purple/orange）、hat、boots、ring、ring_b。
 技能：sk_metal、sk_wood、sk_water(=sk_ice)、sk_fire、sk_earth、sk_thunder、sk_light、sk_dark、sk_poison、sk_heal、sk_shield、sk_swords（sword array）、sk_meditate、sk_flee——圆形徽章式，元素配色。
