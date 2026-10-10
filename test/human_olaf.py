@@ -244,7 +244,7 @@ async def main():
             mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             info['ontap_before'] = await taps_alive(c2)
             fought = False
-            for m in mons[:4]:
+            for m in mons[:8]:
                 if await free_point(c2, *m['s']):
                     await tap(c2, *m['s'])
                     for _ in range(60):
@@ -262,7 +262,11 @@ async def main():
                     p0 = st2['p']; await tap(c2, px + dx, py + dy); await c2.pg.wait_for_timeout(1500)
                     p1 = (await npcs(c2))['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
             info['ground_tap_moved_tiles'] = moved
-            t = next(x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc'); info['npc'] = t['name']   # v2.3：只挑普通 NPC（讨债史莱姆是 boss，点它本来就会开打）
+            cand_ = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']
+            t = cand_[0]
+            for x in cand_:
+                if await free_point(c2, *x['pts']['body']): t = x; break
+            info['npc'] = t['name']   # v2.3：只挑普通 NPC（讨债史莱姆是 boss，点它本来就会开打）
             o = await tap_npc_point(c2, t['id'], 'body', 8) if await free_point(c2, *t['pts']['body']) else dict(result='npc not tappable on screen')
             info['npc_tap_after_battle'] = o['result']; info['shot'] = await shot(c2, 'N1_after_battle_tap_dead')
             case('N1_taps_still_work_after_battle', fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc', **info)
