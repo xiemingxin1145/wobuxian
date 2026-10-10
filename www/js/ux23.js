@@ -61,7 +61,7 @@ pickAt = function (sx, sy) {
   const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
-    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const [ex, ey] = t2p(e.i, e.j), sb = spriteBox(e.spr, e.s), inBody = Math.abs(wx - ex) <= sb.w * 0.42 && wy >= ey - sb.h && wy <= ey + 6; /* 点在谁的身体上就是谁 */ const s = inBody ? PRI[e.kind] * 1e4 - 5000 + Math.hypot(wx - ex, (wy - (ey - sb.h / 2)) * 0.8) : PRI[e.kind] * 1e4 + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
+    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const [ex, ey] = t2p(e.i, e.j), sb = spriteBox(e.spr, e.s), inBody = Math.abs(wx - ex) <= sb.w * 0.42 && wy >= ey - sb.h && wy <= ey + 6; /* 点在谁的身体上就是谁 */ const s = inBody ? -2e4 + PRI[e.kind] * 1e3 + Math.hypot(wx - ex, (wy - (ey - sb.h / 2)) * 0.8) : PRI[e.kind] * 1e4 + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
   }
   if (best) return best;
   let fd = UX.w(36);

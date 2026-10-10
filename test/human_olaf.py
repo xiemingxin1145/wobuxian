@@ -263,7 +263,9 @@ async def main():
                     await tap(c2, *m['s'])
                     for _ in range(60):
                         await c2.pg.wait_for_timeout(250)
-                        if (await scr(c2))['battle']: fought = True; break
+                        s_ = await scr(c2)
+                        if s_['battle']: fought = True; break
+                        if s_['modal']: info.setdefault('mon_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); break
                     if fought: break
             if fought:
                 await c2.pg.wait_for_timeout(800); info['battle_shot'] = await shot(c2, 'N1_battle')
