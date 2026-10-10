@@ -5,15 +5,15 @@
   function addEntry() {
     if (document.getElementById('v25-entry')) return;
 
-    // 试炼场按钮
+    // 试炼场按钮（覆盖层iframe，不跳页）
     const btn = document.createElement('button');
     btn.id = 'v25-entry';
     btn.textContent = '试炼场';
     btn.style.cssText = 'position:fixed;right:12px;bottom:120px;z-index:9999;padding:8px 14px;background:#2a3a5a;color:#ffe680;border:1px solid #ffe680;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
     btn.onclick = async () => {
-      const c = confirm('进入独立遭遇战原型？\n\uff08不影响存档，可返回）\n\n取消则执行阶段3债务奇遇。');
+      const c = confirm('进入独立遭遇战原型？\n（覆盖层打开，不影响存档，可关闭返回）\n\n取消则执行阶段3债务奇遇。');
       if (c) {
-        location.href = 'prototypes/encounter/index.html';
+        openEncounterOverlay();
       } else if (window.Stage3 && window.Game && Game.G) {
         await Stage3.test(Game.G);
       }
@@ -45,6 +45,27 @@
       }
     };
     document.body.appendChild(rtBtn);
+  }
+
+  function openEncounterOverlay() {
+    if (document.getElementById('v25-encounter-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'v25-encounter-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:min(960px,96vw);height:min(640px,90vh);background:#111;border:2px solid #ffe680;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.6);';
+    const iframe = document.createElement('iframe');
+    iframe.src = 'prototypes/encounter/index.html';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    const close = document.createElement('button');
+    close.textContent = '×';
+    close.style.cssText = 'position:absolute;top:8px;right:8px;z-index:1;width:36px;height:36px;border-radius:50%;background:#2a3a5a;color:#ffe680;border:1px solid #ffe680;font-size:20px;font-weight:bold;cursor:pointer;';
+    close.onclick = () => overlay.remove();
+    wrap.appendChild(iframe);
+    wrap.appendChild(close);
+    overlay.appendChild(wrap);
+    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
   }
 
   function giveFullGodGear() {
