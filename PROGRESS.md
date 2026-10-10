@@ -4,7 +4,7 @@
 
 ## 当前接手基线（2026-10-10）
 - 工作分支：`openworld-wip`，从远端 `main` 的 `3baa83fbcedca3da96efd6e326885821ba10604d` 建立；本分支按用户最新顺序推进阶段 1 样例→隔离战斗原型→单条奇遇闭环；不改 `main`、不合并、不发布。
-- GitHub Issue #5 仍为 OPEN。于 `2026-10-10 14:02:13 +08` 刷新核对，API `updated_at=2026-10-10T04:25:19Z`、共 1 条评论，仍未记录本轮本地复测；最新评论：[永久链接](https://github.com/xiemingxin1145/wobuxian/issues/5#issuecomment-6093743735)。历史报告与本轮定向复测分开记录，时间均为 UTC；原始结果文件未覆盖：
+- GitHub Issue #5 仍为 OPEN。于 `2026-10-10 14:11:36 +08` 刷新核对，API `updated_at=2026-10-10T04:25:19Z`、共 1 条评论，仍未记录本轮本地复测；最新评论：[永久链接](https://github.com/xiemingxin1145/wobuxian/issues/5#issuecomment-6093743735)。历史报告与本轮定向复测分开记录，时间均为 UTC；原始结果文件未覆盖：
 
 | 证据 | 时间 | 结果 | 开发者辅助 | 原始证据路径 |
 |---|---|---|---|---|
