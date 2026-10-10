@@ -2,6 +2,11 @@
 
 > 规则：每轮工作结束都更新本文件和 `docs/ROADMAP.md` 的状态（做完什么、卡在哪、下一步）。
 
+## v2.4 人形角色新模型（分支 v24-chars，交接见 HANDOFF_CHARS.md）
+- [x] 管线 art/v24（Quaternius UBC CC0 基础人体 + 程序化动漫头/脸/发/衣袍，192×224 帧，锚点 0.86；spriteBox 适配，热区仍 ≥56×88 CSS）
+- [ ] 转换进度 21/84；最近一批：批次1：16 个玩家变体 + 落魄剑仙/师姐(女主)/龙傲天/娘/翠花（21 个）
+- [ ] HD 资源包需重新生成（Release assets-hd 里仍是旧精灵）；docs/art_specs.md 需重写为「基础人体+发型+配件+色板」
+
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
 - [x] mapdefs：longgong 东海龙宫 / guishi 鬼市 / cuizhai 天庭催债司

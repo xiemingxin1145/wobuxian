@@ -192,7 +192,7 @@ B1.build_skirt = build_skirt
 
 def build_sleeve(arm, s, M_robe, M_trim):
     """广袖 v2：肩→肘→腕→(重力) 的袖筒；截面前后宽、左右窄（袖袋自然下垂贴身侧），后侧的袂更长，袖口盖住大半只手"""
-    P0 = bone_pos(arm, 'clavicle_' + s).lerp(bone_pos(arm, 'upperarm_' + s), 0.8)
+    P0 = bone_pos(arm, 'clavicle_' + s).lerp(bone_pos(arm, 'upperarm_' + s), 0.55)
     P1 = bone_pos(arm, 'lowerarm_' + s); P2 = bone_pos(arm, 'hand_' + s); dn = Vector((0, 0, -1))
     ad = (P2 - P1).normalized(); P3 = P2 + ad * 0.07 + dn * 0.07 + Vector((0, 0.012, 0))
     path = [P0, P1, P2, P3]
@@ -203,6 +203,8 @@ def build_sleeve(arm, s, M_robe, M_trim):
         u = i / (NR - 1); c = pt(u); tan = (pt(min(1, u + 0.02)) - pt(max(0, u - 0.02))).normalized()
         ref = Vector((0, 1, 0)); ref = (ref - tan * ref.dot(tan)).normalized(); b2 = tan.cross(ref).normalized()
         rM = 0.09 + 0.04 * u + 0.17 * u ** 2.0; rm = 0.088 + 0.015 * u + 0.07 * u ** 2.2
+        cap = min(1.0, 0.25 + 0.75 * u / 0.12)     # v24：袖根收口藏进肩里（否则露出袖筒内壁=肩上黑块）
+        rM *= cap; rm *= cap
         ring = []
         for k in range(NA):
             a = 2 * math.pi * k / NA; ca, sa = math.cos(a), math.sin(a)
