@@ -224,7 +224,7 @@ def build_lowpoly(kind):
     if kind == "male":
         robe_col, robe2_col, trim_col, pants_col = "#b8946a", "#efe2c8", "#5a7b90", "#514438"
     elif kind == "female":
-        robe_col, robe2_col, trim_col, pants_col = "#b8946a", "#f3dfd0", "#d85f83", "#5a493f"
+        robe_col, robe2_col, trim_col, pants_col = "#b8946a", "#f3dfd0", "#c66b82", "#5a493f"
     else:
         robe_col, robe2_col, trim_col, pants_col = "#858d95", "#e8e4dc", "#6e5339", "#4a4b50"
     robe = material("v25_robe_" + kind, robe_col, 0.78)
@@ -237,10 +237,10 @@ def build_lowpoly(kind):
     # and cuffs distinct but restrained; never use a cape-like shoulder flare.
     if kind == "female":
         robe_rings = [
-            (0.40, 0.67, 0.235), (0.46, 0.64, 0.225), (0.65, 0.44, 0.19),
+            (0.40, 0.62, 0.235), (0.46, 0.60, 0.225), (0.65, 0.44, 0.19),
             (0.79, 0.26, 0.16), (1.04, 0.27, 0.16), (1.18, 0.32, 0.18),
             (1.27, 0.31, 0.17)]
-        hem_rings = [(0.39, 0.68, 0.245), (0.435, 0.68, 0.245), (0.47, 0.63, 0.23)]
+        hem_rings = [(0.39, 0.63, 0.245), (0.435, 0.63, 0.245), (0.47, 0.59, 0.23)]
     elif kind == "male":
         robe_rings = [
             (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
