@@ -384,6 +384,7 @@ async def main():
             case('T2_tap_npc_in_joystick_zone', ok, **info)
         # ---- T3 靠近交互按钮 ----
         if want('T3'):
+            await clear_popups(c); await ensure_map(c); await recover(c)  # T2 点开的对话先关掉（只跑 T2,T3 时会遇到）
             st = await npcs(c); t = next(x for x in st['npcs'] if x['kind'] == 'npc')
             await stand_near(c, t['id'], (0, 1)); await c.pg.wait_for_timeout(300)
             st = await npcs(c); tt = find(st, t['id'])
