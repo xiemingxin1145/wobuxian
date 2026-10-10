@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#101b25">
+  <link rel="icon" href="data:,">
+  <title>赤松坡试炼场 · 独立遭遇战原型</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="eyebrow">《我不仙》· v2.5 阶段 2 · 独立原型</span>
+        <h1>赤松坡试炼场</h1>
+      </div>
+      <span id="screen-badge" class="screen-badge" aria-live="polite">安全地图</span>
+    </header>
+
+    <section class="arena-card" aria-label="遭遇战场地">
+      <canvas id="arena" width="960" height="570" aria-label="赤松坡战斗画面"></canvas>
+      <div class="arena-caption"><span>赤松坡 · 练习遭遇</span><span id="arena-hint">暂时安全</span></div>
+    </section>
+
+    <section id="map-screen" class="state-panel map-panel" aria-labelledby="map-title">
+      <div class="panel-copy">
+        <span class="panel-kicker">练习地图</span>
+        <h2 id="map-title">两只山魈挡住了去路</h2>
+        <p>这里是一场可重开的独立小怪遭遇。用移动找位置，普攻和雷击削减敌人气血，看到红色预警时及时闪避。</p>
+      </div>
+      <button id="start-encounter" class="primary-button" type="button">进入遭遇战 <span aria-hidden="true">→</span></button>
+      <p class="isolation-note">独立练习场：不读取或写入正式存档；Boss 与剧情战仍由原回合制系统处理。</p>
+    </section>
+
+    <section id="battle-screen" class="battle-panel" hidden aria-label="遭遇战操作面板">
+      <div class="combat-status">
+        <div class="player-status">
+          <div class="status-heading"><strong>修士</strong><span id="hp-label">180 / 180</span></div>
+          <div class="meter"><i id="player-hp-bar"></i></div>
+        </div>
+        <div id="enemy-list" class="enemy-list" aria-live="polite"></div>
+      </div>
+      <div class="controls-row">
+        <div class="movement-block">
+          <span class="control-label">移动</span>
+          <div id="move-pad" class="move-pad" role="application" aria-label="按住并拖动方向摇杆移动">
+            <span class="pad-mark pad-up">▲</span><span class="pad-mark pad-right">▶</span>
+            <span class="pad-mark pad-down">▼</span><span class="pad-mark pad-left">◀</span>
+            <span id="move-knob" class="move-knob"></span>
+          </div>
+        </div>
+        <div class="action-block">
+          <span class="control-label">战斗动作</span>
+          <div class="action-buttons">
+            <button id="attack-btn" class="action-button attack-button" type="button" aria-label="普攻，键盘 J"><span>普攻</span><kbd>J</kbd></button>
+            <button id="skill-btn" class="action-button skill-button" type="button" aria-label="雷击技能，键盘 K"><span>雷击</span><kbd>K</kbd></button>
+            <button id="dodge-btn" class="action-button dodge-button" type="button" aria-label="闪避，空格键"><span>闪避</span><kbd>空格</kbd></button>
+          </div>
+        </div>
+      </div>
+      <p class="control-help"><span>电脑：WASD / 方向键移动 · J 普攻 · K 雷击 · 空格闪避</span><span>触屏：拖动摇杆并点按动作</span></p>
+    </section>
+
+    <section id="result-screen" class="state-panel result-panel" hidden aria-live="assertive">
+      <div class="result-copy">
+        <span id="result-kicker" class="panel-kicker">遭遇结束</span>
+        <h2 id="result-title">试炼完成</h2>
+        <p id="result-message"></p>
+      </div>
+      <div class="result-actions">
+        <button id="retry-btn" class="primary-button" type="button">重新挑战</button>
+        <button id="return-map-btn" class="secondary-button" type="button">返回练习地图</button>
+      </div>
+    </section>
+
+    <footer class="footer-note">本原型仅在此页面运行，与正式地图、回合制 Boss 战和游戏存档隔离。</footer>
+  </main>
+  <script src="./encounter.js"></script>
+</body>
+</html>

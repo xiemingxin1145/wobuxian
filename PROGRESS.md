@@ -26,8 +26,7 @@
 - Blender 4.2.23 LTS 重新打开最终 `.blend` 并以 `--python-exit-code 1` 严格验证通过：男主 35 个网格/3 个 Mirror/8 个挤出或环线命名部件；女主 40/3/9；剑仙 42/3/10；坐标有限，各根节点 `runtime_integrated=false`。女主裙摆半宽约0.62、男主0.36（约1.72倍），并加长双侧发束。同一组新渲染帧计算的男女剪影 IoU 明确为 **64px=0.692308、48px=0.697318**，低于本轮项目自定 `≤0.70` 内部门槛（非行业标准、非用户辨认率）；旧提交 `19fc932` 另一组源/帧为64px=0.679245、48px=0.681648，不与当前候选混报。
 - `validate_preview_geometry.py` 基于 T0 真人触控截图，三个互斥替换共享可走脚点 `(411,979)`；按 `k=1.0` 显示完整160×176帧（约153×169px），全帧距对照裁切边至少87px。用重渲alpha可见轮廓与15个手工截图区域做45组净距检查通过，女主距粉树最小30px、男主/剑仙41px；栅栏只登记为观察到的后景。区域未穷尽背景几何，不代表真实地图坐标、Canvas绘制层级或运行时命中验证。
 - 隔离对照（临时 worktree、未纳入正式模型）：把女主裙摆半宽 `0.62→0.56`、下摆 `0.63→0.57` 后，IoU变为64px `0.718` / 48px `0.717`，超过自定0.70过滤值；粉树净距由30px增至34px。虽然静态遮挡与Blend结构检查通过，但剪影指标变差，故不替换当前候选；此结果不能视为独立美术评审。
-- 验收边界：图像为Blender离线渲染及T0截图静态合成，不是运行中游戏画面；通过自定IoU过滤值也不证明用户辨认效果。人工遮挡区域不完整，仍可能漏掉其他树木/花草；真实点按、5人剪影盲测、不同设备/DPR、游戏接入、游戏资源导出、APK、Android/真机均未做。玛丽卡此前通过了相同数值的静态图面候选；本次同源重建已纳入干净本地提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13`，仍待按该提交与资产精确SHA最终签收，签收前不启动阶段2。
-- 阶段顺序观察：在阶段1精确SHA签收仍待完成时，工作区出现未跟踪的隔离原型 `www/prototypes/encounter/` 与 `test/encounter_prototype.py`；其自动测试曾在运行，之后进程结束并生成 `/tmp/wobuxian-encounter-win.png`，但本会话未拿到测试摘要/退出状态，故不记为通过或阶段2验收。原型未接入正式页面，相关文件保持未提交；签收前不再编辑或重复运行该测试。
+- 验收边界：图像为Blender离线渲染及T0截图静态合成，不是运行中游戏画面；通过自定IoU过滤值也不证明用户辨认效果。人工遮挡区域不完整，仍可能漏掉其他树木/花草；真实点按、5人剪影盲测、不同设备/DPR、游戏接入、游戏资源导出、APK、Android/真机均未做。玛丽卡此前通过了相同数值的静态图面候选；本次同源重建已纳入干净本地提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13`，玛丽卡已按精确提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收本阶段离线资产；该签收不覆盖真实点按、5人盲测、设备验证或正式游戏接入。
 
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
@@ -102,12 +101,13 @@
 - [x] 新增即时遭遇战原型占位 `www/js/battle_realtime_prototype.js`（可导出 RealtimeBattle，后续接入移动/技能/弹道）
 - [x] 建分支 `openworld-wip`，从最新已核实 `main` `3baa83f` 开出；分支起点工作区干净
 - [x] 阶段 1：离线低模资产/预览、Blend 与静态几何检查完成；玛丽卡已按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收。仅签收离线资产，不代表实机/触控/盲测/设备验证，也不接入正式运行链。
-- [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已实现移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害和胜败重试/返回地图；自动化使用鼠标模拟指针事件（不代表真实触控测试），实测正在修正中，待独立测试签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
+- [~] 阶段 2（进行中）：隔离浏览器练习场 `www/prototypes/encounter/` 已实测移动、普攻、雷击、闪避、敌方预警/弹道、碰撞伤害和胜败重试/返回地图。无并发单实例复测命令 `ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1434-win.png" python3 -B test/encounter_prototype.py`，Chromium `/usr/bin/chromium`、412×915，8 PASS/0 FAIL、退出码0；pageerror=0、console.error=0、HTTP错误=0；临时回环入口 `http://127.0.0.1:59933/prototypes/encounter/`；完整日志及胜利截图分别为 `test/results/encounter-stage2-20261010T1434.log`、`test/results/encounter-stage2-20261010T1434-win.png`。摇杆由 `page.mouse` 模拟指针拖动，不是实际触屏；正式地图未接入，待玛丽卡按本次提交SHA独立签收。正式运行链和 `www/js/battle_realtime_prototype.js` 不动。
 - [ ] 阶段 3（阶段 2 单独验收后）：做一条可测的奇遇选择闭环，至少覆盖 NPC 态度与债务后果；先复用现有状态，任何正式游戏接线另行小步验证
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
 ### 当前优先（v2.5+ 阶段 2）
 - [x] 阶段 1 已由玛丽卡按 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收，范围仅为离线资产。真实点按、5人盲测、运行时/设备验证、正式游戏接入、APK/Android/真机均未做。
+- [~] 阶段 2 单实例复测：8 PASS/0 FAIL、退出码0；pageerror=0、console.error=0、HTTP错误0；逐项日志、随机回环URL与胜利截图见 `test/results/encounter-stage2-20261010T1434.log` 和同目录PNG。摇杆步骤是鼠标模拟指针拖动，不是真实触屏；等待阶段2干净SHA及玛丽卡独立签收。
 - [ ] Issue #5 保持未解决：本轮 T4=1/20；T9 为 1 次失败 + 4 次开发者辅助下的连续单次成功，仍未达到连续 5 次且不是无辅助流程；目标仍是 T4≥18/20 与 T9 连续 5 次成功，不能用历史 9/20 或辅助跑替代验收。
 
 ### 后续产品清单（不与上述阶段并行）
