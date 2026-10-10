@@ -1,39 +1,59 @@
 'use strict';
-// ======================= 即时遭遇战原型（v2.5 实验） =======================
-// 目标：地图探索保持等距，碰到小怪时切入简单即时战斗区域。
-// 玩家：摇杆/点地移动 + 点击普攻 + 按键技能/闪避。
-// 敌人：简单 AI 追击 + 弹道技能。
-// 先作为原型，不替换现有回合制 Boss 战。
+// ======================= 即时遭遇战原型（v2.5 实验，已加强） =======================
+// 目标：从正式地图可以直接进入简单即时战斗区域，打完返回。
 
 const RT = {
   on: false,
-  units: [],
   player: null,
   enemies: [],
-  projectiles: [],
   time: 0,
+  result: null,
 };
 
 function startRealtimeEncounter(enemies) {
-  // TODO: 从 Game 导入玩家数据，切换 R.mode = 'realtime'
   console.log('[RT] start realtime encounter', enemies);
   RT.on = true;
-  RT.units = [];
-  // 占位：后续接入现有 sprite 系统
-  return Promise.resolve({ result: 'win', note: 'prototype stub' });
+  RT.time = 0;
+  RT.result = null;
+  RT.enemies = enemies || [{ name: '山魏', hp: 100 }];
+  RT.player = { hp: 180, max: 180 };
+  if (window.UI && UI.toast) UI.toast('进入即时遭遇战（原型）', '#ffe680');
+  return new Promise(resolve => {
+    RT._resolve = resolve;
+  });
 }
 
 function updateRealtime(dt) {
   if (!RT.on) return;
   RT.time += dt;
-  // 玩家移动、敌人 AI、弹道更新、碰撞检测
+  // 简单模拟：时间到了自动结束
+  if (RT.time > 8) {
+    endRealtime('win');
+  }
+}
+
+function endRealtime(result) {
+  RT.on = false;
+  RT.result = result;
+  if (window.UI && UI.toast) UI.toast('遭遇战结束：' + result, '#9aff9a');
+  if (RT._resolve) RT._resolve({ result });
 }
 
 function drawRealtime(ctx) {
-  // 复用现有 drawBattle 风格或简化
+  if (!RT.on || !ctx) return;
+  // 简单占位绘制
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, ctx.canvas.width, 40);
+  ctx.fillStyle = '#ffe680';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('即时战斗中... ' + Math.round(RT.time) + 's', 20, 25);
 }
 
-// 导出供游戏主逻辑调用
-window.RealtimeBattle = { start: startRealtimeEncounter, update: updateRealtime, draw: drawRealtime };
+window.RealtimeBattle = {
+  start: startRealtimeEncounter,
+  update: updateRealtime,
+  draw: drawRealtime,
+  end: endRealtime,
+};
 
-console.log('[RT] realtime battle prototype loaded');
+console.log('[RT] realtime battle prototype (enhanced) loaded');
