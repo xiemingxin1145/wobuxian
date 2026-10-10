@@ -10,6 +10,8 @@
     if (!n) return _por(key, size);
     return `background:url(${url('por', n)}) center/cover no-repeat;width:${size}px;height:${size}px;--gen:${n}`;
   };
+  if (GA.icons && GA.iconsz) { const _ic = iconCss; const [cell, aw, ah] = GA.iconsz;
+    iconCss = function (key, size = 40) { const f = GA.icons[key]; if (!f) return _ic(key, size); const k = size / cell; return `background:url(assets/gen/icons_gen.webp) ${-f[0] * k}px ${-f[1] * k}px/${aw * k}px ${ah * k}px no-repeat;width:${size}px;height:${size}px`; }; }
   window.genCard = key => GA.card && GA.card[key] ? url('card', GA.card[key]) : null;
   // 对话框：有半身像的角色换成半身立绘（站在对话框左上方）
   const mo = new MutationObserver(ms => {

@@ -95,8 +95,43 @@ def title(conf, faces):
         out = Image.composite(Image.new('RGB', (TW, TH), (14, 8, 4)), out, g)
         out.save(os.path.join(SD if prof == 'sd' else HD, 'title.webp'), quality=S['q'])
 
+AUTO_PREFIX = ('npc_', 'boss_', 'player_', 'cos_', 'mon_', 'mount_')
+CG = dict(sd=(1280, 720, 80), hd=(1920, 1080, 85))
+
+def cg_and_maps(M):
+    """cg_<id>.jpg → 替换章节/结局插画（www/assets/cg/cg_<id>.webp；HD → art/gen/hd/cg/）；map_<id>.jpg → 地图横幅/世界地图（assets/gen/map_<id>.webp）"""
+    M['cg'] = []; M['map'] = []
+    for f in sorted(os.listdir(SRC)):
+        stem, ext = os.path.splitext(f)
+        if ext.lower() not in ('.jpg', '.jpeg', '.png', '.webp'): continue
+        if stem.startswith('cg_') or stem.startswith('map_'):
+            im = Image.open(os.path.join(SRC, f)).convert('RGB')
+            for prof, (w, h, q) in CG.items():
+                W, H = im.size; k = max(w / W, h / H); r = im.resize((round(W * k), round(H * k)), Image.LANCZOS)
+                x0 = (r.size[0] - w) // 2; y0 = (r.size[1] - h) // 2; r = r.crop((x0, y0, x0 + w, y0 + h))
+                if stem.startswith('cg_'): d = os.path.join(ROOT, 'www/assets/cg') if prof == 'sd' else os.path.join(HD, 'cg')
+                else: d = SD if prof == 'sd' else HD
+                os.makedirs(d, exist_ok=True); r.save(os.path.join(d, stem + '.webp'), quality=q)
+            M['cg' if stem.startswith('cg_') else 'map'].append(stem); print(f'{f:20s} → {stem}.webp')
+
+def icons(M):
+    """icon_<key>.png（方形，透明底最好）→ assets/gen/icons_gen.webp 图集，覆盖同名 3D 图标"""
+    fs = sorted(f for f in os.listdir(SRC) if f.startswith('icon_') and os.path.splitext(f)[1].lower() in ('.png', '.jpg', '.webp'))
+    if not fs: return
+    cell, cols = 96, 8; rows = (len(fs) + cols - 1) // cols; at = Image.new('RGBA', (cell * cols, cell * rows), (0, 0, 0, 0)); M['icons'] = {}
+    for k, f in enumerate(fs):
+        im = Image.open(os.path.join(SRC, f)).convert('RGBA'); W, H = im.size; s_ = min(W, H)
+        im = im.crop(((W - s_) // 2, (H - s_) // 2, (W + s_) // 2, (H + s_) // 2)).resize((cell, cell), Image.LANCZOS)
+        x, y = (k % cols) * cell, (k // cols) * cell; at.paste(im, (x, y)); M['icons'][os.path.splitext(f)[0][5:]] = [x, y]
+    at.save(os.path.join(SD, 'icons_gen.webp'), quality=88); M['iconsz'] = [cell, cell * cols, cell * rows]
+
 def main():
     conf = json.load(open(os.path.join(SRC, 'map.json'))); faces = {}
+    used = {k for k in conf if not k.startswith('_')}
+    for f in sorted(os.listdir(SRC)):   # 约定命名：npc_xxx.jpg 等直接对应同名头像键，无需写进 map.json
+        stem, ext = os.path.splitext(f)
+        if f not in used and ext.lower() in ('.jpg', '.jpeg', '.png', '.webp') and stem.startswith(AUTO_PREFIX) and stem != 'player_m1':
+            conf[f] = {'keys': [stem], 'name': stem}
     s = open(os.path.join(ROOT, 'www/assets/assets.js')).read(); A = json.loads(s[s.find('{'): s.rfind('}') + 1])
     keys = list(A['portraits']['f'].keys()); M = dict(por={}, bust={}, card={})
     for src, c in conf.items():
@@ -106,6 +141,7 @@ def main():
             hit = fnmatch.filter(keys, pat) or ([pat] if '*' not in pat else [])
             for k in hit:
                 for t in M: M[t][k] = c['name']
+    cg_and_maps(M); icons(M)
     if '_title' in conf and all(x in faces for x in conf['_title'].values()):
         title(conf['_title'], faces); M['title'] = 1
     with open(os.path.join(SD, 'gen.js'), 'w') as f:
