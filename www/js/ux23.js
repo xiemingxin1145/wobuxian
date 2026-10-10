@@ -89,6 +89,8 @@ Game.makeMarks = function (...a) { const r = _mm23(...a); const G = this.G;
   if (R.mapId === 'village') VILLAGE_HERBS.forEach(([ti, tj], k) => { const [i, j] = nearestWalk(ti, tj); const key = `village_herb23_${k}`; if (!R.marks.some(m => m.i === i && m.j === j)) R.marks.push({ i, j, label: '采药', act: 'herb', key, prop: { t: 'herb', i, j, fw: 1, fh: 1 }, h: 60, hidden: !!G.used[key] }); });
   return r; };
 const HERB_MAPS = ['village', ...Object.keys((window.ASSETS && ASSETS.maps) || {}).filter(id => (ASSETS.maps[id].props || []).some(p => (Array.isArray(p) ? p[0] : p.t) === 'herb'))];
+// 守卫：在地图上（非战斗）时点按回调必须是地图的；任何遗漏的退出路径都会在 0.3 秒内被修正
+setInterval(() => { if (R.mode === 'map' && !(typeof B !== 'undefined' && B.on) && typeof R.onTap !== 'function' && Game.G) { R.onTap = (x, y) => Game.onTap(x, y); console.warn('R.onTap restored by guard'); } }, 300);
 // 修 bug：过年会清空 G.used，但地图上已采的药/开过的箱子标记一直隐藏到换地图才回来 → 过年后立即恢复
 const _ye23 = Game.yearEnd.bind(Game);
 Game.yearEnd = async function (...a) { const r = await _ye23(...a); const G = this.G; if (G && R.marks) for (const m of R.marks) if (m.hidden && m.key && !G.used[m.key] && ['herb', 'chest', 'peach', 'bell', 'well', 'incense', 'coffin'].includes(m.act)) m.hidden = false; return r; };
