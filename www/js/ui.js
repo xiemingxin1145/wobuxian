@@ -250,7 +250,8 @@ const UI = {
   battleChoose(P) {
     return new Promise(res => {
       const bb = $('#battlebar'); this.renderBB(); B.sel = null; let pending = null;
-      const done = a => { B.sel = null; R.onTap = null; bb.onclick = null; bb.classList.add('wait'); res(a); };
+      const mapTap = (x, y) => Game.onTap(x, y); /* v2.3（奥拉夫 issue #2）：选完目标要把点按还给地图，以前置 null 后打一场仗整张地图就点不动了 */
+      const done = a => { B.sel = null; R.onTap = mapTap; bb.onclick = null; bb.classList.add('wait'); res(a); };
       bb.classList.remove('wait');
       const target = (sk, side) => { pending = sk; const cands = B.units.filter(u => u.alive && u.side === side); if (cands.length === 1) return done(Object.assign(sk, { t: cands })); B.sel = { targets: cands }; this.renderBB('target');
         R.onTap = (x, y) => { let best = null, bd = 1e9; for (const u of cands) { const [ux, uy] = uPos(u); const d = Math.hypot(ux - x, uy - 70 * R.dpr - y); if (d < bd) { bd = d; best = u; } } if (best && bd < 160 * R.dpr) done(Object.assign(pending, { t: [best] })); }; };
@@ -260,7 +261,7 @@ const UI = {
         if (a === 'atk') return target({ u: P, sk: 'atk' }, 1);
         if (a === 'skill') return this.renderBB('skill');
         if (a === 'item') return this.renderBB('item');
-        if (a === 'back') { B.sel = null; R.onTap = null; return this.renderBB(); }
+        if (a === 'back') { B.sel = null; R.onTap = mapTap; return this.renderBB(); }
         if (a === 'defend') return done({ u: P, sk: 'defend' });
         if (a === 'flee') return done({ u: P, sk: 'flee' });
         if (a === 'auto') { B.auto = true; return done(chooseAI(P)); }

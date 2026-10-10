@@ -79,6 +79,9 @@ Game.npcMark = function (id) {
   for (const q in G.quests) if (QUESTS[q].giver === id) return '…';
   return '💬';
 };
+// 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
+const _fight23 = Game.fight.bind(Game);
+Game.fight = async function (...a) { try { return await _fight23(...a); } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
 // 修 bug：过年会清空 G.used，但地图上已采的药/开过的箱子标记一直隐藏到换地图才回来 → 过年后立即恢复
 const _ye23 = Game.yearEnd.bind(Game);
 Game.yearEnd = async function (...a) { const r = await _ye23(...a); const G = this.G; if (G && R.marks) for (const m of R.marks) if (m.hidden && m.key && !G.used[m.key] && ['herb', 'chest', 'peach', 'bell', 'well', 'incense', 'coffin'].includes(m.act)) m.hidden = false; return r; };
