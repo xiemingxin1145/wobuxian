@@ -10,7 +10,7 @@
 python3 -m http.server 8090 --directory www
 ```
 
-打开：<http://127.0.0.1:8090/prototypes/encounter/>（也可直接打开 `www/prototypes/encounter/index.html`，但推荐 HTTP 方式）。该 loopback 地址只在运行静态服务器的同一台电脑上可访问；当前 `openworld-wip` 尚未推送，也没有公开部署，因此主人其他设备无法通过这个 localhost URL 访问。此边界不影响仓库内本机复现。
+打开：<http://127.0.0.1:8090/prototypes/encounter/>（也可直接打开 `www/prototypes/encounter/index.html`，但推荐 HTTP 方式）。该 loopback 地址只在运行静态服务器的同一台电脑上可访问；当前 `openworld-wip` 尚未推送，也没有公开部署，因此其他设备无法通过这个 localhost URL 访问。此边界不影响仓库内本机复现。
 
 ## 操作与闭环
 
@@ -21,17 +21,14 @@ python3 -m http.server 8090 --directory www
 
 ## 可复现测试
 
-安装仓库既有真人测试使用的 Python Playwright 与 Chromium 后，运行：
+安装仓库既有真人测试使用的 Python Playwright 与 Chromium 后，在仓库根目录运行：
 
 ```bash
-python3 test/encounter_prototype.py
+set -o pipefail
+ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1458-touch-win.png" \
+  python3 -B test/encounter_prototype.py | tee test/results/encounter-stage2-20261010T1458-touch.log
 ```
 
-脚本通过浏览器可见按钮、键盘与指针拖动操作游戏；摇杆步骤由 Playwright `page.mouse` 模拟指针事件，**不是真实触控测试**。`window.EncounterPrototype.inspect()` 只读战斗状态，测试没有直接写入状态来获胜。单实例复测命令（Chromium `/usr/bin/chromium`，412×915）为：
+测试通过 Chromium CDP `Input.dispatchTouchEvent` 发送 `touchStart`、`touchMove`、`touchEnd`，以合成触摸驱动摇杆以及闪避、普攻、雷击、重试、返回等屏幕按钮；移动战斗时也会使用键盘。`window.EncounterPrototype.inspect()` 只读状态，脚本不直接写入游戏状态来取胜。该方式验证浏览器触摸事件路径，**不是实体触屏、Android 或真机测试**。
 
-```bash
-ENCOUNTER_SCREENSHOT="$PWD/test/results/encounter-stage2-20261010T1434-win.png" \
-  python3 -B test/encounter_prototype.py
-```
-
-复核日志：`test/results/encounter-stage2-20261010T1434.log`；实际临时入口 `http://127.0.0.1:59933/prototypes/encounter/`（脚本每次绑定随机可用回环端口）。该次 8/8 PASS、0 FAIL、退出码0；pageerror=0、console.error=0、HTTP 4xx/5xx=0。对应胜利结算截图为 `test/results/encounter-stage2-20261010T1434-win.png`。首次失败轮次有一条404但未保存确切URL，favicon仅为当时的初步怀疑，不能当作已确认根因；页面现使用 data URI favicon，之后这次带HTTP response门禁的单实例重跑明确捕获0个失败响应。该结果是Chromium浏览器与鼠标/键盘模拟，不是实际触屏、Android、真机或多人试玩。
+2026-10-10 的一次复测为 **8/8 PASS、0 FAIL、退出码 0**，pageerror=0、console.error=0、HTTP错误=0。完整日志为 `test/results/encounter-stage2-20261010T1458-touch.log`，胜利结算截图为 `test/results/encounter-stage2-20261010T1458-touch-win.png`；该次临时入口为 `http://127.0.0.1:41103/prototypes/encounter/`（每次启动会绑定随机可用回环端口）。截图和日志只记录这次测试，不等于人工试玩、真实设备验证或阶段2独立签收。
