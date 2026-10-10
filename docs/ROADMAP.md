@@ -1,8 +1,8 @@
 # 《我不仙》路线图 ROADMAP（全局视图）
 
 > 写给任何接手的 AI 工具或开发者。入口是仓库根的 `AGENTS.md`（规则、命令、门禁）；本文是**全局**：故事、现状、待办、已知问题、交接方法。逐项进度看 `PROGRESS.md`。
-> 编写：2026-10-10 09:4x（UTC+8）；**2026-10-10 12:30 更新：v2.3.0 已发布**（`main` = tag `v2.3.0` = `362172f`，CI build 151）。
-> 约定：✅ 已上线（在已发布 APK 里）· 🟡 已在 `v23-wip` 做完但未发布 · 🔧 进行中 · ⬜ 未开始 · ⚠ 待核实。
+> 更新：2026-10-10（UTC+8）。**最新正式发布仍为 v2.3.0**（tag `v2.3.0` = `362172f`，CI build 151）；当前 `main` = `3baa83f`，当前隔离开发分支 `openworld-wip` 基于该主线。GitHub Issue #5 仍开放；T4/T9 最新有记录的结果见 §4。
+> 约定：✅ 已上线（在已发布 APK 里）· 🟡 已在开发分支完成但未合并/发布 · 🔧 进行中 · ⬜ 未开始 · ⚠ 待核实。
 > **每次工作结束更新本文“状态”列和 `PROGRESS.md`。**
 
 ---
@@ -69,6 +69,7 @@
 | 2.3.0 | ✅ 已发布（tag `v2.3.0` = `362172f`，versionCode 151，2026-10-10 12:2x）https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0 | 点 NPC 判定重做、任务追踪+寻路、自动任务、挂机+离线收益、开发者面板（版本号连点 7 次）、精简版 APK、AI 插画管线（5+8 张）；修 issue #2 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
+| v2.5+ | 🔧 `openworld-wip`：阶段 1 已签收（仅离线资产）；阶段 2 隔离遭遇战原型进行中 | 阶段 1 由玛丽卡按精确提交 `e29964d0c260f9fba79e9a43bf21081ab771bc13` 签收；签收仅覆盖离线模型/预览，不覆盖真实点按、5人盲测、设备/DPR、游戏接入、APK/Android/真机。阶段 2 在 `www/prototypes/encounter/` 独立实现移动、普攻/雷击、闪避、敌方预警/弹道、受伤、胜败重试/返回地图；无并发单实例 Chromium 测试8/8通过、退出码0，pageerror/console.error/HTTP错误均为0，逐项日志和胜利截图见 `test/results/encounter-stage2-20261010T1434.log` 与同目录PNG（摇杆为鼠标模拟指针拖动，非真实触控）。保持正式地图和 `www/js/battle_realtime_prototype.js` 不动，Boss/剧情战继续回合制；阶段2最终 SHA 独立签收待办。阶段 3 尚未开始；每阶段独立测试/提交，当前不改 `main`、不合并、不发布。 |
 
 **下载（已核实 2026-10-10）**：高清版 `https://github.com/xiemingxin1145/wobuxian/releases/latest/download/wobuxian.apk`（278,341,061 字节 ≈ 265MB），精简版 `.../releases/latest/download/wobuxian-lite.apk`（47,679,345 字节 ≈ 45MB）；两个链接都 302 到 `v2.3.0`。Release 页：https://github.com/xiemingxin1145/wobuxian/releases/tag/v2.3.0。两个 APK 都是 `com.wobuxian.game`、versionName 2.3.0、versionCode 151、签名证书 SHA-256 `436bf922…29dc`（与 2.2.0 相同 → 可覆盖安装 2.2.0 与 2.3.0-beta1(147)）。国内镜像：`https://ghfast.top/<github 链接>`。
 
@@ -91,11 +92,11 @@
 | CI 同时发 HD + lite 两个 APK | 🟡（仅 v23-wip 的 workflow） |
 | AI 插画管线 `tools/gen_art.py`（头像/半身/卡面/标题/CG/图标）；已启用 5 张：男主弟子、剑仙、冷月、天道、龙傲天 | 🟡 其余见 `art/gen/NEEDED.md` ⬜ |
 | `test/human23.py` 13/13 通过（含重叠点按、#actbtn 最近 NPC 回归） | ✅ |
-| `test/human_olaf.py` | 🟡 5c35c70 全量 13/18；最新提交 `ONLY=T2,T3,T4,T9,T13` → 6/7（T2/T3/T9/T13 过，T4 9/20 未过 → issue #5，2.3.1） |
+| `test/human_olaf.py` | 🟡 5c35c70 全量 13/18；历史提交 `ONLY=T2,T3,T4,T9,T13` → 6/7（T2/T3/T9/T13 过，历史 T4 9/20 未过 → issue #5，2.3.1）。2026-10-10 新鲜隔离复测见 `PROGRESS.md`；T4=1/20，T9 尚未满足连续 5 次 |
 | 合并 main、发布 2.3.0、核对两个 APK 签名/版本 | ✅ |
 | 内容：第十七章～终章（下）（research_v22 §7/§8） | ⬜ 草稿 `drafts/content23.js`（未接入），移到 2.3.1 |
 
-**工作区**：`test/human_olaf/*.png` 截图默认不提交（体积大，CI 也忽略它们）；结果以 `test/human_olaf/results.json` 为准。正在进行的工作以 `PROGRESS.md` 为准。
+**工作区**：`test/human_olaf/*.png` 截图默认不提交（体积大，CI 也忽略它们）；`test/human_olaf/results.json` 保留历史运行，2026-10-10 本轮定向复测独立保存在 `/workspace/wobuxian-test-evidence/issue5-rerun-20261010/`，未覆盖原始结果。历史与本轮结果、开发者辅助状态和时间均见 `PROGRESS.md`。
 
 ---
 
@@ -137,6 +138,7 @@
 - 挂机/离线/每日福利让休闲玩家也有进度；开发者面板持续补全（解锁全部角色、演出预览、显示 flags、判定框叠层、存档导入导出——§I 列出的缺口）。
 - 性能：低端机分块绘制、省电渲染；APK 体积（lite 版）。
 - 测试：所有新功能都配真人触控用例，门禁进 CI。
+- 后续产品待办（尚未实现，不与当前阶段并行）：主角从弱到强的成长闭环；可指定装备/能力的开发者调试面板；阶段 3 的单条奇遇通过后再扩充多种奇遇；先验证一段关系/婚姻/子嗣传承，再考虑多道侣与多婚姻。
 
 ---
 
@@ -146,7 +148,7 @@
 |---|---|---|---|
 | 1 | issue #2：战斗后 `R.onTap` 置空，整张地图点不动 | GitHub issue #2 | ✅ 2.3.0 修复，issue 已关闭 |
 | 2 | 2.2.0 线上：点名字/标记点不到 NPC、摇杆区吞点按、前两章不知道怎么推进 | design_feedback_v23 §0 | ✅ 2.3.0 |
-| 3 | human_olaf：T4 游走 NPC 9/20、T9 自动任务偶发不推进 | issue #5 | ⬜ 2.3.1 |
+| 3 | human_olaf：T4 游走 NPC 点按、T9 自动任务重试验收未完成 | [GitHub Issue #5](https://github.com/xiemingxin1145/wobuxian/issues/5) 于 `2026-10-10 14:11:36 +08` 刷新核验仍为 OPEN；API `updated_at=2026-10-10T04:25:19Z`，共 1 条评论，最新评论[永久链接](https://github.com/xiemingxin1145/wobuxian/issues/5#issuecomment-6093743735)。该公开记录含历史 T4=9/20、T9 单次约 13 秒推进 4→5。随后本地独立复测（证据见 `PROGRESS.md`）为 T4=1/20、T9-1 失败后 T9-2 至 T9-5 连续 4 次成功，但均使用开发者辅助；未达连续 5 次，也不是无辅助验收。公开 Issue 尚未记录这轮复测。 | ⬜ 2.3.1；不得记作已解决 |
 | 4 | PR #3（human_olaf 门禁）在 GitHub 上仍 OPEN，目标 main；但已在 v23-wip 本地合并（`4af1fd2`） | GitHub | ⬜ 合并 v2.3 时一并处理 |
 | 5 | 精简版不在 latest Release 上 | gh release view | ✅ 2.3.0 起每个 Release 都带 HD+lite |
 | 6 | 每次推 main（含纯文档）都会发一个新 build 给玩家；README 写的安装包 214MB 已过时（实际约 275MB） | build.yml、Release | 🟡 v23-wip 的 workflow 已加 `paths-ignore`（docs/**、*.md、测试截图、art/gen/**）；README 体积待更新 |

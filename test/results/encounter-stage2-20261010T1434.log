@@ -1,0 +1,16 @@
+TEST_URL http://127.0.0.1:59933/prototypes/encounter/
+BROWSER Chromium executable=/usr/bin/chromium viewport=412x915
+PASS 独立入口载入安全地图，无正式游戏脚本依赖
+PASS 敌方预警/弹道造成真实伤害并触发失败结算（弹道 10 发，受伤 180）
+PASS 失败后的重新挑战重置战斗与生命值
+PASS 鼠标模拟指针拖动摇杆可移动，闪避按钮触发位移与短暂无敌
+PASS 普攻与雷击击败全部敌人并触发胜利（普攻 5 次，技能 1 次，承伤 0）
+PASS 胜利后的重新挑战也可用且重置生命值
+PASS 从失败结算返回安全练习地图
+PASS 浏览器无JS/page/console/HTTP错误（pageerror=0, console.error=0, HTTP错误=0）
+SUMMARY 8/8 checks passed in 33.3s
+RESULT PASS=8 FAIL=0 EXIT_CODE=0
+BROWSER_ERRORS pageerror=0 console.error=0 HTTP_errors=0 details=[]
+SCREENSHOTS=1 WIN_SCREENSHOT=/workspace/wobuxian-inspect/test/results/encounter-stage2-20261010T1434-win.png
+
+PROCESS_EXIT_CODE=0
