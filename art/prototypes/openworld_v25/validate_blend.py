@@ -34,6 +34,7 @@ for kind, root in zip(EXPECTED, roots):
     polygons = 0
     loop_profile_count = 0
     robe_half_width = None
+    robe_profile_widths = {}
     for obj in meshes:
         assert len(obj.data.vertices) > 0 and len(obj.data.polygons) > 0, obj.name
         vertices += len(obj.data.vertices)
@@ -43,6 +44,10 @@ for kind, root in zip(EXPECTED, roots):
         loop_profile_count += int("loop" in part_name or "extrusion" in part_name or "extrud" in part_name)
         if obj.name.startswith("robe_extruded_cube_mirrored"):
             robe_half_width = max(abs(float(vertex.co.x)) for vertex in obj.data.vertices)
+            for vertex in obj.data.vertices:
+                z = round(float(vertex.co.z), 2)
+                robe_profile_widths[z] = max(
+                    robe_profile_widths.get(z, 0.0), abs(float(vertex.co.x)))
         for vertex in obj.data.vertices:
             assert all(math.isfinite(float(c)) for c in vertex.co), (kind, obj.name)
     assert mirror_count >= 3, (kind, "Mirror modifier count", mirror_count)
@@ -56,12 +61,17 @@ for kind, root in zip(EXPECTED, roots):
         "mirror_modifiers": mirror_count,
         "loop_profile_parts": loop_profile_count,
         "robe_half_width": round(robe_half_width, 3),
+        "robe_width_z040": round(robe_profile_widths.get(0.4, 0.0), 3),
+        "robe_width_z079": round(robe_profile_widths.get(0.79, 0.0), 3),
         "silhouette_feature": silhouette_feature,
         "runtime_integrated": root.get("runtime_integrated"),
     })
 
 by_kind = {item["kind"]: item for item in summary}
-assert by_kind["female"]["robe_half_width"] >= 1.25 * by_kind["male"]["robe_half_width"], (
-    "female A-line hem is not materially wider than the male straight tunic",
-    by_kind["female"]["robe_half_width"], by_kind["male"]["robe_half_width"])
+assert by_kind["female"]["robe_width_z040"] >= 1.4 * by_kind["male"]["robe_width_z040"], (
+    "female skirt hem is not materially wider than the male straight tunic hem",
+    by_kind["female"]["robe_width_z040"], by_kind["male"]["robe_width_z040"])
+assert by_kind["female"]["robe_width_z040"] >= 1.6 * by_kind["female"]["robe_width_z079"], (
+    "female A-line skirt does not flare sufficiently from the waist",
+    by_kind["female"]["robe_width_z040"], by_kind["female"]["robe_width_z079"])
 print("BLEND_VALIDATION_OK " + json.dumps(summary, ensure_ascii=False, sort_keys=True))

@@ -236,10 +236,10 @@ def build_lowpoly(kind):
     # visibly waisted A-line skirt. These proportions survive monochrome thumbnails.
     if kind == "female":
         robe_rings = [
-            (0.40, 0.47, 0.235), (0.46, 0.445, 0.225), (0.65, 0.355, 0.19),
-            (0.79, 0.255, 0.16), (1.04, 0.245, 0.16), (1.18, 0.30, 0.18),
-            (1.27, 0.275, 0.17)]
-        hem_rings = [(0.39, 0.485, 0.245), (0.435, 0.485, 0.245), (0.47, 0.45, 0.23)]
+            (0.40, 0.48, 0.235), (0.46, 0.47, 0.225), (0.65, 0.38, 0.19),
+            (0.79, 0.26, 0.16), (1.04, 0.27, 0.16), (1.18, 0.32, 0.18),
+            (1.27, 0.31, 0.17)]
+        hem_rings = [(0.39, 0.49, 0.245), (0.435, 0.49, 0.245), (0.47, 0.45, 0.23)]
     elif kind == "male":
         robe_rings = [
             (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
@@ -287,9 +287,9 @@ def build_lowpoly(kind):
         cuff_width, cuff_center = 0.16, 0.135
         if kind == "female":
             sleeve_rows = [
-                (0, 0, 0.0, 0.18, 0.17), (sign * 0.075, -0.006, -0.19, 0.205, 0.16),
-                (sign * 0.15, -0.018, -0.39, 0.25, 0.14)]
-            cuff_width, cuff_center = 0.27, 0.15
+                (0, 0, 0.0, 0.18, 0.17), (sign * 0.065, -0.006, -0.19, 0.21, 0.16),
+                (sign * 0.13, -0.018, -0.39, 0.24, 0.14)]
+            cuff_width, cuff_center = 0.25, 0.14
         _cube_extrusion_path("sleeve_cube_extrusion_" + side, sleeve_rows, sleeve, pivot)
         _box("cuff_" + side, (cuff_width, 0.16, 0.07), (sign * cuff_center, -0.02, -0.40), trim, pivot, bevel=0.006)
         _cylinder_extrusion("hand_faceted_" + side, [(-0.49, 0.064, 0.060),
@@ -328,14 +328,14 @@ def build_lowpoly(kind):
         _cylinder_extrusion("female_hair_cap", [(1.70, 0.25, 0.21), (1.78, 0.255, 0.215),
                                                   (1.91, 0.205, 0.18)], haircap, body, 8)
         for sign, side in ((-1, "L"), (1, "R")):
-            _cylinder_extrusion("female_bun_" + side, [(1.83, 0.075, 0.075),
-                                                       (1.89, 0.112, 0.105),
-                                                       (1.96, 0.08, 0.078)], haircap, body, 8)
+            _cylinder_extrusion("female_bun_" + side, [(1.81, 0.09, 0.09),
+                                                       (1.89, 0.15, 0.125),
+                                                       (1.98, 0.105, 0.09)], haircap, body, 8)
             bun = bpy.data.objects.get("female_bun_" + side)
             if bun:
-                bun.location.x = sign * 0.205
-            _box("female_red_ribbon_" + side, (0.085, 0.025, 0.045),
-                 (sign * 0.205, -0.085, 1.89), red, body, bevel=0.005)
+                bun.location.x = sign * 0.29
+            _box("female_red_ribbon_" + side, (0.11, 0.03, 0.05),
+                 (sign * 0.29, -0.085, 1.89), red, body, bevel=0.005)
         for i, x in enumerate((-0.12, -0.04, 0.04, 0.12)):
             _box("female_angular_fringe_" + str(i), (0.06, 0.06, 0.09),
                  (x, -0.203, 1.80), haircap, body, rot=(0, 0, math.radians((i - 1.5) * 5)), bevel=0.01)
@@ -397,7 +397,7 @@ def build_lowpoly(kind):
     root["modeling_method"] = "Extruded Cube/Cylinder profiles; loop-cut rings; Mirror X on symmetric clothing"
     root["silhouette_feature"] = {
         "male": "broad shoulders + straight tunic + topknot",
-        "female": "narrow shoulders + wide A-line skirt + flared cuffs + twin buns",
+        "female": "narrow shoulders + extra-wide A-line skirt + bell sleeves + prominent twin buns",
         "swordsman": "wide straw hat + beard + back sword",
     }[kind]
     root["runtime_integrated"] = False

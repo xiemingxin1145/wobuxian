@@ -136,11 +136,12 @@ def silhouette_iou(kind_a, kind_b, height):
 
 
 silhouette_metrics = {height: silhouette_iou("male", "female", height) for height in (64, 48)}
-SILHOUETTE_IOU_LIMIT = 0.90
+SILHOUETTE_IOU_LIMIT = 0.82  # Project-internal heuristic for this revision; not an industry standard.
 if any(value > SILHOUETTE_IOU_LIMIT for value in silhouette_metrics.values()):
     raise ValueError(f"Male/female silhouettes remain too similar: {silhouette_metrics}")
 print("SILHOUETTE_CHECK_PASS "
-      f"max_IoU={SILHOUETTE_IOU_LIMIT:.2f} 64px={silhouette_metrics[64]:.4f} "
+      f"project_internal_max_IoU={SILHOUETTE_IOU_LIMIT:.2f} (not_industry_standard) "
+      f"64px={silhouette_metrics[64]:.4f} "
       f"48px={silhouette_metrics[48]:.4f}", flush=True)
 for row, height in enumerate((64, 48)):
     row_y = 112 + row * 132
@@ -156,7 +157,7 @@ for row, height in enumerate((64, 48)):
         sil_board.paste(silhouette, (px, py), silhouette)
         sd.line((x + 18, row_y + 104, x + 332, row_y + 104), fill="#c9bca8", width=1)
 metric_note = f"主角男/女轮廓 IoU：64px={silhouette_metrics[64]:.3f}；48px={silhouette_metrics[48]:.3f}。"
-sd.text((30, SIL_H - 31), metric_note + " 黑色只表示透明度外轮廓，不读取材质、脸色或五官。", fill="#6a5948", font=font(15))
+sd.text((30, SIL_H - 31), metric_note + f" 本轮项目自定内部门槛≤{SILHOUETTE_IOU_LIMIT:.2f}（非行业标准）；黑色只表示透明度外轮廓。", fill="#6a5948", font=font(15))
 sil_board.save(PREVIEWS / "openworld_v25_silhouette_test.png", optimize=True)
 
 
@@ -170,21 +171,23 @@ from preview_geometry import (CANDIDATES, HOTSPOTS, MOCKUP_SCALE, R_Z,
                               placement_geometry, validate_geometry)
 
 geometry = validate_geometry()  # fail before saving an image if any rectangle collides.
-print(f"RECTANGLE_COLLISION_PASS candidates={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
+print(f"RECTANGLE_CLEARANCE_PASS candidates={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
+      f"candidate_hotspot_pairs={len(CANDIDATES) * len(HOTSPOTS)} "
       f"pairwise={len(CANDIDATES) * (len(CANDIDATES) - 1) // 2} "
-      f"scale={MOCKUP_SCALE:.2f}x runtime_taps=NOT_TESTED", flush=True)
+      f"source_frame=160x176 rendered={round(160*R_Z)}x{round(176*R_Z)} "
+      f"scale={MOCKUP_SCALE:.2f}x required_margin=8px runtime_taps=NOT_TESTED", flush=True)
 crop_box = (0, 0, 824, 1100)
 map_crop = screen.crop(crop_box)
 CW, CH = map_crop.size
 header = 86
 scale_board = Image.new("RGB", (CW * 2, CH + header + 54), "#efe6d5")
 sb = ImageDraw.Draw(scale_board)
-sb.text((28, 15), "桃花村 T3 · 离线样例摆位 / 热点避让核验", fill="#34281e", font=font(27, True))
-sb.text((30, 52), f"右侧来自 Blender 帧缩至 {MOCKUP_SCALE:.2f}×；橙框=15 个保守 HUD/NPC/地图热点矩形，青框=样例占位框。非游戏画面或点按测试。", fill="#6a5948", font=font(16))
+sb.text((28, 15), "桃花村 T3 · k=1.0 全帧 / 热点避让静态核验", fill="#34281e", font=font(27, True))
+sb.text((30, 52), f"玩家/剑仙 manifest k=1.00 × R.Z={R_Z:.4f}；160×176→153×169。橙框=15个保守热点，青框=完整精灵帧外扩8px。非运行画面。", fill="#6a5948", font=font(16))
 scale_board.paste(map_crop.convert("RGB"), (0, header))
 scale_board.paste(map_crop.convert("RGB"), (CW, header))
 sb.text((22, header + 10), "原始 T3 真人触控测试截图（左：保持原图）", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
-sb.text((CW + 22, header + 10), "OFFLINE MOCKUP · 缩略样例 + 避让区", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
+sb.text((CW + 22, header + 10), "OFFLINE PROBE · k=1.00 full-frame + hotspots", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
 
 
 def dashed_rect(draw, rect, color, width=2, dash=10):
@@ -222,9 +225,9 @@ for candidate in CANDIDATES:
 
 footer_y = header + CH + 6
 sb.text((24, footer_y),
-        f"橙框 H1–H15 = T3 截图中保守标注的 UI/NPC/井/告示栏/其他热点；青框 = Blender sprite 以 R.Z={R_Z:.4f}×{MOCKUP_SCALE:.2f} 缩略后外扩 8px 的离线摆位框。",
+        f"橙框 H1–H15 = T3 截图中保守标注的热点；青框 = 完整 160×176 Blender 帧按 R.Z={R_Z:.4f}、k=1.00 显示后外扩 8px。",
         fill="#34281e", font=font(13))
-sb.text((24, footer_y + 20), "脚本化半开区间矩形测试：候选框/标签彼此及与热点均无相交；只验证静态避让，不代表真实运行点按或地图坐标。",
+sb.text((24, footer_y + 20), "45/45 候选-热点矩形对零相交，且热区/画布净距≥8px；候选互距≥8px。仅静态像素避让探针，不代表游戏坐标、点击框或真实点按。",
         fill="#34281e", font=font(13))
 scale_board.save(PREVIEWS / "openworld_v25_village_scale_mockup.png", optimize=True)
 

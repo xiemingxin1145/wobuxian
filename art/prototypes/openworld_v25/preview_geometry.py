@@ -1,4 +1,4 @@
-"""Screen-space mockup bounds; these are NOT runtime hitboxes or game positions."""
+"""Offline screen-space bounds; not runtime positions or pointer hitboxes."""
 from math import hypot
 
 VIEW_W, VIEW_H = 824, 1100
@@ -6,8 +6,9 @@ CSS_WIDTH, DPR = 412, 2
 R_Z = CSS_WIDTH * DPR / 860.0
 FRAME_W, FRAME_H = 160, 176
 FEET_ANCHOR_Y = FRAME_H * 0.86
-MOCKUP_SCALE = 0.55
+MOCKUP_SCALE = 1.0  # Same k=1.0 as player_m0/player_f0/npc_mentor in assets.js.
 BOX_MARGIN = 8
+SAFE_MARGIN = 8
 
 # Conservative rectangles manually bounded from test/human_olaf/003_T3_near_npc.png.
 # Half-open coordinates (x0, y0, x1, y1); these are visual avoidance regions, not claims
@@ -30,22 +31,24 @@ HOTSPOTS = (
     ("H15", "NPC 路人甲 marker/name/sprite", (578, 832, 726, 1022)),
 )
 
-# Positions are deliberately placed in three clear screen regions. They are only
-# layout samples over a screenshot, not coordinates to copy into the live game.
+# Three static full-frame clearance probes selected at the crowded edges around
+# H6/H7, H12/H14, and H5/H7. They are not canonical game-world placements.
+# Values are (center_x, foot_y) in the 824x1100 screenshot coordinate space.
 CANDIDATES = (
-    ("C1", "主角男", "male", 100, 480),
-    ("C2", "主角女", "female", 280, 400),
-    ("C3", "剑仙", "swordsman", 100, 950),
+    ("C1", "主角男", "male", 93, 863),
+    ("C2", "主角女", "female", 270, 1009),
+    ("C3", "剑仙", "swordsman", 345, 470),
 )
 
 
 def model_pixel_size():
+    """Full 160x176 source frame transformed only by the game's R.Z factor."""
     return (round(FRAME_W * MOCKUP_SCALE * R_Z),
             round(FRAME_H * MOCKUP_SCALE * R_Z))
 
 
 def placement_geometry(candidate):
-    """Return (placement_box, rendered_sprite_box, title_tag_box) in source pixels."""
+    """Return (full-frame box + safety margin, rendered sprite box, title tag)."""
     _ident, _title, _kind, center_x, foot_y = candidate
     width, height = model_pixel_size()
     left = round(center_x - width / 2)
@@ -70,35 +73,56 @@ def clearance(a, b):
     return hypot(dx, dy)
 
 
+def canvas_clearance(box):
+    return min(box[0], box[1], VIEW_W - box[2], VIEW_H - box[3])
+
+
 def validate_geometry():
-    """Raise AssertionError on any placement/hotspot/pairwise overlap or clipping."""
-    boxes = {}
-    tags = {}
+    """Require 45 full-frame/hotspot checks and >=8px margins throughout."""
+    assert len(HOTSPOTS) == 15, f"expected 15 annotated hotspots, found {len(HOTSPOTS)}"
+    assert len(CANDIDATES) == 3, f"expected 3 candidate frames, found {len(CANDIDATES)}"
+    boxes, tags, result = {}, {}, {}
     for candidate in CANDIDATES:
         ident = candidate[0]
         box, _sprite, tag = placement_geometry(candidate)
         boxes[ident], tags[ident] = box, tag
-        assert box[0] >= 0 and box[1] >= 0 and box[2] <= VIEW_W and box[3] <= VIEW_H, (
-            "candidate outside screenshot viewport", ident, box)
+        edge_gap = canvas_clearance(box)
+        assert edge_gap >= SAFE_MARGIN, (
+            "candidate lacks full canvas safety margin", ident, box, edge_gap)
+        hotspot_clearances = {}
         for hotspot_id, hotspot_name, hotspot_box in HOTSPOTS:
+            gap = clearance(box, hotspot_box)
+            hotspot_clearances[hotspot_id] = gap
             assert not intersects(box, hotspot_box), (
                 "candidate/hotspot collision", ident, box, hotspot_id, hotspot_name, hotspot_box)
+            assert gap >= SAFE_MARGIN, (
+                "candidate lacks hotspot safety margin", ident, hotspot_id, gap)
             assert not intersects(tag, hotspot_box), (
-                "candidate-tag/hotspot collision", ident, tag, hotspot_id, hotspot_name, hotspot_box)
+                "candidate-tag/hotspot collision", ident, tag, hotspot_id, hotspot_name)
+        nearest_id = min(hotspot_clearances, key=hotspot_clearances.get)
+        result[ident] = {
+            "box": box,
+            "tag": tag,
+            "sprite": placement_geometry(candidate)[1],
+            "nearest_hotspot": nearest_id,
+            "clearance_px": hotspot_clearances[nearest_id],
+            "canvas_clearance_px": edge_gap,
+            "hotspot_clearances": hotspot_clearances,
+        }
+    assert len(CANDIDATES) * len(HOTSPOTS) == 45
     for i, a in enumerate(CANDIDATES):
         for b in CANDIDATES[i + 1:]:
+            gap = clearance(boxes[a[0]], boxes[b[0]])
             assert not intersects(boxes[a[0]], boxes[b[0]]), (
                 "candidate/candidate collision", a[0], boxes[a[0]], b[0], boxes[b[0]])
+            assert gap >= SAFE_MARGIN, (
+                "candidate/candidate safety margin", a[0], b[0], gap)
             assert not intersects(tags[a[0]], boxes[b[0]]), (
                 "candidate tag overlaps another candidate", a[0], b[0])
             assert not intersects(tags[b[0]], boxes[a[0]]), (
                 "candidate tag overlaps another candidate", b[0], a[0])
-    result = {}
-    for candidate in CANDIDATES:
-        ident = candidate[0]
-        gap, nearest = min((clearance(boxes[ident], hotspot[2]), hotspot)
-                           for hotspot in HOTSPOTS)
-        result[ident] = {"box": boxes[ident], "tag": tags[ident],
-                         "sprite": placement_geometry(candidate)[1],
-                         "nearest_hotspot": nearest[0], "clearance_px": gap}
+            result[a[0]]["candidate_clearances"] = result[a[0]].get("candidate_clearances", {})
+            result[b[0]]["candidate_clearances"] = result[b[0]].get("candidate_clearances", {})
+            result[a[0]]["candidate_clearances"][b[0]] = gap
+            result[b[0]]["candidate_clearances"][a[0]] = gap
     return result
