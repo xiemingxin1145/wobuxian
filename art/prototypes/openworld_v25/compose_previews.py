@@ -110,63 +110,122 @@ for ri, (kind, role) in enumerate(pose_roles):
 pose_board.save(PREVIEWS / "openworld_v25_pose_sheet.png", optimize=True)
 
 
-# ---------- Real game-screen scale reference + explicitly labelled static overlay ----------
+# ---------- Monochrome silhouette readability at small thumbnail sizes ----------
+SIL_W, SIL_H = 1136, 410
+sil_board = Image.new("RGB", (SIL_W, SIL_H), "#efe6d5")
+sd = ImageDraw.Draw(sil_board)
+sd.text((30, 20), "男女主剪影微缩对比 · 单色、无脸部/配色线索", fill="#34281e", font=font(28, True))
+sd.text((32, 62), "来自 Blender idle 真渲染帧；64px / 48px 高，按透明轮廓重采样。IoU 越低，黑白剪影越不同。", fill="#6a5948", font=font(17))
+sil_roles = [("male", "主角男"), ("female", "主角女"), ("swordsman", "剑仙")]
+
+
+def silhouette_alpha(kind, height):
+    im = frame(kind + "_lowpoly_idle")
+    width = round(320 * height / 352)
+    return im.getchannel("A").resize((width, height), Image.Resampling.LANCZOS)
+
+
+def silhouette_iou(kind_a, kind_b, height):
+    a = silhouette_alpha(kind_a, height)
+    b = silhouette_alpha(kind_b, height)
+    ma = [v >= 128 for v in a.tobytes()]
+    mb = [v >= 128 for v in b.tobytes()]
+    intersection = sum(x and y for x, y in zip(ma, mb))
+    union = sum(x or y for x, y in zip(ma, mb))
+    return intersection / union if union else 1.0
+
+
+silhouette_metrics = {height: silhouette_iou("male", "female", height) for height in (64, 48)}
+SILHOUETTE_IOU_LIMIT = 0.90
+if any(value > SILHOUETTE_IOU_LIMIT for value in silhouette_metrics.values()):
+    raise ValueError(f"Male/female silhouettes remain too similar: {silhouette_metrics}")
+print("SILHOUETTE_CHECK_PASS "
+      f"max_IoU={SILHOUETTE_IOU_LIMIT:.2f} 64px={silhouette_metrics[64]:.4f} "
+      f"48px={silhouette_metrics[48]:.4f}", flush=True)
+for row, height in enumerate((64, 48)):
+    row_y = 112 + row * 132
+    for col, (kind, role) in enumerate(sil_roles):
+        x = 24 + col * 370
+        rounded(sd, (x, row_y, x + 350, row_y + 120), 14)
+        sd.text((x + 14, row_y + 9), f"{role} · {height}px", fill="#382c21", font=font(16, True))
+        alpha = silhouette_alpha(kind, height)
+        silhouette = Image.new("RGBA", alpha.size, (38, 38, 40, 255))
+        silhouette.putalpha(alpha)
+        px = x + (350 - alpha.width) // 2
+        py = row_y + 40
+        sil_board.paste(silhouette, (px, py), silhouette)
+        sd.line((x + 18, row_y + 104, x + 332, row_y + 104), fill="#c9bca8", width=1)
+metric_note = f"主角男/女轮廓 IoU：64px={silhouette_metrics[64]:.3f}；48px={silhouette_metrics[48]:.3f}。"
+sd.text((30, SIL_H - 31), metric_note + " 黑色只表示透明度外轮廓，不读取材质、脸色或五官。", fill="#6a5948", font=font(15))
+sil_board.save(PREVIEWS / "openworld_v25_silhouette_test.png", optimize=True)
+
+
+# ---------- T3 screenshot with explicitly tested, offline art-placement rectangles ----------
 if not SCREENSHOT.exists():
     raise FileNotFoundError(f"Reference screenshot not found: {SCREENSHOT}")
 screen = Image.open(SCREENSHOT).convert("RGBA")
 if screen.size != (824, 1830):
     raise ValueError(f"Reference screenshot dimensions changed: {screen.size}")
-# Captured at 412 CSS px width, DPR=2. Engine: R.Z = width*DPR/860.
-viewport_css_w, dpr = 412, 2
-z_scale = viewport_css_w * dpr / 860.0
-# Game's drawSprite uses 160x176 frame, x-centred, feet at y=0.86*176.
-frame_w, frame_h, anchor_y = 160, 176, 176 * 0.86
-crop_box = (0, 450, 824, 1110)
+from preview_geometry import (CANDIDATES, HOTSPOTS, MOCKUP_SCALE, R_Z,
+                              placement_geometry, validate_geometry)
+
+geometry = validate_geometry()  # fail before saving an image if any rectangle collides.
+print(f"RECTANGLE_COLLISION_PASS candidates={len(CANDIDATES)} hotspots={len(HOTSPOTS)} "
+      f"pairwise={len(CANDIDATES) * (len(CANDIDATES) - 1) // 2} "
+      f"scale={MOCKUP_SCALE:.2f}x runtime_taps=NOT_TESTED", flush=True)
+crop_box = (0, 0, 824, 1100)
 map_crop = screen.crop(crop_box)
 CW, CH = map_crop.size
 header = 86
 scale_board = Image.new("RGB", (CW * 2, CH + header + 54), "#efe6d5")
 sb = ImageDraw.Draw(scale_board)
-sb.text((28, 15), "桃花村 · sprite 实际屏幕比例核对", fill="#34281e", font=font(27, True))
-sb.text((30, 52), f"截图背景取自 T3；412 CSS px / DPR 2 / R.Z={z_scale:.4f}。右侧为离线静态叠图，不是游戏运行画面。", fill="#6a5948", font=font(16))
+sb.text((28, 15), "桃花村 T3 · 离线样例摆位 / 热点避让核验", fill="#34281e", font=font(27, True))
+sb.text((30, 52), f"右侧来自 Blender 帧缩至 {MOCKUP_SCALE:.2f}×；橙框=15 个保守 HUD/NPC/地图热点矩形，青框=样例占位框。非游戏画面或点按测试。", fill="#6a5948", font=font(16))
 scale_board.paste(map_crop.convert("RGB"), (0, header))
 scale_board.paste(map_crop.convert("RGB"), (CW, header))
-sb.text((22, header + 10), "原始真人触控测试截图（只作比例参照）", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
-sb.text((CW + 22, header + 10), "OFFLINE MOCKUP · 三个候选样例叠加", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
-# Positions are inside the same 824 px-wide captured map crop. Each frame retains
-# the game's actual anchor and is scaled only by the measured engine R.Z.
-centres = [(145, "male", "主角男"), (412, "female", "主角女"), (679, "swordsman", "剑仙")]
-foot_y = 360
-sprite_box_w = frame_w * 0.55
-sprite_box_h = frame_h * 0.78
-# UX.entHitRect dimensions for a labelled NPC at s=1, transformed by R.Z.
-half_hit = max(sprite_box_w / 2 + 10, 32 * dpr / z_scale) * z_scale
-hit_top = foot_y - (sprite_box_h + 6 + 44 + 8) * z_scale
-hit_bottom = foot_y + max(20 * z_scale, 10 * dpr)
-for cx, kind, title in centres:
-    # Dotted cyan tap/name target guide, matching the current map hit-test math.
-    bx0, bx1 = int(CW + cx - half_hit), int(CW + cx + half_hit)
-    by0, by1 = int(header + hit_top), int(header + hit_bottom)
-    for yy in range(by0, by1, 12):
-        sb.line((bx0, yy, bx0, min(yy + 6, by1)), fill="#48d1c2", width=3)
-        sb.line((bx1, yy, bx1, min(yy + 6, by1)), fill="#48d1c2", width=3)
-    for xx in range(bx0, bx1, 12):
-        sb.line((xx, by0, min(xx + 6, bx1), by0), fill="#48d1c2", width=3)
-        sb.line((xx, by1, min(xx + 6, bx1), by1), fill="#48d1c2", width=3)
-    # Circle shadow and full frame are rendered at actual engine scale, preserving feet anchor.
-    frame_im = frame(kind + "_lowpoly_idle").resize((frame_w, frame_h), Image.Resampling.LANCZOS)
-    drawn = frame_im.resize((round(frame_w * z_scale), round(frame_h * z_scale)), Image.Resampling.LANCZOS)
-    dest_x = round(CW + cx - (frame_w / 2) * z_scale)
-    dest_y = round(header + foot_y - anchor_y * z_scale)
-    scale_board.paste(drawn, (dest_x, dest_y), drawn)
-    pill = (CW + cx - 55, header + int(hit_top) - 25, CW + cx + 55, header + int(hit_top) - 3)
-    sb.rounded_rectangle(pill, radius=8, fill="#30261e", outline="#f1d9a0", width=1)
-    sb.text((pill[0] + 7, pill[1] + 2), title, fill="#fff6e7", font=font(13, True))
+sb.text((22, header + 10), "原始 T3 真人触控测试截图（左：保持原图）", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
+sb.text((CW + 22, header + 10), "OFFLINE MOCKUP · 缩略样例 + 避让区", fill="#fff8e9", font=font(16), stroke_width=3, stroke_fill="#34281e")
 
-footer_y = header + CH + 10
+
+def dashed_rect(draw, rect, color, width=2, dash=10):
+    x0, y0, x1, y1 = rect
+    for x in range(x0, x1, dash * 2):
+        draw.line((x, y0, min(x + dash, x1), y0), fill=color, width=width)
+        draw.line((x, y1, min(x + dash, x1), y1), fill=color, width=width)
+    for y in range(y0, y1, dash * 2):
+        draw.line((x0, y, x0, min(y + dash, y1)), fill=color, width=width)
+        draw.line((x1, y, x1, min(y + dash, y1)), fill=color, width=width)
+
+
+# Draw existing hotspots as orange exclusion rectangles on the right-hand copy only.
+for hotspot_id, _name, rect in HOTSPOTS:
+    x0, y0, x1, y1 = rect
+    board_rect = (CW + x0, header + y0, CW + x1, header + y1)
+    dashed_rect(sb, board_rect, "#e76739", 2, 9)
+    tag = (board_rect[0] + 2, board_rect[1] + 2, board_rect[0] + 32, board_rect[1] + 19)
+    sb.rounded_rectangle(tag, radius=4, fill="#9b442b", outline="#fff0da", width=1)
+    sb.text((tag[0] + 3, tag[1] + 1), hotspot_id, fill="#fff8e9", font=font(10, True))
+
+for candidate in CANDIDATES:
+    ident, title, kind, center_x, foot_y = candidate
+    placement, sprite_box, label_box = placement_geometry(candidate)
+    sx0, sy0, sx1, sy1 = sprite_box
+    drawn = frame(kind + "_lowpoly_idle").resize((sx1 - sx0, sy1 - sy0), Image.Resampling.LANCZOS)
+    scale_board.paste(drawn, (CW + sx0, header + sy0), drawn)
+    bx0, by0, bx1, by1 = placement
+    board_box = (CW + bx0, header + by0, CW + bx1, header + by1)
+    dashed_rect(sb, board_box, "#48d1c2", 3, 9)
+    lx0, ly0, lx1, ly1 = label_box
+    board_label = (CW + lx0, header + ly0, CW + lx1, header + ly1)
+    sb.rounded_rectangle(board_label, radius=5, fill="#164d49", outline="#b9fff1", width=1)
+    sb.text((board_label[0] + 4, board_label[1] + 1), f"{ident} {title}", fill="#edfff9", font=font(11, True))
+
+footer_y = header + CH + 6
 sb.text((24, footer_y),
-        f"Frame 160×176；脚底锚点 y=151.36；s=1；输出缩放只取 R.Z={z_scale:.4f}。青色虚线为现有 NPC 标签/点按框估算。",
-        fill="#34281e", font=font(15))
+        f"橙框 H1–H15 = T3 截图中保守标注的 UI/NPC/井/告示栏/其他热点；青框 = Blender sprite 以 R.Z={R_Z:.4f}×{MOCKUP_SCALE:.2f} 缩略后外扩 8px 的离线摆位框。",
+        fill="#34281e", font=font(13))
+sb.text((24, footer_y + 20), "脚本化半开区间矩形测试：候选框/标签彼此及与热点均无相交；只验证静态避让，不代表真实运行点按或地图坐标。",
+        fill="#34281e", font=font(13))
 scale_board.save(PREVIEWS / "openworld_v25_village_scale_mockup.png", optimize=True)
 
 for path in sorted(PREVIEWS.glob("*.png")):

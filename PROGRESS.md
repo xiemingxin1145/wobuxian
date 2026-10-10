@@ -21,9 +21,10 @@
 
 ### 阶段 1 样例状态（2026-10-10）
 - 三款手工低模源模型与 Blender 4.2.23 场景已生成：`art/prototypes/openworld_v25/character_models.py`、`openworld_v25_models.blend`；构模基于 Cube/Cylinder 挤出轮廓、支撑环与 X Mirror，未改 `art/chars.py`、游戏精灵图集或运行时文件。
-- Blender 输出 12 张 `320×352` 帧（现有造型 idle×3；新模型 idle/walk/attack×3×3）；总览图：A/B `1560×900`、姿态 `1540×1120`、T3 桃花村比例静态叠图 `1648×800`，均在 `art/prototypes/openworld_v25/previews/`。
-- Blender 4.2.23 LTS 重新打开 `.blend` 并以 `--python-exit-code 1` 严格验证通过：男主 35 个网格/3 个 Mirror/8 个挤出或环线命名部件；女主 38/3/7；剑仙 42/3/10；坐标有限且各根节点 `runtime_integrated=false`。
-- 验收边界：图像为 Blender 离线渲染及 T3 真人触控测试截图静态合成，不是运行中游戏画面；青色框按现有 `UX.entHitRect` 公式估算，未做实际点按、5 人剪影测试或设备验证；未导出游戏资源、未构建 APK、未在 Android/真机验证。阶段 1 待玛丽卡独立评审；评审通过前不启动阶段 2。
+- Blender 输出 12 张 `320×352` 帧（现有造型 idle×3；新模型 idle/walk/attack×3×3）；预览：A/B `1560×900`、姿态 `1540×1120`、男女主单色剪影板 `1136×410`、T3 桃花村静态热点摆位图 `1648×1240`，均在 `art/prototypes/openworld_v25/previews/`。
+- Blender 4.2.23 LTS 重新打开 `.blend` 并以 `--python-exit-code 1` 严格验证通过：男主 35 个网格/3 个 Mirror/8 个挤出或环线命名部件；女主 38/3/7；剑仙 42/3/10；坐标有限，各根节点 `runtime_integrated=false`。女主裙摆剖面宽度是男主的 1.31 倍；48px/64px 男女人体蒙版 IoU 为 0.813/0.812（算法形状对比，不是用户识别率）。
+- `validate_preview_geometry.py` 对 3 个离线摆位框与 15 个人工保守热点区做 45 组相交检查，另查 3 组候选框两两关系，脚本通过。热点是截图上手工框定区域；**不等于**真实地图坐标、Canvas 绘制层级或运行时命中验证。
+- 验收边界：图像为 Blender 离线渲染及 T3 测试截图静态合成，不是运行中游戏画面；尚无真实点按、5 人剪影盲测、不同设备/DPR检查或用户签收；未导出游戏资源、未构建 APK、未在 Android/真机验证。阶段 1 待玛丽卡独立评审；评审通过前不启动阶段 2。
 
 ## 美术渲染（后台 /tmp/v22render.sh → art/out/v22.log：sprites → portraits → 3 张地图 → ALLDONE）
 - [x] specs：12 新 NPC（taizi sanniang zhuiming tianbing xiaoyao guanghan caishen leigong suanpan guizu xiabing baiwuchang）、3 BOSS（guiwang dasiming tiandao2）、4 套时装×2、2 坐骑（carp abacus）
@@ -103,7 +104,7 @@
 
 ## 下一步（新接手从这里开始；详见 docs/ROADMAP.md §3）
 ### 当前优先（v2.5+ 阶段 1）
-- [~] 三款隔离低模源模型与 Blender 离线对比图已产出（A/B 同正交镜头；另有 idle/walk/attack 冻结姿态）；留待野心家/玛丽卡视觉验收。静态桃花村叠图指出名称/点击框需继续人工检查；真人点按与剪影辨认未测。验收完成前不改战斗占位、不接入运行链。
+- [~] 三款隔离低模源模型、A/B、idle/walk/attack 冻结姿态、单色 48/64px 剪影指标及静态热点避让板已补充；Blender、热点矩形与内容校验通过。男女 IoU 约 0.81 仍不能代替真人辨认，手工热点框也不能代替实际点按；等待玛丽卡视觉验收。签收前不启动阶段 2或接入运行链。
 - [ ] Issue #5 保持未解决：本轮 T4=1/20；T9 为 1 次失败 + 4 次开发者辅助下的连续单次成功，仍未达到连续 5 次且不是无辅助流程；目标仍是 T4≥18/20 与 T9 连续 5 次成功，不能用历史 9/20 或辅助跑替代验收。
 
 ### 后续产品清单（不与上述阶段并行）

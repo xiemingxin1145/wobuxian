@@ -232,13 +232,29 @@ def build_lowpoly(kind):
     trim = material("v25_trim_" + kind, trim_col, 0.48, 0.08)
     pants = material("v25_pants_" + kind, pants_col, 0.82)
 
-    # Tunic: cube-like half extrusion; profile rows are visible loop cuts.
-    _half_cube_extrusion("robe_extruded_cube_mirrored", [
-        (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
-        (0.79, 0.245, 0.155), (1.04, 0.245, 0.16), (1.18, 0.33, 0.19),
-        (1.27, 0.30, 0.18)], robe, body, 0.016)
-    _half_cube_extrusion("hem_extruded_cube_mirrored", [
-        (0.39, 0.318, 0.198), (0.435, 0.318, 0.198), (0.47, 0.302, 0.188)], trim, body, 0.008)
+    # Large silhouette split: male = broad shoulders/straight tunic; female =
+    # visibly waisted A-line skirt. These proportions survive monochrome thumbnails.
+    if kind == "female":
+        robe_rings = [
+            (0.40, 0.47, 0.235), (0.46, 0.445, 0.225), (0.65, 0.355, 0.19),
+            (0.79, 0.255, 0.16), (1.04, 0.245, 0.16), (1.18, 0.30, 0.18),
+            (1.27, 0.275, 0.17)]
+        hem_rings = [(0.39, 0.485, 0.245), (0.435, 0.485, 0.245), (0.47, 0.45, 0.23)]
+    elif kind == "male":
+        robe_rings = [
+            (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
+            (0.79, 0.245, 0.155), (1.04, 0.245, 0.16), (1.18, 0.355, 0.20),
+            (1.27, 0.36, 0.20)]
+        hem_rings = [(0.39, 0.318, 0.198), (0.435, 0.318, 0.198), (0.47, 0.302, 0.188)]
+    else:
+        robe_rings = [
+            (0.40, 0.31, 0.19), (0.46, 0.30, 0.185), (0.65, 0.235, 0.15),
+            (0.79, 0.245, 0.155), (1.04, 0.245, 0.16), (1.18, 0.33, 0.19),
+            (1.27, 0.30, 0.18)]
+        hem_rings = [(0.39, 0.318, 0.198), (0.435, 0.318, 0.198), (0.47, 0.302, 0.188)]
+    # Cube-like half extrusions; each profile row is a visible support loop.
+    _half_cube_extrusion("robe_extruded_cube_mirrored", robe_rings, robe, body, 0.016)
+    _half_cube_extrusion("hem_extruded_cube_mirrored", hem_rings, trim, body, 0.008)
     _half_cube_extrusion("waist_belt_extruded_cube_mirrored", [
         (0.735, 0.252, 0.16), (0.775, 0.252, 0.16), (0.82, 0.247, 0.157)], gold if kind == "swordsman" else trim, body, 0.006)
     _box("cross_collar_left", (0.17, 0.035, 0.18), (-0.085, -0.176, 1.16), robe2, body,
@@ -258,16 +274,24 @@ def build_lowpoly(kind):
                                             (0.00, 0, 0.073, 0.087)], pants, pivot, 0.012)
         _box("boot_" + side, (0.145, 0.215, 0.085), (0, -0.037, -0.382), shoe, pivot, bevel=0.012)
 
-    # Separate pivoted sleeves are Cube extrusions with three support loops.
+    # Separate pivoted sleeves are Cube extrusions with three support loops;
+    # the female's flared cuffs reinforce the skirt silhouette at small scale.
     arm_pivots = {}
     for sign, side in ((-1, "L"), (1, "R")):
         pivot = empty("arm_pivot_" + side, (sign * 0.255, 0, 1.17), body)
         arm_pivots[side] = pivot
         sleeve = material("v25_sleeve_" + kind, robe_col, 0.78)
-        _cube_extrusion_path("sleeve_cube_extrusion_" + side, [
+        sleeve_rows = [
             (0, 0, 0.0, 0.18, 0.17), (sign * 0.065, -0.006, -0.19, 0.17, 0.16),
-            (sign * 0.13, -0.018, -0.39, 0.145, 0.14)], sleeve, pivot)
-        _box("cuff_" + side, (0.16, 0.16, 0.07), (sign * 0.135, -0.02, -0.40), trim, pivot, bevel=0.006)
+            (sign * 0.13, -0.018, -0.39, 0.145, 0.14)]
+        cuff_width, cuff_center = 0.16, 0.135
+        if kind == "female":
+            sleeve_rows = [
+                (0, 0, 0.0, 0.18, 0.17), (sign * 0.075, -0.006, -0.19, 0.205, 0.16),
+                (sign * 0.15, -0.018, -0.39, 0.25, 0.14)]
+            cuff_width, cuff_center = 0.27, 0.15
+        _cube_extrusion_path("sleeve_cube_extrusion_" + side, sleeve_rows, sleeve, pivot)
+        _box("cuff_" + side, (cuff_width, 0.16, 0.07), (sign * cuff_center, -0.02, -0.40), trim, pivot, bevel=0.006)
         _cylinder_extrusion("hand_faceted_" + side, [(-0.49, 0.064, 0.060),
                                                       (-0.45, 0.067, 0.062),
                                                       (-0.41, 0.060, 0.056)], skin, pivot, 8)
@@ -288,7 +312,7 @@ def build_lowpoly(kind):
     _box("nose_faceted", (0.035, 0.028, 0.046), (0, -0.215, 1.574), skin, body, bevel=0.006)
     _box("mouth", (0.042, 0.012, 0.012), (0, -0.208, 1.515), dark, body, bevel=0.002)
 
-    # The three silhouettes differ at a glance: topknot, twin buns, and broad straw hat/beard.
+    # Hair/hat accents supplement the large clothing silhouettes, not replace them.
     haircap = material("v25_haircap_" + kind, "#33251d" if kind != "female" else "#291a18", 0.82)
     if kind == "male":
         _cylinder_extrusion("male_short_hair_cap", [(1.70, 0.25, 0.21), (1.78, 0.255, 0.215),
@@ -371,6 +395,11 @@ def build_lowpoly(kind):
 
     root["character_type"] = kind
     root["modeling_method"] = "Extruded Cube/Cylinder profiles; loop-cut rings; Mirror X on symmetric clothing"
+    root["silhouette_feature"] = {
+        "male": "broad shoulders + straight tunic + topknot",
+        "female": "narrow shoulders + wide A-line skirt + flared cuffs + twin buns",
+        "swordsman": "wide straw hat + beard + back sword",
+    }[kind]
     root["runtime_integrated"] = False
     rig = {"root": root, "body": body, "arms": arm_pivots,
            "legs": leg_pivots, "attack_weapon": attack_weapon, "kind": kind}
