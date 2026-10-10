@@ -45,7 +45,7 @@ function entHitRect(e) {
   const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s); const npc = e.kind === 'npc' || e.kind === 'boss';
   const head = e.label ? (npc ? 44 : 30) : 0, mark = e.mark ? 70 : 0;
   const hw = Math.max(b.w / 2 + 10, UX.w(npc ? 32 : 28)); const top = y - b.h - 6 - head - mark - 8, bot = y + Math.max(20, UX.w(10));
-  return { x0: x - hw, x1: x + hw, y0: Math.min(top, bot - UX.w(88)), y1: bot, cx: x, cy: y - b.h / 2 };
+  return { x0: x - hw, x1: x + hw, y0: Math.min(top, bot - UX.w(88)), y1: bot, cx: x, cy: y - b.h / 2, ytop: top, ybot: y };
 }
 pickAt = function (sx, sy) {
   const [wx, wy] = s2w(sx, sy);
@@ -58,7 +58,7 @@ pickAt = function (sx, sy) {
   const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
-    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const s = PRI[e.kind] * 1e4 + Math.hypot(wx - r.cx, (wy - r.cy) * 0.6); if (s < bs) { bs = s; best = { ent: e }; } }
+    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const s = PRI[e.kind] * 1e4 + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
   }
   if (best) return best;
   let fd = UX.w(36);

@@ -58,7 +58,7 @@
      "娘",
      "mom",
      "💬",
-     10.4,
+     11.4,
      [
       52,
       80
@@ -68,7 +68,7 @@
      "王大爷",
      "farmer",
      "💬",
-     12.2,
+     11.7,
      [
       52,
       80
@@ -105,15 +105,15 @@
   },
   {
    "case": "N1_taps_still_work_after_battle",
-   "ok": false,
+   "ok": true,
    "ontap_before": true,
    "npc_tap_before_battle": "npc",
    "battle_shot": "002_N1_battle.png",
    "fought": true,
    "ontap_after_battle": true,
-   "ground_tap_moved_tiles": 0.0,
-   "npc": "翠花",
-   "npc_tap_after_battle": "npc not tappable on screen",
+   "ground_tap_moved_tiles": 4.83,
+   "npc": "说书先生",
+   "npc_tap_after_battle": "npc",
    "shot": "003_N1_after_battle_tap_dead.png"
   },
   {
@@ -123,57 +123,57 @@
    "rows": [
     {
      "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 25,
+     "near": "采药",
+     "css_dist": 53,
      "part": "name",
      "result": "npc"
     },
     {
      "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 25,
+     "near": "采药",
+     "css_dist": 53,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "villager",
+     "near": "古井",
+     "css_dist": 76,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "villager",
+     "near": "古井",
+     "css_dist": 76,
      "part": "body",
      "result": "npc"
     },
     {
      "npc": "mom",
      "near": "打坐",
-     "css_dist": 47,
+     "css_dist": 85,
      "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "mom",
+     "near": "打坐",
+     "css_dist": 85,
+     "part": "body",
      "result": "card:讨债的来了"
     },
     {
-     "npc": "mom",
-     "near": "打坐",
-     "css_dist": 47,
-     "part": "body",
-     "result": "npc"
-    },
-    {
      "npc": "farmer",
      "near": "采药",
-     "css_dist": 74,
+     "css_dist": 101,
      "part": "name",
      "result": "npc"
     },
     {
      "npc": "farmer",
      "near": "采药",
-     "css_dist": 74,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "luren",
-     "near": "洞府",
-     "css_dist": 77,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "luren",
-     "near": "洞府",
-     "css_dist": 77,
+     "css_dist": 101,
      "part": "body",
      "result": "npc"
     }
@@ -181,20 +181,43 @@
    "note": null
   },
   {
-   "case": "T12_online_afk",
-   "ok": true,
-   "kills": 29,
-   "samples": 134,
-   "outside_box": 0,
-   "summary": "挂机 2 分 32 秒过了 14 年 · 击败 29 只妖怪灵石 +166 · 境界 凡人·锻体圆满",
-   "shots": [
-    "004_T12_afk_on.png",
-    "005_T12_afk_running.png",
-    "006_T12_afk_summary.png"
+   "case": "T1_hitbox_5_points",
+   "ok": false,
+   "map": "village",
+   "hit": "28/30",
+   "wrong_target": 2,
+   "by_part": {
+    "feet": "5/6",
+    "body": "6/6",
+    "head": "6/6",
+    "name": "6/6",
+    "mark": "5/6"
+   },
+   "misses": [
+    {
+     "npc": "落魄剑仙",
+     "part": "feet",
+     "result": "other_npc:翠花  ♥0",
+     "tap": [
+      160,
+      415
+     ],
+     "dom_at_point": "#cv",
+     "dist_before": 4.47
+    },
+    {
+     "npc": "翠花",
+     "part": "mark",
+     "result": "other_npc:落魄剑仙",
+     "tap": [
+      249,
+      375
+     ],
+     "dom_at_point": "#cv",
+     "dist_before": 2
+    }
    ],
-   "cheats": [
-    "dev:调试>×5"
-   ]
+   "note": ""
   },
   {
    "case": "info_recoveries_used",
@@ -202,53 +225,6 @@
    "recoveries": 0,
    "battles": 2,
    "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
-  },
-  {
-   "case": "T6_prologue_ch1_by_tapping",
-   "ok": false,
-   "age": 6,
-   "main": "debt",
-   "awakened": false,
-   "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 附近有 1 个委托（！） | 路人甲有委托 | 前往▶",
-   "mentor_on_map": false,
-   "trail": [
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往",
-    "tap 前往"
-   ],
-   "shots": [
-    "007_T6_tracker.png",
-    "008_T6_end.png"
-   ],
-   "secs": 62
-  },
-  {
-   "case": "T7_cross_map_nav",
-   "ok": true,
-   "map": "market",
-   "who": "奸商·钱多多",
-   "ap": [
-    4,
-    3
-   ],
-   "secs": 6,
-   "shots": [
-    "010_T7_after_confirm.png",
-    "011_T7_dialog.png"
-   ],
-   "cheats": [
-    "dev:境界>练气初期",
-    "dev:剧情>坊市查账"
-   ]
   }
  ],
  "js_errors": [],
