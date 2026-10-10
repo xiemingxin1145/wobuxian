@@ -16,6 +16,7 @@
         <h1>赤松坡试炼场</h1>
       </div>
       <span id="screen-badge" class="screen-badge" aria-live="polite">安全地图</span>
+      <button id="back-to-game" style="margin-left:auto;padding:6px 12px;background:#3a2a2a;color:#ffb0b0;border:1px solid #ffb0b0;border-radius:12px;font-size:13px;">返回正式游戏</button>
     </header>
 
     <section class="arena-card" aria-label="遭遇战场地">
@@ -26,7 +27,7 @@
     <section id="map-screen" class="state-panel map-panel" aria-labelledby="map-title">
       <div class="panel-copy">
         <span class="panel-kicker">练习地图</span>
-        <h2 id="map-title">两只山魈挡住了去路</h2>
+        <h2 id="map-title">两只山魏挡住了去路</h2>
         <p>这里是一场可重开的独立小怪遭遇。用移动找位置，普攻和雷击削减敌人气血，看到红色预警时及时闪避。</p>
       </div>
       <button id="start-encounter" class="primary-button" type="button">进入遭遇战 <span aria-hidden="true">→</span></button>
@@ -77,5 +78,10 @@
     <footer class="footer-note">本原型仅在此页面运行，与正式地图、回合制 Boss 战和游戏存档隔离。</footer>
   </main>
   <script src="./encounter.js"></script>
+  <script>
+    document.getElementById('back-to-game').onclick = () => {
+      if (confirm('返回正式游戏？')) history.back();
+    };
+  </script>
 </body>
 </html>
