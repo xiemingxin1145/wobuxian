@@ -10,8 +10,14 @@
     btn.textContent = '试炼场';
     btn.style.cssText = 'position:fixed;right:12px;bottom:120px;z-index:9999;padding:8px 14px;background:#2a3a5a;color:#ffe680;border:1px solid #ffe680;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
     btn.onclick = () => {
-      if (confirm('进入独立遭遇战原型？\n\uff08不影响存档，可返回）')) {
+      const c = confirm('进入独立遭遇战原型？\n\uff08不影响存档，可返回）\n\n取消则测试阶段3债务奇遇草稿。');
+      if (c) {
         location.href = 'prototypes/encounter/index.html';
+      } else if (window.Stage3 && window.Game && Game.G) {
+        Stage3.test(Game.G).then(r => {
+          console.log(r);
+          if (window.UI && UI.toast) UI.toast('阶段3 草稿已执行，见控制台', '#ffe680');
+        });
       }
     };
     document.body.appendChild(btn);
