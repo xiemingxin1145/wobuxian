@@ -143,4 +143,11 @@ python3 test/fulllife.py 2400  # 机器人完整玩一生直到轮回殿
 python3 test/shots2.py         # 8 张地图、战斗、各面板截图
 ```
 
+**发版前门禁：真人点按测试** `test/human_olaf.py`——只用真实触摸事件（CDP，412×915），坐标取自屏幕上实际画的位置，不调用任何游戏逻辑、不删 NPC、不瞬移。覆盖：开局→点“！”NPC→对话→接任务→追踪栏、战斗后点按是否还有效（N1）、以及 v2.3 规格 T1–T13（判定框 5 点、摇杆区点按、靠近交互按钮、闲逛 NPC 20 次、前两章可点、开发者模式、挂机、回归）。截图和 `results.json` 输出到 `test/human_olaf/`，退出码 = 失败用例数（0 才能发版）。
+
+```bash
+python3 test/human_olaf.py                 # 全部用例（约 30–40 分钟，含 T13 回归）
+ONLY=N1,T0,T1 python3 test/human_olaf.py   # 只跑部分；DPR=2.625 模拟真机像素比；HUMAN_OLAF_T13=0 跳过回归
+```
+
 v1.0（纯 Canvas 绘制版）保留在 git 历史中（commit 8485cd6）。
