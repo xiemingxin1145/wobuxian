@@ -297,7 +297,7 @@ body:not(.ingame) #afkbtn,body:not(.ingame) #actbtn,body:not(.ingame) #tuthint,b
 .qgo{flex:none;align-self:center;padding:6px 12px!important;margin-left:6px;font-size:13px!important}
 #devbtn{position:fixed;left:8px;top:calc(170px + env(safe-area-inset-top));width:44px;height:44px;z-index:6;background:#b0201a;color:#fff;border:2px solid #fff;border-radius:12px;font-size:20px;padding:0}
 .devwarn{color:#ff6a6a!important;font-weight:bold}
-.devtabs{display:flex;gap:4px;overflow-x:auto;margin:4px 0 8px}.devtabs .dt{flex:none;width:56px;height:40px;border-radius:8px;border:1px solid #d8b26a;background:#f6ecd0;font-family:inherit}.devtabs .dt.on{background:#d08a10;color:#fff}
+.devtabs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.devtabs .dt{flex:none;width:56px;height:40px;border-radius:8px;border:1px solid #d8b26a;background:#f6ecd0;font-family:inherit}.devtabs .dt.on{background:#d08a10;color:#fff}
 .devg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}.devr{display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap;font-size:13px}
 .devr select{flex:1;min-width:0;height:36px;border-radius:8px;font-size:13px}.devg .opt,.devr .opt{min-height:44px;padding:6px 8px;font-size:13px}
 .devflags{max-height:160px;overflow:auto;font-size:11px;background:rgba(0,0,0,.05);padding:4px}

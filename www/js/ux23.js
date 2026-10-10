@@ -14,6 +14,7 @@ const UX = {
     const arrive = () => {
       P.safeWalk = false; if (e.gone || !R.ents.includes(e) || UI.modal || Game._busy) return;
       if (Math.hypot(e.i - P.i, e.j - P.j) <= 2.6) { Nav.clear(); Game.interactEnt(e); return; }
+      if (typeof AFK !== 'undefined' && AFK.on && !AFK.inBox(e.i, e.j)) return; /* 挂机不追出方框 */
       if (tries++ < 3) { const t = this.adj(e, P); P.safeWalk = e.kind !== 'mon'; moveTo(P, t[0], t[1], arrive); }
     };
     const t = this.adj(e, P); P.safeWalk = e.kind !== 'mon';
@@ -81,7 +82,7 @@ Game.npcMark = function (id) {
 };
 // 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
 const _fight23 = Game.fight.bind(Game);
-Game.fight = async function (...a) { try { return await _fight23(...a); } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
+Game.fight = async function (...a) { try { const r = await _fight23(...a); if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year }; UI.toast('打不过——自动先去变强（打怪/修炼），两年后或境界提升再来'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
 // 桃花村原本没有采药点，但娘的「灵草汤」7 岁就给 → 支线做不了。给村子加两处野草丛采药点（每年可采）
 const VILLAGE_HERBS = [[8, 14], [17, 6]];
 const _mm23 = Game.makeMarks.bind(Game);
@@ -284,12 +285,14 @@ const AUTO = {
     if (P.path && P.path.length) return;
     const now = performance.now(); if (now - this.last < 450 / Math.max(1, DEV.ts || 1)) return; this.last = now; this.n++;
     const s = Game.stats();
-    if (G.hp < s.mhp * 0.3) { if (Game.has('hcd')) { UI.useItem('hcd'); return; } this.stop('气血不足又没有回春丹，自动已停止'); return; }
+    if (G.hp < s.mhp * 0.3) { if (Game.has('hcd')) { UI.useItem('hcd'); return; } if (!this._lowTold) { this._lowTold = 1; UI.toast('气血不足：先打坐/过年回血，不去打架'); } return AFK.chores(this.on === 'quest', true); }
+    this._lowTold = 0;
     if (Game.lifeMax() - G.age <= 3) { this.stop('寿元将尽，自己做决定吧'); return; }
     for (const [sl] of SLOTS) { const c = G.eqs.filter(e => e.slot === sl).sort((a, b) => Game.eqScore(b) - Game.eqScore(a))[0]; if (c && G.eq[sl] !== c.uid && Game.eqScore(c) > (G.eq[sl] ? Game.eqScore(G.eqs.find(e => e.uid === G.eq[sl]) || { main: {}, aff: [], rar: 0 }) : -1)) Game.equip(c.uid); }
     if (Game.canBreak() && !this._brkTold) { this._brkTold = G.realm; UI.toast('修为已满！渡劫突破要你自己点「突破」'); }
     if (this.on === 'quest') {
-      for (const q of Track.list()) { const t = Track.target(q); if (!t || !['npc', 'boss', 'mon', 'mark', 'map'].includes(t.kind)) continue; if (t.map && t.map !== R.mapId && (G.ap <= 0 || !Game.canEnter(t.map))) continue; const r = await Track.step(t, true); if (r === 'walk' || r === 'travel') return; }
+      const pw = G.realm * 10 + G.stage, wk = this.weak; const weakMain = wk && wk.main === G.main && pw <= wk.pw && G.year - wk.y < 2;
+      for (const q of Track.list()) { if (q === 'main' && weakMain) continue; const t = Track.target(q); if (!t || !['npc', 'boss', 'mon', 'mark', 'map'].includes(t.kind)) continue; if (t.map && t.map !== R.mapId && (G.ap <= 0 || !Game.canEnter(t.map))) continue; const r = await Track.step(t, true); if (r === 'walk' || r === 'travel') return; }
       const bang = R.ents.find(e => e.kind === 'npc' && e.mark === '!' && !this.seen[e.id + G.year]); if (bang) { this.seen[bang.id + G.year] = 1; if (UX.goTo(bang, true)) return; }
       return AFK.chores(true);
     }
@@ -306,17 +309,17 @@ const AFK = {
     G.afk = 1; this.el.className = 'show'; this.stopEl.className = 'afkstop show'; this.upd(); UI.toast('开始挂机');
   },
   end() { if (!this.on) return; this.on = false; const G = Game.G; R.ents.forEach(e => { if (e.kind === 'mon') e.cool = 3; }); /* 刚停挂机别被贴脸的怪拉进战斗 */ G.afk = 0; this.el.className = ''; this.stopEl.className = 'afkstop'; const st = this.st;
-    UI.card('挂机总结', `挂机 ${Math.round((Date.now() - st.t0) / 60000)} 分钟\n过了 ${G.age - st.age0} 年 · 击败 ${(G.killsTotal || 0) - st.kills0} 只妖怪\n灵石 ${G.stone - st.stone0 >= 0 ? '+' : ''}${G.stone - st.stone0} · 境界 ${Game.realmName()}`, null, ['好']); },
+    UI.card('挂机总结', `挂机 ${(() => { const sec = Math.round((Date.now() - st.t0) / 1000); return sec >= 60 ? `${Math.floor(sec / 60)} 分 ${sec % 60} 秒` : `${sec} 秒`; })()}\n过了 ${G.age - st.age0} 年 · 击败 ${(G.killsTotal || 0) - st.kills0} 只妖怪\n灵石 ${G.stone - st.stone0 >= 0 ? '+' : ''}${G.stone - st.stone0} · 境界 ${Game.realmName()}`, null, ['好']); },
   upd() { if (!this.on) return; const G = Game.G, st = this.st; const m = Math.floor((Date.now() - st.t0) / 60000), s = Math.floor((Date.now() - st.t0) / 1000) % 60;
     this.el.querySelector('p').textContent = `${m}:${String(s).padStart(2, '0')} · ${G.age}岁 ${Game.realmName()} · 击败 ${(G.killsTotal || 0) - st.kills0} · 灵石 +${Math.max(0, G.stone - st.stone0)}`; },
   inBox(i, j) { const b = this.box; return !b || (i >= b[0] && i <= b[2] && j >= b[1] && j <= b[3]); },
-  async chores(questMode) {
+  async chores(questMode, noFight) {
     const G = Game.G, P = R.player, s = Game.stats(); const box = AFK.on ? (e => this.inBox(e.i, e.j)) : (() => true);
     const mons = R.ents.filter(e => e.kind === 'mon' && !e.gone && box(e));
-    if (mons.length && G.hp > s.mhp * 0.5) { const m = mons.sort((a, b) => Math.hypot(a.i - P.i, a.j - P.j) - Math.hypot(b.i - P.i, b.j - P.j))[0]; if (UX.goTo(m, true)) return; }
+    if (mons.length && !noFight && G.hp > s.mhp * 0.5) { const m = mons.sort((a, b) => Math.hypot(a.i - P.i, a.j - P.j) - Math.hypot(b.i - P.i, b.j - P.j))[0]; if (UX.goTo(m, true)) return; }
     for (const act of ['herb', 'chest']) { const m = R.marks.find(m => m.act === act && !m.hidden && box(m)); if (m && (act !== 'herb' || G.ap > 1) && UX.goMark(m, true)) { if (act === 'herb') this.st && this.st.herbs++; return; } }
     if (AFK.on && !this.inBox(P.i, P.j)) { const b = this.box; moveTo(P, (b[0] + b[2]) >> 1, (b[1] + b[3]) >> 1); return; }
-    const mat = R.marks.find(m => ['mat', 'jade', 'dummy'].includes(m.act) && !m.hidden); if (mat && G.ap > 0 && UX.goMark(mat, true)) return; // 行动力先拿去打坐/练剑，用完才过年
+    const mat = R.marks.find(m => ['mat', 'jade', 'dummy'].includes(m.act) && !m.hidden && box(m)); if (mat && G.ap > 0 && UX.goMark(mat, true)) return; // 行动力先拿去打坐/练剑，用完才过年
     if (Game.canBreak()) { AUTO.stop('修为已满，自己点「突破」吧（挂机不会替你渡劫，也不白白耗寿元）'); return; }
     if (AFK.on && Date.now() - (this._ye || 0) < 10000) return; // 挂机时别狂过年：每年至少 10 秒，给怪刷新、给玩家看
     this._ye = Date.now(); await Game.yearEnd();
@@ -380,7 +383,7 @@ UI.p_dev = function (b, re, close, tab) {
   const TABS = [['res', '资源'], ['realm', '境界'], ['unlock', '解锁'], ['story', '剧情'], ['tp', '传送'], ['show', '演出'], ['dbg', '调试']];
   let body = '';
   if (tab === 'res') body = `<div class="devg">${btn('stone', '灵石 +1万')}${btn('stone2', '灵石 +100万')}${btn('xyf', '仙缘符 +10')}${btn('xyf2', '仙缘符 +100')}${btn('items', '全部物品 ×5')}${btn('ap', '行动力回满')}${btn('debt0', '欠款清零')}${btn('heal', '满血满蓝')}</div>`;
-  if (tab === 'realm') body = `<div class="devr">境界 ${sel('d_realm', REALMS.map((r, k) => [k, r.n]))} 小境界 ${sel('d_stage', [[0, '初期'], [1, '中期'], [2, '后期'], [3, '圆满']])}${btn('realm', '设定')}</div><div class="devg">${REALMS.slice(0, 5).map((r, k) => `<button class="opt" data-a="rq" data-v="${k}">${r.n}初期</button>`).join('')}</div><div class="devg">${btn('expfull', '修为加满（到瓶颈）')}${btn('life', '寿元 +1000')}</div>`;
+  if (tab === 'realm') body = `<div class="devr">境界 ${sel('d_realm', REALMS.map((r, k) => [k, r.n]))} 小境界 ${sel('d_stage', [[0, '初期'], [1, '中期'], [2, '后期'], [3, '圆满']])}${btn('realm', '设定')}</div><div class="devg">${REALMS.slice(0, 5).map((r, k) => `<button class="opt" data-a="rq" data-v="${k}">${r.n}初期</button><button class="opt" data-a="rq" data-v="${k}" data-s="3">${r.n}圆满</button>`).join('')}</div><div class="devg">${btn('expfull', '修为加满（到瓶颈）')}${btn('life', '寿元 +1000')}</div>`;
   if (tab === 'unlock') body = `<div class="devg">${btn('maps', '解锁全部地图', G.flags.devmaps)}${btn('cg', '解锁全部插画')}${btn('mounts', '全部坐骑')}${btn('cos', '全部时装')}${btn('pets', '全部灵兽各 1')}${btn('aff', '全部 NPC 好感 100')}${btn('techs', '全部功法')}</div>`;
   if (tab === 'story') body = `<div class="devg">${MAIN.map((m, k) => `<button class="opt" data-a="mq" data-v="${k}">${esc(m.n)}</button>`).join('')}</div>`+`<div class="devr">章节 ${sel('d_main', MAIN.map((m, k) => [k, m.n]))}${btn('main', '跳到此章')}</div><div class="devr">Boss ${sel('d_boss', Object.keys(MONS).filter(k => MONS[k].boss).map(k => [k, MONS[k].n]))}${btn('boss', '开打')}</div><div class="devr">事件 ${sel('d_ev', EVENTS.map((e, k) => [k, e[0] + ' ' + e[1]]))}${btn('ev', '触发')}</div>`;
   if (tab === 'tp') body = `<div class="devg">${MAP_ORDER.map(id => `<button class="opt" data-a="tpm" data-v="${id}">${MAPINFO[id].n}</button>`).join('')}<button class="opt" data-a="t5">站到最近NPC旁 1.7 格</button></div>`+`<div class="devr">地图 ${sel('d_map', MAP_ORDER.map(id => [id, MAPINFO[id].n]))}${btn('tp', '传送')}</div><div class="devr">NPC ${sel('d_npc', Object.keys(NPCS).filter(k => Track.mapOf(k)).map(k => [k, `${NPCS[k].n}（${(MAPINFO[Track.mapOf(k)] || {}).n || ''}）`]))}${btn('tpnpc', '传送到他身边')}</div>`;
@@ -398,7 +401,7 @@ UI.p_dev = function (b, re, close, tab) {
       case 'stone': G.stone += 1e4; break; case 'stone2': G.stone += 1e6; break; case 'xyf': Game.give('xyf', 10); break; case 'xyf2': Game.give('xyf', 100); break;
       case 'items': for (const k in ITEMS) Game.give(k, 5); break; case 'ap': G.ap = Game.apMax(); break; case 'debt0': G.debt = 0; break;
       case 'heal': { const s = Game.stats(); G.hp = s.mhp; G.mp = s.mmp; break; }
-      case 'rq': b.querySelector('#d_realm').value = t.dataset.v; b.querySelector('#d_stage').value = 0; /* fallthrough */
+      case 'rq': b.querySelector('#d_realm').value = t.dataset.v; b.querySelector('#d_stage').value = t.dataset.s || 0; /* fallthrough */
       case 'realm': { G.realm = +v('#d_realm'); G.stage = +v('#d_stage'); G.exp = Math.floor(Game.need() * 0.5); G.flags.awakened = 1; G.flags.main0 = G.flags.main1 = 1; if (R.player) { R.player.spr = Game.playerSpr(); loadSprite(R.player.spr); } const s = Game.stats(); G.hp = s.mhp; G.mp = s.mmp; Game.checkMain(); Game.refreshNpcs(); break; }
       case 'expfull': Game.addExp(Game.need() * 10, true); break; case 'life': G.lifeBonus = (G.lifeBonus || 0) + 1000; break;
       case 'maps': G.flags.awakened = 1; G.flags.devmaps = 1; break;

@@ -456,6 +456,7 @@ async def main():
             c = await new_page(); await new_life(c); t0 = time.time(); trail = []
             s = await scr(c); age0 = s['age']; f = await shot(c, 'T6_tracker')
             while time.time() - t0 < 60:
+                await ensure_map(c)   # v2.3：主线目标本身就是一场战斗（讨债史莱姆），真人会点“自动”打完
                 s = await scr(c)
                 if s['awakened'] and s['main'] == 'sect': break
                 go = await rect(c, '#qt button, #qt [data-go], #qt .go', None)
@@ -493,9 +494,9 @@ async def main():
                 case('T10_dev_mode_entry', t10['no_devbtn_without_hash'] and after == '1' and devbtn, **t10,
                      note=None if devbtn else '点版本号 7 次没有开启开发者模式；面板 Tab 断言无法进行')
             await c.ctx.close()
-            async def market_setup():
+            async def market_setup(stage='练气初期'):
                 cx = await new_page('#dev'); await new_life(cx); await ensure_map(cx)
-                ok = await dev_setup(cx, ('境界', '练气初期'), ('剧情', '坊市查账')); return cx, ok
+                ok = await dev_setup(cx, ('境界', stage), ('剧情', '坊市查账')); return cx, ok
             async def tap_main_go(cx):
                 await tap_el(cx, '#qt .qbtn[data-q=main]', None, 700)
                 s_ = await scr(cx)
@@ -511,7 +512,7 @@ async def main():
                     await c7.pg.wait_for_timeout(250)
                 g1 = await gst(c7); f2 = await shot(c7, 'T7_dialog')
                 if want('T7'):
-                    case('T7_cross_map_nav', okd and card and g1['map'] == 'market' and (who or '').startswith('钱多多') and g1['ap'] == g0['ap'] - 1,
+                    case('T7_cross_map_nav', okd and card and g1['map'] == 'market' and '钱多多' in (who or '') and g1['ap'] == g0['ap'] - 1,
                          map=g1['map'], who=who, ap=[g0['ap'], g1['ap']], secs=round(time.time() - t0), shots=[f, f2], cheats=c7.cheats)
                 if want('T8'):
                     await clear_popups(c7, 8); await ensure_map(c7)
@@ -529,7 +530,7 @@ async def main():
                 await c7.ctx.close()
             if want('T9'):
                 T9_S = float(os.environ.get('T9_SECS', '180'))
-                c9, okd = await market_setup(); g0 = await gst(c9)
+                c9, okd = await market_setup('练气圆满'); g0 = await gst(c9)   # 练气（圆满）：初期打不过讨债鬼头子，自动会先去变强，3 分钟内不一定够
                 await tap_el(c9, '#qt .qauto', None, 500); jumps = 0; last = g0; t0 = time.time(); waits = 0
                 while time.time() - t0 < T9_S:
                     await c9.pg.wait_for_timeout(1000); g = await gst(c9)
