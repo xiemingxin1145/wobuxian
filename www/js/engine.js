@@ -303,8 +303,8 @@ function setupInput() {
   let down = null, cand = null;
   cv.addEventListener('pointerdown', e => {
     const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
-    if (R.mode === 'map' && R.showJoy && x < R.W * 0.4 && y > R.H * 0.62) { cand = { id: e.pointerId, ox: x, oy: y, t: performance.now() }; try { cv.setPointerCapture(e.pointerId); } catch (er) { } return; }
-    down = { x, y, t: performance.now() };
+    if (R.mode === 'map' && R.showJoy && x < R.W * 0.4 && y > R.H * 0.62 && !R.joy.active && !cand) { cand = { id: e.pointerId, ox: x, oy: y, t: performance.now() }; try { cv.setPointerCapture(e.pointerId); } catch (er) { } return; }
+    down = { x, y, t: performance.now(), id: e.pointerId };  // 摇杆已被一根手指占用时，第二根手指在左下也只算普通点按，不会顶掉摇杆
   });
   cv.addEventListener('pointermove', e => {
     const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
@@ -315,7 +315,7 @@ function setupInput() {
     const x = e.clientX * R.dpr, y = e.clientY * R.dpr;
     if (R.joy.active && e.pointerId === R.joy.id) { R.joy.active = false; R.joy.dx = R.joy.dy = 0; cand = null; return; }
     if (cand && e.pointerId === cand.id) { const c = cand; cand = null; if (e.type === 'pointerup' && Math.hypot(x - c.ox, y - c.oy) < 8 * R.dpr && performance.now() - c.t < 600 && R.onTap) R.onTap(x, y); return; }
-    if (!down) return;
+    if (!down || (down.id !== undefined && e.pointerId !== down.id)) return;
     if (Math.hypot(x - down.x, y - down.y) < 30 * R.dpr && R.onTap) R.onTap(x, y);
     down = null;
   };

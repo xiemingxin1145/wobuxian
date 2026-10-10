@@ -234,8 +234,9 @@ async def main():
                 await settle()
                 if not await vis('.devtabs'): await tap('#devbtn', 900)
                 await tap(pg.locator('.devtabs .dt', has_text='解锁'), 500); await tap('.opt[data-a=maps]', 600)
-                dm = await pg.evaluate('()=>!!(G.flags&&G.flags.devmaps)')
-                print(f'[step10] 尝试 {_try+1}: devtabs={bool(await vis(".devtabs"))} devmaps={dm}', flush=True)
+                dm = await pg.evaluate('()=>!!(Game.G&&Game.G.flags&&Game.G.flags.devmaps)')
+                diag = await pg.evaluate("()=>JSON.stringify({modal:!!UI.modal,stack:UI.stack.length,busy:!!Game._busy,b:!!(window.B&&B.on),mode:R.mode,inMap:UX.inMap(),fx:!!document.querySelector('.gacha-fx,.chapter-fx,.brk-fx,.endw'),afk:!!(window.AFK&&AFK.on)})")
+                print(f'[step10] 尝试 {_try+1}: devtabs={bool(await vis(".devtabs"))} devmaps={dm} {diag}', flush=True)
                 if await vis('.devtabs'): await tap('#modals .mwrap:last-child .ph .x', 500)
                 if dm: break
         if not await pg.locator('#ap i.on').count():  # 行动力用完了就先过年（御剑要 1 点行动力）

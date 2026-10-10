@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 102.1,
+   "moved_px": 116.2,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 130.8,
+   "moved_px": 140.5,
    "ok": true
   },
   {
@@ -30,7 +30,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 202.9,
+   "moved_px": 227.3,
    "ok": true
   },
   {
@@ -41,7 +41,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 132.4,
+   "moved_px": 141.3,
    "ok": true
   },
   {
@@ -52,7 +52,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 102.1,
+   "moved_px": 112.4,
    "ok": true
   },
   {
@@ -63,7 +63,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 138.9,
+   "moved_px": 142.2,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 211.9,
+   "moved_px": 217.1,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 134.0,
+   "moved_px": 133.2,
    "ok": true
   }
  ],
