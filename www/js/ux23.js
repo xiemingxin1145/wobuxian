@@ -364,7 +364,7 @@ function devTap() {
   if (DEV.taps >= 7) { DEV.taps = 0; if (devOn()) localStorage.removeItem('wbx2_dev'); else localStorage.setItem('wbx2_dev', '1'); UI.toast(devOn() ? '开发者模式已开启 🛠' : '已关闭开发者模式'); devBtn(); }
   else if (DEV.taps >= 4) UI.toast(`再点 ${7 - DEV.taps} 次${devOn() ? '关闭' : '进入'}开发者模式`);
 }
-document.addEventListener('click', e => { if (e.target.closest('#title .logo span, .verrow')) devTap(); }, true);
+document.addEventListener('click', e => { if (e.target.closest('#title .logo span, #title .ver, .verrow')) devTap(); }, true);
 function devBtn() {
   let b = $('#devbtn'); if (!devOn()) { if (b) b.remove(); return; }
   if (!b) { b = mk('button', 'devbtn', '🛠'); b.onclick = () => { if (!UI.modal && Game.G && UX.inMap()) UI.panel('dev'); }; }

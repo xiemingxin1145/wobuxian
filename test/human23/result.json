@@ -2,7 +2,7 @@
  {
   "step": "1 新开一局",
   "ok": true,
-  "note": "郝无名 凡人·锻体一层 6岁 / 寿80 150/160 0/80",
+  "note": "宋知秋 凡人·锻体一层 6岁 / 寿76 110/120 0/80",
   "shot": "/workspace/game/test/human23/01_new_game.png"
  },
  {
@@ -32,24 +32,24 @@
  {
   "step": "6 接受支线任务",
   "ok": true,
-  "note": "！娘的灵草汤 | 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n支·路人甲的名字\\n乱葬岗需要筑基\\n修炼\\n支·娘的灵草汤\\n这里的药采'",
+  "note": "！娘的灵草汤 | 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n支·路人甲的名字\\n乱葬岗需要筑基\\n修炼\\n支·娘的灵草汤\\n采药得灵草'",
   "shot": "/workspace/game/test/human23/08_quest_accepted.png"
  },
  {
   "step": "7 寻路完成并交付支线",
-  "ok": false,
-  "note": "仙缘符+1",
+  "ok": true,
+  "note": "自动寻路 → 采药得灵草 · 点地面取消 → 自动寻路 → 交付给娘 · 点地面取消",
   "shot": "/workspace/game/test/human23/10_quest_done.png"
  },
  {
   "step": "8 挂机",
   "ok": true,
-  "note": "'挂机中\\n\\n0:52 · 20岁 练气初期 · 击败 1 · 灵石 +8' | ['郝无名', '练气初期', '19岁 / 寿140'] → ['郝无名', '练气初期', '20岁 / 寿140'] | 总结='挂机总结'",
+  "note": "'挂机中\\n\\n0:52 · 9岁 凡人·锻体三层 · 击败 5 · 灵石 +288' | ['宋知秋', '凡人·锻体一层', '7岁 / 寿76'] → ['宋知秋', '凡人·锻体三层', '9岁 / 寿77'] | 总结='挂机总结'",
   "shot": "/workspace/game/test/human23/12_afk_progress.png"
  },
  {
   "step": "9 开发者面板",
-  "ok": false,
+  "ok": true,
   "note": "开启前无🛠=True",
   "shot": "/workspace/game/test/human23/15_dev_panel.png"
  },

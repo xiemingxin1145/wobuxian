@@ -303,3 +303,4 @@ body:not(.ingame) #afkbtn,body:not(.ingame) #actbtn,body:not(.ingame) #tuthint,b
 .devflags{max-height:160px;overflow:auto;font-size:11px;background:rgba(0,0,0,.05);padding:4px}
 .opt.on{outline:3px solid #2a9a5a}
 .verrow{text-align:center;color:#a08a6a;font-size:12px;padding:14px 0 4px;user-select:none}
+#title .ver{padding:12px 18px;margin-bottom:-12px}
