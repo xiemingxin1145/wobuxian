@@ -33,7 +33,7 @@ DPR = float(os.environ.get('DPR', '2'))
 CHROME = os.environ.get('CHROME', '/opt/google/chrome/chrome')
 ONLY = set(x.strip() for x in os.environ.get('ONLY', '').split(',') if x.strip())
 T4_N = int(os.environ.get('T4_N', '20'))
-T4_BUDGET = float(os.environ.get('T4_BUDGET', '600'))   # 秒；超时剩余次数记为 timeout（算失败）
+T4_BUDGET = float(os.environ.get('T4_BUDGET', '900'))   # 秒；超时剩余次数记为 timeout（算失败）
 JOY = lambda x, y: x < VW * 0.4 and y > VH * 0.62          # engine.js:296 的摇杆区（CSS px）
 
 def serve(root):

@@ -2,7 +2,7 @@
 # 读取 DOM 只用于“眼睛看”（元素位置/文字），等同于玩家看屏幕。412×915，isMobile/hasTouch。
 # 步骤：新开一局 → 跟着指引点主线目标 → 序章战斗 → 追踪栏寻路到剑仙并完成对话 → 交互按钮 → 接支线 → 寻路完成并交付 → 挂机 → 开发者面板 → 切换地图
 # 每步截图到 test/human23/，结果写 test/human23/result.json。任何一步失败 → 退出码 1。
-import asyncio, os, sys, json, time, re
+import math, asyncio, os, sys, json, time, re
 from playwright.async_api import async_playwright
 ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www')
 URL = 'file://' + os.path.abspath(ROOT) + '/index.html'
@@ -240,6 +240,55 @@ async def main():
         await settle(); ban = await shot('17_map_switched')
         await tap('#menu .mb[data-p=travel]', 700); here = await text('.mapb.here b'); await shot('18_travel_here'); await settle()
         step('10 切换地图', bool(target) and target == here.strip(), f'前往 {target} → 当前所在 {here!r}', ban)
+        # 11 判定框重叠 / 摇杆区：点每个 NPC 的身体中心，必须打开这个 NPC（不是旁边的人）；只读取位置，点按全用触摸
+        JS_NPC = """()=>{if(!R.player||R.mode!=='map')return [];const S=(x,y)=>{const [a,b]=w2s(x,y);return [a/R.dpr,b/R.dpr]};return R.ents.filter(e=>e.kind==='npc'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);return {id:e.id,n:e.label,i:e.i,j:e.j,body:S(x,y-b.h/2)}})}"""
+        JS_WHO = "()=>{const t=[...document.querySelectorAll('#modals .mwrap')].pop();return t&&t.querySelector('.dn')?t.querySelector('.dn').textContent:(t?'card:'+t.innerText.slice(0,12):null)}"
+        async def tap_npc_body(nid):
+            for _ in range(2):
+                L = await pg.evaluate(JS_NPC); t = next((x for x in L if x['id'] == nid), None)
+                if not t: return 'missing', None
+                x, y = t['body']
+                if 10 < x < VW - 10 and 120 < y < VH - 120: break
+                return 'offscreen', None
+            jz = x < 170 and y > VH - 380
+            await touch_xy(x, y)
+            who = None
+            for _ in range(50):
+                await pg.wait_for_timeout(200); who = await pg.evaluate(JS_WHO)
+                if who: break
+            ok = bool(who) and who.startswith(t['n'].split('  ')[0])
+            await clear_popups(r'离开|继续|好|收下'); await settle()
+            return ('ok' if ok else f'wrong:{who}'), jz
+        rows11 = []; L = await pg.evaluate(JS_NPC)
+        # 先测互相最靠近的一对（重叠最可能误判），再测其余
+        pairs = sorted(((math.hypot(a['body'][0] - b_['body'][0], a['body'][1] - b_['body'][1]), a['id'], b_['id']) for k, a in enumerate(L) for b_ in L[k + 1:]), key=lambda z: z[0])
+        order = ([pairs[0][1], pairs[0][2]] if pairs else []) + [x['id'] for x in L]
+        seen = set()
+        for nid in order:
+            if nid in seen or len(seen) >= 6: continue
+            seen.add(nid); r, jz = await tap_npc_body(nid)
+            if r in ('missing', 'offscreen'): continue
+            rows11.append(f'{nid}:{r}' + ('(摇杆区)' if jz else ''))
+        ok11 = len(rows11) >= 3 and all(':ok' in r for r in rows11)
+        step('11 点身体中心=打开这个 NPC（重叠/摇杆区回归）', ok11, ' '.join(rows11), await shot('19_tap_body_regression'))
+        # 12 站在 NPC 旁边：#actbtn 必须是按脚下世界距离最近的 NPC，点了打开的也是他
+        rows12 = []
+        for nid in [x['id'] for x in (await pg.evaluate(JS_NPC))][:3]:
+            r, _ = await tap_npc_body(nid)   # 点 NPC → 走到他身边并对话 → 离开
+            if r != 'ok': continue
+            await pg.wait_for_timeout(400)
+            near = await pg.evaluate("()=>{const P=R.player;const c=R.ents.filter(e=>(e.kind==='npc'||e.kind==='boss')&&!e.hidden).map(e=>[Math.hypot(e.i-P.i,e.j-P.j),e.label]).sort((a,b)=>a[0]-b[0]);return c.slice(0,2)}")
+            ab = await vis('#actbtn.show'); lab = (await ab.text_content()) if ab else ''
+            if not ab or not near or near[0][0] > 1.8: continue
+            want = near[0][1].split('  ')[0]; tie = len(near) > 1 and abs(near[1][0] - near[0][0]) <= 0.1
+            await tap(ab, 300); who = None
+            for _ in range(40):
+                await pg.wait_for_timeout(200); who = await pg.evaluate(JS_WHO)
+                if who: break
+            okr = (want in lab.replace('对话', '').replace('交付', '').replace('挑战', '') or tie) and bool(who) and (who.startswith(want) or tie)
+            rows12.append(f'{nid}:按钮={lab!r} 最近={want}({near[0][0]:.2f}) 打开={who} ' + ('ok' if okr else 'WRONG'))
+            await clear_popups(r'离开|继续|好|收下'); await settle()
+        step('12 #actbtn 选最近的 NPC', len(rows12) >= 1 and all(r.endswith('ok') for r in rows12), ' | '.join(rows12), await shot('20_actbtn_nearest'))
         step('无 JS 错误', not errs, '; '.join(errs[:3]), None)
         await b.close()
     json.dump(steps, open(OUT + 'result.json', 'w'), ensure_ascii=False, indent=1)

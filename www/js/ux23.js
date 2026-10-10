@@ -34,7 +34,7 @@ const UX = {
   },
   near() { // 交互按钮目标：1.8 格内 NPC/BOSS 优先，其次 1.3 格内交互点
     const P = R.player; let best = null, bd = 1.8;
-    for (const e of R.ents) { if ((e.kind !== 'npc' && e.kind !== 'boss') || e.hidden) continue; const d = Math.hypot(e.i - P.i, e.j - P.j); if (d < bd) { bd = d; best = { ent: e }; } }
+    for (const e of R.ents) { if ((e.kind !== 'npc' && e.kind !== 'boss') || e.hidden) continue; const d = Math.hypot(e.i - P.i, e.j - P.j); const hot = e.mark === '★' || e.mark === '?'; /* 按脚下世界距离取最近；几乎一样近（±0.1 格）时才优先主线/可交付目标 */ if (!best ? d < bd : (d < bd - 0.1 || (Math.abs(d - bd) <= 0.1 && hot && !best.hot))) { bd = Math.min(bd, d); best = { ent: e, hot }; } }
     if (best) return best;
     for (const m of R.marks) { if (m.hidden) continue; const d = Math.hypot(m.i + 0.5 - P.i, m.j + 0.5 - P.j); if (d < 1.3) return { mark: m }; }
     return null;
@@ -49,19 +49,18 @@ function entHitRect(e) {
 }
 pickAt = function (sx, sy) {
   const [wx, wy] = s2w(sx, sy);
-  { // 先看是不是正好点在某人的名字牌上（名字牌互不重叠时最准确，避免旁边的大判定框抢走）
-    let nb = null, nd = 1e9;
-    for (const e of R.ents) { if (e.hidden || !e.label || (e.kind !== 'npc' && e.kind !== 'boss')) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s); const ty = y - b.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6;
-      const mk = e.mark ? 50 : 0; /* 名字牌上方的 ★/！ 标记也算名字牌 */ if (Math.abs(wx - x) <= hw && wy >= ty - 38 - mk && wy <= ty + 14) { const d = Math.hypot(wx - x, Math.max(0, wy - (ty - 12)) + Math.max(0, (ty - 38) - wy) * 0.3); if (d < nd) { nd = d; nb = e; } } }
-    if (nb) { /* 名字牌压在另一个人身上时：离谁的“中心”（名字牌中心 / 身体中心）更近算谁 */
-      const core = R.ents.find(e => e !== nb && !e.hidden && (e.kind === 'npc' || e.kind === 'boss') && (() => { const [ex, ey] = t2p(e.i, e.j); const sb = spriteBox(e.spr, e.s); return Math.abs(wx - ex) <= sb.w * 0.3 && wy >= ey - sb.h * 0.78 && wy <= ey + 6 && Math.hypot(wx - ex, (wy - (ey - sb.h / 2)) * 0.6) < nd; })());
-      if (!core) return { ent: nb };
-    }
-  }
-  const PRI = { boss: 0, npc: 0, mon: 1 }; /* NPC 与 boss 同级按距离判，怪最后（不误触开战） */ let best = null, bs = 1e9;
+  // 统一规则（摇杆区内外一样）：所有判定框/名字牌命中的人里，选“身体中心或名字牌中心”离点按位置最近的那个；怪要明显更近才选（不误触开战）
+  let best = null, bs = 1e9;
   for (const e of R.ents) {
-    if (e.hidden || e === R.player || e.gone || !(e.kind in PRI)) continue; const r = entHitRect(e);
-    if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const [ex, ey] = t2p(e.i, e.j), sb = spriteBox(e.spr, e.s), inBody = Math.abs(wx - ex) <= sb.w * 0.42 && wy >= ey - sb.h && wy <= ey + 6; /* 点在谁的身体上就是谁 */ const s = inBody ? -2e4 + PRI[e.kind] * 1e3 + Math.hypot(wx - ex, (wy - (ey - sb.h / 2)) * 0.8) : PRI[e.kind] * 1e4 + Math.abs(wx - r.cx) + Math.max(0, r.y0 - wy, wy - r.y1) + Math.max(0, r.ytop - wy, wy - r.ybot) * 0.5; /* 离“竖轴”（脚→名字/标记）最近者胜：同框重叠时点谁身上就是谁 */ if (s < bs) { bs = s; best = { ent: e }; } }
+    if (e.hidden || e === R.player || e.gone || !(e.kind === 'npc' || e.kind === 'boss' || e.kind === 'mon')) continue;
+    const r = entHitRect(e); const [ex, ey] = t2p(e.i, e.j); const sb = spriteBox(e.spr, e.s);
+    let hit = wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1, dp = 1e9;
+    if (e.label && e.kind !== 'mon') { const ty = ey - sb.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6; const mk = e.mark ? 50 : 0;
+      if (Math.abs(wx - ex) <= hw && wy >= ty - 38 - mk && wy <= ty + 14) { hit = true; dp = Math.hypot(wx - ex, Math.max(0, wy - (ty - 12)) + Math.max(0, (ty - 38) - wy) * 0.3); } }
+    if (!hit) continue;
+    const cy = ey - (sb.h + (e.lift || 0)) / 2; const db = Math.hypot(wx - ex, Math.max(0, Math.abs(wy - cy) - sb.h * 0.3) * 0.8 + Math.min(Math.abs(wy - cy), sb.h * 0.3) * 0.25);
+    const sc = Math.min(db, dp) + (e.kind === 'mon' ? 30 : 0);
+    if (sc < bs) { bs = sc; best = { ent: e }; }
   }
   if (best) return best;
   let fd = UX.w(36);
@@ -143,7 +142,7 @@ Talk.boss = async function (id) {
 // ---------- A.3 交互按钮（靠近 NPC/BOSS/交互点） + 首次指引 + 屏幕外主线箭头 ----------
 const mk = (tag, id, html) => { const d = document.createElement(tag); d.id = id; if (html) d.innerHTML = html; document.body.appendChild(d); return d; };
 const AB_ = mk('button', 'actbtn');
-AB_.onclick = () => { const t = AB_._t; if (!t || !UX.inMap()) return; Sfx.play('click'); if (AUTO.on) AUTO.stop('你接管了操作，自动已暂停'); Nav.clear(); if (t.ent) UX.goTo(t.ent); else UX.goMark(t.mark); };
+AB_.onclick = () => { const t = UX.near() || AB_._t; /* 点下的瞬间重新取最近目标，避免用到上一帧的 */ if (!t || !UX.inMap()) return; Sfx.play('click'); if (AUTO.on) AUTO.stop('你接管了操作，自动已暂停'); Nav.clear(); if (t.ent) UX.goTo(t.ent); else UX.goMark(t.mark); };
 const TUT = mk('div', 'tuthint', '<div class="tb">头顶有 <b>★</b> 的是主线人物<br>点他（身体、名字、标记都行）就能对话</div><div class="th">👇</div>');
 const ARW = mk('button', 'navarrow', '<i>➤</i><small></small>');
 ARW.onclick = () => { if (UX.inMap()) { Sfx.play('click'); Track.go('main'); } };
