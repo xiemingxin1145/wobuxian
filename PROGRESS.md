@@ -1,4 +1,4 @@
-# 我不仙 进度清单（2026-10-10 Grok 接管后）
+# 我不仙 进度清单（2026-10-11 Grok 接管后）
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
@@ -8,6 +8,8 @@
 - [x] 阶段 3 债务奇遇：已接入正式 UI.card + 修改真实 G.debt / G.aff，选择后会保存
 - [x] 开发者按钮取消可直接执行阶段 3 奇遇
 - [x] 建立 openworld-wip 分支
+- [x] 低模角色样例：art/prototypes/openworld_v25/ 三角色 Cube/Cylinder 挤出 + Mirror 已完成并签收
+- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md（选择→态度/债务数据结构）
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
@@ -21,4 +23,4 @@
 - [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联
 
 ## 下一步（继续自动推进）
-验证覆盖层可正常关闭并返回游戏，然后推进 Issue #5 与低模接入。
+把 docs/encounter_chain_draft.md 转为 www/prototypes/encounter_chain/ 独立可玩原型，验证选择状态记录；同时检查试炼场覆盖层关闭返回逻辑。
