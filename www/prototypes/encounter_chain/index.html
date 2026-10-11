@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>奇遇链草稿原型</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #1a1e1c; color: #e8e0d0; padding: 2rem; max-width: 720px; margin: auto; }
+h1 { color: #f0c070; }
+.card { background: #2a302c; border-radius: 12px; padding: 1.2rem; margin: 1rem 0; }
+.choice { display: block; width: 100%; margin: .5rem 0; padding: .8rem; background: #3a4540; border: none; border-radius: 8px; color: #fff; cursor: pointer; text-align: left; }
+.choice:hover { background: #4a5a50; }
+.status { font-size: .9rem; color: #a0c0a0; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>随机奇遇链草稿</h1>
+<p>独立原型，不接入正式游戏。选择会记录债务与好感变化。</p>
+<div id="app"></div>
+<script>
+const CHAINS = [
+  {
+    id: 'debt_merchant_1',
+    title: '贩子催债',
+    text: '一个熟识的贩子挡住你：“上回账还没清呢，这回带了点货，帮个忙？”',
+    choices: [
+      { text: '帮他摆摊（减少债务）', effects: { debt: -30, aff: { merchant: 15 } }, next: 'debt_merchant_2_help' },
+      { text: '推说下回定', effects: { debt: 0, aff: { merchant: -10 } }, next: null },
+      { text: '直接赖账', effects: { debt: +40, aff: { merchant: -25 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_merchant_2_help',
+    title: '贩子感恩',
+    text: '贩子笑道：“够义气！下回账可以再宽宽。”',
+    choices: [
+      { text: '谢谢接受', effects: { debt: -10 }, next: null }
+    ]
+  }
+];
+
+let state = { debt: 80, aff: { merchant: 0 }, current: 'debt_merchant_1' };
+
+function render() {
+  const app = document.getElementById('app');
+  const chain = CHAINS.find(c => c.id === state.current) || CHAINS[0];
+  app.innerHTML = `
+    <div class="card">
+      <h2>${chain.title}</h2>
+      <p>${chain.text}</p>
+      ${chain.choices.map((ch, i) => `<button class="choice" data-i="${i}">${ch.text}</button>`).join('')}
+    </div>
+    <div class="status">当前债务：${state.debt} 　贩子好感：${state.aff.merchant || 0}</div>
+  `;
+  app.querySelectorAll('.choice').forEach(btn => {
+    btn.onclick = () => {
+      const i = +btn.dataset.i;
+      const ch = chain.choices[i];
+      if (ch.effects.debt) state.debt += ch.effects.debt;
+      if (ch.effects.aff) {
+        for (const [k, v] of Object.entries(ch.effects.aff)) {
+          state.aff[k] = (state.aff[k] || 0) + v;
+        }
+      }
+      state.current = ch.next || null;
+      if (!state.current) {
+        app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，贩子好感：${state.aff.merchant || 0}</p><button class="choice" onclick="location.reload()">重新开始</button></div>`;
+        return;
+      }
+      render();
+    };
+  });
+}
+render();
+</script>
+</body>
+</html>
