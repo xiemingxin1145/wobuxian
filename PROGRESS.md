@@ -9,12 +9,13 @@
 - [x] 开发者按钮取消可直接执行阶段 3 奇遇
 - [x] 建立 openworld-wip 分支
 - [x] 低模角色样例：art/prototypes/openworld_v25/ 三角色 Cube/Cylinder 挤出 + Mirror 已完成并签收
-- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md（选择→态度/债务数据结构）
+- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
   - 试炼场（覆盖层即时遭遇战原型）
   - 阶段 3 债务奇遇（真实改债务和好感）
+- 本地可直接打开 www/prototypes/encounter_chain/index.html 测试奇遇链选择
 
 ## 仍待完成
 - [ ] 低模正式接入精灵图集（需重新渲染管线）
@@ -23,4 +24,4 @@
 - [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联
 
 ## 下一步（继续自动推进）
-把 docs/encounter_chain_draft.md 转为 www/prototypes/encounter_chain/ 独立可玩原型，验证选择状态记录；同时检查试炼场覆盖层关闭返回逻辑。
+扩展 encounter_chain 原型的更多数据链，并做简单自动化验证；检查试炼场覆盖层关闭返回。
