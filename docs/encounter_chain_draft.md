@@ -1,7 +1,7 @@
 # 随机奇遇链草稿（阶段 3 小闭环）
 
 > 目标：提供可测试的“奇遇选择 → NPC 态度变化 → 债务后果”数据结构，不接入正式游戏运行链。
-> 当前状态：仅草稿，供后续独立原型或正式集成参考。
+> 当前状态：草稿 + 独立原型已扩展多路径，供后续集成参考。
 
 ## 数据结构示例
 
@@ -39,6 +39,24 @@ const ENCOUNTER_CHAINS = [
     choices: [
       { text: '谢谢接受', effects: { debt: -10 }, next: null }
     ]
+  },
+  {
+    id: 'debt_merchant_2_delay',
+    title: '贩子不满',
+    text: '贩子皱眉：“又是下回？这账越拖越大，你得有个交代。”',
+    choices: [
+      { text: '承诺下月还', effects: { debt: +10, aff: { npc_merchant: -5 } }, next: null },
+      { text: '再拖一段', effects: { debt: +20, aff: { npc_merchant: -15 } }, next: 'debt_chase_warning' }
+    ]
+  },
+  {
+    id: 'debt_chase_warning',
+    title: '追兵风声',
+    text: '村口传来话：外面有人在打听你的下落，好像是为了债务。',
+    choices: [
+      { text: '赶紧还一部分', effects: { debt: -50, aff: { npc_merchant: +5 } }, next: null },
+      { text: '先藏起来', effects: { debt: +15, aff: { npc_merchant: -10 } }, next: null }
+    ]
   }
   // 更多链可继续扩展
 ];
@@ -53,8 +71,8 @@ const ENCOUNTER_CHAINS = [
 
 ## 下一步
 
-1. 把此数据转为独立 `www/prototypes/encounter_chain/` 可玩原型。
-2. 验证选择后状态可正确记录并显示。
+1. 独立原型已可测多路径选择与状态记录。
+2. 加简单自动化验证（路径断言）。
 3. 再考虑与现有债务系统的集成方式。
 
-更新于：2026-10-11
+更新于：2026-10-12

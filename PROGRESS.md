@@ -1,4 +1,4 @@
-# 我不仙 进度清单（2026-10-11 Grok 接管后）
+# 我不仙 进度清单（2026-10-12 Grok 接管后）
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
@@ -9,13 +9,13 @@
 - [x] 开发者按钮取消可直接执行阶段 3 奇遇
 - [x] 建立 openworld-wip 分支
 - [x] 低模角色样例：art/prototypes/openworld_v25/ 三角色 Cube/Cylinder 挤出 + Mirror 已完成并签收
-- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型
+- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型（已扩展 delay/chase 多路径）
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
   - 试炼场（覆盖层即时遭遇战原型）
   - 阶段 3 债务奇遇（真实改债务和好感）
-- 本地可直接打开 www/prototypes/encounter_chain/index.html 测试奇遇链选择
+- 本地可直接打开 www/prototypes/encounter_chain/index.html 测试奇遇链选择（多路径）
 
 ## 仍待完成
 - [ ] 低模正式接入精灵图集（需重新渲染管线）
@@ -24,4 +24,4 @@
 - [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联
 
 ## 下一步（继续自动推进）
-扩展 encounter_chain 原型的更多数据链，并做简单自动化验证；检查试炼场覆盖层关闭返回。
+给 encounter_chain 加简单自动化验证脚本（选择路径断言）；检查试炼场覆盖层关闭返回。

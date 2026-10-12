@@ -24,8 +24,8 @@ const CHAINS = [
     text: '一个熟识的贩子挡住你：“上回账还没清呢，这回带了点货，帮个忙？”',
     choices: [
       { text: '帮他摆摊（减少债务）', effects: { debt: -30, aff: { merchant: 15 } }, next: 'debt_merchant_2_help' },
-      { text: '推说下回定', effects: { debt: 0, aff: { merchant: -10 } }, next: null },
-      { text: '直接赖账', effects: { debt: +40, aff: { merchant: -25 } }, next: null }
+      { text: '推说下回定', effects: { debt: 0, aff: { merchant: -10 } }, next: 'debt_merchant_2_delay' },
+      { text: '直接赖账', effects: { debt: +40, aff: { merchant: -25 } }, next: 'debt_chase_warning' }
     ]
   },
   {
@@ -35,6 +35,24 @@ const CHAINS = [
     choices: [
       { text: '谢谢接受', effects: { debt: -10 }, next: null }
     ]
+  },
+  {
+    id: 'debt_merchant_2_delay',
+    title: '贩子不满',
+    text: '贩子皱眉：“又是下回？这账越拖越大，你得有个交代。”',
+    choices: [
+      { text: '承诺下月还', effects: { debt: +10, aff: { merchant: -5 } }, next: null },
+      { text: '再拖一段', effects: { debt: +20, aff: { merchant: -15 } }, next: 'debt_chase_warning' }
+    ]
+  },
+  {
+    id: 'debt_chase_warning',
+    title: '追兵风声',
+    text: '村口传来话：外面有人在打听你的下落，好像是为了债务。',
+    choices: [
+      { text: '赶紧还一部分', effects: { debt: -50, aff: { merchant: +5 } }, next: null },
+      { text: '先藏起来', effects: { debt: +15, aff: { merchant: -10 } }, next: null }
+    ]
   }
 ];
 
@@ -42,14 +60,19 @@ let state = { debt: 80, aff: { merchant: 0 }, current: 'debt_merchant_1' };
 
 function render() {
   const app = document.getElementById('app');
-  const chain = CHAINS.find(c => c.id === state.current) || CHAINS[0];
+  const chain = CHAINS.find(c => c.id === state.current);
+  if (!chain) {
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，贩子好感：${state.aff.merchant || 0}</p><button class="choice" onclick="location.reload()">重新开始</button></div>`;
+    return;
+  }
+  const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';
   app.innerHTML = `
     <div class="card">
       <h2>${chain.title}</h2>
       <p>${chain.text}</p>
       ${chain.choices.map((ch, i) => `<button class="choice" data-i="${i}">${ch.text}</button>`).join('')}
     </div>
-    <div class="status">当前债务：${state.debt} 　贩子好感：${state.aff.merchant || 0}</div>
+    <div class="status">当前债务：${state.debt} 　好感：${affLines}</div>
   `;
   app.querySelectorAll('.choice').forEach(btn => {
     btn.onclick = () => {
@@ -62,10 +85,6 @@ function render() {
         }
       }
       state.current = ch.next || null;
-      if (!state.current) {
-        app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，贩子好感：${state.aff.merchant || 0}</p><button class="choice" onclick="location.reload()">重新开始</button></div>`;
-        return;
-      }
       render();
     };
   });
