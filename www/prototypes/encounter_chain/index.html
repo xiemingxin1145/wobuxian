@@ -10,11 +10,15 @@ h1 { color: #f0c070; }
 .choice { display: block; width: 100%; margin: .5rem 0; padding: .8rem; background: #3a4540; border: none; border-radius: 8px; color: #fff; cursor: pointer; text-align: left; }
 .choice:hover { background: #4a5a50; }
 .status { font-size: .9rem; color: #a0c0a0; margin-top: 1rem; }
+.switch { margin: 0 0 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+.switch button { padding: .5rem .9rem; border-radius: 8px; border: 1px solid #5a6a60; background: #2a302c; color: #e8e0d0; cursor: pointer; }
+.switch button.active { background: #3a5540; border-color: #f0c070; color: #f0c070; }
 </style>
 </head>
 <body>
 <h1>随机奇遇链草稿</h1>
 <p>独立原型，不接入正式游戏。选择会记录债务与好感变化。</p>
+<div class="switch" id="chain-switch"></div>
 <div id="app"></div>
 <script>
 const CHAINS = [
@@ -53,16 +57,64 @@ const CHAINS = [
       { text: '赶紧还一部分', effects: { debt: -50, aff: { merchant: +5 } }, next: null },
       { text: '先藏起来', effects: { debt: +15, aff: { merchant: -10 } }, next: null }
     ]
+  },
+  {
+    id: 'wander_cultivator_1',
+    title: '云游散修',
+    text: '路边坐着个衣衫褴褛的散修，抬眼道：“道友可借我十两灵石？来日必有厚报。”',
+    choices: [
+      { text: '借给他', effects: { debt: +10, aff: { wanderer: 20 } }, next: 'wander_cultivator_2_lend' },
+      { text: '婉拒', effects: { aff: { wanderer: -5 } }, next: null },
+      { text: '提出切磋换消息', effects: { aff: { wanderer: 10 } }, next: 'wander_cultivator_2_spar' }
+    ]
+  },
+  {
+    id: 'wander_cultivator_2_lend',
+    title: '散修离开',
+    text: '散修拱手：“承情了。若日后路过青崖镇，可寻‘残灯’。”',
+    choices: [
+      { text: '记下', effects: { aff: { wanderer: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'wander_cultivator_2_spar',
+    title: '路边切磋',
+    text: '散修起身比了几招，点头：“你根基尚可。附近有个破洞，夜里别靠近。”',
+    choices: [
+      { text: '道谢离开', effects: { aff: { wanderer: 5 } }, next: null },
+      { text: '追问破洞', effects: { debt: +5, aff: { wanderer: -5 } }, next: null }
+    ]
   }
 ];
 
-let state = { debt: 80, aff: { merchant: 0 }, current: 'debt_merchant_1' };
+const STARTS = [
+  { id: 'debt_merchant_1', label: '贩子催债' },
+  { id: 'wander_cultivator_1', label: '云游散修' }
+];
+
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0 }, current: 'debt_merchant_1' };
+
+function startChain(id) {
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0 }, current: id };
+  renderSwitch();
+  render();
+}
+
+function renderSwitch() {
+  const el = document.getElementById('chain-switch');
+  el.innerHTML = STARTS.map(s =>
+    `<button class="${state.current === s.id || (state.current && state.current.startsWith(s.id.split('_').slice(0,2).join('_'))) ? 'active' : ''}" data-id="${s.id}">${s.label}</button>`
+  ).join('');
+  el.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => startChain(btn.dataset.id);
+  });
+}
 
 function render() {
   const app = document.getElementById('app');
   const chain = CHAINS.find(c => c.id === state.current);
   if (!chain) {
-    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，贩子好感：${state.aff.merchant || 0}</p><button class="choice" onclick="location.reload()">重新开始</button></div>`;
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button></div>`;
     return;
   }
   const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';
@@ -89,6 +141,7 @@ function render() {
     };
   });
 }
+renderSwitch();
 render();
 </script>
 </body>

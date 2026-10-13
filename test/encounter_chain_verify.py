@@ -32,17 +32,38 @@ CHAINS = [
             {"effects": {"debt": 15, "aff": {"merchant": -10}}, "next": None},
         ],
     },
+    {
+        "id": "wander_cultivator_1",
+        "choices": [
+            {"effects": {"debt": 10, "aff": {"wanderer": 20}}, "next": "wander_cultivator_2_lend"},
+            {"effects": {"aff": {"wanderer": -5}}, "next": None},
+            {"effects": {"aff": {"wanderer": 10}}, "next": "wander_cultivator_2_spar"},
+        ],
+    },
+    {
+        "id": "wander_cultivator_2_lend",
+        "choices": [
+            {"effects": {"aff": {"wanderer": 5}}, "next": None},
+        ],
+    },
+    {
+        "id": "wander_cultivator_2_spar",
+        "choices": [
+            {"effects": {"aff": {"wanderer": 5}}, "next": None},
+            {"effects": {"debt": 5, "aff": {"wanderer": -5}}, "next": None},
+        ],
+    },
 ]
 
 
-def apply_path(choice_indices: list[int]) -> dict:
-    """Replay a sequence of choice indices starting from debt_merchant_1."""
+def apply_path(start: str, choice_indices: list[int]) -> dict:
+    """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0}, "current": "debt_merchant_1"}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
-            raise AssertionError(f"path continued after end: {choice_indices}")
+            raise AssertionError(f"path continued after end: {start} {choice_indices}")
         if idx < 0 or idx >= len(node["choices"]):
             raise AssertionError(f"choice index {idx} out of range on {state['current']}")
         ch = node["choices"][idx]
@@ -64,35 +85,49 @@ def main() -> None:
         print(f"PASS {msg}")
 
     # Path A: help stall -> thank
-    s = apply_path([0, 0])
+    s = apply_path("debt_merchant_1", [0, 0])
     assert s["current"] is None
     assert s["debt"] == 40, s  # 80 -30 -10
     assert s["aff"]["merchant"] == 15, s
     passed("帮摆摊路径：债务 40，好感 15")
 
     # Path B: delay -> promise next month
-    s = apply_path([1, 0])
+    s = apply_path("debt_merchant_1", [1, 0])
     assert s["current"] is None
     assert s["debt"] == 90, s  # 80 +0 +10
     assert s["aff"]["merchant"] == -15, s  # -10 -5
     passed("推说下回→承诺下月：债务 90，好感 -15")
 
     # Path C: delay -> delay again -> chase -> pay partial
-    s = apply_path([1, 1, 0])
+    s = apply_path("debt_merchant_1", [1, 1, 0])
     assert s["current"] is None
     assert s["debt"] == 50, s  # 80 +0 +20 -50
     assert s["aff"]["merchant"] == -20, s  # -10 -15 +5
     passed("推说→再拖→还一部分：债务 50，好感 -20")
 
     # Path D: direct renege -> chase -> hide
-    s = apply_path([2, 1])
+    s = apply_path("debt_merchant_1", [2, 1])
     assert s["current"] is None
     assert s["debt"] == 135, s  # 80 +40 +15
     assert s["aff"]["merchant"] == -35, s  # -25 -10
     passed("直接赖账→藏起来：债务 135，好感 -35")
 
+    # Path E: wanderer lend
+    s = apply_path("wander_cultivator_1", [0, 0])
+    assert s["current"] is None
+    assert s["debt"] == 90, s  # 80 +10
+    assert s["aff"]["wanderer"] == 25, s  # 20 +5
+    passed("散修借灵石：债务 90，好感 25")
+
+    # Path F: wanderer spar then ask more
+    s = apply_path("wander_cultivator_1", [2, 1])
+    assert s["current"] is None
+    assert s["debt"] == 85, s  # 80 +5
+    assert s["aff"]["wanderer"] == 5, s  # 10 -5
+    passed("散修切磋后追问：债务 85，好感 5")
+
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
-    print("RESULT PASS=4 FAIL=0 EXIT_CODE=0")
+    print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
 
 
 if __name__ == "__main__":
