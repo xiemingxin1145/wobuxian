@@ -31,3 +31,7 @@ wobuxian.apk
 
 # v2.4 角色渲染日志
 logs24/
+
+# AI 精绘精灵链：raw 直出与 rembg 中间产物（体积大，不进 git）
+art/ai_pipeline/raw/
+art/ai_pipeline/trimmed/
