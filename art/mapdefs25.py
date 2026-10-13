@@ -116,7 +116,7 @@ MAPS25 = [
             ['herb', 9, 16],
             ['furnace', 11, 10],               # 炼丹炉
             ['well', 10, 12],                  # 药泉井
-            ['basket', 4, 10],                 # 药篮（用 haystack 代）
+            ['haystack', 4, 10],               # 药篮（用 haystack 代）
             ['noticeboard', 10, 18],            # 采药须知
             ['bamboo', 3, 15],                  # 竹林
         ],
