@@ -53,13 +53,27 @@ CHAINS = [
             {"effects": {"debt": 5, "aff": {"wanderer": -5}}, "next": None},
         ],
     },
+    {
+        "id": "herb_farmer_1",
+        "choices": [
+            {"effects": {"debt": -5, "aff": {"farmer": 20}}, "next": "herb_farmer_2_help"},
+            {"effects": {"debt": 5, "aff": {"farmer": -10}}, "next": None},
+            {"effects": {"aff": {"farmer": -5}}, "next": None},
+        ],
+    },
+    {
+        "id": "herb_farmer_2_help",
+        "choices": [
+            {"effects": {"debt": -10, "aff": {"farmer": 5}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -125,6 +139,20 @@ def main() -> None:
     assert s["debt"] == 85, s  # 80 +5
     assert s["aff"]["wanderer"] == 5, s  # 10 -5
     passed("散修切磋后追问：债务 85，好感 5")
+
+    # Path G: herb farmer help
+    s = apply_path("herb_farmer_1", [0, 0])
+    assert s["current"] is None
+    assert s["debt"] == 65, s  # 80 -5 -10
+    assert s["aff"]["farmer"] == 25, s  # 20 +5
+    passed("药农帮驱虫：债务 65，好感 25")
+
+    # Path H: herb farmer self-pick
+    s = apply_path("herb_farmer_1", [1])
+    assert s["current"] is None
+    assert s["debt"] == 85, s  # 80 +5
+    assert s["aff"]["farmer"] == -10, s
+    passed("药农自己采：债务 85，好感 -10")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")

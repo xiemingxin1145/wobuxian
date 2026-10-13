@@ -9,8 +9,8 @@
 - [x] 开发者按钮取消可直接执行阶段 3 奇遇
 - [x] 建立 openworld-wip 分支
 - [x] 低模角色样例：art/prototypes/openworld_v25/ 三角色 Cube/Cylinder 挤出 + Mirror 已完成并签收
-- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型（贩子 + 云游散修）
-- [x] 奇遇链路径断言：test/encounter_chain_verify.py（六条路径债务/好感最终值）
+- [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型（贩子 + 云游散修 + 药农求助）
+- [x] 奇遇链路径断言：test/encounter_chain_verify.py（八条路径债务/好感最终值）
 - [x] 试炼场覆盖层：× / 点击遮罩 / Escape 均可关闭并清理监听
 
 ## 当前可玩
@@ -24,7 +24,7 @@
 - [ ] 低模正式接入精灵图集（需重新渲染管线）
 - [ ] 即时战斗接入正式地图遭遇（目前仍是独立页）
 - [ ] Issue #5 修复（T4 点游走 NPC、T9 自动任务连续成功）
-- [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联（草稿已有 2 条）
+- [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联（草稿已有 3 条）
 
 ## 下一步（继续自动推进）
 推进 Issue #5（T4 点游走 NPC、T9 自动任务），或正式债务系统对接奇遇链，或低模接入图集评估。
