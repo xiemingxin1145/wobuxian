@@ -96,7 +96,7 @@ const DAO28 = {
     const c = await UI.say(N.por, N.n, `论道：「${topic}」\n\n你以何立场辩？`, ['据理力争（智）', '以情动人（魅）', '听君一言']);
     if (c === 2) { await UI.say(N.por, N.n, '“道可道，非常道。回去再修修吧。”', ['……']); return; }
     const attr = c === 0 ? G.st.int : G.st.cha;
-    const good = attr >= 8 + G.realm * 2 ? true : attr >= 4 + G.realm ? Math.random() < 0.5 : false;
+    const good = attr >= 6 + G.realm * 1.5 ? true : attr >= 3 + G.realm ? Math.random() < 0.5 : false;
     if (good) {
       const gain = 1 + (G.dao.tiandao ? Math.round(G.dao.tiandao * 0.2) : 0);
       this.gainDao(gain, '与' + N.n + '论道');

@@ -139,9 +139,9 @@
     };
     const pool = SECT_MONS[target] || ['demon', 'rock', 'ghost'];
     const waves = [
-      { count: 2, tierMul: 0.8, elite: false },  // 第1波：前锋
-      { count: 3, tierMul: 1.0, elite: true },   // 第2波：主力
-      { count: 1, tierMul: 1.4, elite: true, general: true }, // 第3波：敌方将领
+      { count: 2, tierMul: 0.75, elite: false },  // 第1波：前锋
+      { count: 3, tierMul: 0.85, elite: true },   // 第2波：主力
+      { count: 1, tierMul: 1.1, elite: true, general: true }, // 第3波：敌方将领
     ];
     const w = waves[Math.min(wave, waves.length - 1)];
     const list = [];

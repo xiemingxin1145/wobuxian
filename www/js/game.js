@@ -326,7 +326,7 @@ const Game = {
       if (G.dead) return;
       if (G.flags.vip && Math.random() < 0.3) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
       if (G.stone >= 10000) this.ach('rich'); if (G.stone >= 200000) this.ach('richer');
-      if (G.stone >= 1000000 && !G.flags.tycoonAsk) { G.flags.tycoonAsk = 1; const c = await UI.card('富甲三界', '你的灵石已经多到可以收购天道的全部债权了。要这么做吗？', 'i:bag', ['收购！（结局）', '低调']); if (c === 0) { await this.die('tycoon'); return; } }
+      if (G.stone >= 500000 && !G.flags.tycoonAsk) { G.flags.tycoonAsk = 1; const c = await UI.card('富甲三界', '你的灵石已经多到可以收购天道的全部债权了。要这么做吗？', 'i:bag', ['收购！（结局）', '低调']); if (c === 0) { await this.die('tycoon'); return; } }
       this.checkMain(); this.spawnMonsters(); this.refreshNpcs(); UI.hud(); this.save();
     } finally { this._busy = false; }
   },
