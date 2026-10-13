@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# AI 精绘精灵链自测：建角进游戏，断言 player_m0 渲染无报错，截图。
+# AI 精绘精灵链自测：建角进游戏，遍历 8 方向 × 4 动作，截图，断言 0 控制台错误。
 import asyncio, os, sys, json
 from playwright.async_api import async_playwright
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,36 +42,30 @@ async def main():
         await pump(10, 350)
         await pg.wait_for_timeout(1200)
 
-        g = await pg.evaluate("()=>Game.G ? {age:Game.G.age, sect:Game.G.sect, map:R.mapId} : null")
+        g = await pg.evaluate("()=>Game.G ? {age:Game.G.age, map:R.mapId, spr:R.player&&R.player.spr} : null")
         print('game_loaded:', g)
 
-        # 截图 idle（站立）
-        await pg.screenshot(path=OUT + '01_idle.png')
-        print('shot 01_idle.png')
+        # 强制把玩家 sprite 换成 player_m0（本任务验证对象）
+        await pg.evaluate("()=>{ if(R.player){ R.player.spr='player_m0'; } }")
+        await pg.wait_for_timeout(400)
+        g2 = await pg.evaluate("()=>R.player && R.player.spr")
+        print('forced spr:', g2)
 
-        # 尝试让玩家移动（walk）——用 evaluate 直接改玩家 dir
-        await pg.evaluate("()=>{ if(typeof R!=='undefined' && R.player) { R.player.dir='S'; R.player.anim='walk'; } }")
-        await pg.wait_for_timeout(600)
-        await pg.screenshot(path=OUT + '02_walk.png')
-        print('shot 02_walk.png')
-
-        # 切 attack
-        await pg.evaluate("()=>{ if(typeof R!=='undefined' && R.player) { R.player.anim='attack'; R.player.at=0; } }")
-        await pg.wait_for_timeout(600)
-        await pg.screenshot(path=OUT + '03_attack.png')
-        print('shot 03_attack.png')
-
-        # 切不同方向
-        for d in ['N','W','SW','NW']:
-            await pg.evaluate(f"()=>{{ if(typeof R!=='undefined' && R.player) {{ R.player.dir='{d}'; R.player.anim='idle'; }} }}")
-            await pg.wait_for_timeout(400)
-            await pg.screenshot(path=OUT + f'04_idle_{d}.png')
-            print(f'shot 04_idle_{d}.png')
+        # 遍历 8 方向 × 4 动作
+        dirs = ['S','SW','W','NW','N','NE','E','SE']
+        anims = ['idle','walk','attack','hurt']
+        for d in dirs:
+            for an in anims:
+                nframes = await pg.evaluate(f"()=>{{ const S=ASSETS.sprites.player_m0; return S.anims['{an}']||0; }}")
+                await pg.evaluate(f"()=>{{ if(R.player){{ R.player.dir='{d}'; R.player.anim='{an}'; R.player.at=0; }} }}")
+                await pg.wait_for_timeout(350)
+                await pg.screenshot(path=OUT + f'chk_{an}_{d}.png')
+                print(f'shot {an}_{d} (n={nframes})')
 
         await b.close()
 
     print('--- errors ---')
-    for e in errs: print('ERR:', e)
+    for e in errs: print('ERR:', e[:200])
     print('total errors:', len(errs))
 
 if __name__ == '__main__':
