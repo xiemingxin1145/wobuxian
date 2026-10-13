@@ -1,0 +1,65 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "{'age': 6}"
+  },
+  {
+   "case": "rt29_loaded",
+   "ok": true,
+   "info": "RT29 global exposed"
+  },
+  {
+   "case": "setup_pet_companion",
+   "ok": true,
+   "info": "{'pet': True, 'petA': 0, 'follower': 'sister'}"
+  },
+  {
+   "case": "rt_battle_started",
+   "ok": true,
+   "info": "RT27.on=True"
+  },
+  {
+   "case": "allies_spawned",
+   "ok": true,
+   "info": "allies=[{'name': '小野猪', 'alive': True, 'kind': 'pet'}, {'name': '林小满', 'alive': True, 'kind': 'comp'}]"
+  },
+  {
+   "case": "ally_ui_exists",
+   "ok": true,
+   "info": "rt29-ally-ui in DOM"
+  },
+  {
+   "case": "ally_bars_rendered",
+   "ok": true,
+   "info": "bars count=2"
+  },
+  {
+   "case": "rt_battle_ended",
+   "ok": true,
+   "info": "RT27.on after=False"
+  },
+  {
+   "case": "allies_cleared_after_battle",
+   "ok": true,
+   "info": "allies.length after=0"
+  },
+  {
+   "case": "ally_ui_removed",
+   "ok": true,
+   "info": "rt29-ally-ui removed"
+  },
+  {
+   "case": "no_js_errors",
+   "ok": true,
+   "info": "total errors=3"
+  }
+ ],
+ "fails": [],
+ "js_errors": [
+  "Failed to load resource: net::ERR_FILE_NOT_FOUND",
+  "Failed to load resource: net::ERR_FILE_NOT_FOUND",
+  "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+ ]
+}
