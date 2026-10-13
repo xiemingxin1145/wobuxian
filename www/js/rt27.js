@@ -176,7 +176,7 @@ RT27.update = function (dt) {
     if (pr.friendly) {
       for (const f of this.foes) {
         if (!f.alive || pr.dead) continue;
-        if (Math.hypot(f.x - pr.x, f.y - pr.y) < f.radius + pr.r) { pr.dead = true; this._hitFoe(f, pr); }
+        if (Math.hypot(f.x - pr.x, f.y - pr.y) < f.radius + pr.r) { pr.dead = true; this._applyFoeDamage(f, SKILLS[pr.sk], pr); }
       }
     } else {
       if (p.invuln <= 0 && Math.hypot(p.x - pr.x, p.y - pr.y) < p.radius + pr.r) { pr.dead = true; this._damagePlayer(pr.dm, pr); }
