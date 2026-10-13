@@ -170,13 +170,23 @@ const Game = {
     const k = G.partner === id ? 0.85 : 0.65;
     return { name: N.n.split('·').pop(), spr: N.spr, el: '无', mhp: Math.round(s.mhp * k), mmp: Math.round(s.mmp * k), atk: s.atk * k, def: s.def * k, spd: s.spd * 0.95, crit: 0.08, skills: ['atk', ...(SK[id] || [])] };
   },
+  // 2.7①：小怪遭遇改实时战斗；Boss/剧情/带 opts.boss 仍走回合制。G.rtMode==='turn' 可强制回合（开发者开关）。
+  async _startBattle(list, opts = {}) {
+    const G = this.G;
+    const rtOn = G.rtMode !== 'turn'; // 惰性兜底：默认实时
+    const hasBoss = opts.boss || (list[0] && MONS[list[0].mon] && MONS[list[0].mon].boss) || list.some(u => u.boss);
+    if (rtOn && !hasBoss && window.RT27 && RT27.start) {
+      return RT27.start(list, opts);
+    }
+    return startBattle(list, opts);
+  },
   async fight(mon, opts = {}) {
     const G = this.G; const info = MAPINFO[R.mapId] || MAPINFO.village;
     const tier = opts.tier !== undefined ? opts.tier : info.tier + rnd(0, 0.4);
     const list = [monUnit(mon, tier, opts.elite)];
     if (!opts.solo && !MONS[mon].boss) { const extra = Math.random() < 0.35 + G.realm * 0.08 ? ri(1, Math.min(3, 1 + G.realm)) : 0; for (let k = 0; k < extra; k++) list.push(monUnit(pick(info.mons), tier + rnd(-0.2, 0.1))); }
     if (opts.adds) for (const a of opts.adds) list.push(monUnit(a, tier - 0.3));
-    const r = await startBattle(list, opts);
+    const r = await this._startBattle(list, opts);
     Audio2.bgm(info.bgm);
     if (r.res === 'win') {
       let exp = 0, stone = 0; const drops = {};
