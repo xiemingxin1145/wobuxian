@@ -4,7 +4,9 @@
 // 开启后：「过年」变「过月」，AP 按月平摊、修为月结、季节驱动，满 12 个月触发一次完整 yearEnd（腊月结算）。
 // 月事件池为轻量新增，不改动既有 433 事件的年度触发。
 const Time27 = {
-  on() { return Game && Game.G && Game.G.monthMode === true; },
+  // 3.1③ 转正：月级时间默认开启（G.monthMode !== false）。旧档无该字段即默认月级（惰性兼容，不升 v、不清档）；
+  // 显式设 false 可回年度制（#dev 按钮切换 / G.monthMode=false）。
+  on() { return Game && Game.G && Game.G.monthMode !== false; },
   // 惰性兜底：G.month 缺省即 0；季节由月份推
   month() { return (Game.G && Game.G.month) || 0; },
   season() { // 0春 1夏 2秋 3冬

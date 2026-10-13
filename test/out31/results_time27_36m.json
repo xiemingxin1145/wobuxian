@@ -1,0 +1,83 @@
+{
+ "summary": {
+  "base": {
+   "exp": 0,
+   "year": 20,
+   "hp": 1613,
+   "ap": 0,
+   "month": 0
+  },
+  "final": {
+   "exp": 635,
+   "year": 23,
+   "hp": 1613,
+   "mhp": 1613,
+   "ap": 4,
+   "month": 0,
+   "dead": false
+  },
+  "months_elapsed": 36,
+  "yearends_seen": 3,
+  "exp_grew": 635,
+  "hp_min": 1605,
+  "deaths": [],
+  "js_errors": [],
+  "stable": true
+ },
+ "timeline": [
+  {
+   "month": 7,
+   "year": 22,
+   "hp": 1613,
+   "exp": 471,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  },
+  {
+   "month": 8,
+   "year": 22,
+   "hp": 1605,
+   "exp": 478,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  },
+  {
+   "month": 9,
+   "year": 22,
+   "hp": 1613,
+   "exp": 485,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  },
+  {
+   "month": 10,
+   "year": 22,
+   "hp": 1613,
+   "exp": 492,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  },
+  {
+   "month": 11,
+   "year": 22,
+   "hp": 1613,
+   "exp": 499,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  },
+  {
+   "month": 0,
+   "year": 23,
+   "hp": 1613,
+   "exp": 635,
+   "ap": 4,
+   "dead": false,
+   "mode": true
+  }
+ ]
+}
