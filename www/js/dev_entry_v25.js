@@ -59,12 +59,26 @@
     iframe.style.cssText = 'width:100%;height:100%;border:none;';
     const close = document.createElement('button');
     close.textContent = '×';
+    close.setAttribute('aria-label', '关闭试炼场');
     close.style.cssText = 'position:absolute;top:8px;right:8px;z-index:1;width:36px;height:36px;border-radius:50%;background:#2a3a5a;color:#ffe680;border:1px solid #ffe680;font-size:20px;font-weight:bold;cursor:pointer;';
-    close.onclick = () => overlay.remove();
+
+    function removeOverlay() {
+      document.removeEventListener('keydown', onKey);
+      if (overlay.parentNode) overlay.remove();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        removeOverlay();
+      }
+    }
+
+    close.onclick = removeOverlay;
     wrap.appendChild(iframe);
     wrap.appendChild(close);
     overlay.appendChild(wrap);
-    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+    overlay.onclick = e => { if (e.target === overlay) removeOverlay(); };
+    document.addEventListener('keydown', onKey);
     document.body.appendChild(overlay);
   }
 

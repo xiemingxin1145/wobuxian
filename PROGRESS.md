@@ -11,6 +11,7 @@
 - [x] 低模角色样例：art/prototypes/openworld_v25/ 三角色 Cube/Cylinder 挤出 + Mirror 已完成并签收
 - [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型（已扩展 delay/chase 多路径）
 - [x] 奇遇链路径断言：test/encounter_chain_verify.py（四条主路径债务/好感最终值）
+- [x] 试炼场覆盖层：× / 点击遮罩 / Escape 均可关闭并清理监听
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
@@ -26,4 +27,4 @@
 - [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联
 
 ## 下一步（继续自动推进）
-检查试炼场覆盖层关闭返回；或推进 Issue #5；或扩展更多奇遇链。
+推进 Issue #5（T4 点游走 NPC、T9 自动任务），或再扩一条奇遇链，或评估低模接入图集。
