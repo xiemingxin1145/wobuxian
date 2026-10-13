@@ -12,6 +12,7 @@
 - [x] 随机奇遇链草稿：docs/encounter_chain_draft.md + www/prototypes/encounter_chain/ 可玩原型（贩子 + 云游散修 + 药农求助）
 - [x] 奇遇链路径断言：test/encounter_chain_verify.py（八条路径债务/好感最终值）
 - [x] 试炼场覆盖层：× / 点击遮罩 / Escape 均可关闭并清理监听
+- [x] 即时原型 JS 加强：玩家坐标占位 + 普攻冷却方法
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
