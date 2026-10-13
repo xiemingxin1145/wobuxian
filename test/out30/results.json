@@ -1,0 +1,71 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "{'age': 6, 'map': 'village'}"
+  },
+  {
+   "case": "main30_loaded",
+   "ok": true,
+   "info": "Main30 global exposed"
+  },
+  {
+   "case": "chapters_registered",
+   "ok": true,
+   "info": "MI: {'asc1': 19, 'daotong': 20, 'ba': 21, 'done': 18}"
+  },
+  {
+   "case": "setup_done",
+   "ok": true,
+   "info": "{'main': 'done', 'realm': 5, 'debt': 0}"
+  },
+  {
+   "case": "epilogue_starts",
+   "ok": true,
+   "info": "{'main': 'asc1', 'started': True}"
+  },
+  {
+   "case": "tracking_points_to_xianguan",
+   "ok": true,
+   "info": "{'kind': 'npc', 'map': 'heaven', 'id': 'xianguan', 'txt': '找记账童子'}"
+  },
+  {
+   "case": "xianguan_has_star",
+   "ok": true,
+   "info": "Talk.mainTalk(xianguan, true) truthy"
+  },
+  {
+   "case": "asc1_completed",
+   "ok": true,
+   "info": "{'main': 'daotong', 'epi_asc': True, 'aff': 10}"
+  },
+  {
+   "case": "tracking_points_to_mentor",
+   "ok": true,
+   "info": "{'id': 'mentor', 'map': 'village'}"
+  },
+  {
+   "case": "daotong_completed",
+   "ok": true,
+   "info": "{'main': 'ba', 'affMentor': 20, 'dao': 2}"
+  },
+  {
+   "case": "ba_completed_back_to_done",
+   "ok": true,
+   "info": "{'main': 'done', 'contrib': 100}"
+  },
+  {
+   "case": "tracking_done_state",
+   "ok": true,
+   "info": "{'kind': 'none', 'txt': '主线已完结'}"
+  },
+  {
+   "case": "yearend_fallback_starts_epilogue",
+   "ok": true,
+   "info": "{'main': 'asc1', 'started': True, 'dead': False}"
+  }
+ ],
+ "fails": [],
+ "js_errors": []
+}
