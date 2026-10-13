@@ -14,16 +14,13 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(ROOT, '..', '..'))
-RAW_DIR = os.path.join(ROOT, 'raw', 'player_m0')
-TRIM_DIR = os.path.join(ROOT, 'trimmed', 'player_m0')
-OUT_DIR = os.path.join(REPO, 'art', 'out', 'frames2', 'player_m0')
 
 # 整帧尺寸（HD k=2）
 FW, FH = 384, 448
 # 脚底基线（bbox 底边 y）：参照旧 SD 196 * 2 = 392
 FOOT_BASE = 392
-# 角色净身高目标（bbox 高）：旧 SD idle_S_0 bbox 高 163 → HD 326。取 330 让写实角色略高一点。
-TARGET_H = 330
+# 角色净身高目标（bbox 高）：男 330 / 女 320（女略矮半头，视觉配对统一）
+TARGET_H_DEFAULT = 330
 
 _sess = None
 def sess():
@@ -44,12 +41,12 @@ def trim_alpha(img: Image.Image, thresh=8) -> Image.Image:
         return img
     return img.crop(bb)
 
-def align(img: Image.Image) -> Image.Image:
-    """img: RGBA trimmed。缩放到 TARGET_H，水平居中，脚底贴 FOOT_BASE，贴到 FW×FH 透明画布。"""
+def align(img: Image.Image, target_h: int = TARGET_H_DEFAULT) -> Image.Image:
+    """img: RGBA trimmed。缩放到 target_h，水平居中，脚底贴 FOOT_BASE，贴到 FW×FH 透明画布。"""
     w, h = img.size
-    scale = TARGET_H / h
+    scale = target_h / h
     nw = max(1, round(w * scale))
-    nh = TARGET_H
+    nh = target_h
     img2 = img.resize((nw, nh), Image.LANCZOS)
     canvas = Image.new('RGBA', (FW, FH), (0, 0, 0, 0))
     # 水平居中
@@ -59,34 +56,40 @@ def align(img: Image.Image) -> Image.Image:
     canvas.alpha_composite(img2, (x, y))
     return canvas
 
-def process_one(raw_path: str, out_name: str = None):
-    """raw_path: AI 直出图。out_name: 不含扩展名，如 idle_S_0。"""
+def process_one(raw_path: str, sid: str, out_name: str = None, target_h: int = TARGET_H_DEFAULT):
+    """raw_path: AI 直出图。sid: 精灵 id (如 player_m0 / player_f0)。out_name: 不含扩展名，如 idle_S_0。"""
     if out_name is None:
         out_name = os.path.splitext(os.path.basename(raw_path))[0]
+    raw_dir = os.path.join(ROOT, 'raw', sid)
+    trim_dir = os.path.join(ROOT, 'trimmed', sid)
+    out_dir = os.path.join(REPO, 'art', 'out', 'frames2', sid)
     raw = Image.open(raw_path)
     cut = remove_bg(raw)
     cut_t = trim_alpha(cut)
-    os.makedirs(TRIM_DIR, exist_ok=True)
-    cut_t.save(os.path.join(TRIM_DIR, out_name + '.png'))
-    framed = align(cut_t)
-    os.makedirs(OUT_DIR, exist_ok=True)
-    out = os.path.join(OUT_DIR, out_name + '.png')
+    os.makedirs(trim_dir, exist_ok=True)
+    cut_t.save(os.path.join(trim_dir, out_name + '.png'))
+    framed = align(cut_t, target_h=target_h)
+    os.makedirs(out_dir, exist_ok=True)
+    out = os.path.join(out_dir, out_name + '.png')
     framed.save(out)
-    print(f'[ok] {out_name}: raw={raw.size} trim={cut_t.size} -> {framed.size}')
+    print(f'[ok] {sid}/{out_name}: raw={raw.size} trim={cut_t.size} -> {framed.size}')
     return out
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--all', action='store_true', help='批处理 raw/player_m0/ 下所有 png')
+    ap.add_argument('--sid', default='player_m0', help='精灵 id，默认 player_m0')
+    ap.add_argument('--target-h', type=int, default=TARGET_H_DEFAULT, help='角色净身高 HD 像素')
+    ap.add_argument('--all', action='store_true', help='批处理 raw/<sid>/ 下所有 png')
     ap.add_argument('--file', help='单个 raw 文件路径')
     ap.add_argument('--name', help='输出帧名（如 idle_S_0）')
     args = ap.parse_args()
+    raw_dir = os.path.join(ROOT, 'raw', args.sid)
     if args.file:
-        process_one(args.file, args.name)
+        process_one(args.file, args.sid, args.name, target_h=args.target_h)
     elif args.all:
-        for f in sorted(os.listdir(RAW_DIR)):
+        for f in sorted(os.listdir(raw_dir)):
             if f.lower().endswith('.png'):
-                process_one(os.path.join(RAW_DIR, f))
+                process_one(os.path.join(raw_dir, f), args.sid, target_h=args.target_h)
     else:
         ap.print_help()
 
