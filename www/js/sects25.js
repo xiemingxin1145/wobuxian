@@ -72,7 +72,7 @@
     if (!G.sect) return;
     G.contrib += RANK(G.sectRank).stipend;            // 年俸禄（按位阶发贡献）
     const auto = tryRankUp(G);                         // 内门/外门贡献够自动升
-    if (auto) { G.log(`宗门晋升为【${auto.name}】。`); UI.toast(`宗门晋升：${auto.name}`, '#ffd23a'); }
+    if (auto) { Game.log(`宗门晋升为【${auto.name}】。`); UI.toast(`宗门晋升：${auto.name}`, '#ffd23a'); }
     if (G.year % TOURN_EVERY === 0) await doTournament(G);
   };
 
