@@ -190,4 +190,11 @@
       re();
     };
   };
+
+  // ---- 暴露全局 legacy26（对接 maps26.js 的 Acts.wendao 问道台入口）----
+  window.legacy26 = {
+    open: async () => { await UI.panel('legacy26'); },
+    hasApprentice: () => !!(Game.G && Game.G.apprentice),
+    hasHeir: () => !!(Game.G && Game.G.heir),
+  };
 })();

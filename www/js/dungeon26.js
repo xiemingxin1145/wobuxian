@@ -212,11 +212,16 @@
   };
 
   // ---- 5) 注册 Acts.dungeon26：供未来剑冢 jianzhong 图（美术链 maps26）登记 Acts 点直接复用 ----
-  if (typeof Acts !== 'undefined') {
-    Acts.dungeon26 = async function () {
+  // 同时暴露全局 dungeon26.enter(src)，对接 maps26.js 的 Acts.jianbei 剑碑入口。
+  window.dungeon26 = {
+    enter: async function (src) {
       const G = Game.G;
       if (G.realm < 1) { UI.toast('先觉醒灵根、踏入练气再来。'); return; }
+      if (src === 'jianzhong') G.dungeonJz = 1;   // 记录从剑冢进入（彩蛋位，后续可扩展）
       await UI.panel('dungeon26');
-    };
+    },
+  };
+  if (typeof Acts !== 'undefined') {
+    Acts.dungeon26 = async function () { await window.dungeon26.enter(); };
   }
 })();
