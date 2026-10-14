@@ -67,13 +67,34 @@ CHAINS = [
             {"effects": {"debt": -10, "aff": {"farmer": 5}}, "next": None},
         ],
     },
+    {
+        "id": "black_market_1",
+        "choices": [
+            {"effects": {"debt": 25, "aff": {"blackmarket": 15}}, "next": "black_market_2_deal"},
+            {"effects": {"debt": 10, "aff": {"blackmarket": 5}}, "next": "black_market_2_bargain"},
+            {"effects": {"aff": {"blackmarket": -10}}, "next": None},
+        ],
+    },
+    {
+        "id": "black_market_2_deal",
+        "choices": [
+            {"effects": {"debt": 5, "aff": {"blackmarket": 5}}, "next": None},
+        ],
+    },
+    {
+        "id": "black_market_2_bargain",
+        "choices": [
+            {"effects": {"debt": 20, "aff": {"blackmarket": 0}}, "next": None},
+            {"effects": {"aff": {"blackmarket": -15}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -153,6 +174,20 @@ def main() -> None:
     assert s["debt"] == 85, s  # 80 +5
     assert s["aff"]["farmer"] == -10, s
     passed("药农自己采：债务 85，好感 -10")
+
+    # Path I: black market deal
+    s = apply_path("black_market_1", [0, 0])
+    assert s["current"] is None
+    assert s["debt"] == 110, s  # 80 +25 +5
+    assert s["aff"]["blackmarket"] == 20, s  # 15 +5
+    passed("黑市成交：债务 110，好感 20")
+
+    # Path J: black market bargain then refuse
+    s = apply_path("black_market_1", [1, 1])
+    assert s["current"] is None
+    assert s["debt"] == 90, s  # 80 +10
+    assert s["aff"]["blackmarket"] == -10, s  # 5 -15
+    passed("黑市压价后不买：债务 90，好感 -10")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
