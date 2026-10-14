@@ -129,6 +129,33 @@ const CHAINS = [
       { text: '还是买', effects: { debt: +20, aff: { blackmarket: 0 } }, next: null },
       { text: '算了不买', effects: { aff: { blackmarket: -15 } }, next: null }
     ]
+  },
+  {
+    id: 'debt_collector_1',
+    title: '催债使者',
+    text: '村口站着个衣衫整齐的使者，抬手一拱：“天道催债司来人。你账上还有穴，这回带了部分还债单。”',
+    choices: [
+      { text: '部分还债', effects: { debt: -40, aff: { collector: 10 } }, next: 'debt_collector_2_pay' },
+      { text: '推说下回再说', effects: { debt: +15, aff: { collector: -10 } }, next: 'debt_collector_2_delay' },
+      { text: '拒绝支付', effects: { debt: +50, aff: { collector: -30 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_collector_2_pay',
+    title: '使者记账',
+    text: '使者点头：“还了一部分就好。剩下的穴下回再来结。”',
+    choices: [
+      { text: '送走使者', effects: { aff: { collector: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_collector_2_delay',
+    title: '使者不满',
+    text: '使者皱眉：“又推？再拖就上追兵了。你自己盼着吧。”',
+    choices: [
+      { text: '先还一点说情', effects: { debt: -20, aff: { collector: 5 } }, next: null },
+      { text: '硬拖', effects: { debt: +25, aff: { collector: -15 } }, next: null }
+    ]
   }
 ];
 
@@ -136,13 +163,14 @@ const STARTS = [
   { id: 'debt_merchant_1', label: '贩子催债' },
   { id: 'wander_cultivator_1', label: '云游散修' },
   { id: 'herb_farmer_1', label: '药农求助' },
-  { id: 'black_market_1', label: '黑市灵石' }
+  { id: 'black_market_1', label: '黑市灵石' },
+  { id: 'debt_collector_1', label: '催债使者' }
 ];
 
-let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0 }, current: 'debt_merchant_1' };
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0 }, current: 'debt_merchant_1' };
 
 function startChain(id) {
-  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0 }, current: id };
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0 }, current: id };
   renderSwitch();
   render();
 }
@@ -161,7 +189,7 @@ function render() {
   const app = document.getElementById('app');
   const chain = CHAINS.find(c => c.id === state.current);
   if (!chain) {
-    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button></div>`;
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button></div>`;
     return;
   }
   const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';

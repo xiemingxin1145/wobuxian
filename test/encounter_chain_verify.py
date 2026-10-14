@@ -88,13 +88,34 @@ CHAINS = [
             {"effects": {"aff": {"blackmarket": -15}}, "next": None},
         ],
     },
+    {
+        "id": "debt_collector_1",
+        "choices": [
+            {"effects": {"debt": -40, "aff": {"collector": 10}}, "next": "debt_collector_2_pay"},
+            {"effects": {"debt": 15, "aff": {"collector": -10}}, "next": "debt_collector_2_delay"},
+            {"effects": {"debt": 50, "aff": {"collector": -30}}, "next": None},
+        ],
+    },
+    {
+        "id": "debt_collector_2_pay",
+        "choices": [
+            {"effects": {"aff": {"collector": 5}}, "next": None},
+        ],
+    },
+    {
+        "id": "debt_collector_2_delay",
+        "choices": [
+            {"effects": {"debt": -20, "aff": {"collector": 5}}, "next": None},
+            {"effects": {"debt": 25, "aff": {"collector": -15}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -188,6 +209,20 @@ def main() -> None:
     assert s["debt"] == 90, s  # 80 +10
     assert s["aff"]["blackmarket"] == -10, s  # 5 -15
     passed("黑市压价后不买：债务 90，好感 -10")
+
+    # Path K: collector pay partial
+    s = apply_path("debt_collector_1", [0, 0])
+    assert s["current"] is None
+    assert s["debt"] == 40, s  # 80 -40
+    assert s["aff"]["collector"] == 15, s  # 10 +5
+    passed("催债使者部分还债：债务 40，好感 15")
+
+    # Path L: collector delay then hard stall
+    s = apply_path("debt_collector_1", [1, 1])
+    assert s["current"] is None
+    assert s["debt"] == 120, s  # 80 +15 +25
+    assert s["aff"]["collector"] == -25, s  # -10 -15
+    passed("催债使者推说后硬拖：债务 120，好感 -25")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
