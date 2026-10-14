@@ -1,7 +1,7 @@
 'use strict';
 // ======================= 即时遭遇战原型（v2.5 实验，已加强） =======================
 // 目标：从正式地图可以直接进入简单即时战斗区域，打完返回。
-// 当前：坐标 + 移动输入占位 + 敌人追击 + 近距普攻/接触伤害，不接入正式运行链。
+// 当前：坐标 + 移动输入 + 敌人追击 + 近距普攻/接触伤害 + Shift 闪避，不接入正式运行链。
 
 const RT = {
   on: false,
@@ -18,8 +18,8 @@ function startRealtimeEncounter(enemies) {
   RT.time = 0;
   RT.result = null;
   RT.keys.clear();
-  RT.enemies = (enemies || [{ name: '山魈', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
-    name: e.name || '山魈',
+  RT.enemies = (enemies || [{ name: '山魇', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
+    name: e.name || '山魇',
     hp: e.hp != null ? e.hp : 80,
     maxHp: e.maxHp != null ? e.maxHp : (e.hp || 80),
     x: e.x != null ? e.x : 420,
@@ -34,6 +34,7 @@ function startRealtimeEncounter(enemies) {
     y: 320,
     speed: 210,
     attackCd: 0,
+    dashCd: 0,
     faceX: 0,
     faceY: -1,
   };
@@ -48,6 +49,7 @@ function updateRealtime(dt) {
   RT.time += dt;
   const p = RT.player;
   p.attackCd = Math.max(0, p.attackCd - dt);
+  p.dashCd = Math.max(0, p.dashCd - dt);
 
   // 键盘移动占位（WASD / 方向键）
   let kx = 0, ky = 0;
@@ -118,6 +120,18 @@ function playerAttack() {
   }
 }
 
+function playerDash() {
+  if (!RT.on || !RT.player || RT.player.dashCd > 0) return;
+  const p = RT.player;
+  p.dashCd = 1.2;
+  const dashDist = 90;
+  p.x += p.faceX * dashDist;
+  p.y += p.faceY * dashDist;
+  p.x = Math.max(40, Math.min(560, p.x));
+  p.y = Math.max(60, Math.min(480, p.y));
+  console.log('[RT] dash');
+}
+
 function endRealtime(result) {
   if (!RT.on) return;
   RT.on = false;
@@ -139,7 +153,7 @@ function drawRealtime(ctx) {
   ctx.fillStyle = '#ffe680';
   ctx.font = '15px sans-serif';
   const p = RT.player;
-  const pos = p ? ` (${Math.round(p.x)},${Math.round(p.y)}) HP:${Math.ceil(p.hp)}` : '';
+  const pos = p ? ` (${Math.round(p.x)},${Math.round(p.y)}) HP:${Math.ceil(p.hp)} Dash:${p.dashCd > 0 ? Math.ceil(p.dashCd) : 'ready'}` : '';
   ctx.fillText('即时战斗中 ' + Math.round(RT.time) + 's' + pos, 16, 28);
 
   // 简易绘制玩家（圆）
@@ -178,10 +192,13 @@ function drawRealtime(ctx) {
 function _rtKeyDown(e) {
   if (!RT.on) return;
   const k = e.key.toLowerCase();
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) {
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(k)) {
     RT.keys.add(k);
     if (k === ' ') {
       playerAttack();
+      e.preventDefault();
+    } else if (k === 'shift') {
+      playerDash();
       e.preventDefault();
     }
   }
@@ -202,6 +219,7 @@ window.RealtimeBattle = {
   draw: drawRealtime,
   end: endRealtime,
   attack: playerAttack,
+  dash: playerDash,
 };
 
-console.log('[RT] realtime battle prototype (move+chase+hit) loaded');
+console.log('[RT] realtime battle prototype (move+chase+hit+dash) loaded');
