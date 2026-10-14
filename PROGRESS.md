@@ -1,4 +1,4 @@
-# 我不仙 进度清单（2026-10-13 Grok 接管后）
+# 我不仙 进度清单（2026-10-14 Grok 接管后）
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
@@ -13,6 +13,7 @@
 - [x] 奇遇链路径断言：test/encounter_chain_verify.py（八条路径债务/好感最终值）
 - [x] 试炼场覆盖层：× / 点击遮罩 / Escape 均可关闭并清理监听
 - [x] 即时原型 JS 加强：玩家坐标占位 + 普攻冷却方法
+- [x] 即时原型再加强：WASD/方向键移动、敌人追击、接触伤害、近距普攻扣血、简易绘制（仍隔离）
 
 ## 当前可玩
 - CI 构建完成后，连点版本号即可试：
@@ -20,10 +21,11 @@
   - 阶段 3 债务奇遇（真实改债务和好感）
 - 本地可直接打开 www/prototypes/encounter_chain/index.html 测试奇遇链选择（多路径切换）
 - `python3 -B test/encounter_chain_verify.py` 验证路径数值
+- `www/js/battle_realtime_prototype.js` 可在控制台调用 RealtimeBattle.start() 后配合 update/draw 测移动与打击（需宿主提供 canvas 循环）
 
 ## 仍待完成
 - [ ] 低模正式接入精灵图集（需重新渲染管线）
-- [ ] 即时战斗接入正式地图遭遇（目前仍是独立页）
+- [ ] 即时战斗接入正式地图遭遇（目前仍是独立页 / 占位）
 - [ ] Issue #5 修复（T4 点游走 NPC、T9 自动任务连续成功）
 - [ ] 阶段 3 扩展成多条奇遇链 + 正式 NPC 关联（草稿已有 3 条）
 
