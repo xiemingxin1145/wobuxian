@@ -1,12 +1,13 @@
 'use strict';
 // ======================= 即时遭遇战原型（v2.5 实验，已加强） =======================
 // 目标：从正式地图可以直接进入简单即时战斗区域，打完返回。
-// 当前：坐标 + 移动输入 + 敌人追击 + 近距普攻/接触伤害 + Shift 闪避，不接入正式运行链。
+// 当前：坐标 + 移动输入 + 敌人追击 + 近距普攻/接触伤害 + Shift 闪避 + Q 弹道技能，不接入正式运行链。
 
 const RT = {
   on: false,
   player: null,
   enemies: [],
+  projectiles: [],
   time: 0,
   result: null,
   keys: new Set(),
@@ -18,6 +19,7 @@ function startRealtimeEncounter(enemies) {
   RT.time = 0;
   RT.result = null;
   RT.keys.clear();
+  RT.projectiles = [];
   RT.enemies = (enemies || [{ name: '山魇', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
     name: e.name || '山魇',
     hp: e.hp != null ? e.hp : 80,
@@ -35,6 +37,7 @@ function startRealtimeEncounter(enemies) {
     speed: 210,
     attackCd: 0,
     dashCd: 0,
+    skillCd: 0,
     faceX: 0,
     faceY: -1,
   };
@@ -50,6 +53,7 @@ function updateRealtime(dt) {
   const p = RT.player;
   p.attackCd = Math.max(0, p.attackCd - dt);
   p.dashCd = Math.max(0, p.dashCd - dt);
+  p.skillCd = Math.max(0, p.skillCd - dt);
 
   // 键盘移动占位（WASD / 方向键）
   let kx = 0, ky = 0;
@@ -84,6 +88,28 @@ function updateRealtime(dt) {
       console.log('[RT] contact damage from', e.name);
     }
   }
+
+  // 玩家弹道
+  for (const proj of RT.projectiles) {
+    proj.x += proj.vx * dt;
+    proj.y += proj.vy * dt;
+    proj.life -= dt;
+    if (proj.life <= 0) continue;
+    for (const e of RT.enemies) {
+      if (e.hp <= 0) continue;
+      const d = Math.hypot(e.x - proj.x, e.y - proj.y);
+      if (d < 22) {
+        e.hp = Math.max(0, e.hp - 22);
+        proj.life = 0;
+        const dx = e.x - p.x, dy = e.y - p.y, dd = Math.hypot(dx, dy) || 1;
+        e.x += (dx / dd) * 8;
+        e.y += (dy / dd) * 8;
+        console.log('[RT] projectile hit', e.name, 'hp=', e.hp);
+        break;
+      }
+    }
+  }
+  RT.projectiles = RT.projectiles.filter(pr => pr.life > 0 && pr.x > 0 && pr.x < 600 && pr.y > 0 && pr.y < 520);
 
   // 结束条件
   if (p.hp <= 0) {
@@ -120,6 +146,21 @@ function playerAttack() {
   }
 }
 
+function playerSkill() {
+  if (!RT.on || !RT.player || RT.player.skillCd > 0) return;
+  const p = RT.player;
+  p.skillCd = 1.6;
+  const speed = 320;
+  RT.projectiles.push({
+    x: p.x + p.faceX * 20,
+    y: p.y + p.faceY * 20,
+    vx: p.faceX * speed,
+    vy: p.faceY * speed,
+    life: 1.8,
+  });
+  console.log('[RT] skill projectile');
+}
+
 function playerDash() {
   if (!RT.on || !RT.player || RT.player.dashCd > 0) return;
   const p = RT.player;
@@ -137,6 +178,7 @@ function endRealtime(result) {
   RT.on = false;
   RT.result = result;
   RT.keys.clear();
+  RT.projectiles = [];
   if (window.UI && UI.toast) UI.toast('遭遇战结束：' + result, result === 'win' ? '#9aff9a' : '#ff9a9a');
   if (RT._resolve) {
     RT._resolve({ result, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
@@ -153,7 +195,7 @@ function drawRealtime(ctx) {
   ctx.fillStyle = '#ffe680';
   ctx.font = '15px sans-serif';
   const p = RT.player;
-  const pos = p ? ` (${Math.round(p.x)},${Math.round(p.y)}) HP:${Math.ceil(p.hp)} Dash:${p.dashCd > 0 ? Math.ceil(p.dashCd) : 'ready'}` : '';
+  const pos = p ? ` (${Math.round(p.x)},${Math.round(p.y)}) HP:${Math.ceil(p.hp)} Dash:${p.dashCd > 0 ? Math.ceil(p.dashCd) : 'ready'} Skill:${p.skillCd > 0 ? Math.ceil(p.skillCd) : 'ready'}` : '';
   ctx.fillText('即时战斗中 ' + Math.round(RT.time) + 's' + pos, 16, 28);
 
   // 简易绘制玩家（圆）
@@ -186,19 +228,30 @@ function drawRealtime(ctx) {
     ctx.fillText(e.name, e.x, e.y - 38);
     ctx.textAlign = 'left';
   }
+
+  // 绘制弹道
+  for (const proj of RT.projectiles) {
+    ctx.fillStyle = '#ffd27b';
+    ctx.beginPath();
+    ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // 键盘监听（仅在原型开启时生效，避免污染正式游戏）
 function _rtKeyDown(e) {
   if (!RT.on) return;
   const k = e.key.toLowerCase();
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(k)) {
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'q'].includes(k)) {
     RT.keys.add(k);
     if (k === ' ') {
       playerAttack();
       e.preventDefault();
     } else if (k === 'shift') {
       playerDash();
+      e.preventDefault();
+    } else if (k === 'q') {
+      playerSkill();
       e.preventDefault();
     }
   }
@@ -220,6 +273,7 @@ window.RealtimeBattle = {
   end: endRealtime,
   attack: playerAttack,
   dash: playerDash,
+  skill: playerSkill,
 };
 
-console.log('[RT] realtime battle prototype (move+chase+hit+dash) loaded');
+console.log('[RT] realtime battle prototype (move+chase+hit+dash+skill) loaded');
