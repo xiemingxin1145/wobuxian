@@ -15,7 +15,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(ROOT, '..', '..'))
 
-# 整帧尺寸（HD k=2）
+# 整帧尺寸（HD k=2）：默认人形 384×448（SD 192×224）；怪物 320×352（SD 160×176）
 FW, FH = 384, 448
 # 脚底基线（bbox 底边 y）：参照旧 SD 196 * 2 = 392
 FOOT_BASE = 392
@@ -41,16 +41,19 @@ def trim_alpha(img: Image.Image, thresh=8) -> Image.Image:
         return img
     return img.crop(bb)
 
+_cfg = dict(FW=FW, FH=FH)
+
 def align(img: Image.Image, target_h: int = TARGET_H_DEFAULT, foot_base: int = 392) -> Image.Image:
     """img: RGBA trimmed。缩放到 target_h，水平居中，脚底贴 foot_base，贴到 FW×FH 透明画布。"""
+    fw = _cfg['FW']; fh = _cfg['FH']
     w, h = img.size
     scale = target_h / h
     nw = max(1, round(w * scale))
     nh = target_h
     img2 = img.resize((nw, nh), Image.LANCZOS)
-    canvas = Image.new('RGBA', (FW, FH), (0, 0, 0, 0))
+    canvas = Image.new('RGBA', (fw, fh), (0, 0, 0, 0))
     # 水平居中
-    x = (FW - nw) // 2
+    x = (fw - nw) // 2
     # 脚底在 foot_base：bbox 底边 = y + nh
     y = foot_base - nh
     canvas.alpha_composite(img2, (x, y))
@@ -83,7 +86,10 @@ def main():
     ap.add_argument('--all', action='store_true', help='批处理 raw/<sid>/ 下所有 png')
     ap.add_argument('--file', help='单个 raw 文件路径')
     ap.add_argument('--name', help='输出帧名（如 idle_S_0）')
+    ap.add_argument('--fw', type=int, default=FW, help='HD 整帧宽（怪物 320）')
+    ap.add_argument('--fh', type=int, default=FH, help='HD 整帧高（怪物 352）')
     args = ap.parse_args()
+    _cfg['FW'] = args.fw; _cfg['FH'] = args.fh
     raw_dir = os.path.join(ROOT, 'raw', args.sid)
     if args.file:
         process_one(args.file, args.sid, args.name, target_h=args.target_h, foot_base=args.foot_base)
