@@ -81,6 +81,7 @@
     const rounds = Math.min(3, G.sectRank + 1);       // 位阶越高打的轮次越多
     let wins = 0;
     await UI.card('宗门大比', `第 ${G.tournDone} 届宗门大比开始！\n你将连打 ${rounds} 场。`, 'npc_mentor', ['登台']);
+    UI.cgUnlock('cg_dabi');
     const pool = ['aotian', 'heixin', 'ruyan', 'taizi'];
     for (let i = 0; i < rounds; i++) {
       const foe = pick(pool);

@@ -13,9 +13,14 @@ def reset():
     sc.render.engine = 'CYCLES'
     sc.cycles.device = 'CPU'
     sc.cycles.samples = int(os.environ.get('WBX_SAMPLES', 24))
-    sc.cycles.use_denoising = True
-    try: sc.cycles.denoiser = 'OPENIMAGEDENOISE'
-    except Exception: pass
+    sc.cycles.use_denoising = os.environ.get('WBX_DENOISE', '1') != '0'
+    if sc.cycles.use_denoising:
+        try: sc.cycles.denoiser = 'OPENIMAGEDENOISE'
+        except Exception: pass
+    t = int(os.environ.get('WBX_TILE', '0'))
+    if t > 0:
+        try: sc.cycles.tile_size = t
+        except Exception: pass
     sc.cycles.max_bounces = 4; sc.cycles.diffuse_bounces = 2; sc.cycles.glossy_bounces = 2; sc.cycles.transparent_max_bounces = 8
     sc.cycles.use_adaptive_sampling = True
     sc.render.film_transparent = True
