@@ -1,13 +1,14 @@
 'use strict';
 // ======================= 即时遭遇战原型（v2.5 实验，已加强） =======================
 // 目标：从正式地图可以直接进入简单即时战斗区域，打完返回。
-// 当前：坐标 + 移动输入 + 敌人追击 + 近距普攻/接触伤害 + Shift 闪避 + Q 弹道技能，不接入正式运行链。
+// 当前：坐标 + 移动输入 + 敌人追击 + 近距普攻/接触伤害 + Shift 闪避 + Q 弹道技能 + 敌人简易弹道，不接入正式运行链。
 
 const RT = {
   on: false,
   player: null,
   enemies: [],
   projectiles: [],
+  enemyProjectiles: [],
   time: 0,
   result: null,
   keys: new Set(),
@@ -20,6 +21,7 @@ function startRealtimeEncounter(enemies) {
   RT.result = null;
   RT.keys.clear();
   RT.projectiles = [];
+  RT.enemyProjectiles = [];
   RT.enemies = (enemies || [{ name: '山魇', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
     name: e.name || '山魇',
     hp: e.hp != null ? e.hp : 80,
@@ -28,6 +30,7 @@ function startRealtimeEncounter(enemies) {
     y: e.y != null ? e.y : 180,
     speed: e.speed != null ? e.speed : 70,
     contactCd: 0,
+    skillCd: 1.5 + Math.random() * 2,
   }));
   RT.player = {
     hp: 180,
@@ -87,6 +90,19 @@ function updateRealtime(dt) {
       e.contactCd = 0.9;
       console.log('[RT] contact damage from', e.name);
     }
+    // 敌人简易弹道（远距时）
+    e.skillCd = Math.max(0, (e.skillCd || 0) - dt);
+    if (d > 80 && d < 280 && e.skillCd <= 0) {
+      e.skillCd = 2.2 + Math.random() * 1.5;
+      const speed = 180;
+      RT.enemyProjectiles.push({
+        x: e.x, y: e.y,
+        vx: (dx / d) * speed,
+        vy: (dy / d) * speed,
+        life: 2.0,
+      });
+      console.log('[RT] enemy projectile from', e.name);
+    }
   }
 
   // 玩家弹道
@@ -110,6 +126,21 @@ function updateRealtime(dt) {
     }
   }
   RT.projectiles = RT.projectiles.filter(pr => pr.life > 0 && pr.x > 0 && pr.x < 600 && pr.y > 0 && pr.y < 520);
+
+  // 敌人弹道
+  for (const proj of RT.enemyProjectiles) {
+    proj.x += proj.vx * dt;
+    proj.y += proj.vy * dt;
+    proj.life -= dt;
+    if (proj.life <= 0) continue;
+    const d = Math.hypot(p.x - proj.x, p.y - proj.y);
+    if (d < 18) {
+      p.hp = Math.max(0, p.hp - 12);
+      proj.life = 0;
+      console.log('[RT] enemy projectile hit player');
+    }
+  }
+  RT.enemyProjectiles = RT.enemyProjectiles.filter(pr => pr.life > 0 && pr.x > 0 && pr.x < 600 && pr.y > 0 && pr.y < 520);
 
   // 结束条件
   if (p.hp <= 0) {
@@ -179,6 +210,7 @@ function endRealtime(result) {
   RT.result = result;
   RT.keys.clear();
   RT.projectiles = [];
+  RT.enemyProjectiles = [];
   if (window.UI && UI.toast) UI.toast('遭遇战结束：' + result, result === 'win' ? '#9aff9a' : '#ff9a9a');
   if (RT._resolve) {
     RT._resolve({ result, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
@@ -236,6 +268,13 @@ function drawRealtime(ctx) {
     ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
     ctx.fill();
   }
+  // 敌人弹道
+  for (const proj of RT.enemyProjectiles) {
+    ctx.fillStyle = '#c07060';
+    ctx.beginPath();
+    ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // 键盘监听（仅在原型开启时生效，避免污染正式游戏）
@@ -276,4 +315,4 @@ window.RealtimeBattle = {
   skill: playerSkill,
 };
 
-console.log('[RT] realtime battle prototype (move+chase+hit+dash+skill) loaded');
+console.log('[RT] realtime battle prototype (move+chase+hit+dash+skill+enemy-proj) loaded');
