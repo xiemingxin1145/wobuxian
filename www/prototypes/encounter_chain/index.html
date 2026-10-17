@@ -156,6 +156,24 @@ const CHAINS = [
       { text: '先还一点说情', effects: { debt: -20, aff: { collector: 5 } }, next: null },
       { text: '硬拖', effects: { debt: +25, aff: { collector: -15 } }, next: null }
     ]
+  },
+  {
+    id: 'night_temple_1',
+    title: '夜雨破庙',
+    text: '破庙里一个受伤的散修靠着墙，抬眼道：“道友，借我点灵石养伤，来日必还。”',
+    choices: [
+      { text: '借灵石帮他', effects: { debt: +15, aff: { wounded: 25 } }, next: 'night_temple_2_help' },
+      { text: '只给药草', effects: { debt: +5, aff: { wounded: 10 } }, next: null },
+      { text: '无视离开', effects: { aff: { wounded: -10 } }, next: null }
+    ]
+  },
+  {
+    id: 'night_temple_2_help',
+    title: '散修感激',
+    text: '散修道谢：“承情。若日后遇到天道追兵，可报我名号。”',
+    choices: [
+      { text: '记下名号', effects: { aff: { wounded: 5 } }, next: null }
+    ]
   }
 ];
 
@@ -164,13 +182,14 @@ const STARTS = [
   { id: 'wander_cultivator_1', label: '云游散修' },
   { id: 'herb_farmer_1', label: '药农求助' },
   { id: 'black_market_1', label: '黑市灵石' },
-  { id: 'debt_collector_1', label: '催债使者' }
+  { id: 'debt_collector_1', label: '催债使者' },
+  { id: 'night_temple_1', label: '夜雨破庙' }
 ];
 
-let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0 }, current: 'debt_merchant_1' };
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0 }, current: 'debt_merchant_1' };
 
 function startChain(id) {
-  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0 }, current: id };
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0 }, current: id };
   renderSwitch();
   render();
 }
@@ -189,7 +208,7 @@ function render() {
   const app = document.getElementById('app');
   const chain = CHAINS.find(c => c.id === state.current);
   if (!chain) {
-    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button></div>`;
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button></div>`;
     return;
   }
   const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';

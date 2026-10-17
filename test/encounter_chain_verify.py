@@ -109,13 +109,27 @@ CHAINS = [
             {"effects": {"debt": 25, "aff": {"collector": -15}}, "next": None},
         ],
     },
+    {
+        "id": "night_temple_1",
+        "choices": [
+            {"effects": {"debt": 15, "aff": {"wounded": 25}}, "next": "night_temple_2_help"},
+            {"effects": {"debt": 5, "aff": {"wounded": 10}}, "next": None},
+            {"effects": {"aff": {"wounded": -10}}, "next": None},
+        ],
+    },
+    {
+        "id": "night_temple_2_help",
+        "choices": [
+            {"effects": {"aff": {"wounded": 5}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -223,6 +237,20 @@ def main() -> None:
     assert s["debt"] == 120, s  # 80 +15 +25
     assert s["aff"]["collector"] == -25, s  # -10 -15
     passed("催债使者推说后硬拖：债务 120，好感 -25")
+
+    # Path M: night temple help then thank
+    s = apply_path("night_temple_1", [0, 0])
+    assert s["current"] is None
+    assert s["debt"] == 95, s  # 80 +15
+    assert s["aff"]["wounded"] == 30, s  # 25 +5
+    passed("夜雨破庙借灵石：债务 95，好感 30")
+
+    # Path N: night temple only herbs
+    s = apply_path("night_temple_1", [1])
+    assert s["current"] is None
+    assert s["debt"] == 85, s  # 80 +5
+    assert s["aff"]["wounded"] == 10, s
+    passed("夜雨破庙只给药草：债务 85，好感 10")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
