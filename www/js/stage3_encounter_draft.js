@@ -269,7 +269,7 @@ const Stage3 = {
   // ======== 债务系统强化 #1：债压档位 → 讨债追兵即时战（只读，不改存档） ========
   // 「欠得多了有追兵」：按当前 G.debt 分 4 档（阈值 1000 / 5000 与「债主之家」态度一致，另加 20000 天道通缉），
   // 身上挂着 flags.bounty（反杀债主 / 钱多多卖行踪）再加一档。档位决定追兵数量、血量倍率、移速。
-  // 只产出敌人数据给开发者入口「追兵战」按钮喂即时战原型；本文件不直接调用即时战原型、不写 G。
+  // 只产出敌人数据给开发者入口「追兵战」按钮喂即时战原型；本文件不直接调用即时战原型、不写 G（胜负结算见下方 settleBounty）。
   DEBT_TIERS: [
     { key: 'light', n: '小账', hunters: 1, hpMul: 1 },
     { key: 'owing', n: '欠款', hunters: 2, hpMul: 1.15 },
@@ -293,6 +293,35 @@ const Stage3 = {
       name: i === 0 && P.tier === 3 ? '讨债鬼头子' : '讨债鬼', spr: 'mon_collector', box: 'taozhai',
       hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier, atkCd: 1.0 + 0.6 * i,
     }));
+  },
+
+  // ======== 债务系统强化 #2：追兵战按胜负结算（只由开发者入口「追兵战」在战斗结束后调用） ========
+  // out = 即时战原型返回的 { result:'win'|'lose', reason:'cleared'|'dead'|'timeout'|'closed' }，外加开战时的 tier（债压档位）。
+  // 胜：追兵退走；身上挂着 flags.bounty 的撤掉通缉（连同 stage3_bountyDebt），欠款不变（打跑讨债鬼不等于还了钱）。
+  // 败（被打倒 / 超时没打完）：欠款加一笔误工费 = max(100, 欠款 × 档位费率 5%/8%/10%/12%)，通缉照旧。
+  // 中途关掉覆盖层（reason='closed'）或数据非法：不结算、不改存档。胜败次数记在 flags.s3b_win / s3b_lose。
+  BOUNTY_FEE: [0.05, 0.08, 0.10, 0.12],
+  BOUNTY_FEE_MIN: 100,
+  settleBounty(G, out) {
+    if (!G || typeof G !== 'object' || !out || (out.result !== 'win' && out.result !== 'lose')) return { settled: false, reason: 'invalid' };
+    if (out.reason === 'closed') return { settled: false, reason: 'closed' };
+    const tier = Number.isInteger(out.tier) && out.tier >= 0 && out.tier <= 3 ? out.tier : this.debtPressure(G).tier;
+    const n = this.DEBT_TIERS[tier].n;
+    const F = this.flags(G);
+    const raw = Number(G.debt);
+    const before = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+    if (out.result === 'win') {
+      const hadBounty = !!F.bounty;
+      delete F.bounty; delete F.stage3_bountyDebt;
+      F.s3b_win = (Number(F.s3b_win) || 0) + 1;
+      const note = hadBounty ? '追兵被打退，讨债司撤了你的通缉。' : '追兵被打退了，不过账还挂在天道账本上。';
+      return { settled: true, result: 'win', tier, n, debtBefore: before, debtAfter: G.debt, fee: 0, bountyCleared: hadBounty, note };
+    }
+    const fee = Math.max(this.BOUNTY_FEE_MIN, Math.round(before * this.BOUNTY_FEE[tier]));
+    G.debt = before + fee;
+    F.s3b_lose = (Number(F.s3b_lose) || 0) + 1;
+    const note = (out.reason === 'timeout' ? '拖太久没打完，' : '被讨债鬼按在地上，') + `讨债司记了一笔误工费 ${fee}。`;
+    return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note };
   },
 
   // 开发者测试入口

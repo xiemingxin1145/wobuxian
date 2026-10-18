@@ -63,6 +63,7 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   RB.attack(); RB.update(0.016);
   const r = await done;
   ok(r.result === 'win' && !S.on, '敌人全灭 → win，Promise 返回结果');
+  ok(r.reason === 'cleared' && S.endReason === 'cleared', '敌人全灭 → 结束原因 cleared');
   let prevented = false; RB._key.down({ key: ' ', preventDefault() { prevented = true; } });
   ok(!prevented && S.keys.size === 0, '原型关闭后键盘不拦截（不影响正式游戏）');
 
@@ -70,7 +71,9 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   done = RB.start(null, { timeLimit: 1 });
   S.enemies[0].skillCd = 99;
   for (let i = 0; i < 80; i++) RB.update(0.016);
-  ok((await done).result === 'lose', '超时保底 → lose');
+  const rTo = await done;
+  ok(rTo.result === 'lose', '超时保底 → lose');
+  ok(rTo.reason === 'timeout', '超时 → 结束原因 timeout（宿主据此结算误工费）');
   const saveDS = global.drawSprite; global.drawSprite = undefined;
   let threw = false; try { RB.draw(fakeCtx()); } catch (e) { threw = true; }
   global.drawSprite = saveDS;
@@ -288,6 +291,18 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     ok(S.label === '即时战(原型)' && S.enemies[0].box === null, '不传 label/box 时回退默认标题、box 为空');
     RB.end('lose'); await done;
     done = RB.start(null, { timeLimit: 99, label: 'x'.repeat(40) }); ok(S.label.length === 16, '标题截到 16 字，不撑破顶栏'); RB.end('lose'); await done;
+  }
+
+  // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因
+  {
+    let d8 = RB.start(null, { timeLimit: 99 }); S.player.hp = 0; RB.update(0.016);
+    const r8 = await d8; ok(r8.result === 'lose' && r8.reason === 'dead', '主角倒下 → lose / dead');
+    d8 = RB.start(null, { timeLimit: 99 }); ok(S.endReason === null, '重开一场清空上一场的结束原因');
+    RB.end('lose', 'closed'); ok((await d8).reason === 'closed', '中途关闭 → reason closed（宿主不结算）');
+    d8 = RB.start(null, { timeLimit: 99 }); RB.end('win'); ok((await d8).reason === 'cleared', 'end(win) 不带原因 → cleared');
+    d8 = RB.start(null, { timeLimit: 99 }); RB.end('lose'); ok((await d8).reason === 'dead', 'end(lose) 不带原因 → dead');
+    const srcP = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    ok(/endRealtime\('lose', 'closed'\)/.test(srcP) && /closed: closedP/.test(srcP), '覆盖层关闭走 closed 原因，句柄带 closed Promise');
   }
 
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前

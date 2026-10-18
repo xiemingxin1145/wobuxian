@@ -174,6 +174,36 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const callers3 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /bountyEnemies|debtPressure/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers3.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 debtPressure/bountyEnemies：' + callers3.join(','));
 
+  // 11. 债务系统强化 #2：追兵战按胜负结算
+  const SB = S.settleBounty.bind(S);
+  let Gb = mk({ debt: 8888, flags: { bounty: 1, stage3_bountyDebt: 8888 } });
+  let sb = SB(Gb, { result: 'win', reason: 'cleared', tier: 3 });
+  ok(sb.settled && sb.result === 'win' && sb.bountyCleared && !Gb.flags.bounty && !('stage3_bountyDebt' in Gb.flags), '胜：撤掉通缉（bounty + stage3_bountyDebt）');
+  ok(Gb.debt === 8888 && sb.debtBefore === 8888 && sb.debtAfter === 8888 && sb.fee === 0 && Gb.flags.s3b_win === 1, '胜：欠款不变、记一次胜场');
+  Gb = mk({ debt: 3000 }); sb = SB(Gb, { result: 'win', reason: 'cleared', tier: 1 });
+  ok(sb.settled && !sb.bountyCleared && Gb.debt === 3000 && /账还挂/.test(sb.note), '胜但没被通缉：只是打退，账还在');
+  const lose = (debt, tier, reason) => { const g = mk({ debt }); const r = SB(g, { result: 'lose', reason: reason || 'dead', tier }); return [g, r]; };
+  let [gl, rl] = lose(8888, 2);
+  ok(rl.settled && rl.fee === Math.round(8888 * 0.10) && gl.debt === 8888 + 889 && gl.flags.s3b_lose === 1, '败（重债）：误工费 = 欠款 × 10%');
+  ok(lose(3000, 1)[1].fee === 240 && lose(30000, 3)[1].fee === 3600 && lose(600, 0)[1].fee === 100, '败：费率 8%/12%，小账保底 100');
+  [gl, rl] = lose(0, 0, 'timeout');
+  ok(gl.debt === 100 && /拖太久/.test(rl.note), '败（超时）：0 欠款也记 100 误工费，文案提示超时');
+  Gb = mk({ debt: 30000, flags: { bounty: 1, stage3_bountyDebt: 30000 } }); SB(Gb, { result: 'lose', reason: 'dead', tier: 3 });
+  ok(Gb.flags.bounty === 1 && Gb.flags.stage3_bountyDebt === 30000 && Gb.debt === 33600, '败：通缉照旧');
+  Gb = mk({ debt: 30000, flags: { bounty: 1 } }); const snapB = JSON.stringify(Gb);
+  sb = SB(Gb, { result: 'lose', reason: 'closed', tier: 3 });
+  ok(!sb.settled && sb.reason === 'closed' && JSON.stringify(Gb) === snapB, '中途关掉覆盖层：不结算、不改存档');
+  ok([undefined, null, {}, { result: 'draw' }, { result: 'WIN' }].every(o => !SB(mk(), o).settled) && !SB(null, { result: 'win' }).settled, '非法结果/无存档：不结算、不崩');
+  Gb = mk({ debt: 8888 }); sb = SB(Gb, { result: 'lose', reason: 'dead' });
+  ok(sb.tier === 2 && sb.fee === 889, '没传开战档位：按当前债压算');
+  Gb = mk({ debt: 8888 }); sb = SB(Gb, { result: 'lose', reason: 'dead', tier: 0 });
+  ok(sb.tier === 0 && sb.fee === 444, '按开战时档位结算（不因误工费跳档改费率）');
+  ok([{ debt: -5 }, { debt: 'abc' }, { debt: NaN }].every(o => { const g = Object.assign({}, o); return SB(g, { result: 'lose', reason: 'dead', tier: 0 }).fee === 100 && g.debt === 100; }), '异常欠款回退 0 + 保底 100，且补出 flags');
+  Gb = mk({ debt: 5000 }); SB(Gb, { result: 'lose', tier: 1 }); SB(Gb, { result: 'win', tier: 1 }); SB(Gb, { result: 'lose', tier: 1 });
+  ok(Gb.flags.s3b_win === 1 && Gb.flags.s3b_lose === 2, '胜败次数累计');
+  const callers4 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /settleBounty/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(callers4.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 settleBounty：' + callers4.join(','));
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

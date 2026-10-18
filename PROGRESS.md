@@ -89,6 +89,12 @@
   - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`www/js/battle_realtime_prototype.js`、`test/stage3_chain.js`、`test/battle_rt_proto.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
 - 下一步：追兵战打完按结果结算（胜：追兵退走、可撤掉 `flags.bounty`；败：欠款加一笔「误工费」），仍只走开发者入口；或债压档位接入突破难度预览（只读）。主人试玩定数值的事项照旧待办。
 
+### 2026-10-19 第五轮（UTC+8，openworld-wip）
+- [x] 步骤 12：债务系统强化 #2「追兵战按胜负结算」——`Stage3.settleBounty(G, out)`（out = 即时战原型返回值 + 开战时债压档位）：**胜**＝追兵退走，身上挂着 `flags.bounty` 的连同 `stage3_bountyDebt` 一起撤掉通缉，欠款不变（打跑讨债鬼不等于还钱）；**败**（被打倒或超时）＝欠款加误工费 max(100, 欠款 × 5%/8%/10%/12%，按开战时档位)，通缉照旧；**中途关掉覆盖层**＝不结算、不改存档。胜败次数记 `flags.s3b_win/s3b_lose`。开发者「追兵战」按钮打完即结算并存档，等覆盖层关掉后弹「追兵战结算」卡（胜负·档名、说明、债务前→后、通缉已撤销）。即时战原型结束时带结束原因 `reason`（cleared/dead/timeout/closed），覆盖层句柄新增 `closed` Promise。仍只走开发者入口，不发奖、不进正式事件池。
+  - 测试：`node test/stage3_chain.js` 79/79（新增 14 条：胜撤通缉/欠款不变、没通缉只打退、三档费率与保底 100、超时文案、败通缉照旧、中途关闭不改存档、非法结果不崩、按开战档位、异常欠款回退、胜败累计、只被 dev_entry 调用）；`node test/battle_rt_proto.js` 106/106（新增 8 条：cleared/timeout/dead/closed 原因、重开清空、end 不带原因回退、覆盖层关闭句柄）；`python3 -B test/dev_entry_v25_page.py` 20/20（新增：真页面天道通缉打赢 → 覆盖层关后弹结算卡、撤通缉、欠款 30000 不变、已存档；重债打输 → +889 误工费并存档）；lowpoly_box、validate22 0 错、encounter_chain_verify 14/14 均无新失败、battle_rt_proto_page 12/12、sys33_unit 0 失败、jsscan33 0 错。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`www/js/battle_realtime_prototype.js`、`test/stage3_chain.js`、`test/battle_rt_proto.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：债压档位接入突破难度预览（只读，显示「欠得多突破更难」的预估），或追兵战按档位给敌人加前摇更快/弹道更多的差异；主人试玩定数值（奇遇链、查账链、灵根技能、误工费率）照旧待办。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

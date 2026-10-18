@@ -74,18 +74,31 @@
     };
     document.body.appendChild(qy2);
 
-    // 追兵战按钮：债务系统强化 #1——按当前债压档位（Stage3.debtPressure）刷讨债鬼进即时战原型；只读，不改存档、不发奖
+    // 追兵战按钮：债务系统强化 #1/#2——按当前债压档位（Stage3.debtPressure）刷讨债鬼进即时战原型；
+    // 打完按胜负结算（Stage3.settleBounty：胜撤通缉、败加误工费）并存档；中途关掉不结算。不发奖。
     const zb = document.createElement('button');
     zb.id = 'v25-zb';
     zb.textContent = '追兵战';
     zb.style.cssText = 'position:fixed;right:12px;bottom:370px;z-index:9999;padding:8px 14px;background:#5a2a2a;color:#ffb0a0;border:1px solid #ffb0a0;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
-    zb.onclick = () => {
+    zb.onclick = async () => {
       const g = gameObj();
       if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
       if (!window.RealtimeBattle || !RealtimeBattle.open) return;
-      const P = Stage3.debtPressure(g.G);
-      const h = RealtimeBattle.open(Stage3.bountyEnemies(g.G), { force: true, label: '追兵·' + P.n });
-      if (h) toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了`, '#ffb0a0');
+      const G = g.G;
+      const P = Stage3.debtPressure(G);
+      const h = RealtimeBattle.open(Stage3.bountyEnemies(G), { force: true, label: '追兵·' + P.n });
+      if (!h) return;
+      toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了`, '#ffb0a0');
+      const r = await h.done;
+      const s = Stage3.settleBounty(G, Object.assign({}, r, { tier: P.tier }));
+      if (s.settled && typeof g.save === 'function') g.save();
+      if (h.closed) await h.closed;
+      const u = uiObj();
+      if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
+      if (u && u.card) {
+        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}`, 'i:bill', ['好']);
+        if (u.hud) u.hud();
+      }
     };
     document.body.appendChild(zb);
   }

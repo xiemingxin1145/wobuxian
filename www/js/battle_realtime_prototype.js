@@ -51,6 +51,7 @@
     time: 0,
     timeLimit: 20,
     result: null,
+    endReason: null,
     keys: new Set(),
     stick: { x: 0, y: 0 }, // 触屏摇杆方向（-1..1）
     rand: Math.random, // 测试可替换
@@ -145,6 +146,7 @@
     RT.skin = opts.skin || 'sprite'; // 'sprite' = 游戏现有精灵；'box' = 方块低模（需页面已加载 LowpolyBox）
     RT.label = opts.label ? String(opts.label).slice(0, 16) : '即时战(原型)'; // 顶栏标题（追兵战显示债压档位）
     RT.result = null;
+    RT.endReason = null;
     RT.keys.clear();
     RT.stick = { x: 0, y: 0 };
     RT.projectiles = [];
@@ -327,9 +329,9 @@
     RT.dmgNums = RT.dmgNums.filter(n => n.life > 0);
 
     // 结束条件
-    if (p.hp <= 0) endRealtime('lose');
-    else if (RT.enemies.every(e => e.hp <= 0)) endRealtime('win');
-    else if (RT.time > RT.timeLimit) endRealtime('lose'); // 超时保底，避免卡死
+    if (p.hp <= 0) endRealtime('lose', 'dead');
+    else if (RT.enemies.every(e => e.hp <= 0)) endRealtime('win', 'cleared');
+    else if (RT.time > RT.timeLimit) endRealtime('lose', 'timeout'); // 超时保底，避免卡死
   }
 
   // 玩家受击：闪避无敌中免伤并提示「闪避!」。返回是否真的扣血
@@ -415,16 +417,18 @@
     clamp(p);
   }
 
-  function endRealtime(result) {
+  // reason：'dead' 主角倒下 / 'cleared' 敌人清空 / 'timeout' 超时 / 'closed' 玩家中途关掉覆盖层（宿主据此决定是否结算）
+  function endRealtime(result, reason) {
     if (!RT.on) return;
     RT.on = false;
     RT.result = result;
+    RT.endReason = reason || (result === 'win' ? 'cleared' : 'dead');
     RT.keys.clear();
     RT.projectiles = [];
     RT.enemyProjectiles = [];
     toast('遭遇战结束：' + (result === 'win' ? '胜' : '败'), result === 'win' ? '#9aff9a' : '#ff9a9a');
     if (RT._resolve) {
-      RT._resolve({ result, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
+      RT._resolve({ result, reason: RT.endReason, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
       RT._resolve = null;
     }
   }
@@ -581,7 +585,8 @@
     document.body.appendChild(ov);
 
     const ctx = cv.getContext('2d');
-    let raf = 0, last = 0, closed = false, endT = 0;
+    let raf = 0, last = 0, closed = false, endT = 0, onClosed = null;
+    const closedP = new Promise(r => { onClosed = r; }); // 覆盖层真正移除后 resolve（宿主在此之后再弹结算卡，免得被覆盖层挡住）
     function frame(t) {
       if (closed) return;
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
@@ -595,13 +600,14 @@
       closed = true;
       cancelAnimationFrame(raf);
       document.removeEventListener('keydown', onKey);
-      if (RT.on) endRealtime('lose');
+      if (RT.on) endRealtime('lose', 'closed');
       if (ov.parentNode) ov.remove();
+      onClosed();
     }
     const done = startRealtimeEncounter(enemies, opts);
     if (RT.player && RT.player.els.length > 1) mkBtn('换', 'right:110px;bottom:104px;width:48px;height:48px;font-size:15px;', cycleElement); // 多灵根切换元素
     raf = requestAnimationFrame(frame);
-    return { done, close, canvas: cv };
+    return { done, closed: closedP, close, canvas: cv };
   }
 
   // 键盘监听（仅在原型开启时生效，避免污染正式游戏）

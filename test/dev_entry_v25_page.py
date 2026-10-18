@@ -1,6 +1,6 @@
 # v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
 # 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
-#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战、只读。
+#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战，打完按胜负结算（中途关掉不结算）。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
@@ -112,6 +112,27 @@ async def main():
             await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         except Exception as e:
             ck('追兵战真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 5. 追兵战按胜负结算（债务系统强化 #2）：胜撤通缉、败加误工费，都存档；结算卡在覆盖层关掉后才弹
+        try:
+            await pg.evaluate("()=>{const G=Game.G;G.debt=30000;G.flags.bounty=1;G.flags.stage3_bountyDebt=30000;Game.save();}")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            wtxt = await card.inner_text()
+            w = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),debt:Game.G.debt,bounty:!!Game.G.flags.bounty,bd:'stage3_bountyDebt' in Game.G.flags,win:Game.G.flags.s3b_win,sv:JSON.parse(localStorage.getItem('wbx2_save')||'{}')})")
+            ck('追兵战打赢（天道通缉）→ 结算卡在覆盖层关掉后弹出、撤掉通缉、欠款不变、已存档', not w['ov'] and not w['bounty'] and not w['bd'] and w['debt'] == 30000 and w['win'] == 1
+               and not (w['sv'].get('flags') or {}).get('bounty') and w['sv'].get('debt') == 30000 and '通缉已撤销' in wtxt)
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>{RealtimeBattle.state.player.hp=0;}")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            ltxt = await card.inner_text()
+            l = await pg.evaluate("({debt:Game.G.debt,lose:Game.G.flags.s3b_lose,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
+            ck('追兵战打输（重债）→ 误工费 889（10%）记进欠款并存档', l['debt'] == 8888 + 889 and l['saved'] == l['debt'] and l['lose'] == 1 and '误工费 889' in ltxt)
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+        except Exception as e:
+            ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)
         ck('无 JS 错误', not errs)
         await b.close()
     for m, c in checks: print(('PASS ' if c else 'FAIL ') + m)
