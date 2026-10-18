@@ -1,5 +1,5 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）+ 突破预估（债压→突破难度，只读）
 
 (function () {
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
@@ -101,6 +101,25 @@
       }
     };
     document.body.appendChild(zb);
+
+    // 突破预估按钮：债务系统强化 #3——按债压档位预估「欠得多突破更难」（Stage3.breakthroughPreview），只读：不改存档、不动正式突破
+    const tp = document.createElement('button');
+    tp.id = 'v25-tp';
+    tp.textContent = '突破预估';
+    tp.style.cssText = 'position:fixed;right:12px;bottom:420px;z-index:9999;padding:8px 14px;background:#2a4a5a;color:#a0e8ff;border:1px solid #a0e8ff;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    tp.onclick = async () => {
+      const g = gameObj(); const u = uiObj();
+      if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+      if (!u || !u.card) return;
+      const p = Stage3.breakthroughPreview(g.G, g);
+      const head = `债压：${p.tierName}（欠 ${p.debt}${p.bounty ? '，被通缉 +1 档' : ''}）`;
+      const body = !p.applicable ? `${head}\n${p.note}` :
+        `${p.from && p.to ? `境界：${p.from} → ${p.to}${p.ready ? '' : '（修为未圆满，仅预估）'}\n` : ''}${head}\n` +
+        `基础成功率：约 ${p.base}%${p.source === 'game' ? '（现行突破公式）' : '（默认值）'}${p.pills.length ? '，含' + p.pills.join('、') : ''}\n` +
+        `债压惩罚：−${p.penalty} 个百分点\n预估成功率：约 ${p.estimate}%\n${p.note}`;
+      await u.card('突破预估', body, 'i:sk_meditate', ['知道了']);
+    };
+    document.body.appendChild(tp);
   }
 
   function openEncounterOverlay() {

@@ -324,6 +324,62 @@ const Stage3 = {
     return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note };
   },
 
+  // ======== 债务系统强化 #3：债压档位 → 突破难度预览（只读，只由开发者入口「突破预估」按钮调用） ========
+  // 「欠得多突破更难」：先按现行突破公式（game.js Game._tryBreak，原样复刻、不调用它）算出基础成功率，
+  //   基础 = REALMS[境界].brk + 悟性×1.5% + 气运×0.5% + brkBonus + 技能树 brk + tmpBrk
+  //        （+ 练气持有筑基丹 30%、持有破境丹且 <95% 时 15%，与正式流程一样「持有即生效」，这里只看不吃），封顶 97%；
+  // 再按债压档位（debtPressure，挂通缉 +1 档封顶）扣预估惩罚 0 / 3 / 8 / 15 个百分点，预估下限 5%。
+  // 只读：不写 G、不吃丹、不清 tmpBrk、不调用 tryBreak/_tryBreak/save；正式突破成功率与流程一律不变。
+  // 读不到基础成功率（没有 Game/REALMS、境界非法、悟性/气运非数字、公式抛错）→ 回退默认 60% 并在 note 标注。
+  BRK_PENALTY: [0, 3, 8, 15],
+  BRK_DEFAULT: 0.6,
+  BRK_FLOOR: 5,
+  breakBase(G, game) {
+    const fb = (why) => ({ ok: false, base: this.BRK_DEFAULT, why });
+    try {
+      const RE = typeof REALMS !== 'undefined' && Array.isArray(REALMS) ? REALMS : null;
+      if (!RE) return fb('读不到境界表 REALMS');
+      if (!G || typeof G !== 'object') return fb('没有存档');
+      const r = G.realm;
+      if (!Number.isInteger(r) || r < 0 || r >= RE.length || !RE[r]) return fb('境界数据异常');
+      if (r === 6) return { ok: true, applicable: false, realm: r, why: '渡劫圆满走飞升天劫，不按成功率' };
+      if (r + 1 >= RE.length || !RE[r + 1]) return { ok: true, applicable: false, realm: r, why: '已到最高境界，没有下一境' };
+      const st = G.st || {};
+      const parts = [RE[r].brk, Number(st.int) * 0.015, Number(st.luck) * 0.005];
+      if (!parts.every(Number.isFinite)) return fb('境界成功率或悟性/气运不是数字');
+      const tree = game && typeof game.treeVal === 'function' ? Number(game.treeVal('brk')) : 0;
+      let ch = parts[0] + parts[1] + parts[2] + (Number(G.brkBonus) || 0) + (Number.isFinite(tree) ? tree : 0) + (Number(G.tmpBrk) || 0);
+      const inv = G.inv && typeof G.inv === 'object' ? G.inv : {};
+      const pills = [];
+      if (r === 1 && (inv.zjd || 0) >= 1) { ch += 0.3; pills.push('筑基丹'); }
+      if (r >= 1 && (inv.pjd || 0) >= 1 && ch < 0.95) { ch += 0.15; pills.push('破境丹'); }
+      ch = Math.min(0.97, ch);
+      if (!Number.isFinite(ch)) return fb('公式结果不是数字');
+      return { ok: true, applicable: true, realm: r, base: ch, pills, from: RE[r].n, to: RE[r + 1].n };
+    } catch (e) {
+      return fb('读取出错：' + (e && e.message ? e.message : e));
+    }
+  },
+  breakthroughPreview(G, game) {
+    if (game === undefined) game = typeof Game !== 'undefined' && Game ? Game : null;
+    const P = this.debtPressure(G);
+    const penalty = this.BRK_PENALTY[P.tier];
+    const b = this.breakBase(G, game);
+    const out = { tier: P.tier, tierName: P.n, debt: P.debt, bounty: P.bounty, penalty, readOnly: true };
+    try { out.ready = !!(game && typeof game.canBreak === 'function' && game.G === G && game.canBreak()); } catch (e) { out.ready = false; }
+    if (b.ok && !b.applicable) {
+      return Object.assign(out, { applicable: false, source: 'game', base: null, estimate: null, realm: b.realm, note: b.why + '；债压暂不影响。' });
+    }
+    const base = Math.round(b.base * 100);
+    const estimate = Math.max(this.BRK_FLOOR, base - penalty);
+    const debtNote = penalty ? `欠得多，突破更难：债压「${P.n}」预计 −${penalty} 个百分点。` : `债压「${P.n}」：欠得不多，不影响突破。`;
+    return Object.assign(out, {
+      applicable: true, source: b.ok ? 'game' : 'fallback', base, estimate,
+      realm: b.ok ? b.realm : null, from: b.from || null, to: b.to || null, pills: b.pills || [],
+      note: debtNote + (b.ok ? '' : `（基础成功率读不到：${b.why}，按默认 ${base}% 估算）`) + '只读预估，正式突破暂不扣。',
+    });
+  },
+
   // 开发者测试入口
   async test(G) {
     console.log('[Stage3] running encounter...');

@@ -1,6 +1,7 @@
 # v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
 # 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
-#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战，打完按胜负结算（中途关掉不结算）。
+#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战，打完按胜负结算（中途关掉不结算）；
+#      「突破预估」按债压档位弹卡显示基础成功率 − 惩罚（只读，存档不变）。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
@@ -26,8 +27,8 @@ async def main():
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
-        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
-        ck('六个开发者按钮互不重叠且都在屏内（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(6) for j in range(i+1, 6)) and all(b[0] >= 0 for b in boxes))
+        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb','v25-tp'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
+        ck('七个开发者按钮（含「突破预估」）互不重叠且都在屏内（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(7) for j in range(i+1, 7)) and all(b[0] >= 0 and b[1] <= 915 for b in boxes))
         ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['v25-entry','v25-eq','v25-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
@@ -133,6 +134,28 @@ async def main():
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
         except Exception as e:
             ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 6. 突破预估（债务强化 #3）：按债压档位显示 基础成功率 − 惩罚 0/3/8/15，只读：G 与存档都不变
+        try:
+            await pg.evaluate("()=>{const G=Game.G;G.realm=4;G.stage=3;G.exp=Game.need();Game.save();}")
+            cases = [(500, False, '小账', 0), (3000, False, '欠款', 3), (8888, False, '重债', 8), (30000, True, '天道通缉', 15), (3000, True, '重债', 8)]
+            for debt, bounty, name, pen in cases:
+                await pg.evaluate(f"()=>{{const G=Game.G;G.debt={debt};if({str(bounty).lower()})G.flags.bounty=1;else delete G.flags.bounty;Game.save();}}")
+                st = await pg.evaluate("""(()=>{const G=Game.G;return {g:JSON.stringify(G),sv:localStorage.getItem('wbx2_save'),
+                    raw:REALMS[G.realm].brk+G.st.int*0.015+G.st.luck*0.005+G.brkBonus+Game.treeVal('brk')+(G.tmpBrk||0),zjd:(G.inv.zjd||0),pjd:(G.inv.pjd||0),realm:G.realm}})()""")
+                raw = st['raw'] + (0.3 if st['realm'] == 1 and st['zjd'] else 0)
+                if st['realm'] >= 1 and st['pjd'] and raw < 0.95: raw += 0.15
+                base = round(min(0.97, raw) * 100); est = max(5, base - pen)
+                await pg.click('#v25-tp')
+                card = pg.locator('.card:has(.ct:text("突破预估"))').last; await card.wait_for(timeout=3000)
+                txt = await card.inner_text()
+                await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+                st2 = await pg.evaluate("({g:JSON.stringify(Game.G),sv:localStorage.getItem('wbx2_save')})")
+                okc = (f'债压：{name}' in txt and f'约 {base}%（现行突破公式）' in txt and f'−{pen} 个百分点' in txt and f'预估成功率：约 {est}%' in txt
+                       and '元婴 → 化神' in txt and st2['g'] == st['g'] and st2['sv'] == st['sv'])
+                ck(f'突破预估：欠 {debt}{"+通缉" if bounty else ""} → {name} 基础 {base}% −{pen} = {est}%，存档不变', okc)
+                if not okc: print('  card:', txt.replace(chr(10), ' | ')[:200])
+        except Exception as e:
+            ck('突破预估真页面流程（异常：' + str(e)[:80] + '）', False)
         ck('无 JS 错误', not errs)
         await b.close()
     for m, c in checks: print(('PASS ' if c else 'FAIL ') + m)

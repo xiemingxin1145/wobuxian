@@ -95,6 +95,12 @@
   - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`www/js/battle_realtime_prototype.js`、`test/stage3_chain.js`、`test/battle_rt_proto.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
 - 下一步：债压档位接入突破难度预览（只读，显示「欠得多突破更难」的预估），或追兵战按档位给敌人加前摇更快/弹道更多的差异；主人试玩定数值（奇遇链、查账链、灵根技能、误工费率）照旧待办。
 
+### 2026-10-19 第六轮（UTC+8，openworld-wip）
+- [x] 步骤 13：债务系统强化 #3「欠得多突破更难」（突破难度预览，**只读**）——`Stage3.breakthroughPreview(G, game)` 返回 `{tier, tierName, debt, bounty, base, penalty, estimate, source, applicable, ready, from, to, pills, note, readOnly}`。基础成功率由 `Stage3.breakBase` 原样复刻现行突破公式（`game.js` `Game._tryBreak`：`REALMS[境界].brk + 悟性×1.5% + 气运×0.5% + brkBonus + 技能树 brk + tmpBrk`，练气持有筑基丹 +30%、持有破境丹且 <95% 时 +15%「持有即生效」，封顶 97%），只读不调用正式流程、不吃丹、不清 tmpBrk。债压档位沿用 `Stage3.debtPressure`（挂通缉 +1 档封顶），预估惩罚 **小账 0 / 欠款 −3 / 重债 −8 / 天道通缉 −15 个百分点**，预估下限 5%。读不到基础（没 REALMS/Game、境界越界、悟性/气运非数字、公式抛错）回退默认 **60%** 并在 note 标注原因；渡劫期（走飞升天劫）和最高境界不给成功率预估。开发者入口新按钮「突破预估」（`bottom:420px`，与其余 6 个按钮不重叠）弹 `UI.card`：境界 → 下一境、债压档（欠款/通缉）、基础成功率、惩罚、预估、「只读预估，正式突破暂不扣」。正式突破成功率与流程**不变**（`game.js` 未改动，单测锁住原公式文本）。
+  - 测试：`node test/stage3_chain.js` 94/94（新增 15 条：四档与惩罚 0/3/8/15、回退 60% 标注、文案、通缉 +1 档封顶、6 种异常存档回退、**vm 载入真实 data.js + game.js 对照 5 个存档（凡人/练气+筑基丹/筑基+破境丹/金丹+技能树+tmpBrk/化神）预览基础 = 正式「冲击瓶颈」卡片显示的成功率**、预估 = 基础 − 惩罚、丹药计入/境界名/ready、预览不改存档、渡劫/最高境界不预估、越界/缺字段/非数字/抛错回退、预览代码不调 tryBreak/save/take/give 且不给 G 赋值、game.js 公式未改、只被 dev_entry 调用）；`python3 -B test/dev_entry_v25_page.py` 25/25（新增：七个按钮不重叠且在屏内；真页面元婴圆满 欠 500/3000/8888/30000+通缉/3000+通缉 → 小账 52%/欠款 49%/重债 44%/天道通缉 37%/重债 44%，卡片关后 G 与存档字符串都不变；0 JS 错误）；`node test/battle_rt_proto.js` 106/106、`node test/lowpoly_box.js` 55/55、`python3 -B test/battle_rt_proto_page.py` 12/12、`node test/validate22.js` 0 错、`python3 -B test/encounter_chain_verify.py` 14/14、`python3 -B test/sys33_unit.py` 0 失败、`python3 -B test/jsscan33.py` 0 错，均无新失败。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`test/stage3_chain.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：追兵战按档位给敌人加差异（重债/通缉档前摇更快、远程弹道更多），仍只走开发者入口；突破惩罚是否真的接入正式 `_tryBreak`（需 PR + 门禁，且自动任务本就不替玩家突破）待主人试玩后定。主人试玩定数值（奇遇链、查账链、灵根技能、误工费率、突破惩罚 0/3/8/15）照旧待办。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

@@ -204,6 +204,56 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const callers4 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /settleBounty/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers4.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 settleBounty：' + callers4.join(','));
 
+  // 12. 债务系统强化 #3：债压档位 → 突破难度预览（只读）
+  const BP = (g, game) => S.breakthroughPreview(g, game);
+  // node 里没有 REALMS/Game 的突破公式 → 回退默认 60%，四档惩罚 0/3/8/15
+  const p4 = [0, 3000, 8888, 30000].map(d => BP({ debt: d, realm: 1, st: { int: 5, luck: 5 } }, null));
+  ok(p4.map(p => p.tier).join() === '0,1,2,3' && p4.map(p => p.tierName).join() === '小账,欠款,重债,天道通缉', '突破预估：四档与 debtPressure 一致');
+  ok(p4.map(p => p.penalty).join() === '0,3,8,15' && p4.map(p => p.estimate).join() === '60,57,52,45', '突破预估：惩罚 0/3/8/15 个百分点，预估 = 基础 − 惩罚');
+  ok(p4.every(p => p.source === 'fallback' && p.base === 60 && p.applicable && p.readOnly && /默认 60%/.test(p.note)), '读不到 REALMS → 回退默认 60% 并在 note 标注');
+  ok(/欠得多，突破更难/.test(p4[3].note) && /不影响突破/.test(p4[0].note) && /只读预估/.test(p4[2].note), '文案：小账不影响、欠得多突破更难、标注只读预估');
+  ok(BP({ debt: 10, flags: { bounty: 1 } }, null).tier === 1 && BP({ debt: 10, flags: { bounty: 1 } }, null).penalty === 3 && BP({ debt: 30000, flags: { bounty: 1 } }, null).penalty === 15, '挂通缉 +1 档，封顶天道通缉（−15）');
+  ok([null, undefined, {}, { debt: NaN }, { debt: 'x', flags: 'y' }, { debt: -1, realm: 'a' }].every(g => { const p = BP(g, null); return p.tier === 0 && p.source === 'fallback' && p.estimate === 60; }), '异常存档：档位回退小账、基础回退 60%、不崩');
+  // 用真实 data.js + game.js（vm）对照：预览的基础成功率 = 正式「冲击瓶颈」卡片上显示的「成功率约 N%」
+  const vmB = require('vm'), fsB = require('fs');
+  const bcx = vmB.createContext({ console, window: {}, localStorage: { getItem() { return null; }, setItem() {} }, document: {} });
+  vmB.runInContext(fsB.readFileSync(path.join(jsDir, 'data.js'), 'utf8'), bcx);
+  vmB.runInContext(fsB.readFileSync(path.join(jsDir, 'game.js'), 'utf8'), bcx);
+  vmB.runInContext("var UI = { card: async (t, b) => { __cards.push(b); return 1; }, hud() {}, toast() {} }; var Sfx = { play() {} }; var __cards = []; Game.meta = { perks: {}, achs: {}, endings: {} };", bcx);
+  vmB.runInContext(fsB.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8'), bcx);
+  bcx.__saves = [
+    { realm: 0, st: { int: 5, luck: 5 }, brkBonus: 0, tmpBrk: 0, inv: {}, tree: {}, flags: { awakened: 1 }, debt: 0 },
+    { realm: 1, st: { int: 3, luck: 2 }, brkBonus: 0, tmpBrk: 0, inv: { zjd: 1 }, tree: {}, flags: {}, debt: 3000 },
+    { realm: 2, st: { int: 4, luck: 2 }, brkBonus: 0, tmpBrk: 0, inv: { pjd: 2 }, tree: {}, flags: {}, debt: 8888 },
+    { realm: 3, st: { int: 2, luck: 0 }, brkBonus: 0.08, tmpBrk: 0.05, inv: {}, tree: { misc: 5 }, flags: { bounty: 1 }, debt: 30000 },
+    { realm: 5, st: { int: 1, luck: 1 }, brkBonus: 0, tmpBrk: 0, inv: { pjd: 1 }, tree: {}, flags: {}, debt: 99999 },
+  ];
+  const cmp = await vmB.runInContext(`(async () => { const out = [];
+    for (const s of __saves) {
+      const G = JSON.parse(JSON.stringify(s)); G.stage = 3; Game.G = G; G.exp = Game.need();
+      const snap = JSON.stringify(G); const p = Stage3.breakthroughPreview(G, Game); const same = JSON.stringify(G) === snap;
+      __cards.length = 0; Game.G = JSON.parse(snap); await Game._tryBreak();
+      const m = /成功率约 (\\d+)%/.exec(__cards[0] || ''); out.push({ p, real: m ? +m[1] : null, same });
+    }
+    return out; })()`, bcx);
+  ok(cmp.every(c => c.p.source === 'game' && c.real !== null && c.p.base === c.real), '基础成功率 = 正式突破卡片上的成功率（5 个存档：凡人/练气+筑基丹/筑基+破境丹/金丹+技能树+tmpBrk/化神）：' + cmp.map(c => c.p.base + '=' + c.real).join(','));
+  ok(cmp.map(c => c.p.estimate).join() === cmp.map(c => Math.max(5, c.real - [0, 3, 8, 15][c.p.tier])).join() && cmp[3].p.tier === 3 && cmp[4].p.tier === 3, '真实公式下 预估 = 基础 − 档位惩罚（下限 5%）：' + cmp.map(c => c.p.tierName + c.p.estimate + '%').join(','));
+  ok(cmp[1].p.pills.join() === '筑基丹' && cmp[2].p.pills.join() === '破境丹' && cmp[0].p.from === '凡人' && cmp[0].p.to === '练气' && cmp.every(c => c.p.ready), '持有丹药按「持有即生效」计入、显示境界 → 下一境、修为圆满 ready');
+  ok(cmp.every(c => c.same), '预览不改存档（不吃丹、不清 tmpBrk、不动修为）');
+  const r6 = vmB.runInContext("Stage3.breakthroughPreview({ realm: 6, st: { int: 5, luck: 5 }, debt: 8888 }, Game)", bcx);
+  const r10 = vmB.runInContext("Stage3.breakthroughPreview({ realm: REALMS.length - 1, st: { int: 5, luck: 5 }, debt: 0 }, Game)", bcx);
+  ok(!r6.applicable && r6.estimate === null && /飞升/.test(r6.note) && !r10.applicable && /最高境界/.test(r10.note), '渡劫（走飞升天劫）/最高境界：不给成功率预估');
+  const rBad = vmB.runInContext("[{ realm: 99, debt: 0 }, { realm: 2, st: {}, debt: 0 }, { realm: 2, st: { int: 'x', luck: 1 } }].map(g => Stage3.breakthroughPreview(g, Game))", bcx);
+  const rThrow = vmB.runInContext("Stage3.breakthroughPreview({ realm: 2, st: { int: 5, luck: 5 }, debt: 0 }, { treeVal() { throw new Error('boom'); } })", bcx);
+  ok(rBad.every(p => p.source === 'fallback' && p.base === 60) && rThrow.source === 'fallback' && /boom/.test(rThrow.note), '境界越界/缺悟性气运/非数字/公式抛错 → 回退 60% 并标注原因');
+  const srcBrk = fsB.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  const prevSrc = srcBrk.slice(srcBrk.indexOf('breakBase('), srcBrk.indexOf('async test('));
+  ok(prevSrc.length > 500 && !/tryBreak|\.save\(|\.take\(|\.give\(|G\.\w+\s*=[^=]|tmpBrk\s*=[^=]/.test(prevSrc), '预览代码不调用 tryBreak/save/take/give、不给 G 赋值');
+  const gameSrc = fsB.readFileSync(path.join(jsDir, 'game.js'), 'utf8');
+  ok(gameSrc.includes("let ch = REALMS[r].brk + G.st.int * 0.015 + G.st.luck * 0.005 + G.brkBonus + this.treeVal('brk') + (G.tmpBrk || 0);") && gameSrc.includes('ch = Math.min(0.97, ch); G.tmpBrk = 0;'), '正式突破公式（game.js）未被改动，与预览复刻的一致');
+  const callers5 = fsB.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /breakthroughPreview|breakBase/.test(fsB.readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(callers5.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 breakthroughPreview：' + callers5.join(','));
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });
