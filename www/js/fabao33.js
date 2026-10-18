@@ -24,6 +24,16 @@ const FB_LINES = {
   a50: '“……其实你这人还行。至少你没把我押进鬼市。”',
   a100: '“从今天起，我的锋芒就是你的锋芒。三界的账，我们一起算。”',
 };
+// 3.3 文案包（docs/research_v33_text.md §1）：按器灵 id 分人设；缺字段回退 FB_LINES
+const FB_LINES_BY_ID = {
+  fb_jian: { birth: '“哼，总算醒了。先说好，我只给配得上我的人出鞘。”', any: ['“你出剑的姿势像在切菜。”', '“别拿我砍柴！我会记仇的。”', '“上次那一剑要是再快半分，那只狐妖就没了。可惜你慢。”', '“讨债的又来了？要不要我替你……算了，你先把剑法练好。”', '“天下名剑三千，我排第几？……你敢说不知道试试。”', '“今天不想打架。今天想被夸。”'], a50: '“……刚才那一剑，还行。就一点点还行。别得意。”', a100: '“我青萍这辈子只认一个主人。你要是敢先死，我就把天道劈成两半去找你。”', wipe: ['剑身轻颤了一下，像是在哼。', '青萍：“往左一点……对，就是那儿。”'] },
+  fb_ding: { birth: '“咳咳……几百年没睡这么足了。娃，吃了没？”', any: ['“穿暖点。修仙的人也会着凉，我见得多了。”', '“灵石别乱花，留点压箱底。我当年那个主人就是……唉，不说了。”', '“年轻人打架别冲最前面，有我挡着呢。”', '“这炉丹火候过了。不信你闻。”', '“天道讨债司？我年轻时它还叫天道借贷铺，那会儿利息低多了。”', '“又熬夜修炼？道心是要养的，不是熬的。”'], a50: '“你这娃，嘴上不说，心里是有数的。老头子没看错人。”', a100: '“这天塌下来，先砸的是我这口鼎。你只管往前走。”', wipe: ['老鼎：“轻点轻点，老骨头了。”', '鼎里冒出一缕暖烟，像是在笑。'] },
+  fb_ling: { birth: '“叮——当！你好你好！我叫叮当，你叫什么？你好高！你欠钱吗？”', any: ['“叮当叮当，今天也是被摇响的一天！”', '“我能摄魂，但我不想摄你的。你的魂看起来很累。”', '“刚才那个妖怪的魂好难吃，下次换一只。”', '“你要是睡不着，我给你摇一段安神曲？”', '“讨债的人一来，我就使劲响，吵死他们！”', '“你说我是不是全天下最可爱的法宝？是吧是吧？”'], a50: '“我决定了，以后只给你一个人响。别人摇我，我就装哑巴。”', a100: '“不管你走多远，只要我还在响，你就听得到回家的路。”', wipe: ['叮当咯咯直笑：“好痒！”', '铃铛轻响了三声，像在说谢谢。'] },
+  fb_suan: { birth: '“咳，鄙人账房先生，曾在天道讨债司供职三百年……放心，已经离职了。真的。”', any: ['“你这月的灵石进出，我粗算了一下……建议你少吃点。”', '“讨债司的利息是驴打滚，我内部人员告诉你，千万别续借。”', '“一笔勾销这招，是我当年偷偷练的。别告诉我前老板。”', '“你欠天道多少，我心里有本账。比你自己记得清楚。”', '“修仙要算成本。渡劫失败一次，等于白干三年。”', '“别问我为什么离职。问就是良心发现。”'], a50: '“说实话，你是我见过还钱态度最好的人。……虽然你从来没还过。”', a100: '“我把讨债司的总账本背下来了。哪天你要掀了它，记得带上我。”', wipe: ['算盘珠子噼里啪啦自己拨了一遍：“账平了。”', '账房先生：“擦拭费我就不收了。”'] },
+  fb_hulu: { birth: '“哈——欠……谁叫我？有吃的吗？”', any: ['“收妖怪可以，但我只收好吃的那种。”', '“别摇我，里面装着东西呢……具体装了什么，我也忘了。”', '“我肚子里能装一座山，就是装不下烦心事。”', '“今天的灵力回得慢？那是你没喂我。”', '“讨债的？收进来，三天就消化了。”', '“困……你打你的，我睡我的。”'], a50: '“你给的那块蟠桃，是我这辈子吃过最甜的。……我记着呢。”', a100: '“我肚子里最好的位置，留给你。要是哪天你累了，就进来躲一躲。”', wipe: ['阿紫打了个饱嗝。', '葫芦口飘出一股桃香。'] },
+  fb_jing: { birth: '“……你看得见我？有意思。”', any: ['“我照得见妖，也照得见人心。你的，很乱。”', '“不必看我，看路。”', '“那个对你笑的人，镜子里在哭。”', '“秘境下一层，往左。”', '“我没有脸。所以我不会骗你。”', '“天道也有影子。它很怕被照。”'], a50: '“……你是第一个不怕照我的人。”', a100: '“从今往后，你在镜中，我在你身后。真相若碎了，我替你拼回去。”', wipe: ['镜面泛起涟漪，映出你小时候的样子。', '无面：“……嗯。”'] },
+};
+const fbLines = id => Object.assign({}, FB_LINES, FB_LINES_BY_ID[id] || {});
 const FB33 = {
   cost(n) { return { stone: Math.round(300 * Math.pow(2.2, n)), ore: n, yd: n >= 5 ? n - 4 : 0, rate: Math.max(0.4, 1 - 0.08 * n) }; },
   st() { const G = Game.G; return G && G.fb33 && FABAO[G.fb33.id] ? G.fb33 : null; },
@@ -43,7 +53,7 @@ const FB33 = {
     G.stone -= c.stone; Game.take('ore', c.ore); if (c.yd) Game.take('yd', c.yd);
     if (Math.random() < c.rate) {
       f.tier++; f.spent = (f.spent || 0) + c.stone; Sfx.play('gong', 0.6);
-      if (f.tier === 6) await UI.card('器灵诞生', `${FABAO[f.id].n}嗡的一声，从器身里钻出一个小小的影子——\n${FABAO[f.id].ling}：“${FB_LINES.any[0].slice(1, -1)}……咳，初次见面。以后请多擦擦我。”\n\n（洞府·本命法宝里可以与器灵对话、擦拭法宝提升好感）`, 'i:' + FABAO[f.id].ic, ['好']);
+      if (f.tier === 6) await UI.card('器灵诞生', `${FABAO[f.id].n}嗡的一声，从器身里钻出一个小小的影子——\n${FABAO[f.id].ling}：${fbLines(f.id).birth || '“' + FB_LINES.any[0].slice(1, -1) + '……咳，初次见面。以后请多擦擦我。”'}\n\n（洞府·本命法宝里可以与器灵对话、擦拭法宝提升好感）`, 'i:' + FABAO[f.id].ic, ['好']);
       else UI.toast(`升阶成功！${FABAO[f.id].n} ${f.tier} 阶`, '#ffc84a');
       if (f.tier >= 9 && (f.aff || 0) >= 100) UI.toast(`专属神通「${SKILLS[FABAO[f.id].sk].n}」已解锁！`, '#ffc84a');
     } else { const back = Math.round(c.stone * 0.5); G.stone += back; f.spent = (f.spent || 0) + c.stone - back; await UI.card('升阶失败', `法宝光芒一闪即灭，阶位未掉。\n返还 50% 灵石：${back}（玄铁晶/妖丹已消耗）`, 'i:' + FABAO[f.id].ic, ['好']); }
@@ -51,10 +61,10 @@ const FB33 = {
   },
   async talk() {
     const f = this.st(); if (!f || f.tier < 6) return; const F = FABAO[f.id]; const a = f.aff || 0;
-    const line = a >= 100 && !f.s100 ? (f.s100 = 1, FB_LINES.a100) : a >= 50 && !f.s50 ? (f.s50 = 1, FB_LINES.a50) : pick(FB_LINES.any);
+    const L = fbLines(f.id); const line = a >= 100 && !f.s100 ? (f.s100 = 1, L.a100) : a >= 50 && !f.s50 ? (f.s50 = 1, L.a50) : pick(L.any);
     await UI.say('i:' + F.ic, F.ling + `（好感 ${a}）`, line, ['……']); Game.save();
   },
-  wipe() { const f = this.st(); if (!f || f.tier < 6) return; const d = this.today(); if (f.wipe === d) { UI.toast('今天已经擦过了（每天 05:00 刷新）'); return; } f.wipe = d; const got = this.addAff(5); if (typeof DAILY33 !== 'undefined') DAILY33.inc('wipe'); UI.toast(`擦拭法宝：器灵好感 +${got}`); Game.save(); },
+  wipe() { const f = this.st(); if (!f || f.tier < 6) return; const d = this.today(); if (f.wipe === d) { UI.toast('今天已经擦过了（每天 05:00 刷新）'); return; } f.wipe = d; const got = this.addAff(5); if (typeof DAILY33 !== 'undefined') DAILY33.inc('wipe'); const wl = fbLines(f.id).wipe; UI.toast((wl ? pick(wl) + ' ' : '') + `器灵好感 +${got}`); Game.save(); },
   html() {
     const G = Game.G; const f = this.st();
     if (!this.unlocked()) return `<div class="fb33"><b>本命法宝</b><p class="hint">🔒 筑基期解锁</p></div>`;

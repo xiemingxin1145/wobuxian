@@ -14,7 +14,7 @@ const DAILY33 = {
     if (today > D.day) { // 只在“日期前进”时刷新；时间往回调不刷新、不重复领
       const pool = DAILY_POOL.slice(); const pickN = []; let seed = today; const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
       while (pickN.length < 4) pickN.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
-      D.day = today; D.tasks = pickN.map(([k, n, need]) => ({ k, n, need, cnt: 0, got: 0 })); D.pts = 0; D.box = 0; D.talked = {};
+      if (D.day && typeof UI !== 'undefined') setTimeout(() => { try { UI.toast('天道今日派发了新的修行KPI。', '#9affd0'); } catch (e) { } }, 900); D.day = today; D.tasks = pickN.map(([k, n, need]) => ({ k, n, need, cnt: 0, got: 0 })); D.pts = 0; D.box = 0; D.talked = {};
     }
     return D;
   },
@@ -36,8 +36,8 @@ const DAILY33 = {
     await new Promise(res => { c.onclick = e => { const b = e.target.closest('[data-d]'); if (!b || b.disabled) return; Sfx.play('click'); const D = this.st(); const a = b.dataset.d;
       if (a === 'x') { UI.pop(w); res(); return; }
       if (a === 't') { const t = D.tasks[+b.dataset.v]; if (t && t.cnt >= t.need && !t.got) { t.got = 1; D.pts += 25; } }
-      if (a === 'box' && D.pts >= 100 && !D.box) { D.box = 1; UI.toast('道途宝箱：' + this.give([['stone', Math.round(this.need() * 0.3)], ['herb', 5], ['xyf', 1]]), '#ffc84a'); }
-      if (a === 'sign' && D.sign.last < this.day()) { const got = this.give(this.signRw(D.sign.n)); D.sign.last = this.day(); D.sign.n = (D.sign.n + 1) % 7; UI.toast('签到：' + got, '#ffc84a'); }
+      if (a === 'box' && D.pts >= 100 && !D.box) { D.box = 1; UI.toast('今日道途已满。天道表示：可以，但不多。道途宝箱：' + this.give([['stone', Math.round(this.need() * 0.3)], ['herb', 5], ['xyf', 1]]), '#ffc84a'); }
+      if (a === 'sign' && D.sign.last < this.day()) { const back = D.sign.last && D.sign.last < this.day(this.now() - 86400e3); const d7 = D.sign.n === 6; const got = this.give(this.signRw(D.sign.n)); if (d7) UI.toast('连续签到七日！讨债司为您的勤勉感到困惑。', '#ffc84a'); else if (back) UI.toast('欢迎回来。你不在的日子，债没少，签到也没丢。', '#9affd0'); D.sign.last = this.day(); D.sign.n = (D.sign.n + 1) % 7; UI.toast('签到：' + got, '#ffc84a'); }
       Game.saveMeta(); Game.save(); draw(); this.dot(); }; });
   },
   devSkip() { const now = this.now(); const d = new Date(now - 5 * 3600e3); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); this.off += (d.getTime() + 5 * 3600e3 + 1000) - now; this.st(); Game.saveMeta(); this.dot(); },

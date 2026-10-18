@@ -4,22 +4,22 @@
 // 存档：G.mingge（数组；新局创建时为 null 表示待选；老档 undefined → 补选）、G.flags.mg33_once（一次性加成已结算）。
 // 接入：包裹 Game.newLife / enterMap / stats / lifeMax / fight / tribulation / yearEnd，不改本体。
 const MINGGE = [
-  { id: 'tieshen', n: '铁骨', q: 0, d: '气血上限 +10%' },
-  { id: 'jianzhi', n: '剑痴', q: 0, d: '技能伤害 +12%（剑修本色）' },
-  { id: 'caimi', n: '财迷', q: 0, d: '斗法灵石收益 +15%' },
-  { id: 'yaoxiang', n: '药香', q: 0, d: '炼丹成功率 +5%' },
-  { id: 'changshou', n: '长寿相', q: 0, d: '寿元上限 +8%' },
-  { id: 'kouhua', n: '嘴炮', q: 0, d: 'NPC 好感获取 +20%（你还有一张嘴）' },
-  { id: 'wuxing', n: '悟性通透', q: 1, d: '修为获取 +12%' },
-  { id: 'duanjie', n: '抗雷体', q: 1, d: '渡劫失败时损失的修为减半' },
-  { id: 'fuyuan', n: '福缘深厚', q: 1, d: '气运 +2（奇遇/事件更易出现）' },
-  { id: 'qiling', n: '器灵亲和', q: 1, d: '器灵好感获取 +30%' },
-  { id: 'shoulei', n: '兽语', q: 1, d: '灵兽捕获率 +15%' },
-  { id: 'nitian', n: '逆天者', q: 2, d: '突破成功率 +8 个百分点（封顶 95%）' },
-  { id: 'tiandao_vip', n: '天道VIP', q: 2, d: '天道欠款利息 -30%（讨债司对你格外客气）' },
-  { id: 'tianmo', n: '天魔种', q: 2, d: '修为获取 +25%；心魔幻境难度 +1 档（3.4）' },
-  { id: 'huanghun', n: '黄昏客', q: 2, d: '寿元剩余 <10% 时全属性 +20%' },
-  { id: 'dao_xin', n: '道心无暇', q: 2, d: '心魔幻境保底「小成」（3.4 开放）' },
+  { id: 'tieshen', n: '铁骨', q: 0, d: '气血上限 +10%', fl: '小时候被牛踩过，牛瘸了。' },
+  { id: 'jianzhi', n: '剑痴', q: 0, d: '技能伤害 +12%（剑修本色）', fl: '吃饭用剑，睡觉抱剑，做梦也在练剑。' },
+  { id: 'caimi', n: '财迷', q: 0, d: '斗法灵石收益 +15%', fl: '路上有一块灵石，你三里外就闻到了。' },
+  { id: 'yaoxiang', n: '药香', q: 0, d: '炼丹成功率 +5%', fl: '你种什么都长，连石头都发芽。' },
+  { id: 'changshou', n: '长寿相', q: 0, d: '寿元上限 +8%', fl: '算命的说你能活很久。他自己第二年就走了。' },
+  { id: 'kouhua', n: '嘴炮', q: 0, d: 'NPC 好感获取 +20%（你还有一张嘴）', fl: '能把妖怪说哭，把讨债的说成借你钱的。' },
+  { id: 'wuxing', n: '悟性通透', q: 1, d: '修为获取 +12%', fl: '别人看一遍不懂的，你看一眼就会。' },
+  { id: 'duanjie', n: '抗雷体', q: 1, d: '渡劫失败时损失的修为减半', fl: '被雷劈过三次，第四次雷绕着你走。' },
+  { id: 'fuyuan', n: '福缘深厚', q: 1, d: '气运 +2（奇遇/事件更易出现）', fl: '你摔一跤都能捡到秘籍。' },
+  { id: 'qiling', n: '器灵亲和', q: 1, d: '器灵好感获取 +30%', fl: '法宝见了你都想认主。' },
+  { id: 'shoulei', n: '兽语', q: 1, d: '灵兽捕获率 +15%', fl: '你听得懂狗叫。狗也听得懂你。' },
+  { id: 'nitian', n: '逆天者', q: 2, d: '突破成功率 +8 个百分点（封顶 95%）', fl: '天要你死，你偏不。' },
+  { id: 'tiandao_vip', n: '天道VIP', q: 2, d: '天道欠款利息 -30%（讨债司对你格外客气）', fl: '讨债司内部备注：此人惹不起，请客气。' },
+  { id: 'tianmo', n: '天魔种', q: 2, d: '修为获取 +25%；心魔幻境难度 +1 档（3.4）', fl: '心里住着一个更强的你，也更坏。' },
+  { id: 'huanghun', n: '黄昏客', q: 2, d: '寿元剩余 <10% 时全属性 +20%', fl: '越到最后，越不肯认输。' },
+  { id: 'dao_xin', n: '道心无暇', q: 2, d: '心魔幻境保底「小成」（3.4 开放）', fl: '道心如镜，心魔照进来也只会看见自己。' },
 ];
 const MG_Q = [['凡', '#c8c8c8'], ['灵', '#7ac8ff'], ['天', '#ffc84a']];
 const MG33 = {
@@ -53,7 +53,7 @@ const MG33 = {
       let cand = this.roll(6), sel = [], rerolled = n < 3; // 补选（只选 1 个）不提供重抽
       const w = h('div', 'mwrap mg33w'); const c = h('div', 'card mg33');
       const draw = () => {
-        c.innerHTML = `<div class="ct">${esc(title)}</div><div class="mgsub">${esc(sub)}（已选 ${sel.length}/${n}）</div><div class="mglist">${cand.map(id => { const m = this.get(id); const Q = MG_Q[m.q]; return `<div class="mgc${sel.includes(id) ? ' on' : ''}" data-id="${id}" style="border-color:${Q[1]}"><b style="color:${Q[1]}">【${Q[0]}】${esc(m.n)}</b><small>${esc(m.d)}</small></div>`; }).join('')}</div>
+        c.innerHTML = `<div class="ct">${esc(title)}</div><div class="mgsub">${esc(sub)}（已选 ${sel.length}/${n}）</div><div class="mglist">${cand.map(id => { const m = this.get(id); const Q = MG_Q[m.q]; return `<div class="mgc${sel.includes(id) ? ' on' : ''}" data-id="${id}" style="border-color:${Q[1]}"><b style="color:${Q[1]}">【${Q[0]}】${esc(m.n)}</b><small>${esc(m.d)}</small>${m.fl ? `<i class="mgfl">${esc(m.fl)}</i>` : ''}</div>`; }).join('')}</div>
           <div class="opts"><button class="opt" data-k="ok">${sel.length >= n ? '确定' : '随缘补齐'}</button>${n < 3 ? "" : rerolled ? "<button class=\"opt\" data-k=\"re\" disabled>重抽一次（已用）</button>" : "<button class=\"opt\" data-k=\"re\">重抽一次</button>"}</div>`;
       };
       draw(); w.appendChild(c); UI.push(w);
@@ -100,5 +100,5 @@ const MG33 = {
   const _say = UI.say; UI.say = function (por, name, text, opts) { const G = Game.G; const a0 = G && MG33.has('kouhua') ? Object.assign({}, G.aff) : null; const p = _say.apply(this, arguments); if (a0) p.then(() => { for (const k in G.aff) { const d = (G.aff[k] || 0) - (a0[k] || 0); if (d > 0) G.aff[k] += Math.round(d * 0.2); } }); return p; };
   // 角色面板：显示命格
   const _pc = UI.p_char; UI.p_char = function (b, re) { const r = _pc.apply(this, arguments); const G = Game.G; if (G && Array.isArray(G.mingge) && G.mingge.length) { const d = h('div', 'mg33row', '<b>先天命格</b>' + G.mingge.map(id => { const m = MG33.get(id); return m ? `<span style="color:${MG_Q[m.q][1]}">【${MG_Q[m.q][0]}】${esc(m.n)}</span><small>${esc(m.d)}</small>` : ''; }).join('')); b.appendChild(d); } return r; };
-  const css = document.createElement('style'); css.textContent = `.mg33{max-width:380px}.mg33 .mgsub{font-size:13px;color:#d8c8a8;margin:2px 0 8px;text-align:center}.mglist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.mgc{border:2px solid #888;border-radius:10px;padding:8px;background:rgba(30,20,40,.55);min-height:64px}.mgc b{display:block;font-size:15px}.mgc small{display:block;font-size:12px;color:#eee;margin-top:3px;line-height:1.3}.mgc.on{background:rgba(255,200,74,.28);box-shadow:0 0 10px #ffc84a}.mg33row{margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,0,0,.2)}.mg33row b{display:block;margin-bottom:4px}.mg33row span{display:inline-block;margin-right:6px;font-weight:bold}.mg33row small{display:block;font-size:12px;opacity:.85;margin-bottom:3px}`; document.head.appendChild(css);
+  const css = document.createElement('style'); css.textContent = `.mg33{max-width:380px}.mg33 .mgsub{font-size:13px;color:#d8c8a8;margin:2px 0 8px;text-align:center}.mglist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.mgc{border:2px solid #888;border-radius:10px;padding:8px;background:rgba(30,20,40,.55);min-height:64px}.mgc b{display:block;font-size:15px}.mgc small{display:block;font-size:12px;color:#eee;margin-top:3px;line-height:1.3}.mgc i.mgfl{display:block;font-size:11px;color:#c9b48a;margin-top:3px;line-height:1.25;font-style:normal;opacity:.9}.mgc.on{background:rgba(255,200,74,.28);box-shadow:0 0 10px #ffc84a}.mg33row{margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,0,0,.2)}.mg33row b{display:block;margin-bottom:4px}.mg33row span{display:inline-block;margin-right:6px;font-weight:bold}.mg33row small{display:block;font-size:12px;opacity:.85;margin-bottom:3px}`; document.head.appendChild(css);
 })();
