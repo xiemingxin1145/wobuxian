@@ -74,6 +74,12 @@
   - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`test/stage3_chain.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
 - 下一步：主人在开发者入口试玩「奇遇链」确认数值；若要进正式事件池，走 PR + 门禁，并把扛税/举报加入 ux23 自动任务 UNSAFE（重大选择须暂停）；真机试即时原型手感，决定回流 rt27 的三项。
 
+### 2026-10-19 第四轮（UTC+8，openworld-wip）
+- [x] 步骤 9：即时原型「技」按钮按**灵根 × 武器**变形（灵根 `G.lg`→`LINGGEN.el`、武器 `G.eq.weapon`→图标，均只读，缺失回退无灵根/空手）：火=焚天扇火（面前 35° 锥形 0.6×攻 + 灼烧 2s 共 0.3×攻，冷却 2.0s）、水/冰=缚水灵珠（0.7×攻 + 减速 50% 2.5s，1.8s）、金=庚金剑气（0.9×攻 贯穿所有敌人，1.6s）、木=青藤缠缚（0.5×攻 + 定身 1s，2.2s）、无/土/雷=灵弹。武器修正：剑 伤害×1.15 弹速×1.2、扇 范围×1.35、伞 冷却×0.75。多灵根默认主灵根（`el[0]`，如双灵根=木），E 键 /「换」按钮切换。顶栏显示技能名与冷却；状态有灼烧点/减速圈/定身圈。
+  - 测试：`node test/battle_rt_proto.js` 93/93（新增 26 条，灵根表取自真实 data.js：读存档、5 种灵根×武器组合、缺表/缺武器回退、金贯穿两只、冷却、火锥只中前方+灼烧总量、水减速与恢复、木定身、三种武器修正、双灵根切换、单灵根不切、存档不变）；`test/battle_rt_proto_page.py` 12/12（真页面：天灵根+寒霜剑→庚金剑气·剑贯穿两只；双灵根+折扇→点「换」「技」→锥形火焰+灼烧）；其余均无新失败（lowpoly 55、stage3_chain 36、dev_entry_page 11、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33）。
+  - 涉及文件：`www/js/battle_realtime_prototype.js`、`test/battle_rt_proto.js`、`test/battle_rt_proto_page.py`、`PROGRESS.md`
+- 下一步：步骤 10 —— 第二条开发者奇遇链（另一位现有 NPC + 债务）。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

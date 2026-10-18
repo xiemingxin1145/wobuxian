@@ -205,6 +205,74 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(r9b.spr === 'player_f1' && r9b.toasts === 1, '同上：主角精灵取自 Game.playerSpr()，UI.toast 可用');
   ok(!/window\.(Game|UI)\b/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8')), '原型不再用 window.Game / window.UI（真实页面里它们是 undefined）');
 
+  // 10. 灵根 × 武器技能（灵根表取自真实 data.js；存档只读）
+  const vmD = require('vm'); const dctx = vmD.createContext({ window: {}, console });
+  vmD.runInContext(fs.readFileSync(path.join(ROOT, 'www', 'js', 'data.js'), 'utf8'), dctx);
+  global.LINGGEN = vmD.runInContext('LINGGEN', dctx);
+  const G10 = global.Game.G;
+  const setSave = (lg, ic) => { G10.lg = lg; G10.eqs = ic ? [{ uid: 'w1', slot: 'weapon', ic }] : []; G10.eq = ic ? { weapon: 'w1' } : {}; };
+  const snap10 = () => JSON.stringify(G10);
+  setSave('tian', 'sword_b'); let before10 = snap10();
+  ok(RB.readSpiritRoot().els.join() === '金' && RB.readWeaponType() === 'sword', '读存档：天灵根=金、寒霜剑=剑');
+  for (const [lg, ic, key, wt] of [['bing', 'fan', 'water', 'fan'], ['shuang', 'umbrella', 'wood', 'umbrella'], ['lei', null, 'bolt', 'none'], ['none', 'sword_w', 'bolt', 'sword'], ['bogus', null, 'bolt', 'none']]) {
+    setSave(lg, ic); done = RB.start(null, { timeLimit: 99 });
+    ok(S.player.skill.key === key && S.player.weapon === wt, `灵根 ${lg} + ${ic || '空手'} → ${key}/${wt}`);
+    RB.end('lose'); await done;
+  }
+  const saveLG = global.LINGGEN; global.LINGGEN = undefined; ok(RB.readSpiritRoot().src === 'default' && RB.readSpiritRoot().els[0] === '无', '没有 LINGGEN → 回退无灵根'); global.LINGGEN = saveLG;
+  G10.eq = { weapon: 'missing' }; ok(RB.readWeaponType() === 'none', '武器 uid 找不到 → 空手');
+  G10.eqs = null; ok(RB.readWeaponType() === 'none', 'eqs 缺失 → 空手');
+  // 三种（以上）形态各自生效
+  const field = (els, weapon, foes) => { const pr = RB.start(foes, { els, weapon, timeLimit: 99, atk: 100, hp: 500, scale: false }); S.player.x = 300; S.player.y = 320; S.player.faceX = 0; S.player.faceY = -1; S.enemies.forEach(e => { e.atkCd = 99; }); return pr; };
+  // 金：贯穿剑气，一发打穿两只
+  done = field(['金'], 'none', [{ name: 'A', hp: 999, x: 300, y: 250, speed: 0 }, { name: 'B', hp: 999, x: 300, y: 180, speed: 0 }]);
+  let cast = RB.skill();
+  for (let t = 0; t < 0.6; t += 1 / 60) RB.update(1 / 60);
+  ok(cast.key === 'metal' && S.enemies[0].hp === 999 - 90 && S.enemies[1].hp === 999 - 90, '金·剑气贯穿：前后两只各 -90（0.9×攻）');
+  ok(S.player.skillCd > 0 && RB.skill() === null, '金：冷却中再按无效');
+  RB.end('lose'); await done;
+  // 火：锥形 + 灼烧；锥外不中
+  done = field(['火'], 'none', [{ name: 'A', hp: 999, x: 300, y: 230, speed: 0 }, { name: 'B', hp: 999, x: 300, y: 420, speed: 0 }, { name: 'C', hp: 999, x: 420, y: 320, speed: 0 }]);
+  cast = RB.skill();
+  ok(cast.key === 'fire' && cast.hits === 1 && S.enemies[0].hp === 999 - 60 && S.enemies[1].hp === 999 && S.enemies[2].hp === 999, '火·锥形：只烧面前一只 -60，背后/侧面不中');
+  ok(S.fx.some(f => f.kind === 'cone'), '火：画锥形火焰特效');
+  for (let t = 0; t < 2.2; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].hp === 999 - 60 - 30 && S.enemies[0].burnT <= 0, '火：灼烧 2s 共 -30（0.15×攻/s），之后停止');
+  RB.end('lose'); await done;
+  // 水：命中减速 50%，敌人追击变慢
+  done = field(['水'], 'none', [{ name: 'A', hp: 999, x: 300, y: 260, speed: 100 }]);
+  S.enemies[0].atkCd = 99; RB.skill();
+  for (let t = 0; t < 0.25; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].slowT > 0 && Math.abs(S.enemies[0].slowMul - 0.5) < 1e-9 && S.enemies[0].hp === 999 - 70, '水·灵珠命中：-70 + 减速 50%');
+  S.enemies[0].x = 300; S.enemies[0].y = 120; let y0 = S.enemies[0].y; RB.update(0.5);
+  ok(Math.abs((S.enemies[0].y - y0) - 100 * 0.5 * 0.5) < 1, '水：减速期间追击速度减半');
+  for (let t = 0; t < 2.6; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].slowMul === 1, '水：减速结束恢复');
+  RB.end('lose'); await done;
+  // 木：定身
+  done = field(['木'], 'none', [{ name: 'A', hp: 999, x: 300, y: 260, speed: 100 }]);
+  RB.skill(); for (let t = 0; t < 0.25; t += 1 / 60) RB.update(1 / 60);
+  const ex = [S.enemies[0].x, S.enemies[0].y]; RB.update(0.3);
+  ok(S.enemies[0].rootT > 0 && S.enemies[0].x === ex[0] && S.enemies[0].y === ex[1], '木·青藤：命中后定身不动');
+  RB.end('lose'); await done;
+  // 武器修正：剑伤害 ×1.15、扇范围 ×1.35、伞冷却 ×0.75
+  const base = RB.skillFor('火', 'none'), sw = RB.skillFor('金', 'sword'), fa = RB.skillFor('火', 'fan'), um = RB.skillFor('水', 'umbrella');
+  ok(Math.abs(sw.k - 0.9 * 1.15) < 1e-9 && Math.abs(sw.spd - 420 * 1.2) < 1e-9 && sw.n === '庚金剑气·剑', '剑：伤害 ×1.15、弹速 ×1.2，名「庚金剑气·剑」');
+  ok(Math.abs(fa.range - base.range * 1.35) < 1e-9 && fa.arc > base.arc, '扇：火焰锥更远更宽');
+  ok(Math.abs(um.cd - 1.8 * 0.75) < 1e-9, '伞：冷却 ×0.75');
+  // 多灵根切换：双灵根 木→火
+  done = field(['木', '火'], 'fan', [{ name: 'A', hp: 999, x: 300, y: 250, speed: 0 }]);
+  ok(S.player.skill.key === 'wood', '双灵根默认主灵根 木');
+  RB._key.down({ key: 'e', preventDefault() {} });
+  ok(S.player.skill.key === 'fire' && S.player.skill.n === '焚天扇火·扇', 'E 键切到 火（焚天扇火·扇）');
+  RB.cycleElement(); ok(S.player.skill.key === 'wood', '再切回 木');
+  RB.end('lose'); await done;
+  done = field(['金'], 'none', null); ok(RB.cycleElement() === S.player.skill && S.player.skill.key === 'metal', '单灵根切换无效');
+  RB.end('lose'); await done;
+  setSave('tian', 'sword_b'); before10 = snap10(); done = RB.start(null, { timeLimit: 99 }); RB.skill(); RB.update(0.1); RB.end('lose'); await done;
+  ok(snap10() === before10, '灵根/武器只读：整场不改存档');
+  delete G10.lg; delete G10.eqs; delete G10.eq; delete global.LINGGEN;
+
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
   const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');

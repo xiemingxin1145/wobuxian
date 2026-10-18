@@ -8,6 +8,8 @@
 // 2026-10-19 第二轮：敌人改为「前摇预警（锁方向、红色预警区+闪烁）→ 近距前冲 / 远距弹道」，取消贴身接触伤害；
 //             玩家闪避给 0.3s 无敌（闪烁），无敌中前冲/弹道免伤并提示「闪避!」。
 //             主角血/攻只读取自 Game.stats()（+G.hp），异常回退 180/28；敌人血量/伤害同比缩放。
+// 2026-10-19 第四轮：技能按「灵根 × 武器」变形：火=锥形灼烧、水/冰=减速水珠、金=贯穿剑气、木=定身藤、其他=灵弹；
+//             剑/扇/伞分别加伤害弹速/范围/冷却修正；多灵根 E 键或「换」按钮切元素。灵根/武器只读，缺失回退。
 (function () {
   const W0 = 600, H0 = 520; // 逻辑战场尺寸
   const BOUND = { x0: 40, x1: 560, y0: 60, y1: 480 };
@@ -21,8 +23,25 @@
     cdMin: 1.4, cdVar: 0.8,
   };
   const DODGE = { cd: 1.2, dist: 90, inv: 0.3 };
+  // 灵根技能：主灵根元素决定形态（多灵根可按 E / 「换」切换），武器类型给修正。k = 伤害系数（×攻击）
+  const SKILL = {
+    fire: { n: '焚天扇火', el: '火', cd: 2.0, k: 0.6, range: 120, arc: Math.PI * 35 / 180, burnT: 2.0, burnK: 0.15, c: '#ff6a3a' }, // 面前锥形灼烧 + 持续掉血
+    water: { n: '缚水灵珠', el: '水', cd: 1.8, k: 0.7, spd: 220, r: 12, life: 2.0, slowT: 2.5, slow: 0.5, c: '#4aa8ff' },       // 慢速水珠，命中减速
+    metal: { n: '庚金剑气', el: '金', cd: 1.6, k: 0.9, spd: 420, r: 8, life: 1.4, pierce: true, c: '#ffd25e' },                  // 高速剑气，贯穿所有敌人
+    wood: { n: '青藤缠缚', el: '木', cd: 2.2, k: 0.5, spd: 260, r: 10, life: 1.8, rootT: 1.0, c: '#5adf6a' },                    // 命中定身
+    bolt: { n: '灵弹', el: '无', cd: 1.6, k: 22 / 28, spd: 320, r: 6, life: 1.8, c: '#ffd27b' },                                   // 无灵根 / 土 / 雷：保底灵弹
+  };
+  const EL2SKILL = { 火: 'fire', 水: 'water', 冰: 'water', 金: 'metal', 木: 'wood' };
+  // 武器修正：剑 伤害 ×1.15、剑气/弹速 ×1.2；扇 范围/弹体 ×1.35；伞 冷却 ×0.75；空手不修正
+  const WEAPON = {
+    sword: { n: '剑', dmg: 1.15, spd: 1.2, area: 1, cd: 1 },
+    fan: { n: '扇', dmg: 1, spd: 1, area: 1.35, cd: 1 },
+    umbrella: { n: '伞', dmg: 1, spd: 1, area: 1, cd: 0.75 },
+    none: { n: '空手', dmg: 1, spd: 1, area: 1, cd: 1 },
+  };
 
   const RT = {
+    fx: [], // 技能特效（锥形火焰等）
     on: false,
     player: null,
     enemies: [],
@@ -78,6 +97,43 @@
     } catch (e) { return def; }
   }
 
+  // 只读：灵根元素列表（Game.G.lg → LINGGEN[].el），缺失 → ['无']
+  function readSpiritRoot() {
+    try {
+      const g = gameObj();
+      const LG = typeof LINGGEN !== 'undefined' ? LINGGEN : null;
+      if (!g || !g.G || !LG) return { id: null, n: '无', els: ['无'], src: 'default' };
+      const l = LG.find(x => x.id === g.G.lg);
+      if (!l || !Array.isArray(l.el) || !l.el.length) return { id: l ? l.id : null, n: l ? l.n : '无', els: ['无'], src: l ? 'game' : 'default' };
+      return { id: l.id, n: l.n, els: l.el.slice(), src: 'game' };
+    } catch (e) { return { id: null, n: '无', els: ['无'], src: 'default' }; }
+  }
+  // 只读：当前装备武器图标 → 剑 / 扇 / 伞 / 空手
+  function readWeaponType() {
+    try {
+      const g = gameObj(); const G = g && g.G;
+      const uid = G && G.eq && G.eq.weapon;
+      const w = uid && Array.isArray(G.eqs) ? G.eqs.find(x => x && x.uid === uid) : null;
+      const ic = (w && w.ic) || '';
+      return ic.startsWith('sword') ? 'sword' : ic === 'fan' ? 'fan' : ic === 'umbrella' ? 'umbrella' : 'none';
+    } catch (e) { return 'none'; }
+  }
+  function skillFor(el, weapon) {
+    const key = EL2SKILL[el] || 'bolt';
+    const S = SKILL[key], W = WEAPON[weapon] || WEAPON.none;
+    return { key, el, weapon: W === WEAPON.none ? 'none' : weapon, n: S.n + (W !== WEAPON.none ? '·' + W.n : ''), cd: S.cd * W.cd, k: S.k * W.dmg,
+      spd: (S.spd || 0) * W.spd, r: (S.r || 0) * W.area, range: (S.range || 0) * W.area, arc: (S.arc || 0) * (W.area > 1 ? 1.2 : 1), base: S };
+  }
+  function cycleElement() {
+    if (!RT.player) return null;
+    const p = RT.player;
+    if (p.els.length < 2) return p.skill;
+    p.elIdx = (p.elIdx + 1) % p.els.length;
+    p.skill = skillFor(p.els[p.elIdx], p.weapon);
+    addDmg(p.x, p.y - 100, '切换：' + p.skill.n, p.skill.base.c);
+    return p.skill;
+  }
+
   function addDmg(x, y, txt, c) { RT.dmgNums.push({ x, y, txt: String(txt), c: c || '#fff2a8', life: 0.8, max: 0.8 }); }
 
   function startRealtimeEncounter(enemies, opts) {
@@ -93,8 +149,11 @@
     RT.projectiles = [];
     RT.enemyProjectiles = [];
     RT.dmgNums = [];
+    RT.fx = [];
     // 主角属性：opts 覆盖 > 存档只读 > 默认；敌人血量/伤害按同比缩放，保证「几刀砍死、几下被打死」的节奏不随境界变
     const ps = readPlayerStats();
+    const sr = opts.els ? { els: opts.els.slice(), src: 'opts' } : readSpiritRoot();
+    const wt = opts.weapon || readWeaponType();
     const pMax = opts.hp > 0 ? Math.round(opts.hp) : ps.max;
     const pHp = opts.hp > 0 ? pMax : ps.hp;
     const pAtk = opts.atk > 0 ? Math.round(opts.atk) : ps.atk;
@@ -112,6 +171,7 @@
       speed: e.speed != null ? e.speed : 70,
       state: 'chase', wind: 0, windKind: null, aimX: 0, aimY: 1, lunge: 0, lungeHit: false,
       atkCd: e.atkCd != null ? e.atkCd : (e.skillCd != null ? e.skillCd : 0.8 + RT.rand() * 1.2),
+      slowT: 0, slowMul: 1, burnT: 0, burnDps: 0, burnAcc: 0, rootT: 0,
       flash: 0, at: 0, moving: false,
     }));
     RT.player = {
@@ -122,6 +182,7 @@
       y: 320,
       speed: 210,
       atk: pAtk,
+      els: sr.els, elIdx: 0, weapon: wt, skill: skillFor(sr.els[0], wt),
       attackCd: 0,
       swing: 0,
       dashCd: 0,
@@ -176,6 +237,16 @@
       e.flash = Math.max(0, e.flash - dt);
       e.at += dt;
       if (e.hp <= 0) continue;
+      // 灵根技能状态：灼烧每 0.5s 结算一次、减速、定身
+      if (e.burnT > 0) {
+        const t = Math.min(dt, e.burnT); e.burnT -= dt; e.burnAcc += t; // burnAcc = 已烧秒数；按累计应扣 - 已扣 结算，避免取整误差
+        if (Math.floor(e.burnAcc / 0.5 + 1e-9) > Math.floor((e.burnAcc - t) / 0.5 + 1e-9) || e.burnT <= 0) {
+          const n = Math.round(e.burnDps * e.burnAcc) - (e.burnDone || 0);
+          if (n > 0) { e.burnDone = (e.burnDone || 0) + n; e.hp = Math.max(0, e.hp - n); addDmg(e.x, e.y - 70, '灼' + n, '#ff8a4a'); if (e.hp <= 0) continue; }
+        }
+      }
+      e.slowT = Math.max(0, e.slowT - dt); if (e.slowT <= 0) e.slowMul = 1;
+      e.rootT = Math.max(0, e.rootT - dt);
       const dx = p.x - e.x, dy = p.y - e.y;
       const d = Math.hypot(dx, dy) || 1;
       e.moving = false;
@@ -201,10 +272,10 @@
       // chase
       e.atkCd = Math.max(0, e.atkCd - dt);
       e.faceX = dx / d; e.faceY = dy / d;
-      if (d > FOE.stop) {
+      if (d > FOE.stop && e.rootT <= 0) {
         e.moving = true;
-        e.x += (dx / d) * e.speed * dt;
-        e.y += (dy / d) * e.speed * dt;
+        e.x += (dx / d) * e.speed * e.slowMul * dt;
+        e.y += (dy / d) * e.speed * e.slowMul * dt;
       }
       if (e.atkCd <= 0 && d < FOE.shotRange) {
         e.state = 'windup';
@@ -221,9 +292,12 @@
       proj.life -= dt;
       if (proj.life <= 0) continue;
       for (const e of RT.enemies) {
-        if (e.hp <= 0) continue;
-        if (Math.hypot(e.x - proj.x, e.y - proj.y) < 22) {
-          hitEnemy(e, Math.max(1, Math.round(p.atk * 22 / ATK.dmg)), 8); // 技能 ≈ 0.79×攻击
+        if (e.hp <= 0 || (proj.hit && proj.hit.has(e))) continue;
+        if (Math.hypot(e.x - proj.x, e.y - proj.y) < 16 + (proj.r || 6)) {
+          hitEnemy(e, proj.dmg || Math.max(1, Math.round(p.atk * 22 / ATK.dmg)), proj.pierce ? 4 : 8);
+          if (proj.slowT) { e.slowT = proj.slowT; e.slowMul = 1 - proj.slow; addDmg(e.x, e.y - 90, '减速', '#9ad0ff'); }
+          if (proj.rootT) { e.rootT = proj.rootT; addDmg(e.x, e.y - 90, '定身', '#9aff9a'); }
+          if (proj.pierce) { proj.hit = proj.hit || new Set(); proj.hit.add(e); continue; } // 贯穿：继续飞
           proj.life = 0;
           break;
         }
@@ -244,6 +318,8 @@
     }
     RT.enemyProjectiles = RT.enemyProjectiles.filter(pr => pr.life > 0 && pr.x > 0 && pr.x < W0 && pr.y > 0 && pr.y < H0);
 
+    for (const f of RT.fx) f.life -= dt;
+    RT.fx = RT.fx.filter(f => f.life > 0);
     // 飘字上浮衰减
     for (const n of RT.dmgNums) { n.life -= dt; n.y -= 40 * dt; }
     RT.dmgNums = RT.dmgNums.filter(n => n.life > 0);
@@ -305,12 +381,26 @@
     return hits;
   }
 
+  // 灵根 × 武器技能。返回本次施放信息（测试用）
   function playerSkill() {
-    if (!RT.on || !RT.player || RT.player.skillCd > 0) return;
-    const p = RT.player;
-    p.skillCd = 1.6;
-    const speed = 320;
-    RT.projectiles.push({ x: p.x + p.faceX * 20, y: p.y + p.faceY * 20 - 20, vx: p.faceX * speed, vy: p.faceY * speed, life: 1.8 });
+    if (!RT.on || !RT.player || RT.player.skillCd > 0) return null;
+    const p = RT.player, sk = p.skill || skillFor('无', 'none'), B = sk.base;
+    p.skillCd = sk.cd;
+    const dmg = Math.max(1, Math.round(p.atk * sk.k));
+    const fl = Math.hypot(p.faceX, p.faceY) || 1, fx = p.faceX / fl, fy = p.faceY / fl;
+    if (sk.key === 'fire') { // 锥形：立即判定
+      const hits = RT.enemies.filter(e => {
+        if (e.hp <= 0) return false;
+        const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy);
+        return d <= sk.range && (d < 20 || (dx * fx + dy * fy) / d >= Math.cos(sk.arc));
+      });
+      for (const e of hits) { hitEnemy(e, dmg, 6); e.burnT = B.burnT; e.burnDps = Math.max(1, p.atk * B.burnK * (sk.weapon === 'sword' ? WEAPON.sword.dmg : 1)); e.burnAcc = 0; e.burnDone = 0; }
+      RT.fx.push({ kind: 'cone', x: p.x, y: p.y, ang: Math.atan2(fy, fx), range: sk.range, arc: sk.arc, c: B.c, life: 0.3, max: 0.3 });
+      return { key: sk.key, hits: hits.length, dmg };
+    }
+    RT.projectiles.push({ kind: sk.key, x: p.x + fx * 20, y: p.y + fy * 20 - 20, vx: fx * sk.spd, vy: fy * sk.spd, life: B.life, r: sk.r, c: B.c, dmg,
+      pierce: !!B.pierce, slowT: B.slowT || 0, slow: B.slow || 0, rootT: B.rootT || 0 });
+    return { key: sk.key, hits: 0, dmg };
   }
 
   function playerDash() {
@@ -406,7 +496,22 @@
       }
     }
 
-    for (const proj of RT.projectiles) { ctx.fillStyle = '#ffd27b'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2); ctx.fill(); }
+    for (const proj of RT.projectiles) {
+      ctx.fillStyle = proj.c || '#ffd27b';
+      if (proj.kind === 'metal') { // 剑气：沿飞行方向的细长条
+        const a = Math.atan2(proj.vy, proj.vx); ctx.save(); ctx.translate(proj.x, proj.y); ctx.rotate(a); ctx.fillRect(-18, -proj.r / 2, 36, proj.r); ctx.restore();
+      } else { ctx.beginPath(); ctx.arc(proj.x, proj.y, proj.r || 6, 0, Math.PI * 2); ctx.fill(); }
+    }
+    for (const f of RT.fx) if (f.kind === 'cone') {
+      ctx.globalAlpha = 0.5 * f.life / f.max; ctx.fillStyle = f.c;
+      ctx.beginPath(); ctx.moveTo(f.x, f.y - 20); ctx.arc(f.x, f.y - 20, f.range, f.ang - f.arc, f.ang + f.arc); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    // 状态标记：灼烧红点 / 减速蓝圈 / 定身绿圈
+    for (const e of RT.enemies) if (e.hp > 0) {
+      if (e.burnT > 0) { ctx.fillStyle = '#ff6a3a'; ctx.beginPath(); ctx.arc(e.x + 16, e.y - 60, 4, 0, Math.PI * 2); ctx.fill(); }
+      if (e.slowT > 0) { ctx.strokeStyle = '#4aa8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 22, 9, 0, 0, Math.PI * 2); ctx.stroke(); }
+      if (e.rootT > 0) { ctx.strokeStyle = '#5adf6a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(e.x, e.y, 18, 7, 0, 0, Math.PI * 2); ctx.stroke(); }
+    }
     for (const proj of RT.enemyProjectiles) { ctx.fillStyle = '#e05a4a'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2); ctx.fill(); }
 
     // 伤害飘字
@@ -422,7 +527,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, 44);
     ctx.fillStyle = '#ffe680'; ctx.font = '15px sans-serif';
     const cd = v => (v > 0 ? v.toFixed(1) : '好');
-    ctx.fillText(`即时战(原型) ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max} 攻${p.atk}${RT.statSrc === 'game' ? '(存档)' : ''}  闪${cd(p.dashCd)} 技${cd(p.skillCd)}`, 12, 28);
+    ctx.fillText(`即时战(原型) ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max} 攻${p.atk}${RT.statSrc === 'game' ? '(存档)' : ''}  闪${cd(p.dashCd)} ${p.skill ? p.skill.n : '技'}${cd(p.skillCd)}`, 12, 28);
     if (!RT.on && RT.result) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, H0 / 2 - 40, W0, 80);
       ctx.fillStyle = RT.result === 'win' ? '#9aff9a' : '#ff9a9a'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
@@ -492,6 +597,7 @@
       if (ov.parentNode) ov.remove();
     }
     const done = startRealtimeEncounter(enemies, opts);
+    if (RT.player && RT.player.els.length > 1) mkBtn('换', 'right:110px;bottom:104px;width:48px;height:48px;font-size:15px;', cycleElement); // 多灵根切换元素
     raf = requestAnimationFrame(frame);
     return { done, close, canvas: cv };
   }
@@ -500,11 +606,12 @@
   function _rtKeyDown(e) {
     if (!RT.on) return;
     const k = (e.key || '').toLowerCase();
-    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'j', 'shift', 'q'].includes(k)) {
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'j', 'shift', 'q', 'e'].includes(k)) {
       RT.keys.add(k);
       if (k === ' ' || k === 'j') playerAttack();
       else if (k === 'shift') playerDash();
       else if (k === 'q') playerSkill();
+      else if (k === 'e') cycleElement();
       if (e.preventDefault) e.preventDefault();
     }
   }
@@ -531,6 +638,12 @@
     screenDir,
     devEnabled,
     readPlayerStats,
+    readSpiritRoot,
+    readWeaponType,
+    skillFor,
+    cycleElement,
+    SKILL,
+    WEAPON,
     ATK,
     FOE,
     DODGE,
