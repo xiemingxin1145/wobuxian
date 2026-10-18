@@ -468,7 +468,7 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
   setInterval(() => { try { if (R.mode !== 'map') return; const now = performance.now(); for (const e of R.ents) { if (e.kind !== 'npc' || e.hidden) continue; (e._trail = e._trail || []).push([now, e.i, e.j]); while (e._trail.length && now - e._trail[0][0] > TRAIL_MS) e._trail.shift(); } } catch (er) { } }, 100);
   const _pick = pickAt;
   pickAt = function (sx, sy) {
-    const h = _pick(sx, sy); if (!h || !h.tile) return h;
+    const h = _pick(sx, sy); if (!h || !h.tile || h.ent || h.mark) return h;
     const [wx, wy] = s2w(sx, sy); let best = null, bd = 1e9;
     for (const e of R.ents) {
       if (e.kind !== 'npc' || e.hidden || !e._trail) continue;
@@ -482,15 +482,27 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
     const P = R.player;
     if (P && P.path && P.path.length && !(e.talking > 0)) { const end = P.path[P.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
       if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
-    return _ai(e, dt);
+    // 两个 NPC 站得太近（<0.9 格）时，后者让开一格
+    if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
+      const o = R.ents.find(o => o !== e && o.kind === 'npc' && !o.hidden && Math.hypot(o.i - e.i, o.j - e.j) < 0.9);
+      if (o) { const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = -1;
+        for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) { const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
+          const dmin = Math.min(...R.ents.filter(x => x !== e && (x.kind === 'npc' || x === P) && !x.hidden).map(x => Math.hypot(x.i - ti - 0.5, x.j - tj - 0.5)));
+          if (dmin > bd) { bd = dmin; best = [ti, tj]; } }
+        if (best && bd > 1) moveTo(e, best[0], best[1]); } }
+    const had = e.path && e.path.length; const r = _ai(e, dt);
+    // 闲逛终点不贴着别的 NPC（避免两人重叠时点到错的人，olaf：点落魄剑仙却点中翠花）
+    if (!had && e.path && e.path.length) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
+      if (ei !== undefined && R.ents.some(o => o !== e && o.kind === 'npc' && !o.hidden && Math.hypot(o.i - ei - 0.5, o.j - ej - 0.5) < 1.3)) e.path = []; }
+    return r;
   };
 })();
 // 3.3：点了 NPC 正走过去/刚到达的 1.5 秒内，闲逛怪不贴脸开战（human_olaf T1 偶发“点名字牌却进了战斗”）
 (function () {
   const _go = UX.goTo.bind(UX);
-  UX.goTo = function (e, quiet) { if (e && (e.kind === 'npc' || e.kind === 'boss') && R.player) R.player._npcGrace = performance.now() + 8000; return _go(e, quiet); };
+  UX.goTo = function (e, quiet) { if (e && (e.kind === 'npc' || e.kind === 'boss') && R.player) R.player._npcGrace = performance.now() + 8000; else if (e && R.player) R.player._npcGrace = 0; return _go(e, quiet); };
   const _ie = Game.interactEnt; Game.interactEnt = function (e) { if (R.player) R.player._npcGrace = performance.now() + 1500; return _ie.apply(this, arguments); };
   const _mai = monAI;
-  monAI = function (e, dt) { const P = R.player; if (P && P._npcGrace > performance.now() && !P.chase) { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d < 1.2) { e.wt = 0.5; return; } } return _mai(e, dt); };
+  monAI = function (e, dt) { const P = R.player; if (P && P._npcGrace > performance.now() && !P.chase && P.target !== e) { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d < 3) { e.wt = 0.5; if (e.path && e.path.length) e.path = []; return; } } return _mai(e, dt); };
 })();
 { const _ot = Game.onTap; Game.onTap = function () { if (R.player) R.player._npcGrace = 0; return _ot.apply(this, arguments); }; }
