@@ -40,7 +40,19 @@ async def main():
           // 疲劳：yearsOnJob>=3 → mul 0.8；第 4 年产出 −20%
           o.hsFat=HS33.fatigued({yearsOnJob:3})===true&&HS33.fatMul({yearsOnJob:3})===0.8&&HS33.fatMul({yearsOnJob:2})===1;
           G.exp=0; const fatAdd=Math.round(need4*0.12*0.8); const gotF=HS33.addClosedExp(fatAdd); o.hsFatExp=Math.abs(gotF-fatAdd)<=1;
+          // #9 套组对齐 §6
+          o.sets=TJ_SETS.map(x=>x.id).join(','); o.cuizhaiRw=TJ_SETS.find(x=>x.id==='cuizhai').rw.length;
           return o;}""")
+        # #7 催收使击杀点亮图鉴（打桩战斗与弹窗，只核对结算逻辑）
+        res7 = await pg.evaluate("""async()=>{const G=Game.G;G.flags.awakened=1;G.kills={};G.tj33=null;TJ33.st(G);G.year=7;G.wb33=null;
+          const card=UI.card, say=UI.say; UI.card=async()=>0; UI.say=async()=>0; const sb=Game._startBattle; Game._startBattle=async(list)=>{list[0].hp=0;list[0].alive=false;return {res:'win',units:list,killed:list}};
+          WB33.spawn(true); await WB33.challenge(); Game._startBattle=sb; UI.card=card; UI.say=say;
+          return {kills:G.kills.wb33||0, lit:!!G.tj33.m.wb33, flag:!!G.flags.wb33_kill}}""")
+        res.update({'wb_kills': res7['kills'], 'wb_lit': res7['lit']})
+        # #8 弹窗期间存档不应带 _mgAsking，读档后 ensure 会重新弹
+        res8 = await pg.evaluate("""async()=>{const G=Game.G;G.mingge=null;G.flags.mg33_done=0;MG33.ensure();await new Promise(r=>setTimeout(r,300));Game.save();const s=JSON.parse(localStorage.getItem('wbx2_save'));
+          const shown=!!document.querySelector('.mg33');return {saved:'_mgAsking' in s, shown}}""")
+        res.update({'mg_flag_saved': res8['saved'], 'mg_shown': res8['shown']})
         await b.close()
     exp = {'cost3': {'stone': 3194, 'ore': 3, 'yd': 0, 'rate': 0.76}, 'tieshen': 1.1, 'changshou': 1.08, 'nitian': 0.08, 'nitianOnce': 0.08, 'fbAtk': 1.2, 'fbSkill': True, 'tier16': '乙', 'tier4': None, 'boardRepro': True, 'noSpawn5': True, 'mgNull': True, 'rollLen': True, 'excl': True, 'spawn': True, 'tj': '0,0.01,0.02,0.03,0.05', 'tjBack': True, 'dailyNoBack': True, 'signKeep': True, 'hsLock': True, 'hsMax4': True, 'hsCostExp': True, 'hsCostLz': True, 'hsCraft1': True, 'hsMaxBlock': True, 'hsMax5': True, 'hsCraft2': True, 'hsClosed': True, 'hsFat': True, 'hsFatExp': True}
     fails = [k for k, v in exp.items() if (abs(res.get(k) - v) > 0.011 if isinstance(v, float) else res.get(k) != v)]
