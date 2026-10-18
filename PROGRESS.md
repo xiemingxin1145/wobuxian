@@ -60,7 +60,10 @@
   - **顺手修的 bug**：`game.js`/`ui.js` 是顶层 `const Game`/`const UI`，真实页面里 `window.Game`/`window.UI` 都是 `undefined`。原型以前用 `window.Game` 判断 → 上一轮「主角用 Game.playerSpr()」在真页面里其实一直回退成 `player_m0`、toast 也从不显示。已改为 `typeof Game`，真页面验证主角精灵/属性均取自存档。⚠ 同样的写法还在 `dev_entry_v25.js`（「全套神装」、试炼场取消→阶段3奇遇）和 `stage3_encounter_draft.js:94`（`!window.UI` → 永远返回 no game or UI），这些开发者按钮在真页面里很可能静默无效，本轮未改（不在本轮步骤内），列为下一步。
   - 测试：`node test/battle_rt_proto.js` 64/64（新增 22 条：读存档/取整/敌人缩放/刀数不变/前冲伤害缩放/G 深比较不变/opts 覆盖/7 种异常回退/当前血非法与超上限/无 G/vm 模拟顶层 const/禁止 window.Game）；`test/battle_rt_proto_page.py` 8/8（新增：真页面建档后血/攻 = `Game.stats()`、女主精灵 `player_f2`、战斗前后 G 不变）；lowpoly_box 28/28；stage3_chain、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33 均无新失败。
   - 涉及文件：`www/js/battle_realtime_prototype.js`、`test/battle_rt_proto.js`、`test/battle_rt_proto_page.py`、`PROGRESS.md`
-- 下一步：步骤 6 —— 方块人补主角女 / 剑仙 + 受击姿势；之后修 `dev_entry_v25.js` / `stage3_encounter_draft.js` 的 `window.Game`/`window.UI` 判断。
+- [x] 步骤 6：方块人新增「主角女」（裙摆宽 42 = 剑修袍 1.6 倍、双侧长发束、发花、团扇）和「剑仙」（白袍高冠、白须、背负长剑、手持短剑，四人里最高），共 4 个；新增受击 `hurt` 姿势（上身后仰、双臂上扬、腿不动、首尾回正）。即时原型方块皮肤在受击闪白时播 hurt，可用 `boxPlayer` 选主角（预览页加下拉框）。`docs/openworld_upgrade.md` 新增「原型 vs rt27.js 对照」表（读代码对比，未做真人手感测试）及建议回流项。
+  - 测试：`node test/lowpoly_box.js` 55/55（新增：四角色、单武器、裙摆宽度比、长发、剑仙最高、背剑前后遮挡、四角色受击后仰且腿不动、首尾回正）；`test/battle_rt_proto.js` 67/67（新增：方块皮肤受击播 hurt/回 idle、boxPlayer:nvzhu 生效）；battle_rt_proto_page 8/8；stage3_chain、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33 均无新失败。
+  - 涉及文件：`www/js/lowpoly_box_chars.js`、`www/js/battle_realtime_prototype.js`、`www/prototypes/lowpoly_box/index.html`、`test/lowpoly_box.js`、`test/battle_rt_proto.js`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：① 修 `dev_entry_v25.js`（全套神装、试炼场取消→阶段3奇遇）和 `stage3_encounter_draft.js:94` 的 `window.Game`/`window.UI` 判断（真页面里为 undefined，按钮很可能静默无效），配页面冒烟测试；② 主人/奥拉夫真机试原型手感，决定对照表里三项是否开 PR 回流 `rt27.js`；③ 主人确认方块人风格是否继续。
 
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮

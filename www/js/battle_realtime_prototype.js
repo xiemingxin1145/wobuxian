@@ -85,6 +85,7 @@
     RT.on = true;
     RT.time = 0;
     RT.timeLimit = opts.timeLimit || 20;
+    RT.boxPlayer = opts.boxPlayer || null; // 方块皮肤下主角用哪个方块人（jianxiu / nvzhu / jianxian）
     RT.skin = opts.skin || 'sprite'; // 'sprite' = 游戏现有精灵；'box' = 方块低模（需页面已加载 LowpolyBox）
     RT.result = null;
     RT.keys.clear();
@@ -346,8 +347,12 @@
     let drawn = false;
     if (RT.skin === 'box' && typeof window !== 'undefined' && window.LowpolyBox) { // 方块低模皮肤（仅独立预览页加载 lowpoly_box_chars.js）
       const L = window.LowpolyBox;
-      const bt = isPlayer && u.swing > 0 ? 1 - u.swing / ATK.swing : u.at;
-      L.draw(ctx, u.box || (isPlayer ? 'jianxiu' : 'taozhai'), u.x, u.y, { scale: 0.9, angle: L.angleFromFace(u.faceX || 0, u.faceY || 1), anim: isPlayer && u.swing > 0 ? 'attack' : (u.moving ? 'walk' : 'idle'), t: bt });
+      const hurt = u.flash > 0.06; // 受击闪白期间播后仰（前摇闪烁只有 0.05，不触发）
+      const bAnim = isPlayer && u.swing > 0 ? 'attack' : (hurt ? 'hurt' : (u.moving ? 'walk' : 'idle'));
+      const bt = bAnim === 'attack' ? 1 - u.swing / ATK.swing : bAnim === 'hurt' ? 1 - u.flash / 0.15 : u.at;
+      const boxId = u.box || (isPlayer ? (RT.boxPlayer || 'jianxiu') : 'taozhai');
+      L.draw(ctx, boxId, u.x, u.y, { scale: 0.9, angle: L.angleFromFace(u.faceX || 0, u.faceY || 1), anim: bAnim, t: bt });
+      RT._lastBoxAnim = RT._lastBoxAnim || {}; RT._lastBoxAnim[isPlayer ? 'player' : u.name] = bAnim;
       return 'box';
     }
     if (sprOk(u.spr)) drawn = !!drawSprite(ctx, u.spr, anim, dir, f, u.x, u.y, 0.5, u.flash > 0 ? 0.6 : 1);

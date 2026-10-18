@@ -83,6 +83,16 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   const bctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fill') fills++; }), set: (t, k, v) => { t[k] = v; return true; } });
   RB.draw(bctx);
   ok(S.skin === 'box' && drawn.length === 0 && fills >= 40, '方块皮肤：画长方体（' + fills + ' 次填充），不走 drawSprite');
+  S.player.flash = 0.15; RB.draw(bctx);
+  ok(S._lastBoxAnim && S._lastBoxAnim.player === 'hurt', '方块皮肤：主角受击闪白期间播 hurt 后仰');
+  S.player.flash = 0; RB.draw(bctx);
+  ok(S._lastBoxAnim.player === 'idle', '方块皮肤：闪白结束回到 idle');
+  RB.end('lose'); await done;
+  done = RB.start(null, { skin: 'box', boxPlayer: 'nvzhu', timeLimit: 1 });
+  const fillsSeen = new Set(); const nctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fill') fillsSeen.add(t.fillStyle); }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(nctx);
+  const skirtFills = window.LowpolyBox.build('nvzhu', { angle: window.LowpolyBox.angleFromFace(0, -1) }).filter(f => f.part === 'skirt').map(f => f.fill);
+  ok(S.boxPlayer === 'nvzhu' && skirtFills.length > 0 && skirtFills.every(c => fillsSeen.has(c)), 'boxPlayer:nvzhu → 主角画成主角女（画面里出现裙摆配色）');
   RB.end('lose'); await done; delete window.LowpolyBox;
 
   // 8. 敌人前摇预警 + 前冲 / 弹道；玩家闪避无敌可躲

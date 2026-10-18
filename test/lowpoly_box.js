@@ -14,11 +14,12 @@ const partCen = (faces, n) => cen(faces.filter(f => f.part === n).flatMap(f => f
 const ang = (fx, fy) => L.angleFromFace(fx, fy);
 
 // 1. 两个样例角色，全部由长方体组成
-ok(window.LowpolyBox === L && L.ids.length === 2 && L.ids.includes('jianxiu') && L.ids.includes('taozhai'), '两个样例：青衫剑修 / 讨债鬼差');
+ok(window.LowpolyBox === L && ['jianxiu', 'taozhai', 'nvzhu', 'jianxian'].every(id => L.ids.includes(id)) && L.ids.length === 4, '四个样例：青衫剑修 / 讨债鬼差 / 主角女 / 剑仙');
 for (const id of L.ids) {
   const P = L.CHARS[id].parts;
   ok(P.length >= 10 && P.every(p => p.length === 9 && p[4] > 0 && p[5] > 0 && p[6] > 0 && /^#[0-9a-f]{6}$/i.test(p[7])), `${id}：${P.length} 个长方体，尺寸>0、颜色合法`);
-  ok(['head', 'robe', 'legL', 'legR', 'armL', 'armR', 'eyeL', 'eyeR'].every(n => P.some(p => p[0] === n)), `${id}：头/身/双腿/双臂/双眼齐全`);
+  ok(['head', 'legL', 'legR', 'armL', 'armR', 'eyeL', 'eyeR'].every(n => P.some(p => p[0] === n)) && P.some(p => p[0] === 'robe' || p[0] === 'skirt'), `${id}：头/身/双腿/双臂/双眼齐全`);
+  ok(P.filter(p => p[8] === 'sword').length === 1, `${id}：恰好一件手持武器（挥砍姿势用）`);
 }
 
 // 2. 背面剔除：任意朝向每个长方体只画 2~3 个面，且顶面始终可见
@@ -67,11 +68,32 @@ for (const id of L.ids) {
   calls.length = 0;
   const r = L.draw(fakeCtx(), id, 100, 200, {});
   ok(r.faces > 20 && calls.filter(c => c === 'fill').length === r.faces, `${id}：draw 填充 ${r.faces} 个面`);
-  ok(r.bbox.h > 80 && r.bbox.h < 110 && r.bbox.y1 <= 200 + 12, `${id}：高 ${r.bbox.h.toFixed(1)}px，脚底贴锚点`);
+  ok(r.bbox.h > 80 && r.bbox.h < 115 && r.bbox.y1 <= 200 + 12, `${id}：高 ${r.bbox.h.toFixed(1)}px，脚底贴锚点`);
   const r2 = L.draw(fakeCtx(), id, 100, 200, { scale: 2 });
   ok(Math.abs(r2.bbox.h - 2 * r.bbox.h) < 0.01, `${id}：scale 线性`);
 }
 ok(L.build('nobody', {}).length === 0, '未知角色 id 返回空，不崩');
+
+// 5b. 新角色特征：主角女裙摆宽（剪影区别于男性角色）+ 双侧长发；剑仙最高、背剑在身后
+const part = (id, n) => L.CHARS[id].parts.find(p => p[0] === n);
+ok(part('nvzhu', 'skirt')[4] / part('jianxiu', 'robe')[4] >= 1.5, `主角女裙摆宽 ${part('nvzhu', 'skirt')[4]} ≥ 剑修袍 ${part('jianxiu', 'robe')[4]} 的 1.5 倍`);
+ok(!!part('nvzhu', 'tailL') && !!part('nvzhu', 'tailR'), '主角女有双侧长发束');
+const H = id => L.draw(fakeCtx(), id, 0, 0, {}).bbox.h;
+ok(H('jianxian') > Math.max(H('jianxiu'), H('nvzhu'), H('taozhai')) - 1e-9 && H('jianxian') < 115, `剑仙最高（${H('jianxian').toFixed(1)}px）`);
+F = L.build('jianxian', { angle: ang(0, 1) });
+ok(Math.max(...idx(F, 'backSword')) < Math.min(...idx(F, 'robe')), '剑仙面向下：背上长剑先画（在身后）');
+F = L.build('jianxian', { angle: ang(0, -1) });
+ok(Math.min(...idx(F, 'backSword')) > Math.max(...idx(F, 'robe')), '剑仙面向上：背上长剑后画（露在背上）');
+
+// 5c. 受击 hurt：上身后仰、双臂上扬、腿不动，首尾归零
+for (const id of L.ids) {
+  const a0 = L.build(id, { angle: ang(0, 1), anim: 'hurt', t: 0 }), a1 = L.build(id, { angle: ang(0, 1), anim: 'hurt', t: 0.5 });
+  const hy0 = partCen(a0, 'head')[1], hy1 = partCen(a1, 'head')[1];
+  const ly0 = partCen(a0, 'legL'), ly1 = partCen(a1, 'legL');
+  ok(hy1 < hy0 - 2 && Math.abs(ly1[0] - ly0[0]) < 1e-9 && Math.abs(ly1[1] - ly0[1]) < 1e-9, `${id}：受击面向下 → 头往屏幕上方后仰 ${(hy0 - hy1).toFixed(1)}px，腿不动`);
+}
+ok(L.poseOffset('armL', 'hurt', 0.5)[2] > 0 && L.poseOffset('head', 'hurt', 0).every(v => Math.abs(v) < 1e-9) && L.poseOffset('head', 'hurt', 1).every(v => Math.abs(v) < 1e-9), '受击：双臂上扬，t=0/1 回正');
+ok(L.poseOffset('legR', 'hurt', 0.5).every(v => v === 0), '受击：腿偏移为 0');
 
 // 7. 隔离：不进正式加载链；正式 js 里只有即时战原型（skin==='box' 分支）引用 LowpolyBox
 const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
