@@ -109,6 +109,50 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const callers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runMerchantChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runMerchantChain：' + callers.join(','));
 
+  // 9. 小闭环 #3「记账童子的错账」：仙官·记账童子 xianguan + 天道债务
+  const X = (o) => Object.assign({ debt: 5000, stone: 1000, aff: {}, flags: {} }, o);
+  // 9a. 陪他对账 → 亲近 → 查账改单利 ×0.8
+  G = X(); picks = [0, 0]; shown.length = 0;
+  r = await S.runLedgerChain(G);
+  ok(r.step === 'ledger' && shown[0] === '记账童子的错账' && G.aff.xianguan === 60 && G.debt === 5000 && r.attitude === 'close', '对账：好感 0→60（亲近），债务不变');
+  ok(G.flags.s3x_step === 1 && !('merchant' in G.aff) && !G.flags.s3m_step, '记 s3x_step；不碰钱多多链的状态');
+  picks = [0, 0]; shown.length = 0; r = await S.runLedgerChain(G);
+  ok(shown[0] === '天道查账' && r.attitude === 'close' && G.debt === 4000 && G.flags.s3x_done === 1 && !G.flags.s3x_step, '查账（亲近）：欠款 ×0.8 → 4000，链结束');
+  // 9b. 贿赂 → 好感 20 一般 → 查账露馅：补回 1500 +10%
+  G = X(); picks = [1, 0]; r = await S.runLedgerChain(G);
+  ok(r.choice === 'bribe' && G.stone === 700 && G.debt === 3500 && G.aff.xianguan === 20 && G.flags.s3x_bribe === 1500, '贿赂：灵石 -300、欠款 -1500、好感 20（一般）');
+  picks = [0, 0]; r = await S.runLedgerChain(G);
+  ok(r.exposed && G.debt === 3500 + 1650 && !G.flags.s3x_bribe, '查账（一般+贿赂）：露馅，补回 1500×1.1 = +1650');
+  // 9c. 贿赂后又刷好感到亲近 → 童子替你瞒下，还给单利
+  G = X(); picks = [1, 0]; await S.runLedgerChain(G);
+  G.aff.xianguan = 80; picks = [0, 0]; r = await S.runLedgerChain(G);
+  ok(!r.exposed && r.attitude === 'close' && G.debt === 2800, '贿赂后送礼到 80：童子瞒下 + 单利 ×0.8（3500→2800）');
+  // 9d. 告发 → 记仇 → 查账加误工费 +15%
+  G = X(); picks = [2, 0]; r = await S.runLedgerChain(G);
+  ok(r.choice === 'report' && G.debt === 4700 && G.aff.xianguan === 0 && r.attitude === 'grudge', '告发：欠款 -300、好感钳 0（记仇）');
+  picks = [0, 0]; r = await S.runLedgerChain(G);
+  ok(r.attitude === 'grudge' && G.debt === 4700 + 705, '查账（记仇）：误工费 +15%（+705）');
+  // 9e. 一般且未贿赂 → 无事
+  G = X({ aff: { xianguan: 30 } }); picks = [2, 0]; await S.runLedgerChain(G); G.aff.xianguan = 30;
+  picks = [0, 0]; r = await S.runLedgerChain(G);
+  ok(r.attitude === 'neutral' && !r.exposed && G.debt === 4700, '查账（一般、没贿赂）：什么也没发生');
+  // 9f. 灵石不足 300 不出现贿赂选项；第 2 个选项变成告发
+  G = X({ stone: 299 }); picks = [1, 0]; r = await S.runLedgerChain(G);
+  ok(S.ledgerChoices({ stone: 299 }).length === 2 && r.choice === 'report' && G.stone === 299, '灵石不足：没有贿赂选项，第 2 项为告发');
+  // 9g. 边界：欠款少于 1500 时贿赂只抹到 0，露馅只补回实际抹掉的；取消；旧存档
+  G = X({ debt: 400 }); picks = [1, 0]; await S.runLedgerChain(G);
+  ok(G.debt === 0 && G.flags.s3x_bribe === 400, '欠款 400 贿赂：抹到 0，记实际抹掉 400');
+  picks = [0, 0]; await S.runLedgerChain(G);
+  ok(G.debt === 440, '露馅只补回实际抹掉的 400×1.1 = 440');
+  G = X(); picks = [-1]; r = await S.runLedgerChain(G);
+  ok(!r.ok && G.debt === 5000 && G.stone === 1000 && !G.flags.s3x_step, '第 1 步取消：不改状态');
+  G = X({ flags: { s3x_step: 1 } }); picks = [1]; r = await S.runLedgerChain(G);
+  ok(!r.ok && G.flags.s3x_step === 1, '查账选「改天再说」：链保留');
+  G = { debt: 100 }; picks = [0, 0]; r = await S.runLedgerChain(G);
+  ok(r.ok && G.aff.xianguan === 60 && G.stone === 0, '旧存档缺 stone/aff/flags 不崩（无贿赂项）');
+  const callers2 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runLedgerChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(callers2.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runLedgerChain：' + callers2.join(','));
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

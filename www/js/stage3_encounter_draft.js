@@ -192,6 +192,80 @@ const Stage3 = {
     return { ok: true, step: 'bill', choice: opts[idx].key, ...r };
   },
 
+  // ======== 阶段 3 小闭环 #3：记账童子的错账（另一位真实 NPC `xianguan` 仙官·记账童子 + 天道债务） ========
+  // 同一模式：第 1 步选择改 G.aff.xianguan / G.debt / G.stone（flags.s3x_step=1）；第 2 步「天道查账」按当时态度（60/20）结算。
+  // 贿赂（灵石 ≥300 才出现）会记 flags.s3x_bribe：查账时童子不亲近就会露馅，抹掉的 1500 加一成罚金补回。
+  // 只由开发者入口「查账链」按钮触发；自动任务/挂机不会调用这里。
+  X_NPC: 'xianguan',
+  BRIBE: { stone: 300, erase: 1500 },
+  attitudeOf(G, id) { const a = (G.aff && G.aff[id]) || 0; return a >= 60 ? 'close' : a >= 20 ? 'neutral' : 'grudge'; },
+  ledgerChoices(G) {
+    const opts = [{ t: '陪他熬夜对账（不花钱，好感 +60）', key: 'help', debt: 0, stone: 0, aff: +60 }];
+    if ((G.stone || 0) >= this.BRIBE.stone) opts.push({ t: `塞 ${this.BRIBE.stone} 灵石，请他“抹掉”一笔（欠款 -${this.BRIBE.erase}）`, key: 'bribe', debt: -this.BRIBE.erase, stone: -this.BRIBE.stone, aff: +20 });
+    opts.push({ t: '向讨债司告发他做假账（举报奖励：欠款 -300）', key: 'report', debt: -300, stone: 0, aff: -40 });
+    return opts;
+  },
+  applyLedger1(G, c) {
+    const F = this.flags(G);
+    const before = G.debt || 0, affBefore = (G.aff && G.aff[this.X_NPC]) || 0;
+    const erased = Math.min(before, -c.debt);
+    G.debt = Math.max(0, before + c.debt);
+    G.stone = Math.max(0, (G.stone || 0) + c.stone);
+    this.addAffTo(G, this.X_NPC, c.aff);
+    F.s3x_step = 1; F.s3x_choice = c.key;
+    if (c.key === 'bribe') F.s3x_bribe = erased; // 实际抹掉的数额，露馅时按它补回
+    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.X_NPC], attitude: this.attitudeOf(G, this.X_NPC) };
+  },
+  applyLedger2(G) {
+    const F = this.flags(G);
+    const att = this.attitudeOf(G, this.X_NPC);
+    const before = G.debt || 0;
+    const bribe = F.s3x_bribe || 0;
+    let note, exposed = false;
+    if (att === 'close') {
+      G.debt = Math.round(before * 0.8);
+      note = `记账童子悄悄把你的复利改成了单利：欠款 ×0.8。${bribe ? '\n那笔“抹掉”的账，他也替你瞒下了。' : ''}`;
+    } else if (bribe) {
+      exposed = true;
+      const back = Math.round(bribe * 1.1);
+      G.debt = before + back;
+      note = `天道查账，抹掉的那笔露馅了！补回 ${bribe} 并罚一成，共 +${back}。`;
+    } else if (att === 'neutral') {
+      note = '天道照常查账，账目清楚，什么也没发生。';
+    } else {
+      const add = Math.round(Math.max(before, 100) * 0.15);
+      G.debt = before + add;
+      note = `记账童子记仇，在你账上添了一笔“误工费”：欠款 +${add}。`;
+    }
+    delete F.s3x_step; delete F.s3x_bribe; F.s3x_done = 1;
+    return { attitude: att, debtBefore: before, debtAfter: G.debt, note, exposed };
+  },
+  async runLedgerChain(G) {
+    const ui = stage3UI();
+    if (!G || !ui) return { ok: false, msg: 'no game or UI' };
+    this.migrate(G);
+    const F = this.flags(G);
+    const save = () => { if (typeof Game !== 'undefined' && Game && typeof Game.save === 'function') Game.save(); };
+    if (F.s3x_step === 1) {
+      const att = this.attitudeOf(G, this.X_NPC);
+      const idx = await ui.card('天道查账', `讨债司派人来查账了，记账童子跟在后面。\n他对你的态度：${this.M_ATT_NAME[att]}（好感 ${G.aff[this.X_NPC] || 0}）\n当前债务：${G.debt || 0}`, 'npc_disciple', ['配合查账', '改天再说']);
+      if (idx !== 0) return { ok: false, msg: 'cancelled' };
+      const r = this.applyLedger2(G);
+      save();
+      await ui.card('奇遇结果', `${r.note}\n债务：${r.debtBefore} → ${r.debtAfter}`, 'i:scroll', ['好']);
+      if (ui.hud) ui.hud();
+      return { ok: true, step: 'audit', ...r };
+    }
+    const opts = this.ledgerChoices(G);
+    const idx = await ui.card('记账童子的错账', `仙官·记账童子抱着账本哭丧着脸：“你这页账算错了，我要被扣俸禄了……”\n当前债务：${G.debt || 0}　灵石：${G.stone || 0}　他对你的好感：${(G.aff && G.aff[this.X_NPC]) || 0}`, 'npc_disciple', opts.map(o => o.t));
+    if (idx < 0 || idx >= opts.length) return { ok: false, msg: 'cancelled' };
+    const r = this.applyLedger1(G, opts[idx]);
+    save();
+    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n记账童子好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）\n天道迟早会来查账……`, 'i:scroll', ['好']);
+    if (ui.hud) ui.hud();
+    return { ok: true, step: 'ledger', choice: opts[idx].key, ...r };
+  },
+
   // 开发者测试入口
   async test(G) {
     console.log('[Stage3] running encounter...');

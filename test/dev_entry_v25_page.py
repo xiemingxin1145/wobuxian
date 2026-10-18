@@ -1,5 +1,5 @@
 # v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
-# 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
+# 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
 #      「试炼场」确认 → 覆盖层 iframe，Escape 关闭。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
@@ -26,6 +26,8 @@ async def main():
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
+        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
+        ck('五个开发者按钮互不重叠（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(5) for j in range(i+1, 5)))
         ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['v25-entry','v25-eq','v25-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
@@ -70,6 +72,21 @@ async def main():
             ck('债务后果接上第 1 条链：试炼场取消 → 弹「讨债追兵」', True)
         except Exception as e:
             ck('奇遇链真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 2c. 查账链（记账童子）：贿赂 → 一般 → 查账露馅
+        try:
+            ck('#dev 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('v25-qy2')"))
+            await pg.evaluate("()=>{const G=Game.G;G.stone=1000;G.aff.xianguan=0;}")
+            c0 = await pg.evaluate("({debt:Game.G.debt})")
+            await pg.click('#v25-qy2'); await card_click('记账童子的错账', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            c1 = await pg.evaluate("({debt:Game.G.debt,stone:Game.G.stone,aff:Game.G.aff.xianguan,step:Game.G.flags.s3x_step})")
+            ck('查账链第 1 步：贿赂 → 灵石 -300、欠款 -1500、童子好感 20', c1['stone'] == 700 and c1['debt'] == c0['debt'] - 1500 and c1['aff'] == 20 and c1['step'] == 1)
+            await pg.click('#v25-qy2'); await card_click('天道查账', 0)
+            res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000); rtxt = await res.inner_text()
+            await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            c2 = await pg.evaluate("({debt:Game.G.debt,done:Game.G.flags.s3x_done,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
+            ck('查账链第 2 步：露馅补回 1650 并存档', c2['debt'] == c1['debt'] + 1650 and c2['done'] == 1 and c2['saved'] == c2['debt'] and '露馅' in rtxt)
+        except Exception as e:
+            ck('查账链真页面流程（异常：' + str(e)[:80] + '）', False)
         # 3. 试炼场 → 确认 → 覆盖层，Escape 关闭
         dialog['accept'] = True
         await pg.click('#v25-entry'); await pg.wait_for_timeout(500)
