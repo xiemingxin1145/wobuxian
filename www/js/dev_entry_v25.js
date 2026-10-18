@@ -40,9 +40,8 @@
     rtBtn.textContent = '即时战';
     rtBtn.style.cssText = 'position:fixed;right:12px;bottom:220px;z-index:9999;padding:8px 14px;background:#2a5a3a;color:#b0ffb0;border:1px solid #b0ffb0;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
     rtBtn.onclick = async () => {
-      if (window.RealtimeBattle) {
-        await RealtimeBattle.start();
-      }
+      // 自带覆盖层画布 + 循环，打完/× / Escape 关闭；不接正式战斗链、不改存档
+      if (window.RealtimeBattle && RealtimeBattle.open) RealtimeBattle.open(null, { force: true });
     };
     document.body.appendChild(rtBtn);
   }

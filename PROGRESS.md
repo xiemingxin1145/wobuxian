@@ -44,7 +44,10 @@
 ### 2026-10-19 会话（UTC+8，分支 openworld-wip，永不推 main）
 - [x] 步骤 1：把 origin/main（v3.3.0，`f16beaf`，含 ow-next `cfe63fb` 两步债务链 + `test/stage3_chain.js`）`--no-ff` 合进 openworld-wip，无冲突。门禁：stage3_chain ALL PASS、validate22 0 错、encounter_chain_verify 14/14、jsscan33 0 错、sys33_unit 0 失败。
   - 涉及文件：合并提交本身（来自 main 的全部改动）+ `PROGRESS.md`
-- 下一步：步骤 2 —— `battle_realtime_prototype.js` 接现有角色精灵、普攻命中判定 + 伤害飘字，自带覆盖层画布循环（仅开发者入口），新增 `test/battle_rt_proto.js`。
+- [x] 步骤 2：即时战原型 `www/js/battle_realtime_prototype.js` 接游戏现有角色精灵（主角 `Game.playerSpr()`、敌人 `mon_slime`，八方向 + idle/walk/attack/hurt），普攻改为面向 ±60° 扇形命中 + 伤害飘字 + 闪白/击退，打空显示「落空」；自带覆盖层画布 + rAF 循环 + 触屏摇杆/攻·技·闪按钮，Escape/× 关闭。修旧 bug：以前「即时战」按钮只调 `start()` 没人跑 update/draw，原型卡在 on 状态并一直拦截空格/Shift/Q。整个文件包进 IIFE，不再泄漏全局 `RT`/函数名；只由开发者入口打开，不碰 `Game.fight`/存档。
+  - 测试：`node test/battle_rt_proto.js` 26/26；`python3 -B test/battle_rt_proto_page.py`（#dev 真页面：开覆盖层→精灵已加载→普攻扣 28 出飘字→Escape 关闭，0 JS 错误）6/6；stage3_chain、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33 均无新失败。
+  - 涉及文件：`www/js/battle_realtime_prototype.js`、`www/js/dev_entry_v25.js`（即时战按钮改调 `open()`）、`test/battle_rt_proto.js`、`test/battle_rt_proto_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：步骤 3 —— 奇遇链草稿或低模角色；即时原型可再加敌人普攻前摇预警、只读带入 `Game.stats()` 真实攻防血。
 
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
