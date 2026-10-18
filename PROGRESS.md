@@ -83,6 +83,12 @@
   - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`test/stage3_chain.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
 - 下一步：主人试玩「奇遇链」「查账链」与灵根技能定数值；若要进正式事件池，走 PR + 门禁并把这些选项加入 ux23 自动任务 UNSAFE（本线不改 ux23）。
 
+### 2026-10-19 第四轮（UTC+8，openworld-wip）
+- [x] 步骤 11：债务系统强化 #1「欠得多了有追兵」——`Stage3.debtPressure(G)` 按当前欠款分 4 档债压：≤1000 小账 / 1001–5000 欠款 / 5001–20000 重债 / 20001 起天道通缉（前两条阈值与「债主之家」态度一致），身上挂着 `flags.bounty` 再加一档（封顶）。`Stage3.bountyEnemies(G)` 按档位出 1/2/3/4 个讨债鬼（`mon_collector` 精灵，方块皮肤为讨债鬼差），血量 ×1/1.15/1.3/1.45、移速 +6/档，出手冷却与站位错开，天道通缉档领头为「讨债鬼头子」。开发者入口新按钮「追兵战」把这些追兵喂进即时战原型，顶栏显示「追兵·重债」等档名；**只读**：不改存档、不发奖、不结算，stage3 文件只出数据、不直接调用即时战原型。即时战原型顺带支持敌人 `box` 字段（之前被映射丢掉）和 `opts.label` 顶栏标题（截 16 字）。
+  - 测试：`node test/stage3_chain.js` 65/65（新增 13 条：四档阈值、档名、通缉加一档封顶、8 种异常存档回退、追兵数/血量/头子/精灵、冷却与站位互异、都在场内不贴脸、不改存档、只被 dev_entry 调用）；`node test/battle_rt_proto.js` 98/98（新增 5 条：讨债鬼原样进场保留 box、头子血量、顶栏标题、默认回退、标题截断）；`python3 -B test/dev_entry_v25_page.py` 18/18（新增：六个按钮不重叠且在屏内、真页面欠 8888 → 重债 3 个讨债鬼、关闭后存档 G 不变、欠 30000+通缉 → 天道通缉 4 个含头子）；battle_rt_proto_page 12/12、lowpoly_box、validate22 0 错、encounter_chain_verify 14/14、sys33_unit 0 失败、jsscan33 0 错，均无新失败。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`www/js/battle_realtime_prototype.js`、`test/stage3_chain.js`、`test/battle_rt_proto.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：追兵战打完按结果结算（胜：追兵退走、可撤掉 `flags.bounty`；败：欠款加一笔「误工费」），仍只走开发者入口；或债压档位接入突破难度预览（只读）。主人试玩定数值的事项照旧待办。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

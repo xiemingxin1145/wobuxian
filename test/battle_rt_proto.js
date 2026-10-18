@@ -273,6 +273,23 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(snap10() === before10, '灵根/武器只读：整场不改存档');
   delete G10.lg; delete G10.eqs; delete G10.eq; delete global.LINGGEN;
 
+  // 6d. 追兵战：Stage3.bountyEnemies 产出的讨债鬼原样进场（方块皮肤字段 box 保留），顶栏标题显示债压档位；整场不存档
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const foes = S3.bountyEnemies({ debt: 30000 });
+    const texts = []; const tctx = new Proxy({}, { get: (t, k) => (k === 'fillText' ? (s) => texts.push(String(s)) : (k in t ? t[k] : () => {})), set: (t, k, v) => { t[k] = v; return true; } });
+    done = RB.start(foes, { timeLimit: 99, atk: 28, hp: 180, label: '追兵·天道通缉' });
+    ok(S.enemies.length === 4 && S.enemies.every(e => e.spr === 'mon_collector' && e.box === 'taozhai'), '追兵战：4 个讨债鬼进场，精灵 mon_collector、box 字段保留');
+    ok(S.enemies[0].name === '讨债鬼头子' && S.enemies[0].maxHp === 116, '追兵战：头子血量 116（80×1.45，攻 28 不缩放）');
+    RB.draw(tctx);
+    ok(texts.some(t => t.startsWith('追兵·天道通缉 ')), '顶栏标题显示「追兵·天道通缉」');
+    RB.end('lose'); await done;
+    done = RB.start(null, { timeLimit: 99 }); RB.draw(tctx);
+    ok(S.label === '即时战(原型)' && S.enemies[0].box === null, '不传 label/box 时回退默认标题、box 为空');
+    RB.end('lose'); await done;
+    done = RB.start(null, { timeLimit: 99, label: 'x'.repeat(40) }); ok(S.label.length === 16, '标题截到 16 字，不撑破顶栏'); RB.end('lose'); await done;
+  }
+
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
   const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');

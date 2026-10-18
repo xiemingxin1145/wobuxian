@@ -1,6 +1,6 @@
 # v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
 # 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
-#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭。
+#      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战、只读。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
@@ -26,8 +26,8 @@ async def main():
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
-        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
-        ck('五个开发者按钮互不重叠（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(5) for j in range(i+1, 5)))
+        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
+        ck('六个开发者按钮互不重叠且都在屏内（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(6) for j in range(i+1, 6)) and all(b[0] >= 0 for b in boxes))
         ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['v25-entry','v25-eq','v25-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
@@ -94,6 +94,24 @@ async def main():
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         ov2 = await pg.evaluate("!!document.getElementById('v25-encounter-overlay')")
         ck('试炼场确认 → 覆盖层 iframe，Escape 关闭', ov and not ov2)
+        # 4. 追兵战（债务系统强化 #1）：重债 3 个讨债鬼；挂追兵加一档 4 个含头子；只读不改存档；Escape 关闭
+        try:
+            await pg.evaluate("()=>{const G=Game.G;G.debt=8888;delete G.flags.bounty;Game.save();}")
+            before = await pg.evaluate("JSON.stringify(Game.G)")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(800)
+            z1 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),n:RealtimeBattle.state.enemies.length,label:RealtimeBattle.state.label,spr:RealtimeBattle.state.enemies.map(e=>e.spr)})")
+            ck('追兵战：欠 8888 → 债压「重债」，3 个讨债鬼进即时战', z1['ov'] and z1['n'] == 3 and z1['label'] == '追兵·重债' and all(x == 'mon_collector' for x in z1['spr']))
+            await pg.screenshot(path=os.environ.get('SHOT_ZB', '/tmp/dev_entry_zb.png'))
+            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+            after = await pg.evaluate("JSON.stringify(Game.G)")
+            ck('追兵战关闭后覆盖层消失、存档 G 不变', not await pg.evaluate("!!document.getElementById('rtp-overlay')") and before == after)
+            await pg.evaluate("()=>{Game.G.debt=30000;Game.G.flags.bounty=1;}")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            z2 = await pg.evaluate("({n:RealtimeBattle.state.enemies.length,label:RealtimeBattle.state.label,boss:RealtimeBattle.state.enemies[0].name})")
+            ck('欠 30000 且被通缉 → 「天道通缉」4 个、领头讨债鬼头子', z2['n'] == 4 and z2['label'] == '追兵·天道通缉' and z2['boss'] == '讨债鬼头子')
+            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        except Exception as e:
+            ck('追兵战真页面流程（异常：' + str(e)[:80] + '）', False)
         ck('无 JS 错误', not errs)
         await b.close()
     for m, c in checks: print(('PASS ' if c else 'FAIL ') + m)

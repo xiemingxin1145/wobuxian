@@ -1,5 +1,5 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）
 
 (function () {
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
@@ -73,6 +73,21 @@
       await Stage3.runLedgerChain(g.G);
     };
     document.body.appendChild(qy2);
+
+    // 追兵战按钮：债务系统强化 #1——按当前债压档位（Stage3.debtPressure）刷讨债鬼进即时战原型；只读，不改存档、不发奖
+    const zb = document.createElement('button');
+    zb.id = 'v25-zb';
+    zb.textContent = '追兵战';
+    zb.style.cssText = 'position:fixed;right:12px;bottom:370px;z-index:9999;padding:8px 14px;background:#5a2a2a;color:#ffb0a0;border:1px solid #ffb0a0;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    zb.onclick = () => {
+      const g = gameObj();
+      if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+      if (!window.RealtimeBattle || !RealtimeBattle.open) return;
+      const P = Stage3.debtPressure(g.G);
+      const h = RealtimeBattle.open(Stage3.bountyEnemies(g.G), { force: true, label: '追兵·' + P.n });
+      if (h) toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了`, '#ffb0a0');
+    };
+    document.body.appendChild(zb);
   }
 
   function openEncounterOverlay() {

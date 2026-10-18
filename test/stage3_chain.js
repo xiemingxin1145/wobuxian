@@ -153,6 +153,27 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const callers2 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runLedgerChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers2.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runLedgerChain：' + callers2.join(','));
 
+  // 10. 债务系统强化 #1：债压档位 → 讨债追兵（只读）
+  const DP = (o) => S.debtPressure(o);
+  ok(DP({ debt: 0 }).tier === 0 && DP({ debt: 1000 }).tier === 0 && DP({ debt: 1001 }).tier === 1, '债压：≤1000 小账、1001 起欠款（与债主之家阈值一致）');
+  ok(DP({ debt: 5000 }).tier === 1 && DP({ debt: 5001 }).tier === 2 && DP({ debt: 20000 }).tier === 2 && DP({ debt: 20001 }).tier === 3, '债压：5001 起重债、20001 起天道通缉');
+  ok(DP({ debt: 8888 }).n === '重债' && DP({ debt: 99999 }).n === '天道通缉' && DP({ debt: 10 }).n === '小账', '债压档名');
+  ok(DP({ debt: 10, flags: { bounty: 1 } }).tier === 1 && DP({ debt: 30000, flags: { bounty: 1 } }).tier === 3 && DP({ debt: 10, flags: { bounty: 1 } }).bounty, '挂着追兵加一档，封顶天道通缉');
+  ok([null, undefined, {}, { debt: -5 }, { debt: NaN }, { debt: 'abc' }, { debt: Infinity }, { flags: 'x' }].every(g => DP(g).tier === 0 && DP(g).debt === 0), '异常存档（无/负/NaN/字符串/无穷/flags 非对象）回退小账、不崩');
+  const hz = [0, 3000, 8888, 30000].map(d => S.bountyEnemies({ debt: d }));
+  ok(hz.map(a => a.length).join() === '1,2,3,4', '追兵数随档位 1/2/3/4');
+  ok(hz[0][0].hp === 80 && hz[1][0].hp === 92 && hz[2][0].hp === 104 && hz[3][0].hp === 116, '追兵血量 80×1/1.15/1.3/1.45');
+  ok(hz[3][0].name === '讨债鬼头子' && hz[2].every(e => e.name === '讨债鬼') && hz[3].every(e => e.spr === 'mon_collector' && e.box === 'taozhai'), '天道通缉档领头为讨债鬼头子；全用讨债鬼精灵/方块讨债鬼差');
+  ok(new Set(hz[3].map(e => e.atkCd)).size === 4 && new Set(hz[3].map(e => e.x + ',' + e.y)).size === 4, '追兵出手冷却与站位互不相同');
+  ok(hz[3].every(e => e.x >= 40 && e.x <= 560 && e.y >= 60 && e.y <= 480 && Math.hypot(e.x - 300, e.y - 320) >= 120), '追兵都在场地内且不贴脸刷在主角(300,320)身边');
+  const Gro = mk({ debt: 30000, flags: { bounty: 1 } }); const snap = JSON.stringify(Gro);
+  S.debtPressure(Gro); S.bountyEnemies(Gro);
+  ok(JSON.stringify(Gro) === snap, '算债压/生成追兵不改存档');
+  const src3 = require('fs').readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  ok(!/RealtimeBattle/.test(src3), 'stage3 不直接引用 RealtimeBattle（只出数据）');
+  const callers3 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /bountyEnemies|debtPressure/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(callers3.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 debtPressure/bountyEnemies：' + callers3.join(','));
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

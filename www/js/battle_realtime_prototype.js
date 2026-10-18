@@ -143,6 +143,7 @@
     RT.timeLimit = opts.timeLimit || 20;
     RT.boxPlayer = opts.boxPlayer || null; // 方块皮肤下主角用哪个方块人（jianxiu / nvzhu / jianxian）
     RT.skin = opts.skin || 'sprite'; // 'sprite' = 游戏现有精灵；'box' = 方块低模（需页面已加载 LowpolyBox）
+    RT.label = opts.label ? String(opts.label).slice(0, 16) : '即时战(原型)'; // 顶栏标题（追兵战显示债压档位）
     RT.result = null;
     RT.keys.clear();
     RT.stick = { x: 0, y: 0 };
@@ -163,6 +164,7 @@
     RT.enemies = (enemies || [{ name: '山魇', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
       name: e.name || '山魇',
       spr: e.spr || 'mon_slime',
+      box: e.box || null, // 方块皮肤下用哪个方块人（缺省 taozhai）
       hp: Math.max(1, Math.round((e.hp != null ? e.hp : 80) * hpMul)),
       maxHp: Math.max(1, Math.round((e.maxHp != null ? e.maxHp : (e.hp || 80)) * hpMul)),
       dmgMul,
@@ -527,7 +529,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, 44);
     ctx.fillStyle = '#ffe680'; ctx.font = '15px sans-serif';
     const cd = v => (v > 0 ? v.toFixed(1) : '好');
-    ctx.fillText(`即时战(原型) ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max} 攻${p.atk}${RT.statSrc === 'game' ? '(存档)' : ''}  闪${cd(p.dashCd)} ${p.skill ? p.skill.n : '技'}${cd(p.skillCd)}`, 12, 28);
+    ctx.fillText(`${RT.label || '即时战(原型)'} ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max} 攻${p.atk}${RT.statSrc === 'game' ? '(存档)' : ''}  闪${cd(p.dashCd)} ${p.skill ? p.skill.n : '技'}${cd(p.skillCd)}`, 12, 28);
     if (!RT.on && RT.result) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, H0 / 2 - 40, W0, 80);
       ctx.fillStyle = RT.result === 'win' ? '#9aff9a' : '#ff9a9a'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';

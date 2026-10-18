@@ -266,6 +266,35 @@ const Stage3 = {
     return { ok: true, step: 'ledger', choice: opts[idx].key, ...r };
   },
 
+  // ======== 债务系统强化 #1：债压档位 → 讨债追兵即时战（只读，不改存档） ========
+  // 「欠得多了有追兵」：按当前 G.debt 分 4 档（阈值 1000 / 5000 与「债主之家」态度一致，另加 20000 天道通缉），
+  // 身上挂着 flags.bounty（反杀债主 / 钱多多卖行踪）再加一档。档位决定追兵数量、血量倍率、移速。
+  // 只产出敌人数据给开发者入口「追兵战」按钮喂即时战原型；本文件不直接调用即时战原型、不写 G。
+  DEBT_TIERS: [
+    { key: 'light', n: '小账', hunters: 1, hpMul: 1 },
+    { key: 'owing', n: '欠款', hunters: 2, hpMul: 1.15 },
+    { key: 'heavy', n: '重债', hunters: 3, hpMul: 1.3 },
+    { key: 'wanted', n: '天道通缉', hunters: 4, hpMul: 1.45 },
+  ],
+  debtPressure(G) {
+    const raw = Number(G && G.debt);
+    const debt = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+    const bounty = !!(G && G.flags && typeof G.flags === 'object' && G.flags.bounty);
+    let tier = debt > 20000 ? 3 : debt > 5000 ? 2 : debt > 1000 ? 1 : 0;
+    if (bounty) tier = Math.min(3, tier + 1);
+    const T = this.DEBT_TIERS[tier];
+    return { tier, key: T.key, n: T.n, debt, bounty, hunters: T.hunters, hpMul: T.hpMul };
+  },
+  // 追兵：讨债鬼（data.js MONS.collector 的精灵 mon_collector；方块皮肤用「讨债鬼差」）。出手冷却错开，避免同帧一起前摇
+  HUNTER_SLOTS: [[300, 150], [140, 200], [460, 200], [300, 450]],
+  bountyEnemies(G) {
+    const P = this.debtPressure(G);
+    return this.HUNTER_SLOTS.slice(0, P.hunters).map(([x, y], i) => ({
+      name: i === 0 && P.tier === 3 ? '讨债鬼头子' : '讨债鬼', spr: 'mon_collector', box: 'taozhai',
+      hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier, atkCd: 1.0 + 0.6 * i,
+    }));
+  },
+
   // 开发者测试入口
   async test(G) {
     console.log('[Stage3] running encounter...');
