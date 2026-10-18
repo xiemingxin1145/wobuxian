@@ -1,5 +1,5 @@
 # v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
-# 覆盖：#dev 出现按钮；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
+# 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
 #      「试炼场」确认 → 覆盖层 iframe，Escape 关闭。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
@@ -47,6 +47,29 @@ async def main():
             await pg.click('.card .opt[data-k="0"]'); await pg.wait_for_timeout(400)
             st = await pg.evaluate("({debt:Game.G.debt,aff:Game.G.aff.debtor_family,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
             ck('选「赖账」→ 债务 ×1.2 = 10666、好感钳到 0、已存档', st['debt'] == 10666 and st['aff'] == 0 and st['saved'] == 10666)
+        # 2b. 奇遇链（钱多多）：举报 → 记仇 → 回访卖行踪 +10% 挂追兵 → 试炼场取消弹「讨债追兵」（真页面闭环）
+        async def card_click(title, k):
+            c = pg.locator(f'.card:has(.ct:text("{title}"))').last
+            await c.wait_for(timeout=3000); await c.locator(f'.opt[data-k="{k}"]').click()
+        ck('#dev 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('v25-qy')"))
+        b0 = await pg.evaluate("({debt:Game.G.debt,aff:(Game.G.aff.merchant||0)})")
+        try:
+            await pg.click('#v25-qy'); await card_click('钱多多的赊账单', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            s1 = await pg.evaluate("({debt:Game.G.debt,aff:Game.G.aff.merchant,step:Game.G.flags.s3m_step})")
+            ck('奇遇链第 1 步：举报 → 债务 -200、钱多多好感 -40、记下 s3m_step', s1['debt'] == b0['debt'] - 200 and s1['aff'] == max(0, b0['aff'] - 40) and s1['step'] == 1)
+            await pg.click('#v25-qy'); await card_click('钱多多回访', 0)
+            res = pg.locator('.card:has(.ct:text("奇遇结果"))').last
+            await res.wait_for(timeout=3000)
+            vtxt = await res.inner_text()
+            await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            s2 = await pg.evaluate("({debt:Game.G.debt,bounty:Game.G.flags.bounty,done:Game.G.flags.s3m_done,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
+            exp = s1['debt'] + round(max(s1['debt'], 100) * 0.1)
+            ck('奇遇链第 2 步（记仇）：欠款 +10%、挂讨债追兵、已存档', s2['debt'] == exp and s2['bounty'] == 1 and s2['done'] == 1 and s2['saved'] == exp and '讨债司' in vtxt)
+            dialog['accept'] = False
+            await pg.click('#v25-entry'); await card_click('讨债追兵', 2); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            ck('债务后果接上第 1 条链：试炼场取消 → 弹「讨债追兵」', True)
+        except Exception as e:
+            ck('奇遇链真页面流程（异常：' + str(e)[:80] + '）', False)
         # 3. 试炼场 → 确认 → 覆盖层，Escape 关闭
         dialog['accept'] = True
         await pg.click('#v25-entry'); await pg.wait_for_timeout(500)

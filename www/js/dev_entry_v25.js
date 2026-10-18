@@ -1,5 +1,5 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）
 
 (function () {
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
@@ -49,6 +49,18 @@
       if (window.RealtimeBattle && RealtimeBattle.open) RealtimeBattle.open(null, { force: true });
     };
     document.body.appendChild(rtBtn);
+
+    // 奇遇链按钮：阶段 3 小闭环 #2「钱多多的赊账单」（奇遇选择 → 钱多多态度 → 债务后果），会改当前存档
+    const qyBtn = document.createElement('button');
+    qyBtn.id = 'v25-qy';
+    qyBtn.textContent = '奇遇链';
+    qyBtn.style.cssText = 'position:fixed;right:12px;bottom:270px;z-index:9999;padding:8px 14px;background:#5a4a2a;color:#ffd8a0;border:1px solid #ffd8a0;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    qyBtn.onclick = async () => {
+      const g = gameObj();
+      if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+      await Stage3.runMerchantChain(g.G);
+    };
+    document.body.appendChild(qyBtn);
   }
 
   function openEncounterOverlay() {

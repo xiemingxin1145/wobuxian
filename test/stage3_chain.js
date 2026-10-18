@@ -58,6 +58,57 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   await S.runDebtEncounter(G);
   ok(G.aff.debtor_family === 150, '好感上限钳到 150');
 
+  // 8. 小闭环 #2「钱多多的赊账单」：奇遇选择 → 钱多多态度 → 债务后果
+  const M = (o) => Object.assign({ debt: 1000, stone: 0, aff: {}, flags: {} }, o);
+  saves = 0;
+  // 8a. 扛税 → 亲近 → 回访替你还 500
+  G = M(); picks = [0, 0]; shown.length = 0;
+  r = await S.runMerchantChain(G);
+  ok(r.ok && r.step === 'bill' && shown[0] === '钱多多的赊账单' && G.debt === 1300 && G.aff.merchant === 60 && r.attitude === 'close', '扛税：债务 1000→1300、钱多多好感 0→60（亲近）');
+  ok(G.flags.s3m_step === 1 && G.flags.s3m_choice === 'cover' && saves >= 1, '第 1 步记 s3m_step=1 并存档');
+  picks = [0, 0]; shown.length = 0;
+  r = await S.runMerchantChain(G);
+  ok(r.step === 'visit' && shown[0] === '钱多多回访' && r.attitude === 'close' && G.debt === 800, '回访（亲近）：钱多多替你还 500，债务 1300→800');
+  ok(!G.flags.s3m_step && G.flags.s3m_done === 1 && !G.flags.bounty, '回访后链结束（s3m_done=1），不挂追兵');
+  // 8b. 举报 → 记仇 → 卖你行踪：+10% 并接上讨债追兵（第 1 条链的第 2 步）
+  G = M(); picks = [1, 0];
+  r = await S.runMerchantChain(G);
+  ok(G.debt === 800 && G.aff.merchant === 0 && r.attitude === 'grudge', '举报：债务 1000→800、好感钳到 0（记仇）');
+  picks = [0, 0];
+  r = await S.runMerchantChain(G);
+  ok(r.attitude === 'grudge' && G.debt === 880 && G.flags.bounty === 1 && G.flags.stage3_bountyDebt === 880, '回访（记仇）：欠款 +10% → 880，挂上讨债追兵');
+  shown.length = 0; picks = [1, 0];
+  r = await S.runDebtEncounter(G);
+  ok(r.step === 'chase' && shown[0] === '讨债追兵' && G.debt === 880 + 440 && !G.flags.bounty, '后果接上链 #1：下次债主入口变「讨债追兵」，认账 +440');
+  // 8c. 不掺和 + 已有好感 30 → 25 一般 → 回访无事
+  G = M({ aff: { merchant: 30 } }); picks = [2, 0];
+  r = await S.runMerchantChain(G);
+  ok(G.aff.merchant === 25 && r.attitude === 'neutral' && G.debt === 1000, '不掺和：好感 30→25（一般），债务不变');
+  picks = [0, 0]; r = await S.runMerchantChain(G);
+  ok(r.attitude === 'neutral' && G.debt === 1000 && !G.flags.bounty, '回访（一般）：什么也没发生');
+  // 8d. 两步之间正式玩法改了好感（闲聊/送礼）→ 回访按「当时」态度结算
+  G = M(); picks = [1, 0]; await S.runMerchantChain(G);
+  G.aff.merchant = 70; picks = [0, 0]; r = await S.runMerchantChain(G);
+  ok(r.attitude === 'close' && G.debt === 300 && !G.flags.bounty, '举报后又送礼到 70 → 回访按亲近结算（800→300），不挂追兵');
+  // 8e. 边界：没欠款时亲近不出负数；举报不让债务 <0；好感上限 150；取消不改状态；旧存档缺字段
+  G = M({ debt: 0, aff: { merchant: 120 } }); picks = [0, 0]; await S.runMerchantChain(G);
+  ok(G.aff.merchant === 150 && G.debt === 300, '好感上限钳到 150');
+  G.debt = 0; picks = [0, 0]; r = await S.runMerchantChain(G);
+  ok(G.debt === 0 && r.debtAfter === 0, '亲近回访但没欠款：不出现负债');
+  G = M({ debt: 100 }); picks = [1, 0]; await S.runMerchantChain(G);
+  ok(G.debt === 0, '举报减免不让债务 <0');
+  G = M(); picks = [-1]; r = await S.runMerchantChain(G);
+  ok(!r.ok && G.debt === 1000 && !G.flags.s3m_step && !('merchant' in G.aff), '第 1 步取消：不改任何状态');
+  G = M({ flags: { s3m_step: 1 } }); picks = [1]; r = await S.runMerchantChain(G);
+  ok(!r.ok && G.flags.s3m_step === 1 && G.debt === 1000, '回访选「先躲开」：链保留，下次再来');
+  G = { debt: 500 }; picks = [0, 0]; r = await S.runMerchantChain(G);
+  ok(r.ok && G.debt === 800 && G.aff.merchant === 60, '旧存档缺 aff/flags 不崩');
+  ok(S.merchantAttitude({ aff: { merchant: 59 } }) === 'neutral' && S.merchantAttitude({ aff: { merchant: 60 } }) === 'close' && S.merchantAttitude({ aff: { merchant: 19 } }) === 'grudge' && S.merchantAttitude({ aff: { merchant: 20 } }) === 'neutral', '态度阈值与 talk.js greet 一致：60 / 20');
+  // 8f. 隔离：只有开发者入口调用，自动任务/挂机不碰
+  const jsDir = path.join(__dirname, '..', 'www', 'js');
+  const callers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runMerchantChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(callers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runMerchantChain：' + callers.join(','));
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

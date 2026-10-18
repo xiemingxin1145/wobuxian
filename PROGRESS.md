@@ -69,7 +69,10 @@
 - [x] 步骤 7：修开发者入口在真页面静默失效：`dev_entry_v25.js`（全套神装、试炼场取消→阶段3奇遇、toast）和 `stage3_encounter_draft.js:94` 改用 `typeof Game/UI` 取顶层 const，不再用恒为 undefined 的 `window.Game/window.UI`。修前真页面复现：神装按钮连确认框都不弹、阶段3卡片不出现；修后真页面确认「债主之家」卡片弹出、点「赖账」后债务 8888→10666、好感钳 0、已存档。
   - 测试：新增 `python3 -B test/dev_entry_v25_page.py` 7/7（真页面 headless Chrome：三按钮、神装 5 槽、阶段3卡片弹出+点完+存档、试炼场覆盖层 Escape 关闭、0 JS 错误）；`test/stage3_chain.js` 18/18（新增 3 条 vm 模拟顶层 const，旧代码下这 3 条失败）；battle_rt_proto 67、lowpoly_box 55、battle_rt_proto_page 8、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33 均无新失败。
   - 涉及文件：`www/js/dev_entry_v25.js`、`www/js/stage3_encounter_draft.js`、`test/dev_entry_v25_page.py`（新）、`test/stage3_chain.js`、`PROGRESS.md`
-- 下一步：步骤 8 —— 阶段 3 小闭环：奇遇选择 → NPC 态度变化 → 债务后果（复用 G.debt / G.aff / G.flags），开发者入口可触发。
+- [x] 步骤 8：阶段 3 小闭环「钱多多的赊账单」（`Stage3.runMerchantChain`，开发者入口新按钮「奇遇链」）：第 1 步选择 扛税(欠款+300、好感+60) / 举报(欠款−200、好感−40) / 不掺和(好感−5) → 真实 NPC 钱多多 `G.aff.merchant` 按 talk.js 同款 60/20 阈值成 亲近/一般/记仇 → 第 2 步「钱多多回访」按**当时**态度结算：亲近替你还 ≤500、一般无事、记仇卖你行踪欠款+10% 并挂 `flags.bounty`（下次试炼场取消→直接「讨债追兵」，接上第 1 条链）。复用 G.debt / G.aff / G.flags（新增 `s3m_step`/`s3m_choice`/`s3m_done`），选完即存档；只有开发者入口调用。
+  - 测试：`node test/stage3_chain.js` 36/36（新增 18 条：三条路径、两步之间送礼改态度、接上讨债追兵、好感上限/债务下限、两步取消、旧存档、阈值、只被 dev_entry 调用）；`test/dev_entry_v25_page.py` 11/11（真页面：奇遇链按钮→举报→回访记仇 +10% 挂追兵并存档→试炼场取消弹「讨债追兵」）；其余 battle_rt_proto 67、lowpoly_box 55、battle_rt_proto_page 8、validate22、encounter_chain_verify 14/14、sys33_unit、jsscan33 均无新失败。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_entry_v25.js`、`test/stage3_chain.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：主人在开发者入口试玩「奇遇链」确认数值；若要进正式事件池，走 PR + 门禁，并把扛税/举报加入 ux23 自动任务 UNSAFE（重大选择须暂停）；真机试即时原型手感，决定回流 rt27 的三项。
 
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮

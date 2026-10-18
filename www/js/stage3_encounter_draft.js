@@ -114,6 +114,84 @@ const Stage3 = {
     return { ok: true, step: 'family', attitude, debtBefore: r.debtBefore, debtAfter: r.debtAfter, choice: chosen.t, affDelta: chosen.aff };
   },
 
+  // ======== 阶段 3 小闭环 #2：钱多多的赊账单（奇遇选择 → NPC 态度变化 → 债务后果） ========
+  // 复用正式存档：真实 NPC `merchant`（奸商·钱多多，data.js NPCS）的 G.aff.merchant、G.debt、G.flags。
+  // 态度阈值与 talk.js greet() 一致：≥60 亲近 / ≥20 一般 / <20 记仇。闲聊、送礼等正式玩法改的好感也会影响第 2 步。
+  // 第 1 步「赊账单」：选择改好感/债务，记 flags.s3m_step=1；第 2 步「钱多多回访」按当时态度结算债务后果，记 flags.s3m_done=1。
+  // 记仇 → 钱多多把你卖给讨债司：债务 +10% 且挂上 flags.bounty → 下次「债主之家」入口直接变「讨债追兵」（接上第 1 条链）。
+  // 只由开发者入口「奇遇链」按钮触发；自动任务/挂机不会调用这里。
+  M_NPC: 'merchant',
+  merchantAttitude(G) {
+    const a = (G.aff && G.aff[this.M_NPC]) || 0;
+    return a >= 60 ? 'close' : a >= 20 ? 'neutral' : 'grudge';
+  },
+  M_ATT_NAME: { close: '亲近', neutral: '一般', grudge: '记仇' },
+  merchantChoices() {
+    return [
+      { t: '替他扛下这笔税（天道欠款 +300）', key: 'cover', debt: +300, aff: +60 },
+      { t: '向讨债司举报他偷税（欠款 -200）', key: 'report', debt: -200, aff: -40 },
+      { t: '不掺和', key: 'ignore', debt: 0, aff: -5 },
+    ];
+  },
+  addAffTo(G, id, n) {
+    if (!G.aff || typeof G.aff !== 'object') G.aff = {};
+    G.aff[id] = Math.max(0, Math.min(this.AFF_MAX, (G.aff[id] || 0) + (n || 0)));
+  },
+  applyMerchant1(G, c) {
+    const F = this.flags(G);
+    const before = G.debt || 0, affBefore = (G.aff && G.aff[this.M_NPC]) || 0;
+    G.debt = Math.max(0, before + c.debt);
+    this.addAffTo(G, this.M_NPC, c.aff);
+    F.s3m_step = 1; F.s3m_choice = c.key;
+    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.M_NPC], attitude: this.merchantAttitude(G) };
+  },
+  // 第 2 步：按当时态度结算
+  applyMerchant2(G) {
+    const F = this.flags(G);
+    const att = this.merchantAttitude(G);
+    const before = G.debt || 0;
+    let note;
+    if (att === 'close') {
+      const pay = Math.min(before, 500);
+      G.debt = before - pay;
+      note = pay > 0 ? `钱多多：“上回多亏你！”他偷偷替你还了 ${pay} 灵石。` : '钱多多：“你居然不欠钱？那请你喝酒！”';
+    } else if (att === 'neutral') {
+      note = '钱多多打了个哈哈：“生意人，不记账。”什么也没发生。';
+    } else {
+      const add = Math.round(Math.max(before, 100) * 0.1);
+      G.debt = before + add;
+      F.bounty = 1; F.stage3_bountyDebt = Math.max(F.stage3_bountyDebt || 0, G.debt);
+      note = `钱多多把你的行踪卖给了讨债司，欠款 +${add}。\n讨债司的追兵已经上路……`;
+    }
+    delete F.s3m_step; F.s3m_done = 1;
+    return { attitude: att, debtBefore: before, debtAfter: G.debt, note, bounty: !!F.bounty };
+  },
+  async runMerchantChain(G) {
+    const ui = stage3UI();
+    if (!G || !ui) return { ok: false, msg: 'no game or UI' };
+    this.migrate(G);
+    const F = this.flags(G);
+    const save = () => { if (typeof Game !== 'undefined' && Game && typeof Game.save === 'function') Game.save(); };
+    if (F.s3m_step === 1) {
+      const att = this.merchantAttitude(G);
+      const idx = await ui.card('钱多多回访', `钱多多又找上门来。\n他对你的态度：${this.M_ATT_NAME[att]}（好感 ${G.aff[this.M_NPC] || 0}）\n当前债务：${G.debt || 0}`, 'npc_merchant', ['看他想干嘛', '先躲开']);
+      if (idx !== 0) return { ok: false, msg: 'cancelled' };
+      const r = this.applyMerchant2(G);
+      save();
+      await ui.card('奇遇结果', `${r.note}\n债务：${r.debtBefore} → ${r.debtAfter}`, 'i:scroll', ['好']);
+      if (ui.hud) ui.hud();
+      return { ok: true, step: 'visit', ...r };
+    }
+    const opts = this.merchantChoices();
+    const idx = await ui.card('钱多多的赊账单', `钱多多拉住你：“讨债司要查我的税！帮帮忙，回头亏待不了你。”\n当前债务：${G.debt || 0}　他对你的好感：${(G.aff && G.aff[this.M_NPC]) || 0}`, 'npc_merchant', opts.map(o => o.t));
+    if (idx < 0 || idx >= opts.length) return { ok: false, msg: 'cancelled' };
+    const r = this.applyMerchant1(G, opts[idx]);
+    save();
+    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n钱多多好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）\n他会记住这件事的……`, 'i:scroll', ['好']);
+    if (ui.hud) ui.hud();
+    return { ok: true, step: 'bill', choice: opts[idx].key, ...r };
+  },
+
   // 开发者测试入口
   async test(G) {
     console.log('[Stage3] running encounter...');
