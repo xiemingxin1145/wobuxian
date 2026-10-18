@@ -485,3 +485,12 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
     return _ai(e, dt);
   };
 })();
+// 3.3：点了 NPC 正走过去/刚到达的 1.5 秒内，闲逛怪不贴脸开战（human_olaf T1 偶发“点名字牌却进了战斗”）
+(function () {
+  const _go = UX.goTo.bind(UX);
+  UX.goTo = function (e, quiet) { if (e && (e.kind === 'npc' || e.kind === 'boss') && R.player) R.player._npcGrace = performance.now() + 8000; return _go(e, quiet); };
+  const _ie = Game.interactEnt; Game.interactEnt = function (e) { if (R.player) R.player._npcGrace = performance.now() + 1500; return _ie.apply(this, arguments); };
+  const _mai = monAI;
+  monAI = function (e, dt) { const P = R.player; if (P && P._npcGrace > performance.now() && !P.chase) { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d < 1.2) { e.wt = 0.5; return; } } return _mai(e, dt); };
+})();
+{ const _ot = Game.onTap; Game.onTap = function () { if (R.player) R.player._npcGrace = 0; return _ot.apply(this, arguments); }; }
