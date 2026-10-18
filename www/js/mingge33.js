@@ -69,16 +69,17 @@ const MG33 = {
     const p = UI._q.then(run); UI._q = p.catch(() => { }); return p;
   },
   async ensure() {
-    const G = Game.G; if (!G || G.dead || G._mgAsking) return;
+    const G = Game.G; if (!G || G.dead) return; if (G._mgAsking) delete G._mgAsking; // 旧版把临时标记写进了存档（弹窗时关游戏 → 永远不再弹），这里清掉
+    if (this._askG === G) return; // 正在弹窗：标记只放内存，不进存档
     if (Array.isArray(G.mingge) && G.mingge.length) return this.applyOnce(G);
     if (Array.isArray(G.mingge) && G.flags && G.flags.mg33_done) return;
-    G._mgAsking = 1;
+    this._askG = G;
     try {
       const fresh = G.mingge === null;
       const ids = await this.pick(fresh ? 3 : 1, fresh ? '先天命格' : '补选命格', fresh ? '投胎时天道随手塞给你几张命签，挑 3 张带走' : '3.3 新增先天命格：老朋友也送一张，挑 1 个');
       G.mingge = ids; G.flags = G.flags || {}; G.flags.mg33_done = 1; this.applyOnce(G);
       UI.toast('先天命格：' + ids.map(id => this.get(id).n).join('、'), '#ffc84a'); UI.hud(); Game.save();
-    } finally { delete G._mgAsking; }
+    } finally { if (this._askG === G) this._askG = null; }
   },
 };
 (function () {
