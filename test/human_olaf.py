@@ -403,7 +403,11 @@ async def main():
             for k in range(T4_N):
                 if time.time() - t4 > T4_BUDGET: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
-                if not t: rows.append(dict(npc=nid, result='npc missing')); continue
+                if not t:   # 先像真人一样关掉弹窗/打完遭遇战，再找一次
+                    await clear_popups(c, 6); await ensure_map(c); st = await npcs(c); t = find(st, nid)
+                if not t:
+                    diag = await c.pg.evaluate("()=>({mode:R.mode,map:R.mapId,stack:UI.stack.length,age:Game.G&&Game.G.age,ids:R.ents.filter(e=>e.kind==='npc').map(e=>e.id+(e.hidden?'(h)':''))})")
+                    rows.append(dict(npc=nid, result='npc missing', diag=diag)); continue
                 ring = sorted([(di, dj) for di in range(-6, 7) for dj in range(-6, 7) if 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0])))
                 placed = False; tries = 0
                 for di, dj in ring:   # 优先站在 NPC 南边（NPC 在画面上方，不被底部 UI 挡）

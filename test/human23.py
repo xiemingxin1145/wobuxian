@@ -251,6 +251,15 @@ async def main():
         await settle(); ban = await shot('17_map_switched')
         await tap('#menu .mb[data-p=travel]', 700); here = await text('.mapb.here b'); await shot('18_travel_here'); await settle()
         step('10 切换地图', bool(target) and target == here.strip(), f'前往 {target} → 当前所在 {here!r}', ban)
+        # 2.8 起「御剑」会打开九州大地图（mode=world）；像玩家一样点「进入 XX」回到地图，等淡入结束再做 11/12（只读状态）
+        for _ in range(3):
+            eb = await vis('#w28-enter button')
+            if not eb: break
+            await tap(eb, 800)
+            for _ in range(40):
+                if await pg.evaluate("()=>R.mode==='map'&&!!R.M&&!document.querySelector('#w28-enter')&&+getComputedStyle(document.querySelector('#fade')).opacity<0.05"): break
+                await pg.wait_for_timeout(300)
+            await pg.wait_for_timeout(1200); await settle()
         # 11 判定框重叠 / 摇杆区：点每个 NPC 的身体中心，必须打开这个 NPC（不是旁边的人）；只读取位置，点按全用触摸
         JS_NPC = """()=>{if(!R.player||R.mode!=='map')return [];const S=(x,y)=>{const [a,b]=w2s(x,y);return [a/R.dpr,b/R.dpr]};return R.ents.filter(e=>e.kind==='npc'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);return {id:e.id,n:e.label,i:e.i,j:e.j,body:S(x,y-b.h/2)}})}"""
         JS_WHO = "()=>{const t=[...document.querySelectorAll('#modals .mwrap')].pop();return t&&t.querySelector('.dn')?t.querySelector('.dn').textContent:(t?'card:'+t.innerText.slice(0,12):null)}"
