@@ -2,6 +2,12 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。
 
+## 开放世界线（进行中）
+> 2026-10-18 15:20（UTC+8）开放世界线机器人认领。只碰下列文件，避开 Issue #5 / 第十七章线（controls.py、ux23.js 自动任务、章节/剧情数据）：
+- `www/js/stage3_encounter_draft.js`（阶段 3 债务奇遇：修 flag 误写 bug + 加第二步「讨债追兵」）
+- `test/stage3_chain.js`（新增，node 无头单测）
+- `PROGRESS.md`、`docs/openworld_upgrade.md`（状态更新）
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：跳转到独立遭遇战原型 `prototypes/encounter/`（不影响存档）
