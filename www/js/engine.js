@@ -223,7 +223,19 @@ function render() {
       const e = it.e; const [x, y] = t2p(e.i, e.j);
       const fps = e.anim === 'walk' ? 10 : 5;
       const lift = R.entPre ? R.entPre(ctx, e, x, y) || 0 : 0;
-      drawSprite(ctx, e.spr, e.anim, e.dir, e.at * fps, x, y - lift + (e.bob ? Math.sin(R.t * 3) * 3 : 0), e.s, e.alpha);
+      const dy = y - lift + (e.bob ? Math.sin(R.t * 3) * 3 : 0);
+      // v2.5 H4 纯代码动效：待机呼吸 scaleY 正弦 + NPC 点头 ±2°（零渲染成本，不换图集）
+      if (e.anim === 'idle') {
+        const ph = e.at || 0;
+        ctx.save(); ctx.translate(x, dy);
+        if (e.kind === 'npc' || e.kind === 'comp') ctx.rotate(Math.sin(R.t * 1.6 + ph) * 0.035);
+        ctx.scale(1, 1 + Math.sin(R.t * 2.2 + ph) * 0.028);
+        ctx.translate(-x, -dy);
+      }
+      drawSprite(ctx, e.spr, e.anim, e.dir, e.at * fps, x, dy, e.s, e.alpha);
+      if (e.anim === 'idle') ctx.restore();
+      // v2.5 H4 受击闪白（复用 battle.js:67 flashT 思路）：受伤时叠加 lighter 白闪
+      if (e.hurtT > 0) { e.hurtT -= 0.016; ctx.globalCompositeOperation = 'lighter'; drawSprite(ctx, e.spr, e.anim, e.dir, e.at * fps, x, dy, e.s, Math.min(1, e.hurtT * 2.5)); ctx.globalCompositeOperation = 'source-over'; }
       if (R.entPost) R.entPost(ctx, e, x, y - lift);
     }
   }

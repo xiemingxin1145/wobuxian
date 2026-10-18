@@ -11,7 +11,8 @@ reset(); sun = lights()
 sc = bpy.context.scene; sc.cycles.samples = int(os.environ.get('WBX_SAMPLES', 48))
 COL = {'g': ('#7cc85c', '#4f9a40', 6), 'f': ('#80cc60', '#55a044', 6), 'p': ('#e2c792', '#c3a26c', 9), 's': ('#dcd8d0', '#bcb5a8', 4), 'd': ('#9c6c44', '#7a5232', 5),
        'a': ('#f2dfaa', '#e0c68e', 7), 'r': ('#4e3e4a', '#33262f', 5), 'b': ('#857462', '#62533f', 6), 'c': ('#fdfdff', '#e2e8fb', 3), 'l': ('#5a2a1a', '#3a1a10', 5),
-       'm': ('#5f7d70', '#45594f', 6), 'j': ('#c8f2e2', '#a0dcc8', 4), 'w': ('#7a6a4a', '#5a4a34', 5), 'x': ('#000000', '#000000', 1)}
+       'm': ('#5f7d70', '#45594f', 6), 'j': ('#c8f2e2', '#a0dcc8', 4), 'w': ('#7a6a4a', '#5a4a34', 5),
+       'h': ('#f4f0e4', '#e6dcc6', 3), 'x': ('#000000', '#000000', 1)}
 types = sorted(set(''.join(T)) - {'x'})
 land = [(i, j) for j in range(N) for i in range(N) if T[j][i] != 'x']
 

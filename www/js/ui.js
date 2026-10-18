@@ -183,7 +183,7 @@ const UI = {
       if (S.eq && !G.shop) { G.shop = []; for (let k = 0; k < 4; k++) G.shop.push(Game.makeEq(pick(['weapon', 'armor', 'hat', 'boots', 'acc', 'treasure']), G.realm + G.stage * 0.25, Math.random() < 0.15 ? 2 : Math.random() < 0.5 ? 1 : 0)); }
       const w = h('div', 'mwrap'); const p = h('div', 'panel'); w.appendChild(p); this.push(w);
       const disc = G.flags.discount ? 0.8 : 1;
-      const price = k => sect ? SECT_SHOP.find(x => x[0] === k)[1] : Math.round(ITEMS[k].p * disc * (1 + Math.max(0, 3 - G.st.cha) * 0.03));
+      const price = k => sect ? SECT_SHOP.find(x => x[0] === k)[1] : Math.round(ITEMS[k].p * disc * (1 + Math.max(0, 3 - G.st.cha) * 0.03) * (window.Market25 ? Market25.buyMod() : 1)); // v2.5 H2：声望折扣×区域物价
       const eqPrice = e => Math.round(30 * POW(e.tier) * RARITY[e.rar].m * (1 + e.rar) * disc);
       const render = () => {
         p.innerHTML = `<div class="ph"><b>${S.n}</b><button class="x">✕</button></div><div class="pb"><p class="hint">${sect ? `宗门贡献：${G.contrib}` : `灵石：${fmt(G.stone)}`}</p>${S.items.map(k => `<div class="it"><i style="${iconCss(ITEMS[k].ic, 44)}"></i><div><b>${ITEMS[k].n}</b><small>${ITEMS[k].d}　持有${G.inv[k] || 0}</small></div><button class="sm buy" data-k="${k}">${price(k)}${sect ? '贡献' : ''}</button></div>`).join('')}

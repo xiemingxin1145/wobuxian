@@ -91,7 +91,10 @@ Game.npcMark = function (id) {
 };
 // 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
 const _fight23 = Game.fight.bind(Game);
-Game.fight = async function (...a) { try { const r = await _fight23(...a); if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year }; UI.toast('打不过——自动先去变强（打怪/修炼），两年后或境界提升再来'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
+// #5（3.3）屡败屡战：同一章主线 BOSS/精英战输一次，攻防气血 +20%（最多 5 层），再战前气血灵力回满，推进主线后失效
+{ const _st33 = Game.stats; Game.stats = function () { const s = _st33.apply(this, arguments); const G = this.G, g = G && G.flags && G.flags.grit33; if (g && g.main === G.main && g.n > 0) { const m = 1 + 0.2 * g.n; s.atk *= m; s.def *= m; s.mhp = Math.round(s.mhp * m); } return s; }; }
+Game.fight = async function (...a) { try { { const G = Game.G, o0 = a[1] || {}, g0 = G && G.flags && G.flags.grit33; if (g0 && g0.main === G.main && g0.n > 0 && (o0.boss || o0.elite || o0.noflee)) { const s0 = Game.stats(); G.hp = s0.mhp; G.mp = s0.mmp; } } const r = await _fight23(...a); const o = a[1] || {}; if (r && Game.G) { const G = Game.G; G.flags = G.flags || {}; if (r.res !== 'win' && (o.boss || o.elite || o.noflee)) { const g = G.flags.grit33 && G.flags.grit33.main === G.main ? G.flags.grit33 : { main: G.main, n: 0 }; g.n = Math.min(5, g.n + 1); G.flags.grit33 = g; UI.toast(`屡败屡战：再挑战时攻防气血 +${g.n * 20}%，并回满气血灵力`); } else if (r.res === 'win' && G.flags.grit33 && G.flags.grit33.main !== G.main) delete G.flags.grit33; }
+    if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year, k: G.killsTotal || 0 }; UI.toast('打不过——自动先打几只怪攒经验，再回来挑战'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
 // 桃花村原本没有采药点，但娘的「灵草汤」7 岁就给 → 支线做不了。给村子加两处野草丛采药点（每年可采）
 const VILLAGE_HERBS = [[8, 14], [17, 6]];
 const _mm23 = Game.makeMarks.bind(Game);
@@ -113,7 +116,8 @@ Game.refreshNpcs = function () {
   _refresh(); const G = this.G; if (!G || !R.M || (R.mode !== 'map' && R.mode !== 'battle')) return;
   for (const e of R.ents) if (e.kind === 'boss' && e.mark === '!') e.mark = '★';
   if (R.mapId === 'village' && MAIN[G.main] && MAIN[G.main].id === 'debt' && !G.flags.main0 && !R.ents.find(e => e.id === 'debt_slime')) {
-    const [i, j] = nearestWalk(8, 10); addEnt({ kind: 'boss', id: 'debt_slime', spr: 'mon_collector', i: i + 0.5, j: j + 0.5, dir: 'SE', label: '讨债史莱姆', lc: '#ffb040', s: 0.95, mark: '★' }); loadSprite('mon_collector');
+    let [i, j] = nearestWalk(8, 10); { let bd = -1; for (let r = 0; r <= 4; r++) for (let di = -r; di <= r; di++) for (let dj = -r; dj <= r; dj++) { const ti = 8 + di, tj = 10 + dj; if (!walkable(ti, tj)) continue; const d = Math.min(9, ...R.ents.filter(o => o.kind === 'npc' && !o.hidden).map(o => Math.hypot(o.i - ti - 0.5, o.j - tj - 0.5))); if (d >= 2.5 && bd < 2.5 || (bd < 2.5 && d > bd)) { bd = d; i = ti; j = tj; } } }
+    addEnt({ kind: 'boss', id: 'debt_slime', spr: 'mon_collector', i: i + 0.5, j: j + 0.5, dir: 'SE', label: '讨债史莱姆', lc: '#ffb040', s: 0.95, mark: '★' }); loadSprite('mon_collector');
   }
 };
 const _mainTalk = Talk.mainTalk.bind(Talk);
@@ -258,7 +262,7 @@ UI.p_quests = function (b, re, close) {
 };
 // ---------- B.4 自动任务 / C.1 挂机：只走路、对话、托管战斗，绝不瞬移；只点“安全选项”，需要玩家决定就暂停 ----------
 const SAFE = /^(打坐（|★|✔|！|接受|继续|好|收下|交付|……|应战|带路|明白|谢|原来如此|伸手|去后巷|去看看|你说什么|撤|知道了|确定|抄起扫帚|开始|过年)/;
-const UNSAFE = /(结局|道侣|拜师|高利贷|借|送礼|交易|出售|驱逐|成为新天道|销账|渡劫|飞升|放弃|轮回|删除|重置)/;
+const UNSAFE = /(结局|道侣|拜师|高利贷|借|送礼|交易|出售|驱逐|成为新天道|销账|渡劫|飞升|放弃|轮回|删除|重置|落幕|算天道|算剑仙|各退一步)/;
 const AUTO = {
   on: null, wait: false, last: 0, n: 0, seen: {},
   start(mode) { if (mode === 'idle') return AFK.ask(); this.on = mode; this.wait = false; UI.toast('自动任务：自动寻路、对话、战斗、交付（不会替你做重要选择）'); UI.hud(); },
@@ -300,7 +304,7 @@ const AUTO = {
     for (const [sl] of SLOTS) { const c = G.eqs.filter(e => e.slot === sl).sort((a, b) => Game.eqScore(b) - Game.eqScore(a))[0]; if (c && G.eq[sl] !== c.uid && Game.eqScore(c) > (G.eq[sl] ? Game.eqScore(G.eqs.find(e => e.uid === G.eq[sl]) || { main: {}, aff: [], rar: 0 }) : -1)) Game.equip(c.uid); }
     if (Game.canBreak() && !this._brkTold) { this._brkTold = G.realm; UI.toast('修为已满！渡劫突破要你自己点「突破」'); }
     if (this.on === 'quest') {
-      const pw = G.realm * 10 + G.stage, wk = this.weak; const weakMain = wk && wk.main === G.main && pw <= wk.pw && G.year - wk.y < 2;
+      const pw = G.realm * 10 + G.stage, wk = this.weak; const weakMain = wk && wk.main === G.main && pw <= wk.pw && G.year === wk.y && (G.killsTotal || 0) - (wk.k || 0) < 3 && R.ents.some(e => e.kind === 'mon' && !e.gone); // #5：打 3 只怪/过一年/境界提升/没怪可打 就回去再战（配合屡败屡战加成）
       for (const q of Track.list()) { if (q === 'main' && weakMain) continue; const t = Track.target(q); if (!t || !['npc', 'boss', 'mon', 'mark', 'map'].includes(t.kind)) continue; if (t.map && t.map !== R.mapId && (G.ap <= 0 || !Game.canEnter(t.map))) continue; const r = await Track.step(t, true); if (r === 'walk' || r === 'travel') return; }
       const bang = R.ents.find(e => e.kind === 'npc' && e.mark === '!' && !this.seen[e.id + G.year]); if (bang) { this.seen[bang.id + G.year] = 1; if (UX.goTo(bang, true)) return; }
       return AFK.chores(true);
@@ -459,3 +463,47 @@ hitTargets = function (u, S, targets) { // 无敌 / 一击必杀（只在开发�
   return r;
 };
 setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')) UI.hud(); }, 1500);
+// ---------- 3.3 #5 游走 NPC 点按加固：①0.6 秒宽限窗口（点到 NPC 刚刚站过的位置也算点中）②主角朝 NPC 走来时 NPC 暂停闲逛 ----------
+(function () {
+  const TRAIL_MS = 600;
+  setInterval(() => { try { if (R.mode !== 'map') return; const now = performance.now(); for (const e of R.ents) { if (e.kind !== 'npc' || e.hidden) continue; (e._trail = e._trail || []).push([now, e.i, e.j]); while (e._trail.length && now - e._trail[0][0] > TRAIL_MS) e._trail.shift(); } } catch (er) { } }, 100);
+  const _pick = pickAt;
+  pickAt = function (sx, sy) {
+    const h = _pick(sx, sy); if (!h || !h.tile || h.ent || h.mark) return h;
+    const [wx, wy] = s2w(sx, sy); let best = null, bd = 1e9;
+    for (const e of R.ents) {
+      if (e.kind !== 'npc' || e.hidden || !e._trail) continue;
+      for (const [, i, j] of e._trail) { const ci = e.i, cj = e.j; e.i = i; e.j = j; const r = entHitRect(e); e.i = ci; e.j = cj;
+        if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const d = Math.hypot(wx - r.cx, wy - r.cy); if (d < bd) { bd = d; best = e; } } }
+    }
+    return best ? { ent: best } : h;
+  };
+  const _ai = npcAI;
+  npcAI = function (e, dt) {
+    const P = R.player;
+    if (P && P.path && P.path.length && !(e.talking > 0)) { const end = P.path[P.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
+      if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
+    // 两个 NPC 站得太近（<0.9 格）时，后者让开一格
+    if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
+      const o = R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - e.i, o.j - e.j) < (o.kind === 'boss' ? 1.4 : 0.9));
+      if (o) { const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = -1;
+        for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) { const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
+          const dmin = Math.min(...R.ents.filter(x => x !== e && (x.kind === 'npc' || x.kind === 'boss' || x === P) && !x.hidden).map(x => Math.hypot(x.i - ti - 0.5, x.j - tj - 0.5)));
+          if (dmin > bd) { bd = dmin; best = [ti, tj]; } }
+        if (best && bd > 1) moveTo(e, best[0], best[1]); } }
+    const had = e.path && e.path.length; const r = _ai(e, dt);
+    // 闲逛终点不贴着别的 NPC（避免两人重叠时点到错的人，olaf：点落魄剑仙却点中翠花）
+    if (!had && e.path && e.path.length) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
+      if (ei !== undefined && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - ei - 0.5, o.j - ej - 0.5) < 1.6)) e.path = []; }
+    return r;
+  };
+})();
+// 3.3：点了 NPC 正走过去/刚到达的 1.5 秒内，闲逛怪不贴脸开战（human_olaf T1 偶发“点名字牌却进了战斗”）
+(function () {
+  const _go = UX.goTo.bind(UX);
+  UX.goTo = function (e, quiet) { if (e && (e.kind === 'npc' || e.kind === 'boss') && R.player) R.player._npcGrace = performance.now() + 8000; else if (e && R.player) R.player._npcGrace = 0; return _go(e, quiet); };
+  const _ie = Game.interactEnt; Game.interactEnt = function (e) { if (R.player) R.player._npcGrace = performance.now() + 1500; return _ie.apply(this, arguments); };
+  const _mai = monAI;
+  monAI = function (e, dt) { const P = R.player; if (P && P._npcGrace > performance.now() && !P.chase && P.target !== e) { const d = Math.hypot(e.i - P.i, e.j - P.j); if (d < 3) { e.wt = 0.5; if (e.path && e.path.length) e.path = []; return; } } return _mai(e, dt); };
+})();
+{ const _ot = Game.onTap; Game.onTap = function () { if (R.player) R.player._npcGrace = 0; return _ot.apply(this, arguments); }; }

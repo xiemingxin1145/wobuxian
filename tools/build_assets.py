@@ -26,8 +26,12 @@ if 'spr' in only:
         if r: out['sprites'][sid] = r
     print('sprites', len(out['sprites']))
 if 'maps' in only:
-    pack.DEST = os.path.join(A, 'maps'); out['maps'] = {}
-    maps = json.load(open(os.path.join(ART, 'out', 'maps.json')))
+    pack.DEST = os.path.join(A, 'maps')
+    mids = [x for x in os.environ.get('WBX_MAP_IDS', '').split(',') if x]  # 增量：只重打指定地图
+    if not mids: out['maps'] = {}
+    else: out['maps'] = out.get('maps', {})
+    allmaps = json.load(open(os.path.join(ART, 'out', 'maps.json')))
+    maps = [m for m in allmaps if not mids or m['id'] in mids]
     pmeta = {}
     for f in glob.glob(os.path.join(ART, 'out', 'props', 'meta_*.json')): pmeta.update(json.load(open(f)))
     for m in maps:

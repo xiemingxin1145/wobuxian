@@ -1,0 +1,75 @@
+{
+ "cases": [
+  {
+   "case": "scripts_real_load",
+   "ok": true,
+   "info": "{'dungeon': 'object', 'Dng': 'object', 'legacy': 'object', 'audio26': 'object', 'panels': True, 'ev': 3}"
+  },
+  {
+   "case": "dungeon_entry",
+   "ok": true,
+   "info": "['⚔ 探索秘境', '📜 收为弟子']"
+  },
+  {
+   "case": "dungeon_panel_open",
+   "ok": true,
+   "info": "<p class=\"hint\">秘境是上古修士坐化后残留的小世界，层层叠叠，杀机与遗宝并存。<br>\n        当前境界对应：<b style=\"color:#c8b8ff\">金丹秘境</b>　"
+  },
+  {
+   "case": "dungeon_run_start",
+   "ok": true,
+   "info": "{'floor': 1, 'max': 5, 'band': 2}"
+  },
+  {
+   "case": "dungeon_explore_fought",
+   "ok": true,
+   "info": "{'done': 0, 'over': False, 'mode': 'battle'}"
+  },
+  {
+   "case": "jianbei_wired",
+   "ok": true,
+   "info": "{'acts': 'function', 'dngEnter': 'function'}"
+  },
+  {
+   "case": "legacy_entry",
+   "ok": true,
+   "info": "['⚔ 探索秘境', '📜 传承道统']"
+  },
+  {
+   "case": "legacy_panel_render",
+   "ok": true,
+   "info": "<h4>座下弟子</h4><p class=\"hint\">尚未收徒。在好感 ≥80 的可结交 NPC 处（筑基后）可收为衣钵弟子。</p><h4>道侣子嗣</h4><p class=\"hint\">尚无子嗣。结为道侣后，年过不惑或有弄璋之喜。"
+  },
+  {
+   "case": "apprentice_offer",
+   "ok": true,
+   "info": "['⚔ 探索秘境', '📜 收为弟子']"
+  },
+  {
+   "case": "foe_event_in_pool",
+   "ok": true,
+   "info": "{'id': 'v26_foe_final', 'cond': 'flag:foe_final', 'weight': 3}"
+  },
+  {
+   "case": "causality_bookkeeping",
+   "ok": true,
+   "info": "{'grudge': {'aotian': 3}, 'foeResolved': False, 'graceResolved': False, 'year': 2}"
+  },
+  {
+   "case": "new_bgm_played",
+   "ok": true,
+   "info": "{'cur': 'mijing', 'src': 'assets/audio/bgm_mijing.ogg'}"
+  },
+  {
+   "case": "no_hard_js_errors",
+   "ok": true,
+   "info": "[]"
+  }
+ ],
+ "fails": [],
+ "js_errors": [],
+ "failed_res": [
+  "file:///home/user/Doubao/chats/38445771671928834/wobuxian/www/assets/audio/bgm_village.ogg",
+  "file:///home/user/Doubao/chats/38445771671928834/wobuxian/www/assets/audio/bgm_mijing.ogg"
+ ]
+}

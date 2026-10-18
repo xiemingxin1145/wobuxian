@@ -279,7 +279,10 @@ async def main():
                     s_ = await scr(c2)
                     if s_['modal']:   # 点到的地方恰好是 NPC/交互点 → 打开了对话，也说明点按有效；关掉后换个点再试走路
                         info.setdefault('ground_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); continue
-                    p1 = (await npcs(c2))['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
+                    st3 = await npcs(c2)
+                    if not st3: await ensure_map(c2); st3 = await npcs(c2)
+                    if not st3: continue
+                    p1 = st3['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
             info['ground_tap_moved_tiles'] = moved
             cand_ = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']
             t = cand_[0]
@@ -400,7 +403,11 @@ async def main():
             for k in range(T4_N):
                 if time.time() - t4 > T4_BUDGET: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
-                if not t: rows.append(dict(npc=nid, result='npc missing')); continue
+                if not t:   # 先像真人一样关掉弹窗/打完遭遇战，再找一次
+                    await clear_popups(c, 6); await ensure_map(c); st = await npcs(c); t = find(st, nid)
+                if not t:
+                    diag = await c.pg.evaluate("()=>({mode:R.mode,map:R.mapId,stack:UI.stack.length,age:Game.G&&Game.G.age,ids:R.ents.filter(e=>e.kind==='npc').map(e=>e.id+(e.hidden?'(h)':''))})")
+                    rows.append(dict(npc=nid, result='npc missing', diag=diag)); continue
                 ring = sorted([(di, dj) for di in range(-6, 7) for dj in range(-6, 7) if 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0])))
                 placed = False; tries = 0
                 for di, dj in ring:   # 优先站在 NPC 南边（NPC 在画面上方，不被底部 UI 挡）
@@ -409,6 +416,13 @@ async def main():
                     tries += 1
                     if await walk_to(c, a, b): placed = True; break
                     if tries >= 10: break
+                if not placed:   # 5–6 格环上没找到可走到的格子（房屋/水边），放宽到 4–7 格再试
+                    for di, dj in sorted([(di, dj) for di in range(-7, 8) for dj in range(-7, 8) if 4 <= math.hypot(di, dj) <= 7 and not 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0]))):
+                        a, b = int(t['i']) + di, int(t['j']) + dj
+                        if not await c.pg.evaluate(JS_WALK, [a, b]): continue
+                        tries += 1
+                        if await walk_to(c, a, b): placed = True; break
+                        if tries >= 18: break
                 if not placed: rows.append(dict(npc=t['name'], result='could not position (harness)')); continue
                 await c.pg.wait_for_timeout(900); b0 = c.battles
                 st = await npcs(c); t = find(st, nid); x, y = t['pts']['body']
@@ -494,7 +508,7 @@ async def main():
             await c.ctx.close()
 
         # =============== 开发者模式相关：T7 T8 T9 T10② T11 ===============
-        if want('T10') or want('T7') or want('T8') or want('T9') or want('T11'):
+        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3') or want('S4'):
             c = await new_page()
             r = await rect(c, '#title .ver'); before = await c.pg.evaluate("()=>localStorage.getItem('wbx2_dev')")
             if r:
@@ -560,6 +574,114 @@ async def main():
                 g1 = await gst(c9); f = await shot(c9, 'T9_end')
                 case('T9_auto_quest_loop', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
                 await c9.ctx.close()
+            if want('T9b'):   # 3.3 #5 回归：练气初期打不过讨债鬼头子 → 先打怪 + 屡败屡战加成，不再等两年，限时内推进主线
+                T9B_S = float(os.environ.get('T9B_SECS', '300'))
+                c9, okd = await market_setup('练气初期'); g0 = await gst(c9)
+                await tap_el(c9, '#qt .qauto', None, 500); jumps = 0; last = g0; t0 = time.time(); years0 = g0.get('year')
+                while time.time() - t0 < T9B_S:
+                    await c9.pg.wait_for_timeout(1000); g = await gst(c9)
+                    if g['p'] and last['p'] and g['map'] == last['map']:
+                        d = math.hypot(g['p'][0] - last['p'][0], g['p'][1] - last['p'][1])
+                        if d > g['speed'] * g['ts'] * 1.0 * 1.5 + 0.5: jumps += 1
+                    last = g
+                    if g['main'] > g0['main']: break
+                g1 = await gst(c9); grit = await c9.pg.evaluate("()=>Game.G.flags.grit33||null"); f = await shot(c9, 'T9b_end')
+                case('T9b_auto_quest_after_loss', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], grit=grit, teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
+                await c9.ctx.close()
+            # ---- 3.3 新系统点按用例（research_v33 A1/A2/A3）：只点屏幕，page.evaluate 只读 ----
+            if want('S1'):   # 先天命格：6 选 3、重抽 1 次后置灰、角色面板可见
+                cs = await new_page(); await tap_el(cs, '#title .opt', '开始新人生', 700); talents = 0
+                for _ in range(14):
+                    if (await scr(cs))['ingame']: break
+                    k = await cs.pg.evaluate("()=>{const t=[...document.querySelectorAll('.talb')];const i=t.findIndex(x=>!x.classList.contains('on'));if(i<0)return null;const r=t[i].getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+                    if k and talents < 3: await tap(cs, *k); await cs.pg.wait_for_timeout(250); talents += 1; continue
+                    await tap_el(cs, '#rs', None, 250)
+                    if not await tap_el(cs, '#nx', None, 500): await cs.pg.wait_for_timeout(600)
+                info = {}; t0 = time.time()
+                while time.time() - t0 < 30 and not await rect(cs, '.mg33 .mgc'):   # 先像真人一样点掉出生事件/过场，再等命格卡
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                for _ in range(10):   # 序章过场（.chapter-fx）会盖在命格卡上面，先点掉
+                    if (await scr(cs))['chapter']: await tap_el(cs, '.chapter-fx', None, 600)
+                    else: break
+                info['cards'] = await cs.pg.evaluate("()=>document.querySelectorAll('.mg33 .mgc').length")
+                await tap_el(cs, '.mg33 .opt', '重抽一次', 500)
+                info['reroll_disabled'] = await cs.pg.evaluate("()=>{const b=[...document.querySelectorAll('.mg33 .opt')].find(b=>b.textContent.includes('重抽'));return !!(b&&b.disabled)}")
+                names = await cs.pg.evaluate("()=>[...document.querySelectorAll('.mg33 .mgc b')].map(b=>b.textContent)")
+                for nm in names[:3]: await tap_el(cs, '.mg33 .mgc', nm, 300)
+                info['ok_label'] = (await rect(cs, '.mg33 .opt', '确定') or [0, 0, None])[2]
+                await tap_el(cs, '.mg33 .opt', '确定', 600)
+                info['mingge'] = await cs.pg.evaluate("()=>Game.G&&Game.G.mingge")
+                await clear_popups(cs, 30); await ensure_map(cs)
+                await tap_el(cs, '#menu *', '角色', 700)
+                info['char_panel_has'] = await cs.pg.evaluate("()=>{const e=document.querySelector('.mg33row');return e?e.textContent.slice(0,80):null}")
+                f = await shot(cs, 'S1_mingge_char'); await clear_popups(cs, 4)
+                case('S1_mingge_pick3', info['cards'] == 6 and info['reroll_disabled'] and isinstance(info['mingge'], list) and len(info['mingge']) == 3 and bool(info['char_panel_has']), **info, shot=f)
+                await cs.ctx.close()
+            if want('S4'):   # #8 回归：命格弹窗时“杀进程”（刷新页面）→ 继续人生 → 必须再弹命格
+                cs = await new_page(); await tap_el(cs, '#title .opt', '开始新人生', 700); talents = 0
+                for _ in range(14):
+                    if (await scr(cs))['ingame']: break
+                    k = await cs.pg.evaluate("()=>{const t=[...document.querySelectorAll('.talb')];const i=t.findIndex(x=>!x.classList.contains('on'));if(i<0)return null;const r=t[i].getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+                    if k and talents < 3: await tap(cs, *k); await cs.pg.wait_for_timeout(250); talents += 1; continue
+                    await tap_el(cs, '#rs', None, 250)
+                    if not await tap_el(cs, '#nx', None, 500): await cs.pg.wait_for_timeout(600)
+                t0 = time.time(); first = False
+                while time.time() - t0 < 30:
+                    if await rect(cs, '.mg33 .mgc'): first = True; break
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                await cs.pg.evaluate("()=>Game.save()")   # 页面被杀前的最后一次自动保存（与 onAppPause 相同）
+                await cs.pg.reload(); await cs.pg.wait_for_timeout(2500)
+                await tap_el(cs, '#title .opt', '继续', 1500); t0 = time.time(); again = False
+                while time.time() - t0 < 30:
+                    if await rect(cs, '.mg33 .mgc'): again = True; break
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                saved = await cs.pg.evaluate("()=>{const s=JSON.parse(localStorage.getItem('wbx2_save')||'{}');return {mgAsking:'_mgAsking' in s, mingge:s.mingge}}")
+                f = await shot(cs, 'S4_mingge_after_reload')
+                case('S4_mingge_reshow_after_kill', first and again and not saved['mgAsking'], first=first, again=again, saved=saved, shot=f)
+                await cs.ctx.close()
+            if want('S2') or want('S3'):
+                cs = await new_page('#dev'); await new_life(cs); await ensure_map(cs)
+                okd = await dev_setup(cs, ('境界', '金丹初期'), ('资源', '灵石 +100万'), ('资源', '全部物品 ×5'))
+                if want('S2'):   # 法宝：筑基后可选、升阶消耗与成功率显示、成功/失败结果正确
+                    await tap_el(cs, '#menu *', '更多', 600); await tap_el(cs, '.big2', '洞府', 900)
+                    has = await rect(cs, '.fb33 .opt', '青萍剑'); await tap_el(cs, '.fb33 .opt', '青萍剑', 600)
+                    hint = await cs.pg.evaluate("()=>{const e=document.querySelector('.fb33 .hint');return e?e.textContent:''}")
+                    st0 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
+                    await tap_el(cs, '.fb33 .opt', '升阶', 700); s_ = await scr(cs); fail_card = s_['title'] == '升阶失败'
+                    if fail_card: await clear_popups(cs, 2)
+                    st1 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
+                    spent = st0['s'] - st1['s']; okc = (st1['fb']['tier'] == 2 and spent == 660) or (st1['fb']['tier'] == 1 and spent == 330)
+                    f = await shot(cs, 'S2_fabao'); await tap_el(cs, '#modals .mwrap .x', None, 500); await clear_popups(cs, 4)
+                    case('S2_fabao_pick_upgrade', okd and bool(has) and '灵石 660' in hint and '成功率 92%' in hint and okc, hint=hint[:80], tier=[st0['fb'].get('tier'), st1['fb'].get('tier')], stone_spent=spent, fail_card=fail_card, shot=f, cheats=cs.cheats)
+                if want('S3'):   # 催收令：开发者降临 → 公告 → 点地图标记走过去 → 应战（自动）→ 结算卡（伤害/档位/排名）
+                    await dev_tap(cs, '调试', '立即降临催收使'); await cs.pg.wait_for_timeout(1200)
+                    s_ = await scr(cs); notice = s_['title']; await clear_popups(cs, 3)
+                    st_ = await npcs(cs); mk = next((m['s'] for m in (st_ or {}).get('marks', []) if m['act'] == 'wb33'), None)   # 点头顶「催收令」名牌
+                    fought = False; card = None
+                    if mk:
+                        await tap(cs, mk[0], mk[1]); t0 = time.time()
+                        while time.time() - t0 < 25:
+                            s_ = await scr(cs)
+                            if s_['title'] == '天道催收使': break
+                            await cs.pg.wait_for_timeout(400)
+                        await tap_el(cs, '#modals .mwrap .opt', '应战', 800); t0 = time.time()
+                        while time.time() - t0 < 120:
+                            s_ = await scr(cs)
+                            if s_['battle']: fought = True; await tap_el(cs, '#battlebar button[data-a=auto]', None, 400)
+                            if s_['modal'] and s_['title'] and ('结算' in s_['title'] or '反向催收' in s_['title']): card = s_['text']; break
+                            await cs.pg.wait_for_timeout(700)
+                    w = await cs.pg.evaluate("()=>Game.G.wb33"); f = await shot(cs, 'S3_worldboss'); await clear_popups(cs, 6)
+                    case('S3_worldboss_challenge', notice == '天道催收令' and bool(mk) and fought and bool(card) and '档位' in (card or '') and w and w['tries'] == 2, notice=notice, mark=bool(mk), fought=fought, card=card, wb=w, shot=f, cheats=cs.cheats)
+                await cs.ctx.close()
             if want('T11'):
                 c11 = await new_page('#dev'); await new_life(c11); await ensure_map(c11); g0 = await gst(c11)
                 yexp = await c11.pg.evaluate("()=>Game.yearExp()")   # 只读：公式用的年修为

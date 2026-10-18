@@ -1,0 +1,61 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "None"
+  },
+  {
+   "case": "realms_registered",
+   "ok": true,
+   "info": "{'n': 11, 'names': ['地仙', '天仙', '金仙'], 'tier': [8, 9, 10]}"
+  },
+  {
+   "case": "maps_registered",
+   "ok": true,
+   "info": "{'info': True, 'order': True, 'asm': True, 'wx': 2000, 'wy': 380}"
+  },
+  {
+   "case": "ascend_cultivation_open",
+   "ok": true,
+   "info": "{'need': 330000, 'yearExp': 2200, 'rn': '飞升', 'can': True}"
+  },
+  {
+   "case": "break_to_dixian",
+   "ok": true,
+   "info": "{'realm': 8, 'rn': '地仙初期', 'life': 100005}"
+  },
+  {
+   "case": "enter_jiuct",
+   "ok": true,
+   "info": "True"
+  },
+  {
+   "case": "enter_xianfang",
+   "ok": true,
+   "info": "True"
+  },
+  {
+   "case": "enter_yaochi",
+   "ok": true,
+   "info": "True"
+  },
+  {
+   "case": "enter_lingxiao",
+   "ok": true,
+   "info": "True"
+  },
+  {
+   "case": "world_nodes",
+   "ok": true,
+   "info": "[{'id': 'jiuct', 'region': '天境', 'need': 7}, {'id': 'xianfang', 'region': '天境', 'need': 8}, {'id': 'yaochi', 'region': '天境', 'need': 9}, {'id': 'lingxiao', 'region': '天境', 'need': 10}]"
+  },
+  {
+   "case": "canenter_threshold",
+   "ok": true,
+   "info": "{'jiuct': True, 'yaochi': True, 'lingxiao': True, 'need_lingxiao': 10}"
+  }
+ ],
+ "fails": [],
+ "js_errors": []
+}

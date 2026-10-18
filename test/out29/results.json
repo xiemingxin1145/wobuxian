@@ -1,0 +1,73 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "{'age': 6, 'sect': None, 'map': 'village'}"
+  },
+  {
+   "case": "setup_sect",
+   "ok": true,
+   "info": "{'sect': 'qingyun', 'rank': 4, 'contrib': 2000, 'renown': 250}"
+  },
+  {
+   "case": "war29_loaded",
+   "ok": true,
+   "info": "War29 global exposed"
+  },
+  {
+   "case": "rel_default_zero",
+   "ok": true,
+   "info": "default rel=0"
+  },
+  {
+   "case": "rel_set_hostile",
+   "ok": true,
+   "info": "rel after set=-80"
+  },
+  {
+   "case": "panel_sect25_war_extended",
+   "ok": true,
+   "info": "宗门征伐 in panel: True, 敌对: True"
+  },
+  {
+   "case": "panel_sectWar_render",
+   "ok": true,
+   "info": "sectWar panel: True, tianmo: True"
+  },
+  {
+   "case": "war_completed",
+   "ok": true,
+   "info": "war_done=True, warState={'active': False, 'target': None, 'wins': 0, 'losses': 1}"
+  },
+  {
+   "case": "war_settlement_applied",
+   "ok": true,
+   "info": "after war: {'stone': 96023, 'contrib': 1950, 'merit': 0, 'sectRenown': 250, 'wins': 0, 'losses': 1}"
+  },
+  {
+   "case": "sect_leader_promotion",
+   "ok": true,
+   "info": "after promotion check: {'rank': 5, 'leader': 1}"
+  },
+  {
+   "case": "sect_leader_can_declare",
+   "ok": true,
+   "info": "Talk.extra options: ['🏯 我的宗门', '论道（悟道点）', '⚔ 宗门征伐', '⚔ 宣战百草谷']"
+  },
+  {
+   "case": "rel_clamp_max",
+   "ok": true,
+   "info": "rel after set 150 → 100"
+  },
+  {
+   "case": "rel_clamp_min",
+   "ok": true,
+   "info": "rel after set -150 → -100"
+  }
+ ],
+ "fails": [],
+ "js_errors": [
+  "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+ ]
+}

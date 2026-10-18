@@ -1,7 +1,7 @@
 """8 张地图的程序化+手工布局（唯一数据源：同时供 Blender 渲染与游戏使用）"""
 import random, math, json, os
 N = 22
-# 地块: g草 f花草 p土路 s石板 w水 d农田 a沙 r黑岩 b坟土 c云地 l熔岩 m秘境苔 j玉阶 x虚空
+# 地块: g草 f花草 p土路 s石板 w水 d农田 a沙 r黑岩 b坟土 c云地 l熔岩 m秘境苔 j玉阶 h天界玉地 x虚空
 SOLID = set('wlx')
 
 def gen(cfg):

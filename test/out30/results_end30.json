@@ -1,0 +1,91 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "None"
+  },
+  {
+   "case": "endings_registered",
+   "ok": true,
+   "info": "new endings: ['xianjie', 'daotong_end', 'bazhu', 'wanxian', 'shentong_end', 'taoli', 'guiyin']"
+  },
+  {
+   "case": "setup_done",
+   "ok": true,
+   "info": "None"
+  },
+  {
+   "case": "best_daotong",
+   "ok": true,
+   "info": "best=daotong_end"
+  },
+  {
+   "case": "daotong_option_at_mentor",
+   "ok": true,
+   "info": "mentor: ['🏁 大结局·道统大成（了此一生）']"
+  },
+  {
+   "case": "mutual_exclude_elder",
+   "ok": true,
+   "info": "elder: []"
+  },
+  {
+   "case": "best_bazhu",
+   "ok": true,
+   "info": "best=bazhu"
+  },
+  {
+   "case": "bazhu_option_at_elder",
+   "ok": true,
+   "info": "elder: ['🏁 大结局·宗门霸主（了此一生）']"
+  },
+  {
+   "case": "mutual_exclude_mentor",
+   "ok": true,
+   "info": "mentor: []"
+  },
+  {
+   "case": "best_wanxian",
+   "ok": true,
+   "info": "best=wanxian"
+  },
+  {
+   "case": "best_shentong",
+   "ok": true,
+   "info": "best=shentong_end"
+  },
+  {
+   "case": "shentong_option_at_xianguan",
+   "ok": true,
+   "info": "xianguan: ['🏁 大结局·神通大成（了此一生）'], elder: []"
+  },
+  {
+   "case": "best_guiyin",
+   "ok": true,
+   "info": "best=guiyin"
+  },
+  {
+   "case": "guiyin_option_at_villager",
+   "ok": true,
+   "info": "villager: ['🏁 大结局·归隐（了此一生）']"
+  },
+  {
+   "case": "no_endpoint_before_done",
+   "ok": true,
+   "info": "mid-story villager: []"
+  },
+  {
+   "case": "xianjie_upgraded",
+   "ok": true,
+   "info": "{'ending': 'xianjie', 'dead': True, 'meta': 1}"
+  },
+  {
+   "case": "trigger_flow_ready",
+   "ok": true,
+   "info": "option fn dispatched via Talk.extra chain; die() asserted in T8"
+  }
+ ],
+ "fails": [],
+ "js_errors": []
+}

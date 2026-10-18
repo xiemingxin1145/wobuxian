@@ -1,0 +1,73 @@
+{
+ "MAP_ORDER含新地图": [
+  "wanbao",
+  "juluyuan",
+  "yaowang",
+  "jianzhong",
+  "luanxing",
+  "jiuct",
+  "xianfang",
+  "yaochi",
+  "lingxiao"
+ ],
+ "wanbao": {
+  "entered": true,
+  "npcs": [
+   "jinmantang"
+  ]
+ },
+ "juluyuan": {
+  "entered": true,
+  "npcs": [
+   "luyuan_zhishi"
+  ]
+ },
+ "yaowang": {
+  "entered": true,
+  "npcs": [
+   "yaotong"
+  ]
+ },
+ "jianzhong": {
+  "entered": true,
+  "npcs": [
+   "shouling"
+  ]
+ },
+ "luanxing": {
+  "entered": true,
+  "npcs": [
+   "luanxing_sanxiu"
+  ]
+ },
+ "wendao": {
+  "entered": true,
+  "npcs": [
+   "wendao_yinzhe"
+  ]
+ },
+ "jiuct": {
+  "entered": true,
+  "npcs": [
+   "nanyun"
+  ]
+ },
+ "xianfang": {
+  "entered": true,
+  "npcs": [
+   "qianxd"
+  ]
+ },
+ "yaochi": {
+  "entered": true,
+  "npcs": [
+   "yaochi_shi"
+  ]
+ },
+ "lingxiao": {
+  "entered": true,
+  "npcs": [
+   "taibai"
+  ]
+ }
+}

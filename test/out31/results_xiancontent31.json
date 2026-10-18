@@ -1,0 +1,56 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "None"
+  },
+  {
+   "case": "mons_registered",
+   "ok": true,
+   "info": "{'have': True, 'spr': True, 'drops': ['ore', 'pyd']}"
+  },
+  {
+   "case": "npcs_registered",
+   "ok": true,
+   "info": "{'have': True, 'maps': ['jiuct', 'yaochi', 'lingxiao', 'xianfang']}"
+  },
+  {
+   "case": "skills_registered",
+   "ok": true,
+   "info": "{'have': True, 'tech': True, 'skNum': 3}"
+  },
+  {
+   "case": "events_quests_registered",
+   "ok": true,
+   "info": "{'xevents': 5, 'qs': True}"
+  },
+  {
+   "case": "monUnit_build_all",
+   "ok": true,
+   "info": "True"
+  },
+  {
+   "case": "fight_starts_noerror",
+   "ok": true,
+   "info": "{'mode': 'battle', 'on': None}"
+  },
+  {
+   "case": "talk_taibai",
+   "ok": true,
+   "info": "['传授仙界大道经', '论道（悟道点）']"
+  },
+  {
+   "case": "talk_qxd_auction",
+   "ok": true,
+   "info": "['🔨 仙界聚宝阁拍卖']"
+  },
+  {
+   "case": "jiuct_npc_spawn",
+   "ok": true,
+   "info": "{'mapId': 'jiuct', 'npcIds': ['nanyun'], 'monCount': 6}"
+  }
+ ],
+ "fails": [],
+ "js_errors": []
+}

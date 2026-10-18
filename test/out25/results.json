@@ -1,0 +1,56 @@
+{
+ "cases": [
+  {
+   "case": "game_loaded",
+   "ok": true,
+   "info": "{'age': 6, 'sect': None, 'map': 'village'}"
+  },
+  {
+   "case": "join_sect_setup",
+   "ok": true,
+   "info": "{'sect': 'qingyun', 'rank': 2, 'contrib': 500}"
+  },
+  {
+   "case": "talk_extra_sect_buttons",
+   "ok": true,
+   "info": "['🏯 我的宗门', '⚔ 晋升挑战（战黑心长老）']"
+  },
+  {
+   "case": "panel_sect25_render",
+   "ok": true,
+   "info": "位阶/贡献/大比文案存在"
+  },
+  {
+   "case": "rankup_challenge_no_crash",
+   "ok": true,
+   "info": "晋升挑战入口已点开并走完 modal 分支"
+  },
+  {
+   "case": "tournament_yearend",
+   "ok": true,
+   "info": "{'year': 3, 'tournDone': 1, 'tournWins': 0, 'busy': False}"
+  },
+  {
+   "case": "panel_auction_render",
+   "ok": true,
+   "info": "拍品按钮=3, 寄卖=True"
+  },
+  {
+   "case": "auction_bid_no_crash",
+   "ok": true,
+   "info": "竞拍按钮点过并走完 modal 分支"
+  },
+  {
+   "case": "auction_consign_no_crash",
+   "ok": true,
+   "info": "寄卖按钮点过并走完 modal 分支"
+  },
+  {
+   "case": "new_events_registered",
+   "ok": true,
+   "info": "[['v25_grudge', 'karma<=-5', 2], ['v25_enbo', 'karma>=10', 2]]"
+  }
+ ],
+ "fails": [],
+ "js_errors": []
+}
