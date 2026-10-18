@@ -508,7 +508,7 @@ async def main():
             await c.ctx.close()
 
         # =============== 开发者模式相关：T7 T8 T9 T10② T11 ===============
-        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3'):
+        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3') or want('S4'):
             c = await new_page()
             r = await rect(c, '#title .ver'); before = await c.pg.evaluate("()=>localStorage.getItem('wbx2_dev')")
             if r:
@@ -619,6 +619,34 @@ async def main():
                 info['char_panel_has'] = await cs.pg.evaluate("()=>{const e=document.querySelector('.mg33row');return e?e.textContent.slice(0,80):null}")
                 f = await shot(cs, 'S1_mingge_char'); await clear_popups(cs, 4)
                 case('S1_mingge_pick3', info['cards'] == 6 and info['reroll_disabled'] and isinstance(info['mingge'], list) and len(info['mingge']) == 3 and bool(info['char_panel_has']), **info, shot=f)
+                await cs.ctx.close()
+            if want('S4'):   # #8 回归：命格弹窗时“杀进程”（刷新页面）→ 继续人生 → 必须再弹命格
+                cs = await new_page(); await tap_el(cs, '#title .opt', '开始新人生', 700); talents = 0
+                for _ in range(14):
+                    if (await scr(cs))['ingame']: break
+                    k = await cs.pg.evaluate("()=>{const t=[...document.querySelectorAll('.talb')];const i=t.findIndex(x=>!x.classList.contains('on'));if(i<0)return null;const r=t[i].getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+                    if k and talents < 3: await tap(cs, *k); await cs.pg.wait_for_timeout(250); talents += 1; continue
+                    await tap_el(cs, '#rs', None, 250)
+                    if not await tap_el(cs, '#nx', None, 500): await cs.pg.wait_for_timeout(600)
+                t0 = time.time(); first = False
+                while time.time() - t0 < 30:
+                    if await rect(cs, '.mg33 .mgc'): first = True; break
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                await cs.pg.evaluate("()=>Game.save()")   # 页面被杀前的最后一次自动保存（与 onAppPause 相同）
+                await cs.pg.reload(); await cs.pg.wait_for_timeout(2500)
+                await tap_el(cs, '#title .opt', '继续', 1500); t0 = time.time(); again = False
+                while time.time() - t0 < 30:
+                    if await rect(cs, '.mg33 .mgc'): again = True; break
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                saved = await cs.pg.evaluate("()=>{const s=JSON.parse(localStorage.getItem('wbx2_save')||'{}');return {mgAsking:'_mgAsking' in s, mingge:s.mingge}}")
+                f = await shot(cs, 'S4_mingge_after_reload')
+                case('S4_mingge_reshow_after_kill', first and again and not saved['mgAsking'], first=first, again=again, saved=saved, shot=f)
                 await cs.ctx.close()
             if want('S2') or want('S3'):
                 cs = await new_page('#dev'); await new_life(cs); await ensure_map(cs)
