@@ -85,6 +85,64 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(S.skin === 'box' && drawn.length === 0 && fills >= 40, '方块皮肤：画长方体（' + fills + ' 次填充），不走 drawSprite');
   RB.end('lose'); await done; delete window.LowpolyBox;
 
+  // 8. 敌人前摇预警 + 前冲 / 弹道；玩家闪避无敌可躲
+  S.rand = () => 0;
+  const F = RB.FOE, D = RB.DODGE;
+  const run = (sec, step = 1 / 60) => { for (let t = 0; t < sec - 1e-9; t += step) RB.update(step); };
+  const freshLunge = (atkCd = 0) => { const pr = RB.start([{ name: '冲锋怪', hp: 999, x: 300, y: 240, speed: 0, atkCd }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; return pr; };
+  // 8a. 近距：进入前摇、锁方向、出预警，前摇期间不扣血
+  done = freshLunge();
+  RB.update(1 / 60);
+  let e0 = S.enemies[0], tg = RB.telegraphs();
+  ok(e0.state === 'windup' && e0.windKind === 'lunge' && tg.length === 1 && tg[0].kind === 'lunge', '近距 → 前冲前摇 + 1 个预警区');
+  ok(Math.abs(e0.aimX) < 1e-6 && Math.abs(e0.aimY - 1) < 1e-6, '前摇开始锁定朝向玩家');
+  let hp0 = S.player.hp; run(F.windLunge * 0.8);
+  ok(S.player.hp === hp0 && RB.telegraphs()[0].k > 0.7, '前摇期间不扣血，预警逐渐填满');
+  let tFill = 0; const tctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { if (k === 'fillRect' && /255,60,40/.test(t.fillStyle || '')) tFill++; }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(tctx);
+  ok(tFill >= 1, 'draw() 画出红色预警区');
+  // 8b. 不躲：前冲命中扣 lungeDmg
+  run(F.windLunge * 0.2 + F.lungeT + 0.05);
+  ok(S.player.hp === hp0 - F.lungeDmg && S.dmgNums.some(n => n.txt === '-' + F.lungeDmg), '不躲 → 前冲命中 -' + F.lungeDmg);
+  ok(S.enemies[0].state === 'chase' && S.enemies[0].atkCd > F.cdMin - 0.2, '出手后回到追击并进入冷却');
+  RB.end('lose'); await done;
+  // 8c. 前摇中横移出锁定线 → 前冲落空
+  done = freshLunge(); RB.update(1 / 60); hp0 = S.player.hp;
+  S.player.x += 80; // 侧移（模拟走位）
+  run(F.windLunge + F.lungeT + 0.05);
+  ok(S.player.hp === hp0, '前摇中走出预警区 → 前冲落空');
+  RB.end('lose'); await done;
+  // 8d. 前冲到达瞬间闪避（无敌）→ 免伤 + 「闪避!」
+  done = freshLunge(); RB.update(1 / 60); hp0 = S.player.hp;
+  run(F.windLunge - 0.02);
+  S.player.faceX = 0; S.player.faceY = 1; RB.dash(); // 朝敌人前冲方向闪（位置仍在路径上，靠无敌躲）
+  ok(S.player.invuln === D.inv, '闪避给 ' + D.inv + 's 无敌');
+  S.player.y = 320; // 位置拉回路径上，单纯检验无敌
+  run(F.lungeT);
+  ok(S.player.hp === hp0 && S.dmgNums.some(n => n.txt === '闪避!') && S.enemies[0].lungeHit, '无敌中被前冲穿过 → 不扣血，显示「闪避!」');
+  run(D.inv);
+  ok(S.player.invuln === 0, '无敌时间结束归零');
+  RB.end('lose'); await done;
+  // 8e. 远距：弹道前摇 → 沿锁定方向发弹；不躲扣血，无敌穿过
+  const freshShot = () => { const pr = RB.start([{ name: '远程怪', hp: 999, x: 300, y: 120, speed: 0, atkCd: 0 }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; return pr; };
+  done = freshShot(); RB.update(1 / 60);
+  ok(S.enemies[0].windKind === 'shot' && RB.telegraphs()[0].kind === 'shot', '远距 → 弹道前摇 + 预警线');
+  run(F.windShot + 0.02);
+  ok(S.enemyProjectiles.length === 1 && S.enemyProjectiles[0].vy > 0 && Math.abs(S.enemyProjectiles[0].vx) < 1e-6, '前摇结束沿锁定方向发弹');
+  hp0 = S.player.hp; run(1.2);
+  ok(S.player.hp === hp0 - F.shotDmg, '弹道命中 -' + F.shotDmg);
+  RB.end('lose'); await done;
+  done = freshShot(); RB.update(1 / 60); run(F.windShot + 0.02); hp0 = S.player.hp;
+  run(0.75); S.player.invuln = D.inv; run(0.3);
+  ok(S.player.hp === hp0 && S.enemyProjectiles.length === 1 && S.enemyProjectiles[0].dodged, '无敌中弹道穿身而过（不扣血、不消失）');
+  RB.end('lose'); await done;
+  // 8f. 不再有贴身接触伤害（冷却中贴脸站着不掉血）
+  done = RB.start([{ name: '贴脸怪', hp: 999, x: 300, y: 330, speed: 0, atkCd: 99 }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; hp0 = S.player.hp;
+  run(1.5);
+  ok(S.player.hp === hp0, '冷却中贴脸不扣血（只有预警后的出手才伤人）');
+  RB.end('lose'); await done;
+  S.rand = Math.random;
+
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
   const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');

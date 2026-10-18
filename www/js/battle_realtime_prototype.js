@@ -5,10 +5,21 @@
 //       调 RealtimeBattle.open() 才会打开自带覆盖层画布；键盘监听只在 RT.on 时生效。
 // 2026-10-19：接入游戏现有角色精灵（engine.js drawSprite / loadSprite，主角用 Game.playerSpr()，敌人默认 mon_slime），
 //             普攻改为面向扇形命中判定 + 伤害飘字 + 受击闪白，自带 rAF 循环与触屏摇杆/按钮。
+// 2026-10-19 第二轮：敌人改为「前摇预警（锁方向、红色预警区+闪烁）→ 近距前冲 / 远距弹道」，取消贴身接触伤害；
+//             玩家闪避给 0.3s 无敌（闪烁），无敌中前冲/弹道免伤并提示「闪避!」。
 (function () {
   const W0 = 600, H0 = 520; // 逻辑战场尺寸
   const BOUND = { x0: 40, x1: 560, y0: 60, y1: 480 };
   const ATK = { range: 90, arc: Math.PI / 3, close: 30, dmg: 28, cd: 0.45, swing: 0.25 }; // arc = 半角 60°
+  // 敌人出手：先前摇预警（锁定方向，画红色预警区并闪烁），再前冲（近）或发弹（远）；玩家闪避有短暂无敌可躲
+  const FOE = {
+    lungeRange: 110, shotRange: 300, stop: 50,
+    windLunge: 0.6, windShot: 0.45, // 前摇秒数
+    lungeT: 0.18, lungeSpd: 520, hitR: 30, lungeDmg: 15,
+    shotSpd: 200, shotDmg: 12, shotR: 18,
+    cdMin: 1.4, cdVar: 0.8,
+  };
+  const DODGE = { cd: 1.2, dist: 90, inv: 0.3 };
 
   const RT = {
     on: false,
@@ -66,8 +77,8 @@
       x: e.x != null ? e.x : 420,
       y: e.y != null ? e.y : 180,
       speed: e.speed != null ? e.speed : 70,
-      contactCd: 0,
-      skillCd: e.skillCd != null ? e.skillCd : 1.5 + RT.rand() * 2,
+      state: 'chase', wind: 0, windKind: null, aimX: 0, aimY: 1, lunge: 0, lungeHit: false,
+      atkCd: e.atkCd != null ? e.atkCd : (e.skillCd != null ? e.skillCd : 0.8 + RT.rand() * 1.2),
       flash: 0, at: 0, moving: false,
     }));
     RT.player = {
@@ -81,6 +92,7 @@
       attackCd: 0,
       swing: 0,
       dashCd: 0,
+      invuln: 0,
       skillCd: 0,
       faceX: 0,
       faceY: -1,
@@ -107,6 +119,7 @@
     p.dashCd = Math.max(0, p.dashCd - dt);
     p.skillCd = Math.max(0, p.skillCd - dt);
     p.flash = Math.max(0, p.flash - dt);
+    p.invuln = Math.max(0, p.invuln - dt);
     p.at += dt;
 
     // 移动：WASD / 方向键 / 触屏摇杆
@@ -125,31 +138,46 @@
     }
     clamp(p);
 
-    // 敌人简单追击 + 接触伤害 + 远距弹道
+    // 敌人 AI：追击 → 前摇预警（锁方向）→ 前冲 / 发弹 → 冷却；不再有贴身接触伤害
     for (const e of RT.enemies) {
       e.flash = Math.max(0, e.flash - dt);
       e.at += dt;
       if (e.hp <= 0) continue;
-      e.contactCd = Math.max(0, e.contactCd - dt);
       const dx = p.x - e.x, dy = p.y - e.y;
       const d = Math.hypot(dx, dy) || 1;
-      e.moving = d > 28;
-      if (e.moving) {
+      e.moving = false;
+      if (e.state === 'windup') {
+        e.wind -= dt;
+        if (e.wind <= 0) {
+          if (e.windKind === 'lunge') { e.state = 'lunge'; e.lunge = FOE.lungeT; e.lungeHit = false; }
+          else {
+            RT.enemyProjectiles.push({ x: e.x + e.aimX * 16, y: e.y + e.aimY * 16, vx: e.aimX * FOE.shotSpd, vy: e.aimY * FOE.shotSpd, life: 2.0, dmg: FOE.shotDmg, dodged: false });
+            e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar;
+          }
+        }
+        continue;
+      }
+      if (e.state === 'lunge') {
+        const step = Math.min(e.lunge, dt);
+        e.x += e.aimX * FOE.lungeSpd * step; e.y += e.aimY * FOE.lungeSpd * step; clamp(e);
+        e.lunge -= dt; e.moving = true;
+        if (!e.lungeHit && Math.hypot(p.x - e.x, p.y - e.y) < FOE.hitR) { e.lungeHit = true; damagePlayer(FOE.lungeDmg); }
+        if (e.lunge <= 0) { e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar; }
+        continue;
+      }
+      // chase
+      e.atkCd = Math.max(0, e.atkCd - dt);
+      e.faceX = dx / d; e.faceY = dy / d;
+      if (d > FOE.stop) {
+        e.moving = true;
         e.x += (dx / d) * e.speed * dt;
         e.y += (dy / d) * e.speed * dt;
       }
-      e.faceX = dx / d; e.faceY = dy / d;
-      if (d < 36 && e.contactCd <= 0) {
-        p.hp = Math.max(0, p.hp - 8);
-        p.flash = 0.15;
-        e.contactCd = 0.9;
-        addDmg(p.x, p.y - 80, '-8', '#ff7a6a');
-      }
-      e.skillCd = Math.max(0, (e.skillCd || 0) - dt);
-      if (d > 80 && d < 280 && e.skillCd <= 0) {
-        e.skillCd = 2.2 + RT.rand() * 1.5;
-        const speed = 180;
-        RT.enemyProjectiles.push({ x: e.x, y: e.y - 20, vx: (dx / d) * speed, vy: (dy / d) * speed, life: 2.0 });
+      if (e.atkCd <= 0 && d < FOE.shotRange) {
+        e.state = 'windup';
+        e.windKind = d < FOE.lungeRange ? 'lunge' : 'shot';
+        e.wind = e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot;
+        e.aimX = dx / d; e.aimY = dy / d; // 前摇开始即锁定方向 → 横移/闪避可躲
       }
     }
 
@@ -176,11 +204,9 @@
       proj.y += proj.vy * dt;
       proj.life -= dt;
       if (proj.life <= 0) continue;
-      if (Math.hypot(p.x - proj.x, p.y - proj.y) < 18) {
-        p.hp = Math.max(0, p.hp - 12);
-        p.flash = 0.15;
-        proj.life = 0;
-        addDmg(p.x, p.y - 80, '-12', '#ff7a6a');
+      if (!proj.dodged && Math.hypot(p.x - proj.x, p.y - proj.y) < FOE.shotR) {
+        if (damagePlayer(proj.dmg || FOE.shotDmg)) proj.life = 0;
+        else proj.dodged = true; // 无敌中：穿身而过，只提示一次
       }
     }
     RT.enemyProjectiles = RT.enemyProjectiles.filter(pr => pr.life > 0 && pr.x > 0 && pr.x < W0 && pr.y > 0 && pr.y < H0);
@@ -193,6 +219,26 @@
     if (p.hp <= 0) endRealtime('lose');
     else if (RT.enemies.every(e => e.hp <= 0)) endRealtime('win');
     else if (RT.time > RT.timeLimit) endRealtime('lose'); // 超时保底，避免卡死
+  }
+
+  // 玩家受击：闪避无敌中免伤并提示「闪避!」。返回是否真的扣血
+  function damagePlayer(dmg) {
+    const p = RT.player;
+    if (p.invuln > 0) { addDmg(p.x, p.y - 80, '闪避!', '#9affff'); return false; }
+    p.hp = Math.max(0, p.hp - dmg);
+    p.flash = 0.15;
+    addDmg(p.x, p.y - 80, '-' + dmg, '#ff7a6a');
+    return true;
+  }
+
+  // 当前生效的前摇预警（绘制与测试共用）
+  function telegraphs() {
+    return RT.enemies.filter(e => e.hp > 0 && e.state === 'windup').map(e => ({
+      enemy: e, kind: e.windKind, x: e.x, y: e.y, aimX: e.aimX, aimY: e.aimY,
+      len: e.windKind === 'lunge' ? FOE.lungeSpd * FOE.lungeT + FOE.hitR : 260,
+      width: e.windKind === 'lunge' ? FOE.hitR * 2 : FOE.shotR * 2,
+      k: 1 - e.wind / (e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot), // 0→1 越来越满
+    }));
   }
 
   function hitEnemy(e, dmg, knock) {
@@ -237,9 +283,10 @@
   function playerDash() {
     if (!RT.on || !RT.player || RT.player.dashCd > 0) return;
     const p = RT.player;
-    p.dashCd = 1.2;
-    p.x += p.faceX * 90;
-    p.y += p.faceY * 90;
+    p.dashCd = DODGE.cd;
+    p.invuln = DODGE.inv;
+    p.x += p.faceX * DODGE.dist;
+    p.y += p.faceY * DODGE.dist;
     clamp(p);
   }
 
@@ -294,11 +341,26 @@
       ctx.beginPath(); ctx.moveTo(p.x, p.y - 20); ctx.arc(p.x, p.y - 20, ATK.range, a - ATK.arc, a + ATK.arc); ctx.closePath(); ctx.fill();
     }
 
+    // 敌人前摇预警：红色区域由淡到浓，敌人闪烁
+    for (const tg of telegraphs()) {
+      const a = Math.atan2(tg.aimY, tg.aimX);
+      ctx.save(); ctx.translate(tg.x, tg.y); ctx.rotate(a);
+      ctx.fillStyle = `rgba(255,60,40,${0.15 + 0.35 * tg.k})`;
+      ctx.fillRect(0, -tg.width / 2, tg.len, tg.width);
+      ctx.fillStyle = 'rgba(255,90,60,0.8)';
+      ctx.fillRect(0, -tg.width / 2, tg.len * tg.k, 3); ctx.fillRect(0, tg.width / 2 - 3, tg.len * tg.k, 3);
+      ctx.restore();
+      tg.enemy.flash = Math.sin(RT.time * 30) > 0 ? 0.05 : 0;
+    }
+
     // 按 y 深度排序画角色
     const units = [...RT.enemies.filter(e => e.hp > 0).map(e => [e, false]), [p, true]].sort((a, b) => a[0].y - b[0].y);
     let sprites = 0;
     for (const [u, isP] of units) {
+      const blink = isP && u.invuln > 0 && Math.sin(RT.time * 40) > 0;
+      if (blink) ctx.globalAlpha = 0.4;
       if (drawUnit(ctx, u, isP)) sprites++;
+      ctx.globalAlpha = 1;
       if (!isP) { // 血条 + 名字
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(u.x - 22, u.y - 84, 44, 5);
         ctx.fillStyle = '#eea279'; ctx.fillRect(u.x - 22, u.y - 78, 44 * (u.hp / u.maxHp), 5);
@@ -432,6 +494,9 @@
     screenDir,
     devEnabled,
     ATK,
+    FOE,
+    DODGE,
+    telegraphs,
     _key: { down: _rtKeyDown, up: _rtKeyUp },
   };
   window.RealtimeBattle = API;
