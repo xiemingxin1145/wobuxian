@@ -4,6 +4,9 @@
 // 第 2 步「讨债追兵」：第 1 步选了「反杀」后，下次触发改为追兵上门（欠债的后果）。
 // 只在开发者入口（试炼场按钮 → 取消）触发；自动任务/挂机不会调用这里。
 
+// UI 在 ui.js 里是顶层 `const UI`（不挂 window），旧版用 `window.UI` 判断 → 真页面永远返回 no game or UI
+const stage3UI = () => (typeof UI !== 'undefined' && UI ? UI : null);
+
 const Stage3 = {
   npcId: 'debtor_family', // 临时标识，可后续换成真实 NPC
   AFF_MAX: 150,           // 与 game.js aff 效果的上限一致
@@ -91,7 +94,7 @@ const Stage3 = {
   },
 
   async runDebtEncounter(G) {
-    if (!G || !window.UI) return { ok: false, msg: 'no game or UI' };
+    if (!G || !stage3UI()) return { ok: false, msg: 'no game or UI' };
     this.migrate(G);
     if (G.flags.bounty) return this.runChase(G); // 链式第 2 步
 
@@ -116,7 +119,7 @@ const Stage3 = {
     console.log('[Stage3] running encounter...');
     const r = await this.runDebtEncounter(G);
     console.log('[Stage3] result', r);
-    if (window.UI && UI.toast) UI.toast('阶段3 奇遇已执行', '#ffe680');
+    const u = stage3UI(); if (u && u.toast) u.toast('阶段3 奇遇已执行', '#ffe680');
     return r;
   },
 };

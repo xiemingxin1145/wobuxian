@@ -58,6 +58,17 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   await S.runDebtEncounter(G);
   ok(G.aff.debtor_family === 150, '好感上限钳到 150');
 
+  // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
+  const vm = require('vm'), fs = require('fs');
+  const cx = vm.createContext({ console });
+  vm.runInContext("var window = globalThis; const cards = []; const UI = { card: async (t) => { cards.push(t); return 0; }, hud() {}, toast() {} }; let saved = 0; const Game = { save() { saved++; } };", cx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'stage3_encounter_draft.js'), 'utf8'), cx);
+  const r7 = await vm.runInContext("(async () => { const G = { debt: 8888, aff: {}, flags: {} }; const r = await window.Stage3.test(G); return { r, debt: G.debt, cards, saved }; })()", cx);
+  ok(r7.r.ok && r7.debt === 10666 && r7.cards[0] === '债主之家' && r7.saved === 1, 'UI 为顶层 const 时奇遇照常弹卡、改债务、存档');
+  ok(!/window\.(UI|Game)\b/.test(fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '')), 'stage3 代码里不再用 window.UI / window.Game');
+  const de = fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  ok(!/window\.(UI|Game)\b/.test(de), 'dev_entry_v25 代码里不再用 window.UI / window.Game');
+
   console.log(fails ? `${fails} FAILED` : 'ALL PASS');
   process.exit(fails);
 })();

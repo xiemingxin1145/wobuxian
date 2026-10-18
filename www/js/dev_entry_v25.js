@@ -2,6 +2,11 @@
 // v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗
 
 (function () {
+  // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
+  const gameObj = () => (typeof Game !== 'undefined' && Game ? Game : null);
+  const uiObj = () => (typeof UI !== 'undefined' && UI ? UI : null);
+  const toast = (...a) => { const u = uiObj(); if (u && u.toast) u.toast(...a); };
+
   function addEntry() {
     if (document.getElementById('v25-entry')) return;
 
@@ -14,8 +19,8 @@
       const c = confirm('进入独立遭遇战原型？\n（覆盖层打开，不影响存档，可关闭返回）\n\n取消则执行阶段3债务奇遇。');
       if (c) {
         openEncounterOverlay();
-      } else if (window.Stage3 && window.Game && Game.G) {
-        await Stage3.test(Game.G);
+      } else if (window.Stage3 && gameObj() && gameObj().G) {
+        await Stage3.test(gameObj().G);
       }
     };
     document.body.appendChild(btn);
@@ -26,11 +31,11 @@
     eqBtn.textContent = '全套神装';
     eqBtn.style.cssText = 'position:fixed;right:12px;bottom:170px;z-index:9999;padding:8px 14px;background:#3a2a5a;color:#ffb0ff;border:1px solid #ffb0ff;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
     eqBtn.onclick = () => {
-      if (!window.Game || !Game.G) return;
+      if (!gameObj() || !gameObj().G) { toast('请先开始一局（没有存档）'); return; }
       if (!confirm('一键生成并穿上全套最高品质装备？\n（仅开发者模式，影响当前存档）')) return;
       giveFullGodGear();
-      if (window.UI && UI.toast) UI.toast('已穿上全套神装', '#ffb0ff');
-      if (window.UI && UI.hud) UI.hud();
+      toast('已穿上全套神装', '#ffb0ff');
+      const u = uiObj(); if (u && u.hud) u.hud();
     };
     document.body.appendChild(eqBtn);
 
@@ -82,7 +87,7 @@
   }
 
   function giveFullGodGear() {
-    const G = Game.G;
+    const g = gameObj(); const G = g.G;
     if (!G.eqs) G.eqs = [];
     if (!G.eq) G.eq = {};
     const slots = ['weapon', 'armor', 'acc1', 'acc2', 'treasure'];
@@ -100,7 +105,7 @@
       G.eqs.push(eq);
       G.eq[slot] = eq.uid;
     });
-    if (typeof Game.save === 'function') Game.save();
+    if (typeof g.save === 'function') g.save();
   }
 
   let clicks = 0, last = 0;
@@ -113,7 +118,7 @@
     if (++clicks >= 7) {
       clicks = 0;
       addEntry();
-      if (window.UI && UI.toast) UI.toast('已开启开发者入口', '#ffe680');
+      toast('已开启开发者入口', '#ffe680');
     }
   });
 
