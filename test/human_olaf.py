@@ -497,7 +497,7 @@ async def main():
             await c.ctx.close()
 
         # =============== 开发者模式相关：T7 T8 T9 T10② T11 ===============
-        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11'):
+        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3'):
             c = await new_page()
             r = await rect(c, '#title .ver'); before = await c.pg.evaluate("()=>localStorage.getItem('wbx2_dev')")
             if r:
@@ -577,6 +577,69 @@ async def main():
                 g1 = await gst(c9); grit = await c9.pg.evaluate("()=>Game.G.flags.grit33||null"); f = await shot(c9, 'T9b_end')
                 case('T9b_auto_quest_after_loss', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], grit=grit, teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
                 await c9.ctx.close()
+            # ---- 3.3 新系统点按用例（research_v33 A1/A2/A3）：只点屏幕，page.evaluate 只读 ----
+            if want('S1'):   # 先天命格：6 选 3、重抽 1 次后置灰、角色面板可见
+                cs = await new_page(); await tap_el(cs, '#title .opt', '开始新人生', 700); talents = 0
+                for _ in range(14):
+                    if (await scr(cs))['ingame']: break
+                    k = await cs.pg.evaluate("()=>{const t=[...document.querySelectorAll('.talb')];const i=t.findIndex(x=>!x.classList.contains('on'));if(i<0)return null;const r=t[i].getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+                    if k and talents < 3: await tap(cs, *k); await cs.pg.wait_for_timeout(250); talents += 1; continue
+                    await tap_el(cs, '#rs', None, 250)
+                    if not await tap_el(cs, '#nx', None, 500): await cs.pg.wait_for_timeout(600)
+                info = {}; t0 = time.time()
+                while time.time() - t0 < 30 and not await rect(cs, '.mg33 .mgc'):   # 先像真人一样点掉出生事件/过场，再等命格卡
+                    s_ = await scr(cs)
+                    if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
+                    if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
+                    await cs.pg.wait_for_timeout(300)
+                info['cards'] = await cs.pg.evaluate("()=>document.querySelectorAll('.mg33 .mgc').length")
+                await tap_el(cs, '.mg33 .opt', '重抽一次', 500)
+                info['reroll_disabled'] = await cs.pg.evaluate("()=>{const b=[...document.querySelectorAll('.mg33 .opt')].find(b=>b.textContent.includes('重抽'));return !!(b&&b.disabled)}")
+                names = await cs.pg.evaluate("()=>[...document.querySelectorAll('.mg33 .mgc b')].map(b=>b.textContent)")
+                for nm in names[:3]: await tap_el(cs, '.mg33 .mgc', nm, 300)
+                info['ok_label'] = (await rect(cs, '.mg33 .opt', '确定') or [0, 0, None])[2]
+                await tap_el(cs, '.mg33 .opt', '确定', 600)
+                info['mingge'] = await cs.pg.evaluate("()=>Game.G&&Game.G.mingge")
+                await clear_popups(cs, 30); await ensure_map(cs)
+                await tap_el(cs, '#menu *', '角色', 700)
+                info['char_panel_has'] = await cs.pg.evaluate("()=>{const e=document.querySelector('.mg33row');return e?e.textContent.slice(0,80):null}")
+                f = await shot(cs, 'S1_mingge_char'); await clear_popups(cs, 4)
+                case('S1_mingge_pick3', info['cards'] == 6 and info['reroll_disabled'] and isinstance(info['mingge'], list) and len(info['mingge']) == 3 and bool(info['char_panel_has']), **info, shot=f)
+                await cs.ctx.close()
+            if want('S2') or want('S3'):
+                cs = await new_page('#dev'); await new_life(cs); await ensure_map(cs)
+                okd = await dev_setup(cs, ('境界', '金丹初期'), ('资源', '灵石 +100万'), ('资源', '全部物品 ×5'))
+                if want('S2'):   # 法宝：筑基后可选、升阶消耗与成功率显示、成功/失败结果正确
+                    await tap_el(cs, '#menu *', '更多', 600); await tap_el(cs, '.big2', '洞府', 900)
+                    has = await rect(cs, '.fb33 .opt', '青萍剑'); await tap_el(cs, '.fb33 .opt', '青萍剑', 600)
+                    hint = await cs.pg.evaluate("()=>{const e=document.querySelector('.fb33 .hint');return e?e.textContent:''}")
+                    st0 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
+                    await tap_el(cs, '.fb33 .opt', '升阶', 700); s_ = await scr(cs); fail_card = s_['title'] == '升阶失败'
+                    if fail_card: await clear_popups(cs, 2)
+                    st1 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
+                    spent = st0['s'] - st1['s']; okc = (st1['fb']['tier'] == 2 and spent == 660) or (st1['fb']['tier'] == 1 and spent == 330)
+                    f = await shot(cs, 'S2_fabao'); await tap_el(cs, '#modals .mwrap .x', None, 500); await clear_popups(cs, 4)
+                    case('S2_fabao_pick_upgrade', okd and bool(has) and '灵石 660' in hint and '成功率 92%' in hint and okc, hint=hint[:80], tier=[st0['fb'].get('tier'), st1['fb'].get('tier')], stone_spent=spent, fail_card=fail_card, shot=f, cheats=cs.cheats)
+                if want('S3'):   # 催收令：开发者降临 → 公告 → 点地图标记走过去 → 应战（自动）→ 结算卡（伤害/档位/排名）
+                    await dev_tap(cs, '调试', '立即降临催收使'); await cs.pg.wait_for_timeout(1200)
+                    s_ = await scr(cs); notice = s_['title']; await clear_popups(cs, 3)
+                    mk = await cs.pg.evaluate("()=>{const m=R.marks.find(m=>m.act==='wb33');if(!m)return null;const [x,y]=w2s(...t2p(m.i+0.5,m.j+0.5));return [x/R.dpr,y/R.dpr]}")
+                    fought = False; card = None
+                    if mk:
+                        await tap(cs, mk[0], mk[1]); t0 = time.time()
+                        while time.time() - t0 < 25:
+                            s_ = await scr(cs)
+                            if s_['title'] == '天道催收使': break
+                            await cs.pg.wait_for_timeout(400)
+                        await tap_el(cs, '#modals .mwrap .opt', '应战', 800); t0 = time.time()
+                        while time.time() - t0 < 120:
+                            s_ = await scr(cs)
+                            if s_['battle']: fought = True; await tap_el(cs, '#battlebar button[data-a=auto]', None, 400)
+                            if s_['modal'] and s_['title'] and ('结算' in s_['title'] or '反向催收' in s_['title']): card = s_['text']; break
+                            await cs.pg.wait_for_timeout(700)
+                    w = await cs.pg.evaluate("()=>Game.G.wb33"); f = await shot(cs, 'S3_worldboss'); await clear_popups(cs, 6)
+                    case('S3_worldboss_challenge', notice == '天道催收令' and bool(mk) and fought and bool(card) and '档位' in (card or '') and w and w['tries'] == 2, notice=notice, mark=bool(mk), fought=fought, card=card, wb=w, shot=f, cheats=cs.cheats)
+                await cs.ctx.close()
             if want('T11'):
                 c11 = await new_page('#dev'); await new_life(c11); await ensure_map(c11); g0 = await gst(c11)
                 yexp = await c11.pg.evaluate("()=>Game.yearExp()")   # 只读：公式用的年修为

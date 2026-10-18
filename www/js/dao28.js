@@ -196,7 +196,7 @@ const DAO28 = {
       const btn = document.createElement('button');
       btn.className = 'big2'; btn.setAttribute('data-k', 'dao28');
       btn.innerHTML = '<i style="' + iconCss('sk_meditate', 48) + '"></i>参悟悟道';
-      b.querySelector('.grid2').appendChild(btn);
+      (b.querySelector('.grid3') || b.querySelector('.grid2') || b).appendChild(btn);
     };
   }
   install();

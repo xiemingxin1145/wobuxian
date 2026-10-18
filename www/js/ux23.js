@@ -91,9 +91,9 @@ Game.npcMark = function (id) {
 };
 // 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
 const _fight23 = Game.fight.bind(Game);
-// #5（3.3）屡败屡战：同一章主线 BOSS/精英战输一次，攻防气血 +12%（最多 5 层），推进主线后失效
-{ const _st33 = Game.stats; Game.stats = function () { const s = _st33.apply(this, arguments); const G = this.G, g = G && G.flags && G.flags.grit33; if (g && g.main === G.main && g.n > 0) { const m = 1 + 0.12 * g.n; s.atk *= m; s.def *= m; s.mhp = Math.round(s.mhp * m); } return s; }; }
-Game.fight = async function (...a) { try { const r = await _fight23(...a); const o = a[1] || {}; if (r && Game.G) { const G = Game.G; G.flags = G.flags || {}; if (r.res !== 'win' && (o.boss || o.elite || o.noflee)) { const g = G.flags.grit33 && G.flags.grit33.main === G.main ? G.flags.grit33 : { main: G.main, n: 0 }; g.n = Math.min(5, g.n + 1); G.flags.grit33 = g; UI.toast(`屡败屡战：再挑战时攻防气血 +${g.n * 12}%`); } else if (r.res === 'win' && G.flags.grit33 && G.flags.grit33.main !== G.main) delete G.flags.grit33; }
+// #5（3.3）屡败屡战：同一章主线 BOSS/精英战输一次，攻防气血 +20%（最多 5 层），再战前气血灵力回满，推进主线后失效
+{ const _st33 = Game.stats; Game.stats = function () { const s = _st33.apply(this, arguments); const G = this.G, g = G && G.flags && G.flags.grit33; if (g && g.main === G.main && g.n > 0) { const m = 1 + 0.2 * g.n; s.atk *= m; s.def *= m; s.mhp = Math.round(s.mhp * m); } return s; }; }
+Game.fight = async function (...a) { try { { const G = Game.G, o0 = a[1] || {}, g0 = G && G.flags && G.flags.grit33; if (g0 && g0.main === G.main && g0.n > 0 && (o0.boss || o0.elite || o0.noflee)) { const s0 = Game.stats(); G.hp = s0.mhp; G.mp = s0.mmp; } } const r = await _fight23(...a); const o = a[1] || {}; if (r && Game.G) { const G = Game.G; G.flags = G.flags || {}; if (r.res !== 'win' && (o.boss || o.elite || o.noflee)) { const g = G.flags.grit33 && G.flags.grit33.main === G.main ? G.flags.grit33 : { main: G.main, n: 0 }; g.n = Math.min(5, g.n + 1); G.flags.grit33 = g; UI.toast(`屡败屡战：再挑战时攻防气血 +${g.n * 20}%，并回满气血灵力`); } else if (r.res === 'win' && G.flags.grit33 && G.flags.grit33.main !== G.main) delete G.flags.grit33; }
     if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year, k: G.killsTotal || 0 }; UI.toast('打不过——自动先打几只怪攒经验，再回来挑战'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
 // 桃花村原本没有采药点，但娘的「灵草汤」7 岁就给 → 支线做不了。给村子加两处野草丛采药点（每年可采）
 const VILLAGE_HERBS = [[8, 14], [17, 6]];

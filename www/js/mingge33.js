@@ -54,7 +54,7 @@ const MG33 = {
       const w = h('div', 'mwrap mg33w'); const c = h('div', 'card mg33');
       const draw = () => {
         c.innerHTML = `<div class="ct">${esc(title)}</div><div class="mgsub">${esc(sub)}（已选 ${sel.length}/${n}）</div><div class="mglist">${cand.map(id => { const m = this.get(id); const Q = MG_Q[m.q]; return `<div class="mgc${sel.includes(id) ? ' on' : ''}" data-id="${id}" style="border-color:${Q[1]}"><b style="color:${Q[1]}">【${Q[0]}】${esc(m.n)}</b><small>${esc(m.d)}</small></div>`; }).join('')}</div>
-          <div class="opts"><button class="opt" data-k="ok">${sel.length >= n ? '确定' : '随缘补齐'}</button>${rerolled ? '' : '<button class="opt" data-k="re">重抽一次</button>'}</div>`;
+          <div class="opts"><button class="opt" data-k="ok">${sel.length >= n ? '确定' : '随缘补齐'}</button>${n < 3 ? "" : rerolled ? "<button class=\"opt\" data-k=\"re\" disabled>重抽一次（已用）</button>" : "<button class=\"opt\" data-k=\"re\">重抽一次</button>"}</div>`;
       };
       draw(); w.appendChild(c); UI.push(w);
       c.onclick = e => {
