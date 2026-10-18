@@ -91,7 +91,10 @@ Game.npcMark = function (id) {
 };
 // 保险（issue #2）：任何战斗结束后，地图点按回调一定恢复
 const _fight23 = Game.fight.bind(Game);
-Game.fight = async function (...a) { try { const r = await _fight23(...a); if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year }; UI.toast('打不过——自动先去变强（打怪/修炼），两年后或境界提升再来'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
+// #5（3.3）屡败屡战：同一章主线 BOSS/精英战输一次，攻防气血 +12%（最多 5 层），推进主线后失效
+{ const _st33 = Game.stats; Game.stats = function () { const s = _st33.apply(this, arguments); const G = this.G, g = G && G.flags && G.flags.grit33; if (g && g.main === G.main && g.n > 0) { const m = 1 + 0.12 * g.n; s.atk *= m; s.def *= m; s.mhp = Math.round(s.mhp * m); } return s; }; }
+Game.fight = async function (...a) { try { const r = await _fight23(...a); const o = a[1] || {}; if (r && Game.G) { const G = Game.G; G.flags = G.flags || {}; if (r.res !== 'win' && (o.boss || o.elite || o.noflee)) { const g = G.flags.grit33 && G.flags.grit33.main === G.main ? G.flags.grit33 : { main: G.main, n: 0 }; g.n = Math.min(5, g.n + 1); G.flags.grit33 = g; UI.toast(`屡败屡战：再挑战时攻防气血 +${g.n * 12}%`); } else if (r.res === 'win' && G.flags.grit33 && G.flags.grit33.main !== G.main) delete G.flags.grit33; }
+    if (AUTO.on && r && r.res !== 'win' && Game.G) { const G = Game.G; AUTO.weak = { main: G.main, pw: G.realm * 10 + G.stage, y: G.year, k: G.killsTotal || 0 }; UI.toast('打不过——自动先打几只怪攒经验，再回来挑战'); } return r; } finally { R.onTap = (x, y) => Game.onTap(x, y); } };
 // 桃花村原本没有采药点，但娘的「灵草汤」7 岁就给 → 支线做不了。给村子加两处野草丛采药点（每年可采）
 const VILLAGE_HERBS = [[8, 14], [17, 6]];
 const _mm23 = Game.makeMarks.bind(Game);
@@ -258,7 +261,7 @@ UI.p_quests = function (b, re, close) {
 };
 // ---------- B.4 自动任务 / C.1 挂机：只走路、对话、托管战斗，绝不瞬移；只点“安全选项”，需要玩家决定就暂停 ----------
 const SAFE = /^(打坐（|★|✔|！|接受|继续|好|收下|交付|……|应战|带路|明白|谢|原来如此|伸手|去后巷|去看看|你说什么|撤|知道了|确定|抄起扫帚|开始|过年)/;
-const UNSAFE = /(结局|道侣|拜师|高利贷|借|送礼|交易|出售|驱逐|成为新天道|销账|渡劫|飞升|放弃|轮回|删除|重置)/;
+const UNSAFE = /(结局|道侣|拜师|高利贷|借|送礼|交易|出售|驱逐|成为新天道|销账|渡劫|飞升|放弃|轮回|删除|重置|落幕|算天道|算剑仙|各退一步)/;
 const AUTO = {
   on: null, wait: false, last: 0, n: 0, seen: {},
   start(mode) { if (mode === 'idle') return AFK.ask(); this.on = mode; this.wait = false; UI.toast('自动任务：自动寻路、对话、战斗、交付（不会替你做重要选择）'); UI.hud(); },
@@ -300,7 +303,7 @@ const AUTO = {
     for (const [sl] of SLOTS) { const c = G.eqs.filter(e => e.slot === sl).sort((a, b) => Game.eqScore(b) - Game.eqScore(a))[0]; if (c && G.eq[sl] !== c.uid && Game.eqScore(c) > (G.eq[sl] ? Game.eqScore(G.eqs.find(e => e.uid === G.eq[sl]) || { main: {}, aff: [], rar: 0 }) : -1)) Game.equip(c.uid); }
     if (Game.canBreak() && !this._brkTold) { this._brkTold = G.realm; UI.toast('修为已满！渡劫突破要你自己点「突破」'); }
     if (this.on === 'quest') {
-      const pw = G.realm * 10 + G.stage, wk = this.weak; const weakMain = wk && wk.main === G.main && pw <= wk.pw && G.year - wk.y < 2;
+      const pw = G.realm * 10 + G.stage, wk = this.weak; const weakMain = wk && wk.main === G.main && pw <= wk.pw && G.year === wk.y && (G.killsTotal || 0) - (wk.k || 0) < 3 && R.ents.some(e => e.kind === 'mon' && !e.gone); // #5：打 3 只怪/过一年/境界提升/没怪可打 就回去再战（配合屡败屡战加成）
       for (const q of Track.list()) { if (q === 'main' && weakMain) continue; const t = Track.target(q); if (!t || !['npc', 'boss', 'mon', 'mark', 'map'].includes(t.kind)) continue; if (t.map && t.map !== R.mapId && (G.ap <= 0 || !Game.canEnter(t.map))) continue; const r = await Track.step(t, true); if (r === 'walk' || r === 'travel') return; }
       const bang = R.ents.find(e => e.kind === 'npc' && e.mark === '!' && !this.seen[e.id + G.year]); if (bang) { this.seen[bang.id + G.year] = 1; if (UX.goTo(bang, true)) return; }
       return AFK.chores(true);

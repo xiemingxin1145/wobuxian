@@ -279,7 +279,10 @@ async def main():
                     s_ = await scr(c2)
                     if s_['modal']:   # 点到的地方恰好是 NPC/交互点 → 打开了对话，也说明点按有效；关掉后换个点再试走路
                         info.setdefault('ground_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); continue
-                    p1 = (await npcs(c2))['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
+                    st3 = await npcs(c2)
+                    if not st3: await ensure_map(c2); st3 = await npcs(c2)
+                    if not st3: continue
+                    p1 = st3['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
             info['ground_tap_moved_tiles'] = moved
             cand_ = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']
             t = cand_[0]
@@ -494,7 +497,7 @@ async def main():
             await c.ctx.close()
 
         # =============== 开发者模式相关：T7 T8 T9 T10② T11 ===============
-        if want('T10') or want('T7') or want('T8') or want('T9') or want('T11'):
+        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11'):
             c = await new_page()
             r = await rect(c, '#title .ver'); before = await c.pg.evaluate("()=>localStorage.getItem('wbx2_dev')")
             if r:
@@ -559,6 +562,20 @@ async def main():
                     if g['main'] > g0['main']: break
                 g1 = await gst(c9); f = await shot(c9, 'T9_end')
                 case('T9_auto_quest_loop', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
+                await c9.ctx.close()
+            if want('T9b'):   # 3.3 #5 回归：练气初期打不过讨债鬼头子 → 先打怪 + 屡败屡战加成，不再等两年，限时内推进主线
+                T9B_S = float(os.environ.get('T9B_SECS', '300'))
+                c9, okd = await market_setup('练气初期'); g0 = await gst(c9)
+                await tap_el(c9, '#qt .qauto', None, 500); jumps = 0; last = g0; t0 = time.time(); years0 = g0.get('year')
+                while time.time() - t0 < T9B_S:
+                    await c9.pg.wait_for_timeout(1000); g = await gst(c9)
+                    if g['p'] and last['p'] and g['map'] == last['map']:
+                        d = math.hypot(g['p'][0] - last['p'][0], g['p'][1] - last['p'][1])
+                        if d > g['speed'] * g['ts'] * 1.0 * 1.5 + 0.5: jumps += 1
+                    last = g
+                    if g['main'] > g0['main']: break
+                g1 = await gst(c9); grit = await c9.pg.evaluate("()=>Game.G.flags.grit33||null"); f = await shot(c9, 'T9b_end')
+                case('T9b_auto_quest_after_loss', okd and g1['main'] > g0['main'] and jumps == 0, main=[g0['main'], g1['main']], grit=grit, teleport_jumps=jumps, secs=round(time.time() - t0), shot=f, cheats=c9.cheats)
                 await c9.ctx.close()
             if want('T11'):
                 c11 = await new_page('#dev'); await new_life(c11); await ensure_map(c11); g0 = await gst(c11)
