@@ -116,7 +116,8 @@ Game.refreshNpcs = function () {
   _refresh(); const G = this.G; if (!G || !R.M || (R.mode !== 'map' && R.mode !== 'battle')) return;
   for (const e of R.ents) if (e.kind === 'boss' && e.mark === '!') e.mark = '★';
   if (R.mapId === 'village' && MAIN[G.main] && MAIN[G.main].id === 'debt' && !G.flags.main0 && !R.ents.find(e => e.id === 'debt_slime')) {
-    const [i, j] = nearestWalk(8, 10); addEnt({ kind: 'boss', id: 'debt_slime', spr: 'mon_collector', i: i + 0.5, j: j + 0.5, dir: 'SE', label: '讨债史莱姆', lc: '#ffb040', s: 0.95, mark: '★' }); loadSprite('mon_collector');
+    let [i, j] = nearestWalk(8, 10); { let bd = -1; for (let r = 0; r <= 4; r++) for (let di = -r; di <= r; di++) for (let dj = -r; dj <= r; dj++) { const ti = 8 + di, tj = 10 + dj; if (!walkable(ti, tj)) continue; const d = Math.min(9, ...R.ents.filter(o => o.kind === 'npc' && !o.hidden).map(o => Math.hypot(o.i - ti - 0.5, o.j - tj - 0.5))); if (d >= 2.5 && bd < 2.5 || (bd < 2.5 && d > bd)) { bd = d; i = ti; j = tj; } } }
+    addEnt({ kind: 'boss', id: 'debt_slime', spr: 'mon_collector', i: i + 0.5, j: j + 0.5, dir: 'SE', label: '讨债史莱姆', lc: '#ffb040', s: 0.95, mark: '★' }); loadSprite('mon_collector');
   }
 };
 const _mainTalk = Talk.mainTalk.bind(Talk);
@@ -484,16 +485,16 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
       if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
     // 两个 NPC 站得太近（<0.9 格）时，后者让开一格
     if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
-      const o = R.ents.find(o => o !== e && o.kind === 'npc' && !o.hidden && Math.hypot(o.i - e.i, o.j - e.j) < 0.9);
+      const o = R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - e.i, o.j - e.j) < (o.kind === 'boss' ? 1.4 : 0.9));
       if (o) { const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = -1;
         for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) { const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
-          const dmin = Math.min(...R.ents.filter(x => x !== e && (x.kind === 'npc' || x === P) && !x.hidden).map(x => Math.hypot(x.i - ti - 0.5, x.j - tj - 0.5)));
+          const dmin = Math.min(...R.ents.filter(x => x !== e && (x.kind === 'npc' || x.kind === 'boss' || x === P) && !x.hidden).map(x => Math.hypot(x.i - ti - 0.5, x.j - tj - 0.5)));
           if (dmin > bd) { bd = dmin; best = [ti, tj]; } }
         if (best && bd > 1) moveTo(e, best[0], best[1]); } }
     const had = e.path && e.path.length; const r = _ai(e, dt);
     // 闲逛终点不贴着别的 NPC（避免两人重叠时点到错的人，olaf：点落魄剑仙却点中翠花）
     if (!had && e.path && e.path.length) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
-      if (ei !== undefined && R.ents.some(o => o !== e && o.kind === 'npc' && !o.hidden && Math.hypot(o.i - ei - 0.5, o.j - ej - 0.5) < 1.3)) e.path = []; }
+      if (ei !== undefined && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - ei - 0.5, o.j - ej - 0.5) < 1.6)) e.path = []; }
     return r;
   };
 })();
