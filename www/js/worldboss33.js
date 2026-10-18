@@ -8,7 +8,15 @@
 MONS.wb33 = { n: '天道催收使', spr: 'mon_collector', el: '金', hp: 1, atk: 1, def: 1, spd: 1.1, sk: ['atk', 'zhangdan'], boss: 1, drop: [] };
 ITEMS.wb33_frag = { n: '讨债司制服碎片', ic: 'tal_r', t: 'mat', p: 0, d: '击杀天道催收使所得。集齐 5 片可换时装「讨债司制服」（兑换将在后续版本开放）。' };
 if (typeof TITLES !== 'undefined') TITLES.push({ id: 'fanxiang', n: '反向催收', d: '击杀天道催收使（攻击+4%）', ok: G => !!(G.flags && G.flags.wb33_kill), fx: { atk: 0.04 } });
-const WB_RIVALS = ['龙傲天', '冷月仙子', '萧逸', '钱多多', '算无遗', '敖小白', '阴三娘', '逍遥散人'];
+const WB_RIVALS = ['赖账真人', '白嫖散人', '欠一屁股老祖', '分期道君', '拆东墙仙子', '补西墙剑客', '逾期三百年', '借呗上人']; // 文案包 §2
+// 催收使台词（docs/research_v33_text.md §2）
+const WB_LINES = {
+  open: ['“根据《天道借贷条例》第三条，您有权保持沉默，但没有权利不还钱。”', '“我们讨债司讲文明、讲礼貌、讲……不讲情面。”', '“您的修为、寿元、道侣，都在抵押清单里。今天先收利息。”'],
+  half: ['“暴力抗债会记入三界征信！”', '“您这么能打，为什么不去打工还钱？”'],
+  after: ['“今天先到这里。利息照算，明年见。”', '“您的反抗已登记在册，催收等级上调为：重点关照。”'],
+  dead: '“不……可……能……讨债司……会派更大的……”', deadFrag: '“……我的制服……”',
+  leave: '“本年度催收结束。请保持手机……咳，请保持传音玉简畅通。”',
+};
 const WB33 = {
   TIERS: [['天', 1], ['甲', 0.35], ['乙', 0.15], ['丙', 0.05]],
   realmIdx() { return Math.min(6, Game.G.realm); },
@@ -24,7 +32,7 @@ const WB33 = {
     if (!force && G.year % 3 !== 1) return false;
     if (G.wb33 && G.wb33.y === G.year) return false;
     G.wb33 = { y: G.year, hp: this.bossHp(), tries: 3, dmg: 0, best: null, done: false, killed: false };
-    UI.card('天道催收令', `讨债司发来公文：\n「兹派天道催收使一名，于本年度巡回催收。各位修士可自愿“协助对账”，按出力多少发放奖励。」\n\n首领气血 ${fmt(G.wb33.hp)}，今年有 3 次挑战机会，每次限 10 回合。\n首领就在本图，头顶有「催收令」标记，点它即可前往。`, 'mon_collector', ['知道了']);
+    UI.card('天道催收令', `【天道讨债司·催收通知】尊敬的客户，您的修仙贷款已逾期。催收使已到达【${(MAPINFO[R.mapId] && MAPINFO[R.mapId].n) || '本图'}】，请于本年内主动前往处理。拒不处理者，利息按天道历法复利计算。\n\n首领气血 ${fmt(G.wb33.hp)}，今年有 3 次挑战机会，每次限 10 回合。\n首领就在本图，头顶有「催收令」标记，点它即可前往。`, 'mon_collector', ['知道了']);
     this.mark(); Game.save(); return true;
   },
   mark() {
@@ -38,7 +46,7 @@ const WB33 = {
   },
   async challenge() {
     const G = Game.G; const w = G.wb33; if (!this.active()) { UI.toast('催收使已经离开了'); this.mark(); return; }
-    const c = await UI.card('天道催收使', `“协助对账？好啊。你打出多少，我记多少。”\n\n剩余挑战 ${w.tries}/3 · 累计伤害 ${fmt(w.dmg)}（${(w.dmg / w.hp * 100).toFixed(1)}%）`, 'mon_collector', ['应战（限 10 回合）', '先撤']);
+    const c = await UI.card('天道催收使', `${pick(WB_LINES.open)}\n\n剩余挑战 ${w.tries}/3 · 累计伤害 ${fmt(w.dmg)}（${(w.dmg / w.hp * 100).toFixed(1)}%）`, 'mon_collector', ['应战（限 10 回合）', '先撤']);
     if (c !== 0) return;
     const tier = this.realmIdx() + 0.5; const u = monUnit('wb33', tier); const rem = Math.max(1, w.hp - w.dmg);
     u.mhp = w.hp; u.hp = rem; u.atk *= 2.5; u.def *= 2.5; u.name = '天道催收使'; u.boss = true;
@@ -46,8 +54,8 @@ const WB33 = {
     try { r = await Game._startBattle([u], { boss: true, solo: true, noflee: true, wb33: 1 }); } finally { this.fighting = false; R.onTap = (x, y) => Game.onTap(x, y); }
     const end = r && r.units ? r.units.find(x => x.mon === 'wb33') : u; const hit = Math.max(0, Math.round(rem - Math.max(0, end.hp)));
     w.dmg += hit; if (end.hp <= 0 || !end.alive) { w.killed = true; w.dmg = w.hp; G.kills = G.kills || {}; G.kills.wb33 = (G.kills.wb33 || 0) + 1; if (typeof TJ33 !== 'undefined') TJ33.light('m', 'wb33'); } // 走 _startBattle 不经过 Game.fight，需自己记击杀并点亮图鉴
-    const t = this.tierOf(w); w.best = t; const rk = this.rank(w);
-    await UI.card(w.killed ? '催收使被反向催收了！' : '对账结算', `本次伤害 ${fmt(hit)}\n累计伤害 ${fmt(w.dmg)}（${(w.dmg / w.hp * 100).toFixed(1)}%）\n当前档位：${t || '未入档（需 ≥5%）'}\n讨债风云榜：第 ${rk} 名\n剩余挑战 ${w.tries}/3${w.tries > 0 && !w.killed ? '\n（奖励在 3 次用完或击杀后按最高档发放一次）' : ''}`, 'mon_collector', ['查看风云榜', '好']).then(k => k === 0 ? this.showBoard() : null);
+    const t = this.tierOf(w); w.best = t; const rk = this.rank(w); const quip = w.killed ? WB_LINES.dead : (w.dmg / w.hp >= 0.5 ? pick(WB_LINES.half) : pick(WB_LINES.after));
+    await UI.card(w.killed ? '催收使被反向催收了！' : '对账结算', `天道催收使：${quip}\n\n本次伤害 ${fmt(hit)}\n累计伤害 ${fmt(w.dmg)}（${(w.dmg / w.hp * 100).toFixed(1)}%）\n当前档位：${t || '未入档（需 ≥5%）'}\n讨债风云榜：第 ${rk} 名\n剩余挑战 ${w.tries}/3${w.tries > 0 && !w.killed ? '\n（奖励在 3 次用完或击杀后按最高档发放一次）' : ''}`, 'mon_collector', ['查看风云榜', '好']).then(k => k === 0 ? this.showBoard() : null);
     if (w.killed || w.tries <= 0) await this.settle();
     this.mark(); Game.save(); UI.hud();
   },
@@ -58,7 +66,7 @@ const WB33 = {
     if (t === '丙') { give('stone', Math.round(need * 0.5), '灵石'); give('xyf', 1, '仙缘符'); }
     if (t === '乙') { give('stone', Math.round(need * 1.2), '灵石'); give('xyf', 2, '仙缘符'); give('ore', 3, '玄铁晶'); }
     if (t === '甲' || t === '天') { give('stone', Math.round(need * 2.5), '灵石'); give('xyf', 3, '仙缘符'); give('yd', 3, '妖丹'); }
-    if (t === '天') { G.flags.wb33_kill = 1; give('wb33_frag', 1, '讨债司制服碎片'); got.push('称号「反向催收」'); }
+    if (t === '天') { G.flags.wb33_kill = 1; give('wb33_frag', 1, '讨债司制服碎片'); got.push('称号「反向催收」'); got.push('\n催收使（倒地前）：' + WB_LINES.deadFrag); }
     const rk = this.rank(w); if (t) { if (rk === 1) give('xyf', 2, '榜首仙缘符'); else if (rk <= 3) give('xyf', 1, '前三仙缘符'); }
     await UI.card('催收令结算', `最终档位：${t || '未入档'} · 风云榜第 ${rk} 名\n${got.length ? '获得：' + got.join('、') : '没有达到 5%，这次什么也没拿到。'}`, 'i:scroll', ['收下']);
     Game.save();
@@ -69,7 +77,7 @@ const WB33 = {
   const _mm = Game.makeMarks; Game.makeMarks = function () { const r = _mm.apply(this, arguments); try { WB33.mark(); } catch (e) { } return r; };
   const _ye = Game.yearEnd; Game.yearEnd = async function () {
     const G = this.G; const y0 = G && G.year; const r = await _ye.apply(this, arguments);
-    if (G && !G.dead && G.year !== y0) { if (G.wb33 && G.wb33.y !== G.year && !G.wb33.done) { if (G.wb33.dmg > 0) await WB33.settle(); else G.wb33.done = true; } WB33.spawn(); WB33.mark(); }
+    if (G && !G.dead && G.year !== y0) { if (G.wb33 && G.wb33.y !== G.year && !G.wb33.done) { if (!G.wb33.killed) UI.toast('催收使：' + WB_LINES.leave, '#ff8a5a'); if (G.wb33.dmg > 0) await WB33.settle(); else G.wb33.done = true; } WB33.spawn(); WB33.mark(); }
     return r;
   };
   // 回合上限：第 11 回合轮到主角时结束
