@@ -143,6 +143,58 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   RB.end('lose'); await done;
   S.rand = Math.random;
 
+  // 9. 只读接入 Game.stats()：血/攻来自存档，异常回退默认；不写回存档；敌人同比缩放
+  const G9 = global.Game.G;
+  const snap = () => JSON.stringify(global.Game.G);
+  ok(RB.readPlayerStats().src === 'default' && RB.readPlayerStats().max === 180 && RB.readPlayerStats().atk === RB.ATK.dmg, '没有 Game.stats → 默认 180 血 / 28 攻');
+  Object.assign(G9, { hp: 900, mp: 50, realm: 3 });
+  global.Game.stats = () => ({ mhp: 1200.4, atk: 140.6, def: 30 });
+  let before = snap();
+  let st9 = RB.readPlayerStats();
+  ok(st9.src === 'game' && st9.max === 1200 && st9.hp === 900 && st9.atk === 141, '读到存档：上限 1200 / 当前 900 / 攻 141（取整）');
+  done = RB.start([{ name: '史莱姆', hp: 60, x: 300, y: 250, atkCd: 0 }], { timeLimit: 99 });
+  S.rand = () => 0; S.player.x = 300; S.player.y = 320; S.player.faceX = 0; S.player.faceY = -1;
+  ok(S.player.hp === 900 && S.player.max === 1200 && S.player.atk === 141 && S.statSrc === 'game', '原型主角血/攻 = 存档数值');
+  const mul = 141 / RB.ATK.dmg;
+  ok(S.enemies[0].maxHp === Math.round(60 * mul), '敌人血量按 攻/28 同比放大（' + S.enemies[0].maxHp + '）');
+  S.enemies[0].atkCd = 99; S.enemies[0].state = 'chase';
+  RB.attack();
+  ok(S.enemies[0].hp === S.enemies[0].maxHp - 141 && S.dmgNums.some(n => n.txt === '141'), '普攻伤害 = 存档攻击 141，飘字 141');
+  ok(Math.ceil(S.enemies[0].maxHp / 141) === Math.ceil(60 / RB.ATK.dmg), '砍死所需刀数与默认一致（节奏不随境界变）');
+  S.enemies[0].atkCd = 0; S.enemies[0].x = 300; S.enemies[0].y = 260; S.player.attackCd = 9;
+  let hp9 = S.player.hp; for (let t = 0; t < 1.0; t += 1 / 60) RB.update(1 / 60);
+  ok(S.player.hp === hp9 - Math.round(RB.FOE.lungeDmg * 1200 / 180), '敌人前冲伤害按 上限/180 放大（-' + Math.round(RB.FOE.lungeDmg * 1200 / 180) + '）');
+  S.player.hp = 1; RB.end('lose'); await done;
+  ok(snap() === before && G9.hp === 900, '整场战斗不改存档（G 深比较不变，G.hp 仍 900）');
+  // 显式 opts 优先于存档
+  done = RB.start(null, { hp: 50, atk: 7, timeLimit: 99 });
+  ok(S.player.max === 50 && S.player.atk === 7 && S.statSrc === 'opts', 'opts.hp/atk 覆盖存档');
+  RB.end('lose'); await done;
+  // 异常回退：抛错 / NaN / 0 / 负数 / 缺字段；当前血非法 → 满血
+  for (const [nm, fn] of [['抛错', () => { throw new Error('x'); }], ['NaN', () => ({ mhp: NaN, atk: 10 })], ['0 攻', () => ({ mhp: 100, atk: 0 })],
+    ['负血', () => ({ mhp: -5, atk: 10 })], ['缺字段', () => ({})], ['返回 null', () => null], ['字符串', () => ({ mhp: 'abc', atk: '12' })]]) {
+    global.Game.stats = fn;
+    const r9 = RB.readPlayerStats();
+    ok(r9.src === 'default' && r9.max === 180 && r9.atk === RB.ATK.dmg, 'Game.stats ' + nm + ' → 回退默认');
+  }
+  global.Game.stats = () => ({ mhp: 300, atk: 40 });
+  const badHp = [undefined, NaN, 0, -3, 'x'].filter(bad => { G9.hp = bad; return RB.readPlayerStats().hp !== 300; });
+  ok(badHp.length === 0, '当前血非法（undefined/NaN/0/负/字符串）→ 满血');
+  G9.hp = 9999; ok(RB.readPlayerStats().hp === 300, '当前血超过上限 → 钳到上限');
+  const saveG = global.Game.G; global.Game.G = null; ok(RB.readPlayerStats().src === 'default', '没有存档 G → 默认'); global.Game.G = saveG;
+  delete global.Game.stats; delete G9.hp; delete G9.mp; G9.realm = 0;
+  S.rand = Math.random;
+
+  // 9b. 真实页面里 Game/UI 是顶层 const（不在 window 上）：用 vm 模拟浏览器的全局词法绑定，确认仍能读到存档
+  const vm = require('vm');
+  const ctx9 = vm.createContext({ console });
+  vm.runInContext("var window = globalThis; const Game = { G: { hp: 40 }, stats() { return { mhp: 100, atk: 10 }; }, playerSpr() { return 'player_f1'; } }; let toasts = 0; const UI = { toast() { toasts++; } };", ctx9);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8'), ctx9);
+  const r9b = vm.runInContext('const __r = window.RealtimeBattle.readPlayerStats(); window.RealtimeBattle.start(null, { timeLimit: 99 }); ({ r: __r, spr: window.RealtimeBattle.state.player.spr, toasts })', ctx9);
+  ok(r9b.r.src === 'game' && r9b.r.max === 100 && r9b.r.hp === 40 && r9b.r.atk === 10, 'Game 为顶层 const（不在 window 上）时仍读到存档属性');
+  ok(r9b.spr === 'player_f1' && r9b.toasts === 1, '同上：主角精灵取自 Game.playerSpr()，UI.toast 可用');
+  ok(!/window\.(Game|UI)\b/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8')), '原型不再用 window.Game / window.UI（真实页面里它们是 undefined）');
+
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
   const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');

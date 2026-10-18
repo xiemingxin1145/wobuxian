@@ -7,6 +7,7 @@
 //             普攻改为面向扇形命中判定 + 伤害飘字 + 受击闪白，自带 rAF 循环与触屏摇杆/按钮。
 // 2026-10-19 第二轮：敌人改为「前摇预警（锁方向、红色预警区+闪烁）→ 近距前冲 / 远距弹道」，取消贴身接触伤害；
 //             玩家闪避给 0.3s 无敌（闪烁），无敌中前冲/弹道免伤并提示「闪避!」。
+//             主角血/攻只读取自 Game.stats()（+G.hp），异常回退 180/28；敌人血量/伤害同比缩放。
 (function () {
   const W0 = 600, H0 = 520; // 逻辑战场尺寸
   const BOUND = { x0: 40, x1: 560, y0: 60, y1: 480 };
@@ -36,11 +37,15 @@
     rand: Math.random, // 测试可替换
   };
 
+  // game.js / ui.js 用顶层 `const Game` / `const UI` 声明 → 是全局词法绑定，**不挂在 window 上**；必须用 typeof 取
+  const gameObj = () => (typeof Game !== 'undefined' && Game ? Game : null);
+  const toast = (...a) => { try { if (typeof UI !== 'undefined' && UI && UI.toast) UI.toast(...a); } catch (e) { /* 原型：无 UI 时静默 */ } };
+
   // ---------- 精灵（复用游戏现有角色图集，缺失时回退圆形） ----------
   const hasSprites = () => typeof drawSprite === 'function' && typeof window !== 'undefined' && window.ASSETS && window.ASSETS.sprites;
   const sprOk = id => !!(hasSprites() && window.ASSETS.sprites[id]);
   function playerSprId() {
-    try { if (window.Game && Game.G && typeof Game.playerSpr === 'function') return Game.playerSpr(); } catch (e) { /* 原型：无存档时回退 */ }
+    try { const g = gameObj(); if (g && g.G && typeof g.playerSpr === 'function') return g.playerSpr(); } catch (e) { /* 原型：无存档时回退 */ }
     return 'player_m0';
   }
   // 屏幕面向 → 精灵八方向（S=朝下，E=朝右；与 engine.js DIRT 的屏幕投影一致）
@@ -53,6 +58,24 @@
   function preload(ids) {
     if (typeof loadSprite !== 'function') return Promise.resolve();
     return Promise.all(ids.filter(sprOk).map(id => loadSprite(id))).catch(() => {});
+  }
+
+  // 只读读取主角真实属性：Game.stats() 的 mhp/atk + Game.G.hp（当前血）。任何缺失/异常/非正数 → 回退默认值。
+  // 只复制数字，不写回 G、不调用任何会改状态的函数；战斗结束也不把血量写回存档。
+  const BASE = { hp: 180, atk: ATK.dmg };
+  function readPlayerStats() {
+    const def = { hp: BASE.hp, max: BASE.hp, atk: BASE.atk, src: 'default' };
+    try {
+      const g = gameObj();
+      if (!g || !g.G || typeof g.stats !== 'function') return def;
+      const st = g.stats();
+      const mhp = Number(st && st.mhp), atk = Number(st && st.atk);
+      if (!isFinite(mhp) || !isFinite(atk) || mhp <= 0 || atk <= 0) return def;
+      const max = Math.max(1, Math.round(mhp));
+      const cur = Number(g.G.hp);
+      const hp = isFinite(cur) && cur > 0 ? Math.min(max, Math.round(cur)) : max;
+      return { hp, max, atk: Math.max(1, Math.round(atk)), src: 'game' };
+    } catch (e) { return def; }
   }
 
   function addDmg(x, y, txt, c) { RT.dmgNums.push({ x, y, txt: String(txt), c: c || '#fff2a8', life: 0.8, max: 0.8 }); }
@@ -69,11 +92,20 @@
     RT.projectiles = [];
     RT.enemyProjectiles = [];
     RT.dmgNums = [];
+    // 主角属性：opts 覆盖 > 存档只读 > 默认；敌人血量/伤害按同比缩放，保证「几刀砍死、几下被打死」的节奏不随境界变
+    const ps = readPlayerStats();
+    const pMax = opts.hp > 0 ? Math.round(opts.hp) : ps.max;
+    const pHp = opts.hp > 0 ? pMax : ps.hp;
+    const pAtk = opts.atk > 0 ? Math.round(opts.atk) : ps.atk;
+    const scale = opts.scale !== false;
+    const hpMul = scale ? pAtk / BASE.atk : 1, dmgMul = scale ? pMax / BASE.hp : 1;
+    RT.statSrc = opts.hp > 0 || opts.atk > 0 ? 'opts' : ps.src;
     RT.enemies = (enemies || [{ name: '山魇', hp: 80, maxHp: 80, x: 420, y: 180, speed: 70 }]).map(e => ({
       name: e.name || '山魇',
       spr: e.spr || 'mon_slime',
-      hp: e.hp != null ? e.hp : 80,
-      maxHp: e.maxHp != null ? e.maxHp : (e.hp || 80),
+      hp: Math.max(1, Math.round((e.hp != null ? e.hp : 80) * hpMul)),
+      maxHp: Math.max(1, Math.round((e.maxHp != null ? e.maxHp : (e.hp || 80)) * hpMul)),
+      dmgMul,
       x: e.x != null ? e.x : 420,
       y: e.y != null ? e.y : 180,
       speed: e.speed != null ? e.speed : 70,
@@ -83,12 +115,12 @@
     }));
     RT.player = {
       spr: opts.spr || playerSprId(),
-      hp: 180,
-      max: 180,
+      hp: pHp,
+      max: pMax,
       x: 300,
       y: 320,
       speed: 210,
-      atk: opts.atk || ATK.dmg,
+      atk: pAtk,
       attackCd: 0,
       swing: 0,
       dashCd: 0,
@@ -99,7 +131,7 @@
       flash: 0, at: 0, moving: false,
     };
     RT.ready = preload([RT.player.spr, ...RT.enemies.map(e => e.spr)]);
-    if (window.UI && UI.toast) UI.toast('进入即时遭遇战（原型）', '#ffe680');
+    toast('进入即时遭遇战（原型）', '#ffe680');
     return new Promise(resolve => {
       RT._resolve = resolve;
     });
@@ -151,7 +183,7 @@
         if (e.wind <= 0) {
           if (e.windKind === 'lunge') { e.state = 'lunge'; e.lunge = FOE.lungeT; e.lungeHit = false; }
           else {
-            RT.enemyProjectiles.push({ x: e.x + e.aimX * 16, y: e.y + e.aimY * 16, vx: e.aimX * FOE.shotSpd, vy: e.aimY * FOE.shotSpd, life: 2.0, dmg: FOE.shotDmg, dodged: false });
+            RT.enemyProjectiles.push({ x: e.x + e.aimX * 16, y: e.y + e.aimY * 16, vx: e.aimX * FOE.shotSpd, vy: e.aimY * FOE.shotSpd, life: 2.0, dmg: Math.max(1, Math.round(FOE.shotDmg * e.dmgMul)), dodged: false });
             e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar;
           }
         }
@@ -161,7 +193,7 @@
         const step = Math.min(e.lunge, dt);
         e.x += e.aimX * FOE.lungeSpd * step; e.y += e.aimY * FOE.lungeSpd * step; clamp(e);
         e.lunge -= dt; e.moving = true;
-        if (!e.lungeHit && Math.hypot(p.x - e.x, p.y - e.y) < FOE.hitR) { e.lungeHit = true; damagePlayer(FOE.lungeDmg); }
+        if (!e.lungeHit && Math.hypot(p.x - e.x, p.y - e.y) < FOE.hitR) { e.lungeHit = true; damagePlayer(Math.max(1, Math.round(FOE.lungeDmg * e.dmgMul))); }
         if (e.lunge <= 0) { e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar; }
         continue;
       }
@@ -190,7 +222,7 @@
       for (const e of RT.enemies) {
         if (e.hp <= 0) continue;
         if (Math.hypot(e.x - proj.x, e.y - proj.y) < 22) {
-          hitEnemy(e, 22, 8);
+          hitEnemy(e, Math.max(1, Math.round(p.atk * 22 / ATK.dmg)), 8); // 技能 ≈ 0.79×攻击
           proj.life = 0;
           break;
         }
@@ -297,7 +329,7 @@
     RT.keys.clear();
     RT.projectiles = [];
     RT.enemyProjectiles = [];
-    if (window.UI && UI.toast) UI.toast('遭遇战结束：' + (result === 'win' ? '胜' : '败'), result === 'win' ? '#9aff9a' : '#ff9a9a');
+    toast('遭遇战结束：' + (result === 'win' ? '胜' : '败'), result === 'win' ? '#9aff9a' : '#ff9a9a');
     if (RT._resolve) {
       RT._resolve({ result, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
       RT._resolve = null;
@@ -385,7 +417,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, 44);
     ctx.fillStyle = '#ffe680'; ctx.font = '15px sans-serif';
     const cd = v => (v > 0 ? v.toFixed(1) : '好');
-    ctx.fillText(`即时战(原型) ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max}  闪${cd(p.dashCd)} 技${cd(p.skillCd)}`, 12, 28);
+    ctx.fillText(`即时战(原型) ${Math.round(RT.time)}s  HP ${Math.ceil(p.hp)}/${p.max} 攻${p.atk}${RT.statSrc === 'game' ? '(存档)' : ''}  闪${cd(p.dashCd)} 技${cd(p.skillCd)}`, 12, 28);
     if (!RT.on && RT.result) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, H0 / 2 - 40, W0, 80);
       ctx.fillStyle = RT.result === 'win' ? '#9aff9a' : '#ff9a9a'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
@@ -404,7 +436,7 @@
   function openOverlay(enemies, opts) {
     if (typeof document === 'undefined' || !document.body) return null;
     if (document.getElementById('rtp-overlay')) return null;
-    if (!(opts && opts.force) && !devEnabled()) { if (window.UI && UI.toast) UI.toast('即时战原型仅开发者模式可用'); return null; }
+    if (!(opts && opts.force) && !devEnabled()) { toast('即时战原型仅开发者模式可用'); return null; }
     const ov = document.createElement('div');
     ov.id = 'rtp-overlay';
     ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;touch-action:none;';
@@ -493,6 +525,7 @@
     inAttackArc,
     screenDir,
     devEnabled,
+    readPlayerStats,
     ATK,
     FOE,
     DODGE,
