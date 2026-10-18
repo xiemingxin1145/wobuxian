@@ -23,9 +23,13 @@ async def main():
           G.wb33.dmg=G.wb33.hp*0.16; o.tier16=WB33.tierOf(G.wb33); G.wb33.dmg=G.wb33.hp*0.04; o.tier4=WB33.tierOf(G.wb33);
           o.board1=JSON.stringify(WB33.board(G.wb33)); o.board2=JSON.stringify(WB33.board(G.wb33)); o.boardRepro=o.board1===o.board2; delete o.board1; delete o.board2;
           G.year=5; G.wb33=null; o.noSpawn5=WB33.spawn()===false;
+          o.tj=[TJ33.bonusOf(0.24),TJ33.bonusOf(0.25),TJ33.bonusOf(0.5),TJ33.bonusOf(0.75),TJ33.bonusOf(1)].join(',');
+          G.kills={slime:1}; G.tj33=null; TJ33.backfill(G); o.tjBack=!!G.tj33.m.slime;
+          const D=DAILY33.st(); const d0=D.day; DAILY33.inc('kill',99); const t0=JSON.stringify(D.tasks); DAILY33.off=-3*86400e3; DAILY33.st(); o.dailyNoBack=JSON.stringify(Game.meta.d33.tasks)===t0&&Game.meta.d33.day===d0; DAILY33.off=0;
+          D.sign.n=2; D.sign.last=0; DAILY33.devSkip(); DAILY33.devSkip(); DAILY33.devSkip(); o.signKeep=Game.meta.d33.sign.n===2; DAILY33.off=0;
           return o;}""")
         await b.close()
-    exp = {'cost3': {'stone': 3194, 'ore': 3, 'yd': 0, 'rate': 0.76}, 'tieshen': 1.1, 'changshou': 1.08, 'nitian': 0.08, 'nitianOnce': 0.08, 'fbAtk': 1.2, 'fbSkill': True, 'tier16': '乙', 'tier4': None, 'boardRepro': True, 'noSpawn5': True, 'mgNull': True, 'rollLen': True, 'excl': True, 'spawn': True}
+    exp = {'cost3': {'stone': 3194, 'ore': 3, 'yd': 0, 'rate': 0.76}, 'tieshen': 1.1, 'changshou': 1.08, 'nitian': 0.08, 'nitianOnce': 0.08, 'fbAtk': 1.2, 'fbSkill': True, 'tier16': '乙', 'tier4': None, 'boardRepro': True, 'noSpawn5': True, 'mgNull': True, 'rollLen': True, 'excl': True, 'spawn': True, 'tj': '0,0.01,0.02,0.03,0.05', 'tjBack': True, 'dailyNoBack': True, 'signKeep': True}
     fails = [k for k, v in exp.items() if (abs(res.get(k) - v) > 0.011 if isinstance(v, float) else res.get(k) != v)]
     if res.get('wbHp') != res.get('wbExpect'): fails.append('wbHp')
     if res['cost5']['yd'] != 1 or res['cost8']['rate'] != 0.4: fails.append('cost5/8')

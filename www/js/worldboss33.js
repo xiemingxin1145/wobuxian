@@ -29,7 +29,11 @@ const WB33 = {
   },
   mark() {
     if (!R.marks || R.mode !== 'map' || !R.mapId) return; R.marks = R.marks.filter(m => m.act !== 'wb33'); if (!this.active()) return;
-    const info = MAPINFO[R.mapId]; const P = R.player; const [i, j] = nearestWalk(Math.floor((P ? P.i : info.start[0]) + 3), Math.floor((P ? P.j : info.start[1]) - 2));
+    const info = MAPINFO[R.mapId]; const P = R.player; const ci = Math.floor(P ? P.i : info.start[0]), cj = Math.floor(P ? P.j : info.start[1]);
+    // 选离 NPC/交互点最远的可走格（距主角 3–6 格），避免名牌和别人叠在一起点错
+    let best = null, bs = -1; const others = [...R.ents.filter(e => e.kind === 'npc' || e.kind === 'boss').map(e => [e.i, e.j]), ...R.marks.map(m => [m.i + 0.5, m.j + 0.5])];
+    for (let di = -6; di <= 6; di++) for (let dj = -6; dj <= 6; dj++) { const d = Math.hypot(di, dj); if (d < 3 || d > 6) continue; const a = ci + di, b = cj + dj; if (!walkable(a, b)) continue; const sc = Math.min(4, ...others.map(([x, y]) => Math.hypot(x - a - 0.5, y - b - 0.5))) - d * 0.05; if (sc > bs) { bs = sc; best = [a, b]; } }
+    const [i, j] = best || nearestWalk(ci + 3, cj - 2);
     R.marks.push({ i, j, label: '催收令·天道催收使', act: 'wb33', key: 'wb33', h: 160, c: '#ff8a5a' });
   },
   async challenge() {

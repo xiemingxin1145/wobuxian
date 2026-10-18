@@ -412,6 +412,13 @@ async def main():
                     tries += 1
                     if await walk_to(c, a, b): placed = True; break
                     if tries >= 10: break
+                if not placed:   # 5–6 格环上没找到可走到的格子（房屋/水边），放宽到 4–7 格再试
+                    for di, dj in sorted([(di, dj) for di in range(-7, 8) for dj in range(-7, 8) if 4 <= math.hypot(di, dj) <= 7 and not 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0]))):
+                        a, b = int(t['i']) + di, int(t['j']) + dj
+                        if not await c.pg.evaluate(JS_WALK, [a, b]): continue
+                        tries += 1
+                        if await walk_to(c, a, b): placed = True; break
+                        if tries >= 18: break
                 if not placed: rows.append(dict(npc=t['name'], result='could not position (harness)')); continue
                 await c.pg.wait_for_timeout(900); b0 = c.battles
                 st = await npcs(c); t = find(st, nid); x, y = t['pts']['body']
@@ -592,6 +599,9 @@ async def main():
                     if s_['chapter']: await tap_el(cs, '.chapter-fx', None, 500); continue
                     if s_['modal'] and s_['opts'] and 'mg33' not in (s_['top'] or ''): await tap_el(cs, '#modals .mwrap .opt', s_['opts'][-1] if s_['dlg'] else s_['opts'][0], 500); continue
                     await cs.pg.wait_for_timeout(300)
+                for _ in range(10):   # 序章过场（.chapter-fx）会盖在命格卡上面，先点掉
+                    if (await scr(cs))['chapter']: await tap_el(cs, '.chapter-fx', None, 600)
+                    else: break
                 info['cards'] = await cs.pg.evaluate("()=>document.querySelectorAll('.mg33 .mgc').length")
                 await tap_el(cs, '.mg33 .opt', '重抽一次', 500)
                 info['reroll_disabled'] = await cs.pg.evaluate("()=>{const b=[...document.querySelectorAll('.mg33 .opt')].find(b=>b.textContent.includes('重抽'));return !!(b&&b.disabled)}")
@@ -623,7 +633,7 @@ async def main():
                 if want('S3'):   # 催收令：开发者降临 → 公告 → 点地图标记走过去 → 应战（自动）→ 结算卡（伤害/档位/排名）
                     await dev_tap(cs, '调试', '立即降临催收使'); await cs.pg.wait_for_timeout(1200)
                     s_ = await scr(cs); notice = s_['title']; await clear_popups(cs, 3)
-                    mk = await cs.pg.evaluate("()=>{const m=R.marks.find(m=>m.act==='wb33');if(!m)return null;const [x,y]=w2s(...t2p(m.i+0.5,m.j+0.5));return [x/R.dpr,y/R.dpr]}")
+                    st_ = await npcs(cs); mk = next((m['s'] for m in (st_ or {}).get('marks', []) if m['act'] == 'wb33'), None)   # 点头顶「催收令」名牌
                     fought = False; card = None
                     if mk:
                         await tap(cs, mk[0], mk[1]); t0 = time.time()
