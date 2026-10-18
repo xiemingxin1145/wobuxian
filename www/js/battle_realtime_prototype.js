@@ -51,6 +51,7 @@
     RT.on = true;
     RT.time = 0;
     RT.timeLimit = opts.timeLimit || 20;
+    RT.skin = opts.skin || 'sprite'; // 'sprite' = 游戏现有精灵；'box' = 方块低模（需页面已加载 LowpolyBox）
     RT.result = null;
     RT.keys.clear();
     RT.stick = { x: 0, y: 0 };
@@ -264,6 +265,12 @@
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(u.x, u.y, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
     let drawn = false;
+    if (RT.skin === 'box' && typeof window !== 'undefined' && window.LowpolyBox) { // 方块低模皮肤（仅独立预览页加载 lowpoly_box_chars.js）
+      const L = window.LowpolyBox;
+      const bt = isPlayer && u.swing > 0 ? 1 - u.swing / ATK.swing : u.at;
+      L.draw(ctx, u.box || (isPlayer ? 'jianxiu' : 'taozhai'), u.x, u.y, { scale: 0.9, angle: L.angleFromFace(u.faceX || 0, u.faceY || 1), anim: isPlayer && u.swing > 0 ? 'attack' : (u.moving ? 'walk' : 'idle'), t: bt });
+      return 'box';
+    }
     if (sprOk(u.spr)) drawn = !!drawSprite(ctx, u.spr, anim, dir, f, u.x, u.y, 0.5, u.flash > 0 ? 0.6 : 1);
     if (!drawn) { // 图未加载完 / 无图集：回退圆形
       ctx.fillStyle = isPlayer ? (u.hp > 60 ? '#5a9a8a' : '#c07060') : '#c07060';

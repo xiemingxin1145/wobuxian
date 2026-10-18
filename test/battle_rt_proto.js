@@ -76,6 +76,15 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   global.drawSprite = saveDS;
   ok(!threw, '没有 drawSprite 时回退圆形绘制不报错');
 
+  // 6b. 方块低模皮肤：页面加载了 LowpolyBox 时 skin:'box' 改画长方体角色，不调 drawSprite
+  window.LowpolyBox = require(path.join(ROOT, 'www', 'js', 'lowpoly_box_chars.js'));
+  done = RB.start(null, { skin: 'box', timeLimit: 1 });
+  drawn.length = 0; let fills = 0;
+  const bctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fill') fills++; }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(bctx);
+  ok(S.skin === 'box' && drawn.length === 0 && fills >= 40, '方块皮肤：画长方体（' + fills + ' 次填充），不走 drawSprite');
+  RB.end('lose'); await done; delete window.LowpolyBox;
+
   // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
   const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');
