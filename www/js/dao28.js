@@ -9,10 +9,10 @@
 
 // ---- 神通定义（注册进 SKILLS，复用既有 fx/k/el 管线） ----
 Object.assign(SKILLS, {
-  st_jianpo: { n: '一剑破万法', mp: 42, tg: 'one', k: 3.1, el: '金', fx: 'swordqi', ic: 'sk_sword', d: '神通·超高单体剑伤', cd: 8 },
-  st_wanjian: { n: '万剑归宗', mp: 58, tg: 'all', k: 1.9, el: '金', fx: 'wanjian', ic: 'sk_sword', d: '神通·群体剑雨', cd: 12 },
+  st_jianpo: { n: '一剑破万法', mp: 42, tg: 'one', k: 3.1, el: '金', fx: 'swordqi', ic: 'sk_swords', d: '神通·超高单体剑伤', cd: 8 },
+  st_wanjian: { n: '万剑归宗', mp: 58, tg: 'all', k: 1.9, el: '金', fx: 'wanjian', ic: 'sk_swords', d: '神通·群体剑雨', cd: 12 },
   st_fenglei: { n: '风雷爆', mp: 50, tg: 'all', k: 1.6, el: '雷', fx: 'thunderall', ic: 'sk_thunder', d: '神通·群体雷伤40%眩晕', cd: 12, stun: 0.4 },
-  st_hunyuan: { n: '混元护体', mp: 34, tg: 'self', k: 0, el: '无', fx: 'shield', ic: 'sk_def', d: '神通·回复40%气血并护体', cd: 10, heal: 0.4 },
+  st_hunyuan: { n: '混元护体', mp: 34, tg: 'self', k: 0, el: '无', fx: 'shield', ic: 'sk_shield', d: '神通·回复40%气血并护体', cd: 10, heal: 0.4 },
   st_douzhuan: { n: '斗转星移', mp: 46, tg: 'one', k: 2.6, el: '道', fx: 'dark', ic: 'sk_dark', d: '神通·高伤并吸取60%伤害为气血', cd: 10, drain: 0.6 },
 });
 
@@ -39,11 +39,11 @@ const DAO28 = {
 
   // ---- 悟道树 ----
   BRANCHES: [
-    { id: 'jiandao', n: '剑道', ic: 'sk_sword', d: '每层：技能伤害+4%；3层解锁「一剑破万法」，5层「万剑归宗」', unlocks: { 3: 'st_jianpo', 5: 'st_wanjian' } },
+    { id: 'jiandao', n: '剑道', ic: 'sk_swords', d: '每层：技能伤害+4%；3层解锁「一剑破万法」，5层「万剑归宗」', unlocks: { 3: 'st_jianpo', 5: 'st_wanjian' } },
     { id: 'fashu', n: '法术', ic: 'sk_light', d: '每层：法术伤害+4%；3层解锁「风雷爆」', unlocks: { 3: 'st_fenglei' } },
     { id: 'tipo', n: '体魄', ic: 'sk_dark', d: '每层：气血上限+6%、防御+3%' },
     { id: 'dandao', n: '丹道', ic: 'sk_meditate', d: '每层：丹药效果+8%（暂作永久加成占位）' },
-    { id: 'xinjing', n: '心境', ic: 'sk_sword', d: '每层：灵力上限+5%、突破更稳' },
+    { id: 'xinjing', n: '心境', ic: 'sk_swords', d: '每层：灵力上限+5%、突破更稳' },
     { id: 'tiandao', n: '天道', ic: 'sk_light', d: '每层：悟道点获取+10%、全属性微增' },
   ],
   lv(br) { return (Game.G.dao && Game.G.dao[br]) || 0; },
