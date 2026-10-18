@@ -16,7 +16,7 @@ async def main():
         pg = await b.new_page(viewport={'width': 412, 'height': 915})
         cur = {'s': 'boot'}
         pg.on('pageerror', lambda e: errs.append([cur['s'], 'pageerror', str(e)[:300]]))
-        pg.on('console', lambda m: m.type == 'error' and errs.append([cur['s'], 'console', m.text[:300]]))
+        pg.on('console', lambda m: m.type == 'error' and 'favicon.ico' not in ((m.location or {}).get('url') or '') and errs.append([cur['s'], 'console', m.text[:300]]))  # 本地 http.server 没有 favicon.ico，浏览器自动请求的 404 不算游戏错误
         await pg.goto(f'http://127.0.0.1:{PORT}/index.html')
         await pg.wait_for_timeout(4000)
         cur['s'] = 'newLife'

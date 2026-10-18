@@ -45,7 +45,7 @@ const WB33 = {
     w.tries--; this.fighting = true; let r;
     try { r = await Game._startBattle([u], { boss: true, solo: true, noflee: true, wb33: 1 }); } finally { this.fighting = false; R.onTap = (x, y) => Game.onTap(x, y); }
     const end = r && r.units ? r.units.find(x => x.mon === 'wb33') : u; const hit = Math.max(0, Math.round(rem - Math.max(0, end.hp)));
-    w.dmg += hit; if (end.hp <= 0 || !end.alive) { w.killed = true; w.dmg = w.hp; }
+    w.dmg += hit; if (end.hp <= 0 || !end.alive) { w.killed = true; w.dmg = w.hp; G.kills = G.kills || {}; G.kills.wb33 = (G.kills.wb33 || 0) + 1; if (typeof TJ33 !== 'undefined') TJ33.light('m', 'wb33'); } // 走 _startBattle 不经过 Game.fight，需自己记击杀并点亮图鉴
     const t = this.tierOf(w); w.best = t; const rk = this.rank(w);
     await UI.card(w.killed ? '催收使被反向催收了！' : '对账结算', `本次伤害 ${fmt(hit)}\n累计伤害 ${fmt(w.dmg)}（${(w.dmg / w.hp * 100).toFixed(1)}%）\n当前档位：${t || '未入档（需 ≥5%）'}\n讨债风云榜：第 ${rk} 名\n剩余挑战 ${w.tries}/3${w.tries > 0 && !w.killed ? '\n（奖励在 3 次用完或击杀后按最高档发放一次）' : ''}`, 'mon_collector', ['查看风云榜', '好']).then(k => k === 0 ? this.showBoard() : null);
     if (w.killed || w.tries <= 0) await this.settle();
