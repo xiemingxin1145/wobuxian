@@ -462,3 +462,26 @@ hitTargets = function (u, S, targets) { // 无敌 / 一击必杀（只在开发�
   return r;
 };
 setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')) UI.hud(); }, 1500);
+// ---------- 3.3 #5 游走 NPC 点按加固：①0.6 秒宽限窗口（点到 NPC 刚刚站过的位置也算点中）②主角朝 NPC 走来时 NPC 暂停闲逛 ----------
+(function () {
+  const TRAIL_MS = 600;
+  setInterval(() => { try { if (R.mode !== 'map') return; const now = performance.now(); for (const e of R.ents) { if (e.kind !== 'npc' || e.hidden) continue; (e._trail = e._trail || []).push([now, e.i, e.j]); while (e._trail.length && now - e._trail[0][0] > TRAIL_MS) e._trail.shift(); } } catch (er) { } }, 100);
+  const _pick = pickAt;
+  pickAt = function (sx, sy) {
+    const h = _pick(sx, sy); if (!h || !h.tile) return h;
+    const [wx, wy] = s2w(sx, sy); let best = null, bd = 1e9;
+    for (const e of R.ents) {
+      if (e.kind !== 'npc' || e.hidden || !e._trail) continue;
+      for (const [, i, j] of e._trail) { const ci = e.i, cj = e.j; e.i = i; e.j = j; const r = entHitRect(e); e.i = ci; e.j = cj;
+        if (wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1) { const d = Math.hypot(wx - r.cx, wy - r.cy); if (d < bd) { bd = d; best = e; } } }
+    }
+    return best ? { ent: best } : h;
+  };
+  const _ai = npcAI;
+  npcAI = function (e, dt) {
+    const P = R.player;
+    if (P && P.path && P.path.length && !(e.talking > 0)) { const end = P.path[P.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
+      if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
+    return _ai(e, dt);
+  };
+})();
