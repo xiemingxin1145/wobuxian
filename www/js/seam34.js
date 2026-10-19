@@ -56,7 +56,7 @@ const Seam34 = {
     }
     this.tick();
   },
-  // 出口外侧画一条邻图的「对边」地块预览（取邻图底板上反向出口附近 5×3 格，平移拼到本图出口外，渐隐）
+  // 出口外侧画一条邻图「对边」真实地块边条：邻图底板上反向出口附近 5×3.5 格，按等距网格平移对齐拼到本图出口外，向外渐隐
   strip(ctx, x) {
     const N = ASSETS.maps[x.to]; if (!N) return; const im = img('assets/maps/' + x.to + '.webp'); if (!im) return;
     const g = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[x.side]; const nb = this.OPP[x.side]; const nn = N.n, c = (nn - 1) / 2;
@@ -69,12 +69,16 @@ const Seam34 = {
       if (best && (best[0] >= 22 || best[1] >= 22)) best = null; this._pv[ck] = best; }
     if (!best) return; const NP = N.plate, k = NP.k || 1; const tp = (P, i, j) => [P.ox + i * P.ex[0] + j * P.ej[0], P.oy + i * P.ex[1] + j * P.ej[1]];
     // 本图目标锚点：出口外 2 格；邻图源锚点：其出口格（再往其图内 1 格）
-    const [dx, dy] = t2p(x.i + 0.5 + g[0] * 2.2, x.j + 0.5 + g[1] * 2.2); const [sx, sy] = tp(NP, best[0] + 0.5 - gn[0] * 0.5, best[1] + 0.5 - gn[1] * 0.5);
-    const W = 260, H = 150; ctx.save(); ctx.globalAlpha = 0.78;
-    ctx.beginPath(); ctx.ellipse(dx, dy, W / 2, H / 2, 0, 0, 7); ctx.clip();
-    ctx.drawImage(im, (sx - W / 2) * k, (sy - H / 2) * k, W * k, H * k, dx - W / 2, dy - H / 2, W, H);
-    const gr = ctx.createRadialGradient(dx, dy, H * 0.25, dx, dy, W / 2); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(230,240,255,0.95)'); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(dx - W / 2, dy - H / 2, W, H);
-    ctx.restore();
+    // 平移对齐：本图 (x.i,x.j)+g·k ↔ 邻图 best+g·(k-1)（邻图里 g 方向即其「向内」）
+    const [ax, ay] = t2p(x.i + 0.5, x.j + 0.5), [bx, by] = tp(NP, best[0] + 0.5 - g[0], best[1] + 0.5 - g[1]); const offx = bx - ax, offy = by - ay;
+    const pg = [g[1], g[0]]; // 沿边方向
+    const Q = (u, v) => t2p(x.i + 0.5 + g[0] * u + pg[0] * v, x.j + 0.5 + g[1] * u + pg[1] * v);
+    const poly = [Q(0.5, -2.5), Q(0.5, 2.5), Q(4, 2.5), Q(4, -2.5)];
+    const xs = poly.map(p => p[0]), ys = poly.map(p => p[1]); const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4, w = Math.max(...xs) - x0 + 8, h = Math.max(...ys) - y0 + 8;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(...poly[0]); for (let q = 1; q < 4; q++) ctx.lineTo(...poly[q]); ctx.closePath(); ctx.clip();
+    ctx.globalAlpha = 0.9; ctx.drawImage(im, (x0 + offx) * k, (y0 + offy) * k, w * k, h * k, x0, y0, w, h);
+    const [n0x, n0y] = Q(0.5, 0), [n1x, n1y] = Q(4, 0); const gr = ctx.createLinearGradient(n0x, n0y, n1x, n1y); gr.addColorStop(0, 'rgba(235,245,255,0)'); gr.addColorStop(0.45, 'rgba(235,245,255,0.15)'); gr.addColorStop(1, 'rgba(235,245,255,0.95)');
+    ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(x0, y0, w, h); ctx.restore();
   },
   tick() {
     const P = R.player; if (!P || this.busy || R.mode !== 'map' || (window.UI && UI.stack && UI.stack.length)) return;

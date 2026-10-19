@@ -33,6 +33,15 @@
 - [ ] 未做：邻图边缘地块预渲染（现在只有出口标识，没画邻图边条）；地图扩大（桃花村 36、青云宗/天外天 32，计划：在 +i/+j 方向扩展，旧坐标不变免迁移，新区域用程序化地块+现有道具图集）；§E.3 分块绘制/寻路上限；名牌压任务栏；#12 补丁。
 - 下一步：门禁全绿 → `--no-ff` 合 main 推送 → 记录 build 号；再做地图扩大。
 
+### 3.4 第 3 步：v34-life（worktree `/workspace/game-life34`，2026-10-19 15:40 起）
+- [x] #12 根治（`www/js/life34.js` 第 1 部分）：翠花家 (12,16)→(14,15)，原来与剑仙 (9,13) 屏幕同一竖列；NPC 闲逛目标不与其他 NPC 屏幕叠列。复测 ONLY=N1,T1,T4：T1 35/35，T4 19/20（剑仙→翠花误中消失，剩 1 次 harness「NPC 在屏外」），N1 fought=false（probe 证实点屏内怪 3/3 能开战，属 harness 找不到屏内怪的偶发）。
+- [x] 设计：`docs/openworld_upgrade.md`「3.4 自由度层设计」。
+- [x] 年度世界模拟（life34 第 2 部分）：流动 NPC（非任务给予者，当前只有集市货郎）按 seam34 邻接换图；恩怨值 G.life34.rel（闲聊每年 +2、托付 +15、寻仇后 +）；宗门关系漂移；找上门事件（寻仇=精英战/报恩=灵石/宗门纠纷=贡献/托付=修为），进图 1.5 s 后在玩家旁生成带「！」的来客。存档 G.life34 惰性默认值。
+- [x] 奇遇链 15 个任务（5 图×3 步，`qc34_*`，pre 串联，复用任务栏/追踪）。validate22 0 错。probe 截图 `/workspace/shots34/life_visitor.png`。
+- [x] 地表打磨：缺纹理类型（如青云宗土路）借邻图真实源格（异步加载后重建分块）；`tools/big34_src.py` 加 BAD 表剔除 20 个带栅栏/建筑轮廓线/水面反光的源格；邻图预览椭圆 → 沿边 5×3.5 格平移对齐的真实地块边条、向外渐隐。截图 `/workspace/shots34/strip_*.png`、`*_v6.png`。
+- [x] **v34-life 为 3.4 自由度唯一主线分支**：已并入 v34-jianghu（`jianghu34.js`：6 位自主 NPC 月推进、三宗势力、更多→江湖风云面板、CH34 奇遇链 + 两个测试）。去重：life34 不再自己漂移宗门关系，统一读写 G.sectRel（JH34/war29）；life34 保留 #12、找上门来客、qc34 奇遇链。v34-jianghu 不再单独开发。
+- [ ] 全门禁（合并后重跑）：`/tmp/gate_life.sh` → `/tmp/gl4.txt`（合 PR16 后重跑；seam34 单跑已过）（olaf 输出 `/tmp/gl_olaf.txt`），结束标志 GATE_DONE。之后合 main。
+
 ## v3.3.0 线（Grok Bot，2026-10-18 起，UTC+8）
 > 基线：main `2134d8c`（v3.2.0 HD 包）。避开开放世界线认领的文件（stage3_encounter_draft.js、test/stage3_chain.js）。
 
