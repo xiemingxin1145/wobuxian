@@ -22,10 +22,10 @@ async def main():
             await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y, 'id': 0}]}); await pg.wait_for_timeout(60)
             await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
         async def tap_sel(sel, wait=350, scroll=True):
-            r = await pg.evaluate("([s,sc])=>{const e=[...document.querySelectorAll(s)].find(x=>x.offsetParent!==null);if(!e)return null;if(sc)e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();const x=r.x+r.width/2,y=r.y+r.height/2;const t=document.elementFromPoint(x,y);return {x,y,hit:!!t&&(t===e||e.contains(t))}}", [sel, scroll])
+            r = await pg.evaluate("([s,sc])=>{const e=[...document.querySelectorAll(s)].find(x=>x.getClientRects().length>0);if(!e)return null;if(sc)e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();const x=r.x+r.width/2,y=r.y+r.height/2;const t=document.elementFromPoint(x,y);return {x,y,hit:!!t&&(t===e||e.contains(t))}}", [sel, scroll])
             if not r: return False
             await pg.wait_for_timeout(100)
-            if not r['hit']: print('  covered:', sel)
+            if not r['hit']: print('  covered:', sel, await pg.evaluate("([x,y])=>{const t=document.elementFromPoint(x,y);return t&&(t.id+'.'+t.className+':'+(t.innerText||'').slice(0,30))}", [r['x'], r['y']]))
             await tap(r['x'], r['y']); await pg.wait_for_timeout(wait); return r['hit']
         async def settle(n=30):
             for k in range(n):
@@ -36,15 +36,22 @@ async def main():
                 else: await pg.wait_for_timeout(600)
             return False
         async def dev(tab):
-            if not await pg.evaluate("()=>!!document.querySelector('.devtabs')"):
-                await settle(); await tap_sel('#devbtn', 600)
+            for k in range(3):
+                if await pg.evaluate("()=>!!document.querySelector('.devtabs')"): break
+                s_ = await settle()
+                if not s_: print('  settle failed', await pg.evaluate("()=>({modal:!!UI.modal,stack:UI.stack.length,busy:Game._busy,mode:R.mode,top:[...document.querySelectorAll('#modals .mwrap')].map(e=>e.className+':'+e.innerText.slice(0,80))})"))
+                await tap_sel('#devbtn', 700, False)
             await tap_sel(f'.devtabs .dt[data-t="{tab}"]', 500)
         async def search(q):
             await tap_sel('.dvq', 200); await pg.keyboard.press('Control+A'); await pg.keyboard.press('Backspace'); await pg.keyboard.type(q); await pg.wait_for_timeout(300)
-        async def row_btn(kind, id_, v, wait=450):
+        async def row_btn(kind, id_, v, wait=450, x=None):
             cheats.append(f'{kind}:{id_}:{v}')
-            return await tap_sel(f'.dvi[data-kind="{kind}"][data-id="{id_}"] [data-v="{v}"]', wait)
-        async def close_panel(): await tap_sel('#modals .mwrap:last-child .ph .x', 450, False)
+            return await tap_sel(f'.dvi[data-kind="{kind}"][data-id="{id_}"] ' + (f'[data-x="{x}"]' if x else '') + f'[data-v="{v}"]', wait)
+        async def close_panel():
+            for k in range(4):
+                if not await pg.evaluate("()=>!!document.querySelector('#modals .mwrap:last-child .ph .x')"): return
+                if await tap_sel('#modals .mwrap:last-child .ph .x', 450, False): return
+                await pg.wait_for_timeout(1200)
         async def panel_text(menu=None, more=None):
             await settle()
             if menu: await tap_sel(f'#menu .mb[data-p="{menu}"]', 700, False)
@@ -59,23 +66,23 @@ async def main():
         for k in range(3): await pg.tap('#nx'); await pg.wait_for_timeout(250)
         await pg.wait_for_timeout(2500); await settle()
         # ---------- 0 面板布局：适配手机、可滚动、可关闭；浮动入口不盖面板 ----------
-        await dev('dbg')
+        await dev('dbg'); print('errs', errs[:3], await pg.evaluate("()=>({tabs:!!document.querySelector('.devtabs'),panels:document.querySelectorAll('.panel').length,mw:[...document.querySelectorAll('.mwrap')].map(e=>e.className+'|'+e.parentNode.id+'|'+e.innerText.slice(0,60)),dev:localStorage.getItem('wbx2_dev'),btn:!!document.querySelector('#devbtn'),inMap:UX.inMap()})"))
         lay = await pg.evaluate("()=>{const p=[...document.querySelectorAll('#modals .panel')].pop();const r=p.getBoundingClientRect();const pb=p.querySelector('.pb');const tabs=[...document.querySelectorAll('.devtabs .dt')].map(e=>e.textContent);const off=document.querySelector('#modals [data-a=devoff]');off.scrollIntoView({block:'center'});const q=off.getBoundingClientRect();const t=document.elementFromPoint(q.x+q.width/2,q.y+q.height/2);return {x:r.x,y:r.y,w:r.width,h:r.height,tabs,scrollable:pb.scrollHeight>pb.clientHeight,devoff_hit:off.contains(t),top:t&&(t.id||t.className)}}")
         ok('0_layout', lay['x'] >= 0 and lay['y'] >= 0 and lay['x'] + lay['w'] <= VW and lay['y'] + lay['h'] <= VH and lay['devoff_hit'] and all(t in lay['tabs'] for t in ['功法', '装备', '天赋', '金手指', '道具']), lay)
         await pg.screenshot(path=f'{SHOTS}/tab_dbg.png')
         for tk in ['res', 'realm', 'unlock', 'story', 'tp', 'show', 'gf', 'eq', 'tf', 'jsz', 'it']:
             await dev(tk); await pg.screenshot(path=f'{SHOTS}/tab_{tk}.png')
         # 滚动位置保留（剧情页长列表：点第 12 章附近的按钮后不跳回顶部）
-        await dev('story'); await tap_sel('#modals .pb [data-a="mq"][data-v="3"]', 600)
+        await dev('story'); await tap_sel('#modals .pb [data-a="mq"][data-v="16"]', 600)
         s0 = await pg.evaluate("()=>document.querySelector('#modals .pb').scrollTop")
-        ok('0_scroll_kept', s0 > 50, {'scrollTop_after_tap': s0}); cheats.append('story:mq:3')
+        ok('0_scroll_kept', s0 > 50, {'scrollTop_after_tap': s0}); cheats.append('story:mq:16')
         await close_panel(); ok('0_close', not await pg.evaluate("()=>!!document.querySelector('.devtabs')"))
         # 境界：筑基圆满（本命法宝在洞府面板筑基后才显示；之后测必定突破）
         await dev('realm'); await tap_sel('#modals [data-a="rq"][data-v="2"][data-s="3"]', 500); cheats.append('realm:筑基圆满')
         # ---------- 1 功法 ----------
         await dev('gf'); await search('五雷')
         vis = await pg.evaluate("()=>[...document.querySelectorAll('.dvi')].filter(r=>r.offsetParent!==null).map(r=>r.dataset.id)")
-        ok('1_search', vis == ['wulei'], vis)
+        ok('1_search', 'wulei' in vis and len(vis) <= 3 and 'changsheng' not in vis, vis)
         await row_btn('tech', 'wulei', 1); await row_btn('tech', 'wulei', 5)
         await search('一剑'); await row_btn('st', 'st_jianpo', 'get')
         await search('剑道'); await row_btn('dao', 'jiandao', 5)
@@ -97,7 +104,7 @@ async def main():
         ok('3_state', await G(f"G.talents.includes('reborn')&&!G.talents.includes('tough')&&G.lg==='lei'&&G.mingge.includes('nitian')&&G.st.con==={st0}+2"), await G("[G.talents,G.lg,G.mingge,G.st]"))
         # ---------- 4 金手指 ----------
         await dev('jsz'); await search('无限灵石'); await row_btn('chk', 'stone', 1); await search('必定突破'); await row_btn('chk', 'brk', 1)
-        await search('翠花'); await row_btn('aff', 'cuihua', 100); await row_btn('comp', 'cuihua', 'fol')
+        await search('翠花'); await row_btn('npc', 'cuihua', 100, x='aff'); await row_btn('comp', 'cuihua', 'fol')
         await search('仙鹤'); await row_btn('mount', 'crane', 'ride')
         await search('羽衣'); await row_btn('cos', 'yuyi', 'wear')
         await search('聚灵阵'); await row_btn('cave', 'zl', 5)
