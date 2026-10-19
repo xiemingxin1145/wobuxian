@@ -20,10 +20,20 @@
      "翠花",
      "cuihua",
      "💬",
-     0,
+     2.8,
      [
       51,
       89
+     ]
+    ],
+    [
+     "路人甲",
+     "luren",
+     "!",
+     6.4,
+     [
+      52,
+      80
      ]
     ],
     [
@@ -34,26 +44,6 @@
      [
       50,
       77
-     ]
-    ],
-    [
-     "路人甲",
-     "luren",
-     "!",
-     8.5,
-     [
-      52,
-      80
-     ]
-    ],
-    [
-     "说书先生",
-     "villager",
-     "💬",
-     9.2,
-     [
-      51,
-      89
      ]
     ],
     [
@@ -70,7 +60,17 @@
      "王大爷",
      "farmer",
      "💬",
-     12.1,
+     10.8,
+     [
+      51,
+      89
+     ]
+    ],
+    [
+     "说书先生",
+     "villager",
+     "💬",
+     10.8,
      [
       51,
       89
@@ -102,23 +102,23 @@
      51,
      89
     ],
-    "讨债史莱姆": [
-     50,
-     77
-    ],
     "路人甲": [
      52,
      80
     ],
-    "说书先生": [
-     51,
-     89
+    "讨债史莱姆": [
+     50,
+     77
     ],
     "娘": [
      51,
      89
     ],
     "王大爷": [
+     51,
+     89
+    ],
+    "说书先生": [
      51,
      89
     ],
@@ -140,24 +140,16 @@
    "npc_tap_before_battle": "npc",
    "fought": false,
    "ontap_after_battle": true,
-   "ground_tap_moved_tiles": 4.78,
-   "npc": "翠花",
+   "ground_tap_moved_tiles": 4.14,
+   "npc": "娘",
    "npc_tap_after_battle": "npc",
    "shot": "002_N1_after_battle_tap_dead.png"
-  },
-  {
-   "case": "T4_wandering_npc_far_tap",
-   "ok": true,
-   "passed": "20/20",
-   "budget_s": 1473,
-   "used_s": 971,
-   "fails": []
   },
   {
    "case": "info_recoveries_used",
    "ok": true,
    "recoveries": 0,
-   "battles": 7,
+   "battles": 0,
    "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
   }
  ],
