@@ -516,6 +516,40 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const de = fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
   ok(!/window\.(UI|Game)\b/.test(de), 'dev_entry_v25 代码里不再用 window.UI / window.Game');
 
+  // 9. 第十三轮：合 main（8ee2459）后，两条链每个选择的 L.rel 总变化 = 目标（同步 + 补差额，不重复计）；追兵战互斥读 L.seen.foe_年
+  {
+    const c9 = vm.createContext({ console: { log() {}, error() {} }, Math, setTimeout: () => 0 });
+    vm.runInContext(`var window = globalThis;
+      var REALMS = [{ n: '凡人', need: 80 }, { n: '练气', need: 200 }], NPCS = { merchant: { n: '奸商·钱多多', por: 'npc_merchant' }, xianguan: { n: '仙官·记账童子', por: 'npc_disciple' } };
+      var QUESTS = {}, SECTS = {}, ITEMS = {}, MAPINFO = { market: { n: '坊市', mons: ['slime'], tier: 1 } }, ASSETS = { maps: {} }, R = { ents: [], mapId: 'market', mode: 'map' };
+      function t2p(i, j) { return [i, j]; } function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {} var npcAI = function () {};
+      var UI = { picks: [], card: async () => (UI.picks.length ? UI.picks.shift() : 0), say: async () => (UI.picks.length ? UI.picks.shift() : 0), hud() {}, toast() {} };
+      var Game = { G: null, save() {}, async yearEnd() { this.G.year++; this.G.age++; }, interactEnt() {}, refreshNpcs() {}, async enterMap() {}, acceptQuest() {}, async fight() { return { res: 'win' }; }, canEnter() { return true }, give() {},
+        async apply(eff) { const G = this.G; for (const tk of eff.split(';')) { const p = tk.split(':'); if (p[0] === 'aff') G.aff[p[1]] = Math.max(0, Math.min(150, (G.aff[p[1]] || 0) + +p[2])); } } };`, c9);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'life34.js'), 'utf8'), c9);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'stage3_encounter_draft.js'), 'utf8'), c9);
+    const S9 = vm.runInContext('Stage3', c9), G9 = vm.runInContext('Game', c9), U9 = vm.runInContext('UI', c9), L9 = vm.runInContext('Life34', c9);
+    const nG = (aff) => ({ year: 5, age: 15, realm: 1, debt: 5000, stone: 1000, aff: Object.assign({}, aff), flags: {}, life34: { v: 1, fav: 1, rel: {}, seen: {}, log: [], pending: null } });
+    const rv = (g, id) => (g.life34.rel[id] || 0);
+    const one = async (fn, id, a0, pk) => { const g = nG({ [id]: a0 }); G9.G = g; U9.picks = [pk, 0]; await S9[fn](g); return { g, d: rv(g, id) }; };
+    const rows = [['runMerchantChain', 'merchant', '举报', 1, [[0, -20], [30, -20], [100, -20]]], ['runMerchantChain', 'merchant', '扛税', 0, [[0, 30]]], ['runMerchantChain', 'merchant', '不掺和', 2, [[30, -2]]],
+      ['runLedgerChain', 'xianguan', '告发', 2, [[0, -20], [50, -20]]], ['runLedgerChain', 'xianguan', '对账', 0, [[0, 30]]], ['runLedgerChain', 'xianguan', '贿赂', 1, [[0, 10]]]];
+    for (const [fn, id, nm, pk, cs] of rows) for (const [a0, want] of cs) { const { d } = await one(fn, id, a0, pk); ok(d === want, `L.rel：${id}「${nm}」起始好感 ${a0} → 总变化 ${want}（实得 ${d}，不重复计）`); }
+    { const { g } = await one('runLedgerChain', 'xianguan', 0, 1); const r0 = rv(g, 'xianguan'); U9.picks = [0, 0]; const r = await S9.runLedgerChain(g);
+      ok(r.exposed && rv(g, 'xianguan') - r0 === -15, 'L.rel：贿赂露馅这一步总变化 -15'); }
+    // 同一变化：旧的直接写 G.aff 不触发 main 同步；Game.apply 才触发
+    { const g = nG({ merchant: 30 }); G9.G = g; S9.addAffTo(g, 'merchant', -40); const a = rv(g, 'merchant'); g.aff.merchant = 30; await G9.apply('aff:merchant:-40');
+      ok(a === 0 && rv(g, 'merchant') === -15, '直接写 G.aff 不经同步（0），Game.apply 同步 -15 → 链里由 affRel 调 Life34.syncAff 补上这份'); }
+    // 互斥两方向（键年 = G.year || G.age）
+    { const g = nG({}); g.life34.rel.merchant = -60; g.life34.pending = { type: 'foe', npc: 'merchant' }; G9.G = g; U9.picks = [0]; await L9.visit({ label: '奸商·钱多多' });
+      ok(g.life34.seen.foe_5 === 1 && !S9.canHunt(g).ok && S9.canHunt(g).src === 'seen', '仇家上门（life34 写 foe_5）→ 同年追兵战被拒');
+      g.year = 6; ok(S9.canHunt(g).ok, '次年不挡追兵战');
+      const h = nG({}); delete h.year; h.age = 40; h.life34.rel.merchant = -60; G9.G = h; S9.settleBounty(h, { result: 'win', reason: 'cleared', tier: 0 });
+      ok(h.flags.s3b_hunt_year === 40 && S9.huntBlocksFoe(h), '追兵战结算写 s3b_hunt_year = G.age（无 year）');
+      h.flags.s3b_hunt_year = 41; await G9.yearEnd(); ok(h.age === 41 && !(h.life34.pending && h.life34.pending.type === 'foe') && !h.life34.seen.foe_41, '本年打过追兵战 → life34 不派仇家（可能派别的来客）');
+      h.life34.pending = null; await G9.yearEnd(); ok(h.life34.pending && h.life34.pending.type === 'foe', '次年照派'); }
+  }
+
   console.log(fails ? `${fails} FAILED` : 'ALL PASS');
   process.exit(fails);
 })();

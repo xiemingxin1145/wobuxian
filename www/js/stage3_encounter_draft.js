@@ -115,24 +115,43 @@ const Stage3 = {
   },
 
   // ======== 记仇选项 → life34 恩怨（2026-10-19 第十二轮） ========
-  // 钱多多 / 记账童子两条开发者奇遇链里「记仇」的选择，统一调用 main 已有的 Life34.rel(id, d)（life34.js：id = NPCS 的 NPC id，
+  // 钱多多 / 记账童子两条开发者奇遇链里「记仇」的选择，统一经 affRel 调 main 已有的 Life34.syncAff / Life34.rel(id, d)（life34.js：id = NPCS 的 NPC id，
   //   d = 恩怨增量，写 G.life34.rel[id] 并钳到 -100..100；≤ -40 时 life34 年度模拟会安排「仇家上门」）。不另起平行的恩怨/仇恨字段。
   //   好感 G.aff（talk.js 60/20 阈值，决定第 2 步结算）照旧；恩怨只走 Life34.rel。两条链都不涉及宗门，所以不读写 G.sectRel
   //   （宗门好感若以后要用，统一读写 G.sectRel / war29，不在这里另建）。
   //   档位（docs/研究文档里没有研究员定的档，按严重程度自定，写在 docs/openworld_upgrade.md）：赖账 -10 / 贿赂露馅 -15 / 举报·告发 -20。
+  //   第十三轮起档位 = 该选择 L.rel 的「总」变化（含 main 的好感同步那份，见下方 affRel），不再在同步之外另扣全额。
   //   两条链里目前没有「赖账」选项，renege 档只占位给以后用。
   //   Life34 是 life34.js 的顶层 const（另挂了 window.Life34），这里一律 typeof 判断；不存在 / 没有 rel / 不是当前存档 / 抛错 → 不调用、不报错，只在返回值里标出。
   GRUDGE_REL: Object.freeze({ renege: -10, bribeExposed: -15, report: -20 }),
   // 与 Life34.yr() 同一算法：G.year || G.age（都没有 = 0）
   lifeYear(G) { return (G && (G.year || G.age)) || 0; },
-  lifeRel(G, id, d) {
+  // ---- 第十三轮（合 main 8ee2459 后）：好感 → 恩怨同步，不重复计 ----
+  // main 的 life34.js 把 G.aff 的每次变化按 trunc(Δ×0.5) 同步进 L.rel，但只挂在 Game.apply（aff:id:n 效果）和 Talk.gift 的包装上。
+  //   本文件的 addAffTo 直接写 G.aff（不经 Game.apply）→ 包装不会触发（test/stage3_life34.js「B0」实测）。
+  //   所以这里改好感统一走 affRel：直接写 G.aff 后，若 L.rel 没被同步（包装没触发）就调 main 的 Life34.syncAff(改前快照)，
+  //   让同步那份照 main 的规则进来；再按「本选择的目标恩怨」只补差额：目标 = 举报/告发 -20、露馅 -15；没有目标的选择（扛税/对账/贿赂/不掺和）= 只有同步那份。
+  //   差额与目标同号，已达到（或超过）目标就补 0，不会反向抵消。Life34 不存在 / 没有 syncAff → 同步那份算 0，目标照补。
+  //   注意：若以后有人在 Game.apply 包装内部调这两条链，外层包装会再同步一次（重复计）——目前只有 dev_entry 按钮调用。
+  relOf(G, id) { const L = G && G.life34; const v = L && L.rel && L.rel[id]; return typeof v === 'number' ? v : 0; },
+  affRel(G, id, n, target) {
+    const before = Object.assign({}, G.aff || {});
+    const r0 = this.relOf(G, id);
+    this.addAffTo(G, id, n);
     const L34 = typeof Life34 !== 'undefined' && Life34 ? Life34 : null;
-    if (!L34 || typeof L34.rel !== 'function') return { id, d, ok: false, why: 'no-life34' };
     const GM = typeof Game !== 'undefined' && Game ? Game : null;
-    if (!GM || GM.G !== G) return { id, d, ok: false, why: 'not-current-save' }; // Life34.rel 只认 Game.G
-    try { L34.rel(id, d); return { id, d, ok: true }; } catch (e) { return { id, d, ok: false, why: 'error' }; }
+    if (!L34 || typeof L34.rel !== 'function') return target ? { id, d: target, ok: false, why: 'no-life34' } : null;
+    if (!GM || GM.G !== G) return target ? { id, d: target, ok: false, why: 'not-current-save' } : null; // Life34 只认 Game.G
+    try {
+      if (this.relOf(G, id) === r0 && typeof L34.syncAff === 'function') L34.syncAff(before);
+      const synced = this.relOf(G, id) - r0;
+      let extra = 0;
+      if (target) { extra = target < 0 ? Math.min(0, target - synced) : Math.max(0, target - synced); if (extra) L34.rel(id, extra); }
+      const d = synced + extra; // 本选择的恩怨总变化（Life34.rel 自己会钳到 -100..100）
+      return d ? { id, d, synced, extra, ok: true } : null;
+    } catch (e) { return { id, d: target || 0, ok: false, why: 'error' }; }
   },
-  relNote(rel, name) { return rel && rel.ok ? `\n${name}记仇：恩怨 ${rel.d}` : ''; },
+  relNote(rel, name) { return rel && rel.ok && rel.d ? (rel.d < 0 ? `\n${name}记仇：恩怨 ${rel.d}` : `\n${name}恩怨 +${rel.d}`) : ''; },
 
   // ======== 阶段 3 小闭环 #2：钱多多的赊账单（奇遇选择 → NPC 态度变化 → 债务后果） ========
   // 复用正式存档：真实 NPC `merchant`（奸商·钱多多，data.js NPCS）的 G.aff.merchant、G.debt、G.flags。
@@ -161,9 +180,8 @@ const Stage3 = {
     const F = this.flags(G);
     const before = G.debt || 0, affBefore = (G.aff && G.aff[this.M_NPC]) || 0;
     G.debt = Math.max(0, before + c.debt);
-    this.addAffTo(G, this.M_NPC, c.aff);
+    const rel = this.affRel(G, this.M_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : 0); // 改好感 + 同步 + 补差额
     F.s3m_step = 1; F.s3m_choice = c.key; // s3m_choice 只是选择记录，不作为好感/恩怨来源
-    const rel = c.key === 'report' ? this.lifeRel(G, this.M_NPC, this.GRUDGE_REL.report) : null;
     return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.M_NPC], attitude: this.merchantAttitude(G), rel };
   },
   // 第 2 步：按当时态度结算
@@ -232,10 +250,9 @@ const Stage3 = {
     const erased = Math.min(before, -c.debt);
     G.debt = Math.max(0, before + c.debt);
     G.stone = Math.max(0, (G.stone || 0) + c.stone);
-    this.addAffTo(G, this.X_NPC, c.aff);
+    const rel = this.affRel(G, this.X_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : 0);
     F.s3x_step = 1; F.s3x_choice = c.key;
     if (c.key === 'bribe') F.s3x_bribe = erased; // 实际抹掉的数额，露馅时按它补回
-    const rel = c.key === 'report' ? this.lifeRel(G, this.X_NPC, this.GRUDGE_REL.report) : null;
     return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.X_NPC], attitude: this.attitudeOf(G, this.X_NPC), rel };
   },
   applyLedger2(G) {
@@ -260,7 +277,7 @@ const Stage3 = {
       note = `记账童子记仇，在你账上添了一笔“误工费”：欠款 +${add}。`;
     }
     delete F.s3x_step; delete F.s3x_bribe; F.s3x_done = 1;
-    const rel = exposed ? this.lifeRel(G, this.X_NPC, this.GRUDGE_REL.bribeExposed) : null;
+    const rel = exposed ? this.affRel(G, this.X_NPC, 0, this.GRUDGE_REL.bribeExposed) : null; // 露馅不改好感 → 同步 0，全额 -15
     if (rel && rel.ok) note += this.relNote(rel, '记账童子');
     return { attitude: att, debtBefore: before, debtAfter: G.debt, note, exposed, rel };
   },
@@ -466,13 +483,12 @@ const Stage3 = {
   // ======== 追兵战 × life34「仇家上门」同一年互斥（2026-10-19 第十二轮） ========
   // 读 life34.js 确认：G.life34 = { rel, seen, log, pending, ... }。仇家上门 = 年度模拟 simYear（每次过年、年份 +1 之后跑）
   //   在 L.pending 放 { type:'foe', npc }；玩家处理后 pending 清空，Life34.say 记一条「第N年：X找你寻仇。」（应战）或
-  //   「第N年：你向X赔礼，恩怨稍解。」（赔礼）进 L.log。L.seen 目前只记 debtPost / vf_id / vfn_id / talk_id_年 / war_宗_年，**不记仇家上门**。
-  // ① 当年已有仇家上门 → 不触发追兵战：foeVisitThisYear 认三种迹象——
-  //    L.pending.type === 'foe'（仇家已在路上，pending 只在年初生成，一直挂到处理为止）、
-  //    L.seen['foe_' + 年]（约定键：life34 侧目前不写，留给它以后补）、L.log 里本年前缀「第N年：」的寻仇 / 赔礼两句。
-  //    年份与 Life34.yr() 同式（G.year || G.age）。
-  // ② 当年已打过追兵战 → 仇家上门不再来：拦这一步要改 life34.js（禁止改），所以这里只在追兵战结算（胜/败，中途关掉不算）时
-  //    写本分支自己的标记 flags.s3b_hunt_year = 当年；huntBlocksFoe(G) 给 life34 侧读（待办记在 PROGRESS.md）。
+  //   「第N年：你向X赔礼，恩怨稍解。」（赔礼）进 L.log。main（8ee2459/#21）起 Life34.visit 处理仇家时先写 L.seen['foe_' + Life34.yr()] = 1。
+  // ① 当年已有仇家上门 → 不触发追兵战：foeVisitThisYear 认两种迹象——
+  //    L.pending.type === 'foe'（仇家已在路上，pending 只在年初生成，一直挂到处理为止；此时 seen 键还没写）、
+  //    L.seen['foe_' + (G.year || G.age)]（main 写的键，与 Life34.yr() 同式；第十三轮起取代旧的日志文字匹配）。
+  // ② 当年已打过追兵战 → 仇家上门不再来：追兵战结算（胜/败，中途关掉不算）时写 flags.s3b_hunt_year = 当年；
+  //    main 的 life34 simYear 派仇家前读 Stage3.huntBlocksFoe(G)（已接上，#21）。
   //    按现行 life34 逻辑，仇家上门只在年初生成，若年初没生成，同一年里本来就不会再来，所以眼下两方向都成立；标记防的是 life34 以后改成年中生成。
   // 跨年不互斥：去年打过追兵战不挡今年的仇家；去年的寻仇日志不挡今年的追兵战（还挂着没处理的 pending 除外——仇家仍在路上）。
   HUNT_FLAG: 's3b_hunt_year',
@@ -484,9 +500,6 @@ const Stage3 = {
     if (p && typeof p === 'object' && p.type === 'foe') return { hit: true, src: 'pending', npc: p.npc || null, year: yr };
     const seen = L.seen && typeof L.seen === 'object' ? L.seen : {};
     if (seen['foe_' + yr]) return { hit: true, src: 'seen', npc: null, year: yr };
-    const pre = `第${yr}年：`;
-    const log = Array.isArray(L.log) ? L.log : [];
-    if (log.some(t => typeof t === 'string' && t.startsWith(pre) && (t.endsWith('找你寻仇。') || t.endsWith('恩怨稍解。')))) return { hit: true, src: 'log', npc: null, year: yr };
     return { hit: false, year: yr };
   },
   canHunt(G) {

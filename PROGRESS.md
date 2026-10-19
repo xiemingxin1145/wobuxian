@@ -192,6 +192,15 @@
 - **待办（需要 Grok Bot 在 life34 侧做，本分支不改 life34.js）**：① 读 `G.flags.s3b_hunt_year === Life34.yr()`（或 `typeof Stage3 !== 'undefined' && Stage3.huntBlocksFoe(G)`）——当年打过追兵战就不生成 / 不放出仇家上门（现行 life34 仇家只在年初生成，眼下不冲突，改成年中生成时必须加）；② 仇家上门时写 `L.seen['foe_'+年] = 1`，本分支已认这个键，可替代读日志文本。
 - 下一步：主人在开发者入口试玩两条链的恩怨效果（举报两次到 −40 → 来年钱多多上门寻仇）；接进正常流程须另开 PR 给奥拉夫审；仍待主人试打定追兵数值。
 
+### 2026-10-19 第十三轮（UTC+8，openworld-wip，18:47 起）
+- [x] 步骤 22：合 origin/main 两次（普通 merge，无冲突）：`8ee2459`（#18/#20/#21：好感→恩怨 50% 同步、huntBlocksFoe 接入、L.seen.foe_年、无怪问道崖修复）→ 合并提交；再合 `80877b4`（#22 build-226：奇遇链链主 rel≥40、Talk.prefs）→ `411afee`。life34.js / talk.js / jianghu34.js 等 main 文件与 main 一致。两条链不读送礼偏好（不涉及 Talk.prefs）。
+- [x] 步骤 23：记仇不重复计。实测（`stage3_life34.js` B0）：链里 `addAffTo` 直接写 `G.aff`，不经 main 的 `Game.apply` / `Talk.gift` 包装 → 同步**不触发**。改为 `Stage3.affRel(G,id,n,target)`：写好感 → 若 L.rel 未被同步则调 `Life34.syncAff(改前快照)` → 只补「目标 − 已同步」（同号，已达标补 0）。每个选择 L.rel 总变化：钱多多举报 −20（好感 0/30/100 起：0+−20 / −15+−5 / −20+0），扛税 +30（150 封顶时按实际 Δ），不掺和 −2；记账童子告发 −20，对账 +30，贿赂 +10，露馅这一步 −15（贿赂+露馅整条净 −5）。删 `lifeRel`。
+- [x] 步骤 24：追兵战互斥只读 `L.pending` 仇家 + `L.seen['foe_' + (G.year || G.age)]`（main life34 写的键），去掉日志文字匹配；`huntBlocksFoe` / `flags.s3b_hunt_year` 不变，真实 life34 simYear 读它挡同年仇家（已测）。
+  - 测试：stage3_chain 203/203（新增 §9：载入真实 life34 的每选择 L.rel 总额、直接写 vs Game.apply、foe 键两方向含仅 age 存档；修正随机来客导致的偶发，连跑 40 次 0 失败）、stage3_life34 87/87、dev_entry_v25_page 56/56（真页面：举报 0→−20、贿赂 +10、露馅 −15、foe_年 键挡追兵战、去年键不挡、huntBlocksFoe）、battle_rt_proto 143/143、lowpoly_box 55/55、validate22 0 错、life34_unit fails []、life34_visitor_nomons fails []、jianghu34_unit fails []、jianghu34_ui ok、seam34 FAILS []、sys33_unit/jsscan33/content33 errors []、encounter_chain_verify 14/14、battle_rt_proto_page 12/12。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`test/stage3_life34.js`、`test/stage3_chain.js`、`test/dev_entry_v25_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 注意：若以后在 `Game.apply` 包装内部调这两条链，外层包装会再同步一次（重复计），届时要改 affRel。
+- 下一步：主人在开发者入口试玩两条链的恩怨数值；接进正常流程另开 PR 给奥拉夫审；追兵数值待试打定。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
