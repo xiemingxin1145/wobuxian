@@ -23,9 +23,12 @@ async def main():
             if not r: return 'missing'
             await pg.wait_for_timeout(120)
             await tap(r['x'], r['y']); await pg.wait_for_timeout(wait); return 'ok' if r['hit'] else 'covered'
-        async def closeall(n=14):
+        async def closeall(n=24):
             for k in range(n):
-                if not await pg.evaluate('()=>!!UI.modal||(typeof B!=="undefined"&&B.on)'): return
+                if await pg.evaluate('()=>UX.inMap()'): return
+                fx = await pg.evaluate("()=>{const e=document.querySelector('.gacha-fx,.brk-fx,.g22w,.mwrap');return !UI.modal&&!!document.querySelector('.gacha-fx,.brk-fx')}")
+                if fx: await tap(206, 140); await pg.wait_for_timeout(700); continue
+                if not await pg.evaluate('()=>!!UI.modal||(typeof B!=="undefined"&&B.on)'): await pg.wait_for_timeout(700); continue
                 if await pg.evaluate('()=>typeof B!=="undefined"&&B.on'):
                     await tap_sel('#battlebar button[data-a=auto]', 0, 1500); continue
                 for s in ['#modals .mwrap:last-child .ph .x', '#modals .mwrap:last-child .opt', '#modals .mwrap:last-child button']:
