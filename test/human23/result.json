@@ -2,7 +2,7 @@
  {
   "step": "1 新开一局",
   "ok": true,
-  "note": "刘逍遥 凡人·锻体一层 6岁 / 寿79 140/165 0/80",
+  "note": "胡守拙 凡人·锻体一层 6岁 / 寿82 170/198 0/80",
   "shot": "/workspace/game-life34/test/human23/01_new_game.png"
  },
  {
@@ -14,13 +14,13 @@
  {
   "step": "3 序章：打跑讨债史莱姆",
   "ok": true,
-  "note": "战斗=True 卡片='' 追踪栏='任务\\n自动\\n主·剑仙路过\\n找落魄剑仙\\n前往▶\\n附近有 2 个委托（！）\\n路人甲有'",
+  "note": "战斗=True 卡片='' 追踪栏='任务\\n自动\\n主·剑仙路过\\n找落魄剑仙\\n前往▶\\n附近有 1 个委托（！）\\n路人甲有'",
   "shot": "/workspace/game-life34/test/human23/04_prologue_done.png"
  },
  {
   "step": "4 追踪栏寻路→剑仙对话→测灵根",
   "ok": true,
-  "note": "对话='落魄剑仙' 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n附近有 2 个委托（！）\\n路人甲有委托\\n前往▶'",
+  "note": "对话='落魄剑仙' 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n附近有 1 个委托（！）\\n路人甲有委托\\n前往▶'",
   "shot": "/workspace/game-life34/test/human23/06_awakened.png"
  },
  {
@@ -32,19 +32,19 @@
  {
   "step": "6 接受支线任务",
   "ok": true,
-  "note": "！渡口欠条·一 | 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n支·路人甲的名字\\n乱葬岗需要筑基\\n修炼\\n支·渡口欠条·一\\n击败暴躁'",
+  "note": "！娘的灵草汤 | 追踪栏='任务\\n自动\\n主·拜入仙门\\n需要「练气」，先修炼\\n修炼\\n支·路人甲的名字\\n乱葬岗需要筑基\\n修炼\\n支·娘的灵草汤\\n采药得灵草'",
   "shot": "/workspace/game-life34/test/human23/08_quest_accepted.png"
  },
  {
   "step": "7 寻路完成并交付支线",
-  "ok": false,
-  "note": "自动寻路 → 击败暴躁野猪 · 点地面取消 → 自动寻路 → 击败暴躁野猪 · 点地面取消 → 自动寻路 → 击败暴躁野猪 · 点地面取消 → 自动寻路 → 击败暴躁野猪 · 点地面取消 → 自动寻路 → 击败暴躁野猪 · 点地面取消 → ",
+  "ok": true,
+  "note": "自动寻路 → 采药得灵草 · 点地面取消 → 自动寻路 → 采药得灵草 · 点地面取消 → 图鉴点亮：暴躁野猪",
   "shot": "/workspace/game-life34/test/human23/10_quest_done.png"
  },
  {
   "step": "8 挂机",
   "ok": true,
-  "note": "'挂机中\\n\\n0:55 · 11岁 凡人·锻体三层 · 击败 4 · 灵石 +17' | ['刘逍遥', '凡人·锻体一层', '6岁 / 寿79'] → ['刘逍遥', '凡人·锻体三层', '11岁 / 寿81'] | 总结='挂机总结'",
+  "note": "'挂机中\\n\\n0:52 · 10岁 凡人·锻体三层 · 击败 5 · 灵石 +53' | ['胡守拙', '凡人·锻体一层', '7岁 / 寿82'] → ['胡守拙', '凡人·锻体三层', '10岁 / 寿82'] | 总结='挂机总结'",
   "shot": "/workspace/game-life34/test/human23/12_afk_progress.png"
  },
  {
@@ -61,8 +61,8 @@
  },
  {
   "step": "11 点身体中心=打开这个 NPC（重叠/摇杆区回归）",
-  "ok": false,
-  "note": "xiaoyi:ok l34_visitor:wrong:card:托付小事\n集市货郎：“劳 elder:ok sister:ok danlao:ok",
+  "ok": true,
+  "note": "xiaoyi:ok l34_visitor:ok elder:ok sister:ok danlao:ok",
   "shot": "/workspace/game-life34/test/human23/19_tap_body_regression.png"
  },
  {

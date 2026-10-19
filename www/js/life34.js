@@ -35,10 +35,8 @@ Life34.simYear = function () {
     const opts = Object.values(links).filter(m => Game.canEnter(m) && ASSETS.maps[m]);
     if (cur !== N._map34 && rnd() < 0.15) { L.loc[id] = null; delete L.loc[id]; Life34.say(`${N.n}回到了${MAPINFO[N._map34].n}。`); }
     else if (opts.length && rnd() < 0.35) { const to = opts[Math.floor(rnd() * opts.length)]; L.loc[id] = to; Life34.say(`${N.n}去了${MAPINFO[to].n}。`); } }
-  // ② 宗门关系漂移
-  const ss = typeof SECTS !== 'undefined' ? Object.keys(SECTS) : []; let worst = null;
-  for (let a = 0; a < ss.length; a++) for (let b = a + 1; b < ss.length; b++) { const k = ss[a] + '|' + ss[b]; const v = Math.max(-100, Math.min(100, (L.sect[k] || 0) + Math.round((rnd() - 0.55) * 24))); L.sect[k] = v; if (v <= -50 && (!worst || v < worst[1])) worst = [k, v]; }
-  if (worst && rnd() < 0.5) Life34.say(`${worst[0].split('|').map(s => SECTS[s].n).join('与')}起了纷争。`);
+  // ② 宗门关系：统一用 jianghu34/war29 的 G.sectRel（三宗势力由 JH34 年度推进），这里只读最差的一对
+  const rel = G.sectRel || {}; let worst = null; for (const k in rel) if (rel[k] <= -50 && (!worst || rel[k] < worst[1])) worst = [k, rel[k]];
   // ③ 找上门事件（每年最多 1 个；已有未处理的就不再生成）
   if (L.pending || G.age < 8) return;
   const foes = Object.entries(L.rel).filter(([, v]) => v <= -40), friends = Object.entries(L.rel).filter(([, v]) => v >= 40);
@@ -74,7 +72,7 @@ Life34.visit = async function (e) {
   } else if (p.type === 'sect') {
     const [a, b] = p.pair.split('|'); const other = a === G.sect ? b : a;
     const c = await UI.say(por, nm, `【宗门纠纷】${SECTS[other].n}与本门起了冲突，${nm}请你出面调停。`, ['出面调停（宗门贡献 +20）', '不掺和']);
-    if (c === 0) { G.contrib = (G.contrib || 0) + 20; L.sect[p.pair] = Math.min(100, (L.sect[p.pair] || 0) + 40); Life34.say(`你出面调停了${SECTS[other].n}的纷争。`); } else { L.sect[p.pair] -= 10; }
+    if (c === 0) { G.contrib = (G.contrib || 0) + 20; G.sectRel = G.sectRel || {}; G.sectRel[p.pair] = Math.min(100, (G.sectRel[p.pair] || 0) + 40); Life34.say(`你出面调停了${SECTS[other].n}的纷争。`); } else { G.sectRel = G.sectRel || {}; G.sectRel[p.pair] = Math.max(-100, (G.sectRel[p.pair] || 0) - 10); }
   } else {
     const c = await UI.say(por, nm, `【托付小事】“劳驾帮我跑一趟，回头请你喝茶。”`, ['答应（恩怨 +15，修为 +）', '没空']);
     if (c === 0) { Life34.rel(p.npc, 15); G.exp = (G.exp || 0) + 60 + G.realm * 40; Life34.say(`你帮${nm}跑了一趟腿。`); }
