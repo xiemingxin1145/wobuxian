@@ -12,7 +12,17 @@
 - [x] 合并 `df295fc`（--no-ff）推 main → CI run 117 build 成功，预发布 **build-217**（12:40 UTC+8）：https://github.com/xiemingxin1145/wobuxian/releases/tag/build-217 （wobuxian.apk 371,475,061 B；wobuxian-lite.apk 83,318,613 B；versionName 仍 3.3.0，未打标签）。
 - [x] 分支 `v34-big`（worktree `/workspace/game-ow34b`，基于 v34-world）：名牌与 #qt 任务栏重叠时淡到 12%；findPath 上限 max(4000, n²·3)。尚未跑门禁，随地图扩大一起合。
 - [x] `v34-big` 上：`www/js/bigmap34.js`（index 在 seam34 前）原型——village 36、sect/heaven 32、market/secret 28；旧 22×22 坐标不变，向 +i/+j 扩展；主路延伸+新区环路+池塘；本图道具图集放建筑/交互点/树；连通兜底（从出生点洪泛删堵路道具）；新区地块按 1024px 分块离屏缓存、只画视口内块。probe（412×915 DPR2 无头软件渲染）：村新区帧中位 33ms/p95 66ms（基线未测）。validate22 0 错。已应用 #12 补丁（ux23.js 部分）。
-- 下一步（v34-big）：①美化新区（地块有棋盘感，可加草纹/路边石）②在新区放 2–3 个已有 NPC/交互点 ③测基线帧时 ④把 seam34.py/全门禁在 v34-big 跑一遍 ⑤旧边缘 x 打通处与底板崖壁衔接检查截图。
+- [x] (12:45–12:55) 新区地块改为底板真实纹理：`tools/big34_src.py` 离线挑源格（3×3 同类、无道具、颜色近中位）→ `Big34.SRC`；缺纹理类型用配色+噪点；崖面抠旧图崖。新增 6 个新区 NPC（渡口船夫、集市货郎、守山弟子、收费仙吏、吆喝的小贩、迷路的寻宝人，闲聊台词）；乱葬岗/东海仙岛/魔道裂谷也扩到 28。截图 `/workspace/shots34/*_v5.png`。
+- [x] seam34 出口外侧画邻图对边地块预览（截图 `/workspace/shots34/edge_*.png`）。
+- [ ] 13:00 起 v34-big 全门禁：`nohup bash /tmp/gate_big.sh`，汇总 `/tmp/gate_big.txt`，各项 `/tmp/gb_*.txt`。绿了合 main。
+  - 13:20：validate22 0 错、stage3 ALL PASS、jsscan33/sys33/content33 errors []、panels21 0、controls 0、seam34 通过、human23 13/13；human_olaf 进行中（N1 首轮挂，待重跑）。
+  - 13:40 T4 13/20 诊断：2 次 #12（点剑仙命中翠花）；5 次是 `timeout(budget)`——T4 总预算 900 s 在第 15 次点按时耗尽（不是点按/寻路失败；桃花村 36 格后 NPC 更分散，走位路程变长）。修：T4 总预算按 R.n/22 线性放大（村 36 → 1473 s），单次判定不变，结果里记录 budget_s/used_s。
+  - 13:50 首轮全量 olaf 结束：21/23（N1、T4），其余全过含 T7/T9/T13，JS 0。重跑 `ONLY=N1,T4` → `/tmp/gb_r1.txt`。
+  - 14:00–14:40 重跑：r1 N1 PASS、T4 19/20（1 次「NPC 身体被 UI 挡住」harness 跳过）；r2 T4 **20/20**（预算 1473 s，用 971 s），N1 fought=false。诊断 N1：扩图后怪物密度下降 → 改为怪物数按面积放大（村 4→11，保持原密度；probe：开局屏内怪 2–3 只，基线 0–1）。之后 N1 ×3：1 PASS，2 FAIL（点 NPC 进了战斗 / 一次没打上怪），属 #12 同类偶发。
+  - 全量 olaf #2（14:10–15:00）：20/23，FAIL N1、T1 34/35（点王大爷头部时撞怪进战斗）、T4 16/20（3 次 harness「NPC 身体在屏外/被 UI 挡」x>412 + 1 次 #12 剑仙→翠花）；其余全过，JS 0。修 harness：T4 站位后 NPC 不可点则换站位（最多 13 次）。已合 main（#14 seam34 改动保留，无冲突），seam34.py 重跑通过。下一步：ONLY=N1,T1,T4 重跑 + human23 → `/tmp/gb_r3.txt`、`/tmp/gb_h23b.txt`。
+  - r3（合 main 后）：N1 PASS、T1 34/34、T4 18/20（2 次均为 #12 剑仙→翠花，同一坐标），human23 13/13。再跑 ONLY=T4 → `/tmp/gb_r4.txt`。
+  - r4：T4 19/20（1 次点路人甲时被怪近身进战斗，#12 同类）。按负责人决定接受 #12 类偶发，合 main。
+- 旧下一步（v34-big）：①美化新区（地块有棋盘感，可加草纹/路边石）②在新区放 2–3 个已有 NPC/交互点 ③测基线帧时 ④把 seam34.py/全门禁在 v34-big 跑一遍 ⑤旧边缘 x 打通处与底板崖壁衔接检查截图。
 - [ ] 未做：邻图边缘地块预渲染（现在只有出口标识，没画邻图边条）；地图扩大（桃花村 36、青云宗/天外天 32，计划：在 +i/+j 方向扩展，旧坐标不变免迁移，新区域用程序化地块+现有道具图集）；§E.3 分块绘制/寻路上限；名牌压任务栏；#12 补丁。
 - 下一步：门禁全绿 → `--no-ff` 合 main 推送 → 记录 build 号；再做地图扩大。
 

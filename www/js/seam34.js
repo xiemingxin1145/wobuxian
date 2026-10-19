@@ -41,6 +41,7 @@ const Seam34 = {
   draw(ctx) {
     if (!R.M || R.mode !== 'map' || !this.exits.length) return;
     const t = R.t || 0;
+    for (const x of this.exits) try { this.strip(ctx, x); } catch (e) { }
     for (const x of this.exits) {
       const [cx, cy] = t2p(x.i + 0.5, x.j + 0.5); const ok = Game.canEnter(x.to); const v = this.SIDES[x.side];
       ctx.save(); const a = 0.55 + 0.25 * Math.sin(t * 3);
@@ -54,6 +55,22 @@ const Seam34 = {
       ctx.fillStyle = 'rgba(20,14,8,0.6)'; ctx.fillRect(cx - tw / 2, cy - 64, tw, 28); ctx.fillStyle = ok ? '#ffe9a0' : '#f3b0b0'; ctx.fillText(lb, cx, cy - 43); ctx.restore();
     }
     this.tick();
+  },
+  // 出口外侧画一条邻图的「对边」地块预览（取邻图底板上反向出口附近 5×3 格，平移拼到本图出口外，渐隐）
+  strip(ctx, x) {
+    const N = ASSETS.maps[x.to]; if (!N) return; const im = img('assets/maps/' + x.to + '.webp'); if (!im) return;
+    const g = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[x.side]; const nb = this.OPP[x.side]; const nn = N.n, c = (nn - 1) / 2;
+    // 邻图反向边的出口近似：该边最外侧非 x 格中最靠中线者（只在原 22 格底板范围内）
+    const gn = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[nb]; let best = null, bs = -1e9;
+    for (let j = 0; j < 22; j++) for (let i = 0; i < 22; i++) { if ('xwl'.includes(N.tiles[j][i])) continue; const out = (i - 10.5) * gn[0] + (j - 10.5) * gn[1], perp = Math.abs((i - 10.5) * gn[1] - (j - 10.5) * gn[0]); const sc = out * 4 - perp; if (sc > bs) { bs = sc; best = [i, j]; } }
+    if (!best) return; const NP = N.plate, k = NP.k || 1; const tp = (P, i, j) => [P.ox + i * P.ex[0] + j * P.ej[0], P.oy + i * P.ex[1] + j * P.ej[1]];
+    // 本图目标锚点：出口外 2 格；邻图源锚点：其出口格（再往其图内 1 格）
+    const [dx, dy] = t2p(x.i + 0.5 + g[0] * 2.2, x.j + 0.5 + g[1] * 2.2); const [sx, sy] = tp(NP, best[0] + 0.5 - gn[0] * 0.5, best[1] + 0.5 - gn[1] * 0.5);
+    const W = 260, H = 150; ctx.save(); ctx.globalAlpha = 0.78;
+    ctx.beginPath(); ctx.ellipse(dx, dy, W / 2, H / 2, 0, 0, 7); ctx.clip();
+    ctx.drawImage(im, (sx - W / 2) * k, (sy - H / 2) * k, W * k, H * k, dx - W / 2, dy - H / 2, W, H);
+    const gr = ctx.createRadialGradient(dx, dy, H * 0.25, dx, dy, W / 2); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(230,240,255,0.95)'); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(dx - W / 2, dy - H / 2, W, H);
+    ctx.restore();
   },
   tick() {
     const P = R.player; if (!P || this.busy || R.mode !== 'map' || (window.UI && UI.stack && UI.stack.length)) return;
