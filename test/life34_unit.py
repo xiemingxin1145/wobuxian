@@ -20,8 +20,14 @@ JS = r"""async () => {
   ok('apology', L.rel.farmer === -35 && G.stone === 305, [L.rel.farmer, G.stone]);
   // 2) 负面来源：打发走 −10；讨债司公示 −5（每年一次）；奇遇链超时 −20
   L.rel = { luren: 50 }; L.pending = { type: 'errand', npc: 'luren' }; picks.push(1); await Life34.visit(e); ok('dismiss', L.rel.luren === 40, L.rel.luren);
-  L.lastDebt = 100; G.debt = 200; G.year = (G.year || 1) + 1; L.pending = { type: 'x' }; Life34.simYear(); ok('debt_post', L.rel.luren === 35, L.rel.luren);
-  G.debt = 300; Life34.simYear(); ok('debt_once', L.rel.luren === 35, L.rel.luren);
+  // #17：只有年息 → 10 年无惩罚；新借款那年 −5 一次
+  L.pending = { type: 'x' }; G.debt = 8888; L.lastDebt = undefined; Life34.simYear();
+  for (let k = 0; k < 10; k++) { G.year = (G.year || 1) + 1; G.debt += Math.ceil(G.debt * 0.03); Life34.simYear(); }
+  ok('interest_only_no_penalty', L.rel.luren === 40, L.rel.luren);
+  G.year++; G.debt += Math.ceil(G.debt * 0.03); G.debt += 500; Life34.simYear(); ok('debt_post', L.rel.luren === 35, L.rel.luren);
+  G.debt += 300; Life34.simYear(); ok('debt_once', L.rel.luren === 35, L.rel.luren);
+  // 多年一次性过（闭关）只滚利息：不罚
+  for (let k = 0; k < 5; k++) { G.year++; G.debt += Math.ceil(G.debt * 0.03); } Life34.simYear(); ok('multi_year_interest', L.rel.luren === 35, L.rel.luren);
   G.quests.qc34_v1 = { k0: {} }; L.qt = { qc34_v1: Life34.yr() - 3 }; Life34.simYear(); ok('chain_timeout', !G.quests.qc34_v1 && L.rel.b34_boatman === -20, L.rel.b34_boatman);
   // 3) 报恩：6 年不总是同一人、同一人 3 年冷却；金丹首访礼金 195–325
   L.rel = { farmer: 60, mom: 90, luren: 45, villager: 70 }; L.seen = {}; const who = [];
