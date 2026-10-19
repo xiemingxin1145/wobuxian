@@ -9,7 +9,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 const JS = path.join(__dirname, '..', 'www', 'js');
 const STAGE3 = fs.readFileSync(path.join(JS, 'stage3_encounter_draft.js'), 'utf8');
 const LIFE34 = fs.readFileSync(path.join(JS, 'life34.js'), 'utf8');
-const DEV = fs.readFileSync(path.join(JS, 'dev_entry_v25.js'), 'utf8');
+const DEV = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8');
 const J = v => JSON.stringify(v);
 
 // ---------- A. 间谍版 Life34 ----------
@@ -297,10 +297,10 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   ok(J(Gro) === snap, 'canHunt / foeVisitThisYear / huntBlocksFoe 只读，不改存档');
 
   // 开发者入口：追兵战按钮先过 canHunt 再开即时战；只有 dev_entry 调 canHunt
-  const zb = DEV.slice(DEV.indexOf('zb.onclick'), DEV.indexOf('document.body.appendChild(zb)'));
+  const zb = DEV.slice(DEV.indexOf("key: 'zb'"), DEV.indexOf("key: 'tp'"));
   ok(zb.indexOf('Stage3.canHunt(G)') > 0 && zb.indexOf('Stage3.canHunt(G)') < zb.indexOf('RealtimeBattle.open(') && /if \(!gate\.ok\) \{[^}]*return; \}/.test(zb), 'dev_entry「追兵战」：先 Stage3.canHunt，拒绝时 toast 后 return，不开即时战');
   const users = re => fs.readdirSync(JS).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && re.test(fs.readFileSync(path.join(JS, f), 'utf8'))).join(',');
-  ok(users(/canHunt|affRel/) === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调 canHunt（正式流程不接）：' + users(/canHunt|affRel/));
+  ok(users(/canHunt|affRel/) === 'dev_openworld.js', '只有 dev_openworld.js 调 canHunt（正式流程不接）：' + users(/canHunt|affRel/));
   ok(users(/huntBlocksFoe/) === 'life34.js' && /Stage3\.huntBlocksFoe\(G\)/.test(LIFE34) && /L\.seen\['foe_' \+ Life34\.yr\(\)\] = 1/.test(LIFE34) && !/s3b_hunt_year/.test(LIFE34),
     'main 的 life34.js 读 Stage3.huntBlocksFoe(G)、写 L.seen[\'foe_\' + Life34.yr()]；不直接读 s3b_hunt_year（本分支未改 life34.js）');
 

@@ -16,8 +16,9 @@ async def main():
         pg.on('pageerror',lambda e: errs.append(str(e)[:300]))
         pg.on('console',lambda m: m.type=='error' and '404' not in m.text and errs.append(m.text[:300]))
         await pg.goto(f'http://127.0.0.1:{PORT}/index.html#dev'); await pg.wait_for_timeout(4000)
-        n=await pg.evaluate("document.querySelectorAll('#v25-rt').length")
-        await pg.click('#v25-rt'); await pg.wait_for_timeout(1200)
+        await pg.click('#dow-open'); await pg.wait_for_timeout(200)  # 「即时战」按钮已挪到 dev_openworld.js 的「开放世界」面板
+        n=await pg.evaluate("document.querySelectorAll('#dow-rt').length")
+        await pg.click('#dow-rt'); await pg.wait_for_timeout(1200)
         st=await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:RealtimeBattle.state.on,spr:RealtimeBattle.state.player.spr,img:!!img(SPR_PATH(RealtimeBattle.state.player.spr))})")
         await pg.keyboard.down('w'); await pg.wait_for_timeout(500); await pg.keyboard.up('w')
         # 把敌人拉到面前再挥砍（诊断用）

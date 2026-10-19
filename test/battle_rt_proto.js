@@ -25,8 +25,8 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(!RB.devEnabled(), '无 #dev / wbx2_dev 时开发者开关为关');
   const refs = fs.readdirSync(path.join(ROOT, 'www', 'js')).filter(f => f.endsWith('.js') && f !== 'battle_realtime_prototype.js')
     .filter(f => /RealtimeBattle/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', f), 'utf8')));
-  ok(refs.length === 1 && refs[0] === 'dev_entry_v25.js', '只有开发者入口引用 RealtimeBattle：' + refs.join(','));
-  ok(/RealtimeBattle\.open\(/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_entry_v25.js'), 'utf8')), '开发者「即时战」按钮走自带循环的 open()');
+  ok(refs.join(',') === 'dev_entry_v25.js,dev_openworld.js', '只有开发者入口（main 的 dev_entry_v25.js 与开放世界 dev_openworld.js）引用 RealtimeBattle：' + refs.join(','));
+  ok(/RealtimeBattle\.open\(/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_openworld.js'), 'utf8')), '开放世界「即时战」按钮走自带循环的 open()');
 
   // 2. 精灵：主角用 Game.playerSpr()，敌人默认 mon_slime，且都在真实图集里
   let done = RB.start([{ name: '史莱姆', hp: 60, x: 300, y: 250, skillCd: 99 }, { name: '背后怪', hp: 60, x: 300, y: 390, skillCd: 99 }]);
@@ -534,10 +534,11 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     ok(/endRealtime\('lose', 'closed'\)/.test(srcP) && /closed: closedP/.test(srcP), '覆盖层关闭走 closed 原因，句柄带 closed Promise');
   }
 
-  // 7. index.html 加载顺序不变：原型在 engine.js 之后（能用 drawSprite），dev_entry 之前
+  // 7. 加载：index.html 不再直接加载原型（release 包非开发者模式不执行），由 dev_openworld.js 在开发者模式懒加载（主页面此时 engine.js 早已执行，能用 drawSprite）
   const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
-  const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iD = html.indexOf('js/dev_entry_v25.js');
-  ok(iE > 0 && iP > iE && iD > iP, 'index.html：engine → 原型 → 开发者入口');
+  const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iO = html.indexOf('js/dev_openworld.js');
+  const dow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_openworld.js'), 'utf8');
+  ok(iE > 0 && iP < 0 && iO > iE && /SCRIPTS = \['js\/battle_realtime_prototype\.js'/.test(dow), 'index.html：engine → dev_openworld（原型由它在开发者模式懒加载，index.html 不直接加载）');
 
   console.log(fails ? `FAILED ${fails}` : 'ALL PASS');
   process.exit(fails);

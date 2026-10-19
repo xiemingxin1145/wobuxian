@@ -218,6 +218,17 @@
 - [x] 步骤 28：开 PR **#23**（openworld-wip → main，https://github.com/xiemingxin1145/wobuxian/pull/23），未合并、未指定审阅人（奥拉夫的 GitHub 账号未知）。
 - 下一步：等 PR #23 审阅；两条链接进正常流程另开 PR 给奥拉夫审。
 
+### 2026-10-19 第十六轮（UTC+8，openworld-wip，20:38 起）——开发者按钮搬家 + 原型脚本只在开发者模式加载
+- [x] `www/js/dev_entry_v25.js` 恢复为 origin/main 原样（逐字节一致）。本分支在它里面加/改的全部内容（奇遇链、查账链、追兵战、突破预估、追兵调参，以及改过的试炼场覆盖层 / 全套神装 typeof 取 Game / 即时战 `open()`）原样搬到新文件 `www/js/dev_openworld.js`。
+- [x] 挂载 API：`window.DevOpenWorld = { id:'openworld', title:'开放世界', active, buttons:[{key,label,run}], ready(), mount(containerEl) → unmount }`（文件头注释有说明），给 Grok Bot 3.4.1 作弊菜单（dev341 / ux23.js）的「开放世界」页签用；本线不碰 ux23.js。
+- [x] 兜底入口：开发者模式（#dev / ?dev=1 / 7 连点 #title·.ver，与 dev_entry_v25 同判定）下右侧一个「开放世界」按钮（`#dow-open`，bottom:270px，在 main 三个开发者按钮之上不重叠），点开 `#dow-panel`；非开发者模式不出现；宿主 `mount()` 过就隐藏。
+- [x] 奥拉夫审查点 1：release 包里原型只在开发者模式加载。`index.html` 去掉 `battle_realtime_prototype.js`、`stage3_encounter_draft.js` 两个标签，换成 `dev_openworld.js` 一个标签；两原型由 dev_openworld.js 在开发者模式懒加载。`lowpoly_box_chars.js` 只由 `prototypes/lowpoly_box/index.html` 独立页加载。build.sh 是 `cp -r www/*`，文件仍在 APK 资源里但非开发者模式不请求、不执行。
+- [x] 奥拉夫审查点 2：新增 `test/good_rel_cap.js`，用 main 与 origin/dev341 的真实 life34.js 证明 GOOD_REL 封顶与 _inApply 不重复计。
+- 测试：dev_openworld_page 59/59（原 58 条 + 面板 1 条）、dev_openworld_gate_page 15/15、good_rel_cap 31/31、stage3_chain 205/205、stage3_life34 114/114、battle_rt_proto 143/143、lowpoly_box 55/55、validate22 0 错、battle_rt_proto_page 12/12、encounter_chain_verify 14/14，main 的 life34_unit / life34_visitor_nomons / jianghu34_unit / jianghu34_ui / seam34 / sys33_unit / jsscan33 / content33 / wb33_mark_regress 全部 0 失败。
+- 涉及文件：`www/js/dev_openworld.js`（新）、`www/js/dev_entry_v25.js`（恢复 main）、`www/index.html`（−2 原型标签 +1 dev_openworld 标签）、`test/dev_openworld_page.py`（由 dev_entry_v25_page.py 改名，经面板点按钮）、`test/dev_openworld_gate_page.py`（新）、`test/good_rel_cap.js`（新）、`test/stage3_chain.js`、`test/stage3_life34.js`、`test/battle_rt_proto.js`、`test/battle_rt_proto_page.py`（静态/真页面检查指向新文件）、`PROGRESS.md`、`docs/openworld_upgrade.md`。
+- 下一步：等奥拉夫审 PR #23、等 3.4.1（dev341）落地「开放世界」页签调用 `DevOpenWorld.mount()`；之后可删兜底入口。PR 不合并。
+
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

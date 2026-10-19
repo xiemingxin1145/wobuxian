@@ -107,7 +107,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   // 8f. 隔离：只有开发者入口调用，自动任务/挂机不碰
   const jsDir = path.join(__dirname, '..', 'www', 'js');
   const callers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runMerchantChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(callers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runMerchantChain：' + callers.join(','));
+  ok(callers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 runMerchantChain：' + callers.join(','));
 
   // 9. 小闭环 #3「记账童子的错账」：仙官·记账童子 xianguan + 天道债务
   const X = (o) => Object.assign({ debt: 5000, stone: 1000, aff: {}, flags: {} }, o);
@@ -151,7 +151,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   G = { debt: 100 }; picks = [0, 0]; r = await S.runLedgerChain(G);
   ok(r.ok && G.aff.xianguan === 60 && G.stone === 0, '旧存档缺 stone/aff/flags 不崩（无贿赂项）');
   const callers2 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /runLedgerChain/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(callers2.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 runLedgerChain：' + callers2.join(','));
+  ok(callers2.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 runLedgerChain：' + callers2.join(','));
 
   // 10. 债务系统强化 #1：债压档位 → 讨债追兵（只读）
   const DP = (o) => S.debtPressure(o);
@@ -172,7 +172,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const src3 = require('fs').readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
   ok(!/RealtimeBattle/.test(src3), 'stage3 不直接引用 RealtimeBattle（只出数据）');
   const callers3 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /bountyEnemies|debtPressure/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(callers3.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 debtPressure/bountyEnemies：' + callers3.join(','));
+  ok(callers3.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 debtPressure/bountyEnemies：' + callers3.join(','));
 
   // 11. 债务系统强化 #2：追兵战按胜负结算
   const SB = S.settleBounty.bind(S);
@@ -202,7 +202,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   Gb = mk({ debt: 5000 }); SB(Gb, { result: 'lose', tier: 1 }); SB(Gb, { result: 'win', tier: 1 }); SB(Gb, { result: 'lose', tier: 1 });
   ok(Gb.flags.s3b_win === 1 && Gb.flags.s3b_lose === 2, '胜败次数累计');
   const callers4 = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /settleBounty/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(callers4.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 settleBounty：' + callers4.join(','));
+  ok(callers4.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 settleBounty：' + callers4.join(','));
 
   // 12. 债务系统强化 #3：债压档位 → 突破难度预览（只读）
   const BP = (g, game) => S.breakthroughPreview(g, game);
@@ -252,7 +252,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const gameSrc = fsB.readFileSync(path.join(jsDir, 'game.js'), 'utf8');
   ok(gameSrc.includes("let ch = REALMS[r].brk + G.st.int * 0.015 + G.st.luck * 0.005 + G.brkBonus + this.treeVal('brk') + (G.tmpBrk || 0);") && gameSrc.includes('ch = Math.min(0.97, ch); G.tmpBrk = 0;'), '正式突破公式（game.js）未被改动，与预览复刻的一致');
   const callers5 = fsB.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /breakthroughPreview|breakBase/.test(fsB.readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(callers5.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 breakthroughPreview：' + callers5.join(','));
+  ok(callers5.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 breakthroughPreview：' + callers5.join(','));
 
   // 13. 债务强化 #4：追兵战按档位分化敌人（参数单调、低档 = 旧行为、只出数据不改存档）
   const T4 = S.DEBT_TIERS;
@@ -289,7 +289,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   } else ok(false, '读不到 84f4bd0 的 stage3_encounter_draft.js（git show 失败）');
   const Gt5 = mk({ debt: 30000, flags: { bounty: 1 } }); const snapT5 = JSON.stringify(Gt5); S.bountyEnemies(Gt5); S.debtPressure(Gt5);
   ok(JSON.stringify(Gt5) === snapT5, '生成头子招式参数不改存档');
-  const de5 = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8');
+  const de5 = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_openworld.js'), 'utf8');
   ok(/头子：' \+ P\.bossNote/.test(de5) && /头子会' \+ P\.bossMove/.test(de5), '开发者「追兵战」toast 与结算卡带「头子：…」说明');
 
   // 15. 债务强化 #6：追兵战胜利且天道通缉头子被打倒 → 缴获「讨债令」凭证（只记 flags.s3b_token 计数 + 最近来源/年份，不发正式物品）
@@ -332,10 +332,10 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const sbBody = srcSB.slice(srcSB.indexOf('BOSS_NAME:'), srcSB.indexOf('BRK_PENALTY'));
   ok(sbBody.length > 300 && !/G\.(stone|inv|eqs|eq|exp|items?)\b|\.give\(|\.addItem\(|\.gain\(|Game\./.test(sbBody), '讨债令只记 flags：结算代码不碰灵石/物品/装备/修为，不调 Game.give 等正式发奖');
   const tokFiles = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && /s3b_token/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(tokFiles.join(',') === 'dev_entry_v25.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'stage3_encounter_draft.js', '只有 stage3（与开发者入口注释）提到 s3b_token：' + tokFiles.join(','));
+  ok(tokFiles.join(',') === 'dev_openworld.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'stage3_encounter_draft.js', '只有 stage3（与开发者入口注释）提到 s3b_token：' + tokFiles.join(','));
   const tokCallers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /TOKEN_NAME|bountyTokenEarned|tokenCount/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(tokCallers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 引用讨债令相关接口：' + tokCallers.join(','));
-  const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
+  ok(tokCallers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 引用讨债令相关接口：' + tokCallers.join(','));
+  const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
   ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
 
   // 16. 债务强化 #7：追兵档位参数可调表（BOUNTY_TUNING_DEFAULT 深冻结）+ bountyTuning 合并/校验/钳制 + 只有开发者入口读覆盖键
@@ -441,21 +441,21 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     ok(J7(S.settleBounty(Ga7, { result: 'win', reason: 'cleared', tier: S.debtPressure(Ga7, TO).tier, defeated: team7 })) === J7(S.settleBounty(Gb7, { result: 'win', reason: 'cleared', tier: S.debtPressure(Gb7).tier, defeated: S.bountyEnemies(Gb7).map(e => e.name) })) && J7(Ga7) === J7(Gb7), '覆盖不影响结算：同一存档带/不带覆盖打赢，结算返回值与结算后存档一致（档位、误工费率、讨债令照旧）');
     // 只有开发者入口读覆盖键；stage3 本身不碰 localStorage；正式游戏文件不引用 bountyTuning
     const keyFiles = fs7.readdirSync(jsDir).filter(f => f.endsWith('.js') && /wbx_dev_bounty_tuning/.test(fs7.readFileSync(path.join(jsDir, f), 'utf8')));
-    ok(keyFiles.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 提到覆盖键 wbx_dev_bounty_tuning：' + keyFiles.join(','));
+    ok(keyFiles.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 提到覆盖键 wbx_dev_bounty_tuning：' + keyFiles.join(','));
     const s3code = fs7.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
     ok(!/localStorage|sessionStorage|Game\.save|\.save\(\)/.test(s3code.slice(s3code.indexOf('TUNE_RULES'), s3code.indexOf('BOUNTY_FEE:'))) && !/localStorage/.test(s3code), 'stage3 不读 localStorage；调参代码不存档');
     const tuneCallers = fs7.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /bountyTuning|BOUNTY_TUNING_DEFAULT|tuningTable/.test(fs7.readFileSync(path.join(jsDir, f), 'utf8')));
-    ok(tuneCallers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 bountyTuning：' + tuneCallers.join(','));
-    const de7 = fs7.readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
+    ok(tuneCallers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 bountyTuning：' + tuneCallers.join(','));
+    const de7 = fs7.readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
     const rbt = de7.slice(de7.indexOf('function readBountyTuning'), de7.indexOf('const short'));
     // 债务强化 #8 起开发者入口可以写覆盖键（一键预设），但只许写这一个专用键：整个文件唯一一处 setItem = writeBountyPreset 里的 localStorage.setItem(TUNING_KEY, …)；读取函数仍只 getItem
     const de7c = de7.replace(/^\s*\/\/.*$/gm, ''), setCalls = de7c.match(/\bsetItem\s*\(/g) || [];
-    const wbp = de7c.slice(de7c.indexOf('function writeBountyPreset'), de7c.indexOf('function addEntry'));
+    const wbp = de7c.slice(de7c.indexOf('function writeBountyPreset'), de7c.indexOf('const BTN_CSS'));
     ok(/const TUNING_KEY = 'wbx_dev_bounty_tuning'/.test(de7) && /localStorage\.getItem\(TUNING_KEY\)/.test(rbt) && !/setItem|removeItem|\.save\(/.test(rbt)
       && setCalls.length === 1 && (de7c.match(/localStorage\.setItem\(TUNING_KEY, JSON\.stringify\(p\.override\)\)/g) || []).length === 1 && /localStorage\.setItem\(TUNING_KEY/.test(wbp)
       && (de7c.match(/removeItem\(([^)]*)\)/g) || []).every(x => x === 'removeItem(TUNING_KEY)') && !/wbx2_save/.test(de7c) && !/\.save\(|Game\.|gameObj/.test(wbp + rbt),
       '开发者入口读覆盖键只 getItem；setItem 全文件仅 1 处且只写 TUNING_KEY（预设 JSON），removeItem 只删 TUNING_KEY，不碰 wbx2_save、读写覆盖时不存档');
-    ok(/Stage3\.debtPressure\(G, tu\.table\)/.test(de7) && /Stage3\.bountyEnemies\(G, tu\.table\)/.test(de7) && /id = 'v25-zt'/.test(de7) && /removeItem\(TUNING_KEY\)/.test(de7), '开发者「追兵战」用合并后的表；新增「追兵调参」按钮（可清除覆盖）');
+    ok(/Stage3\.debtPressure\(G, tu\.table\)/.test(de7) && /Stage3\.bountyEnemies\(G, tu\.table\)/.test(de7) && /key: 'zt'/.test(de7) && /removeItem\(TUNING_KEY\)/.test(de7), '开发者「追兵战」用合并后的表；新增「追兵调参」按钮（可清除覆盖）');
   }
 
   // 17. 债务强化 #8：追兵调参一键预设 BOUNTY_TUNING_PRESETS（好躲/原样/地狱）——纯数据深冻结、每个值都原样通过 bountyTuning、难度单调、只给开发者入口用
@@ -499,9 +499,9 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     // 只给开发者入口：除 stage3 外只有 dev_entry 引用预设；stage3 仍不读写 localStorage；dev_entry 预设写入走 writeBountyPreset，卡片选项 = 知道了 + 三个预设
     const jsDir8 = path.join(__dirname, '..', 'www', 'js');
     const prUsers = fs8.readdirSync(jsDir8).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /BOUNTY_TUNING_PRESETS|bountyPreset/.test(fs8.readFileSync(path.join(jsDir8, f), 'utf8')));
-    ok(prUsers.join(',') === 'dev_entry_v25.js', '除 stage3 外只有 dev_entry_v25.js 引用预设：' + prUsers.join(','));
+    ok(prUsers.join(',') === 'dev_openworld.js', '除 stage3 外只有 dev_openworld.js 引用预设：' + prUsers.join(','));
     const s3c8 = fs8.readFileSync(path.join(jsDir8, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
-    const de8 = fs8.readFileSync(path.join(jsDir8, 'dev_entry_v25.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    const de8 = fs8.readFileSync(path.join(jsDir8, 'dev_openworld.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
     ok(!/localStorage|sessionStorage|wbx_dev/.test(s3c8) && /writeBountyPreset\(p\)/.test(de8) && /\['知道了'\]\.concat\(presets\.map/.test(de8) && /Stage3\.bountyPresetOf\(tu\.table\)/.test(de8), 'stage3 不读写 localStorage；dev_entry 点预设走 writeBountyPreset，卡片选项 = 知道了 + 预设，并标出当前预设');
   }
 
@@ -513,8 +513,8 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const r7 = await vm.runInContext("(async () => { const G = { debt: 8888, aff: {}, flags: {} }; const r = await window.Stage3.test(G); return { r, debt: G.debt, cards, saved }; })()", cx);
   ok(r7.r.ok && r7.debt === 10666 && r7.cards[0] === '债主之家' && r7.saved === 1, 'UI 为顶层 const 时奇遇照常弹卡、改债务、存档');
   ok(!/window\.(UI|Game)\b/.test(fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '')), 'stage3 代码里不再用 window.UI / window.Game');
-  const de = fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
-  ok(!/window\.(UI|Game)\b/.test(de), 'dev_entry_v25 代码里不再用 window.UI / window.Game');
+  const de = fs.readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_openworld.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  ok(!/window\.(UI|Game)\b/.test(de), 'dev_openworld 代码里不再用 window.UI / window.Game');
 
   // 9. 第十三轮：合 main（8ee2459）后，两条链每个选择的 L.rel 总变化 = 目标（同步 + 补差额，不重复计）；追兵战互斥读 L.seen.foe_年
   {

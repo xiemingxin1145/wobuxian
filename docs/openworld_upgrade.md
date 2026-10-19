@@ -82,6 +82,8 @@
 2. 阶段 2：`battle_realtime_prototype.js` 保持在正式运行链之外——只能经开发者入口（#dev / 连点版本号 → 「即时战」）或独立页打开，不接 `Game.fight`/存档。已完成：精灵、扇形普攻、敌人前摇预警+前冲/弹道、闪避无敌、只读 `Game.stats()`。下一小步：主人/奥拉夫在真机上试手感，决定上表「值得回流」的三项是否开 PR 改 `rt27.js`。
 3. 阶段 3：钱多多 / 记账童子两条链的记仇已接 main 的 `Life34.rel`（仍只走开发者入口；接进正常流程须另开 PR 给奥拉夫审）。（第十三轮：life34 侧两项待办已由 main #21 完成；记仇档位改为含好感同步的总变化。）钱多多小闭环已可在开发者入口试玩；下一小步是让主人试玩确认数值，再决定是否以低概率接入正式事件池（需走 PR + 门禁，并检查 ux23 自动任务 SAFE/UNSAFE 名单——举报/扛税都属于重大选择，自动任务必须暂停）。
 
+4. 第十六轮：开放世界开发者按钮已从 `dev_entry_v25.js`（恢复为 main 原样）搬到 `www/js/dev_openworld.js`，对外 `window.DevOpenWorld.mount(containerEl)` 给 3.4.1 作弊菜单「开放世界」页签挂载；页签落地前用开发者模式下的「开放世界」浮动兜底入口。`battle_realtime_prototype.js` / `stage3_encounter_draft.js` 不再由 index.html 直接加载，只在开发者模式由 dev_openworld.js 懒加载（门禁：`test/dev_openworld_gate_page.py`）；GOOD_REL 封顶 / _inApply 不重复计由 `test/good_rel_cap.js` 证明。
+
 后续产品待办（当前不并行）：更完整的主角从弱到强成长闭环、可指定装备/能力的开发者调试面板、更多奇遇、道侣/多婚姻/子嗣及下一世传承；均未实现，须按小闭环另行排期。
 
 ---

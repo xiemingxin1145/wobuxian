@@ -1,4 +1,4 @@
-# v2.5 开发者入口真页面冒烟（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
+# 开放世界开发者按钮真页面冒烟（原 dev_entry_v25_page.py；按钮已挪到 www/js/dev_openworld.js，经兜底入口「开放世界」面板点）（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
 # 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
 #      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战，打完按胜负结算（中途关掉不结算）；
 #      「突破预估」按债压档位弹卡显示基础成功率 − 惩罚（只读，存档不变）；
@@ -34,17 +34,19 @@ async def main():
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
         await pg.evaluate("localStorage.removeItem('wbx_dev_bounty_tuning')")
-        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb','v25-tp','v25-zt'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})")
-        ck('八个开发者按钮（含「突破预估」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 8 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(8) for j in range(i+1, 8)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
-        ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['v25-entry','v25-eq','v25-rt'].every(id=>!!document.getElementById(id))"))
+        await pg.click('#dow-open'); await pg.wait_for_timeout(300)
+        ck('「开放世界」兜底入口打开面板，面板里有八个按钮', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===8"))
+        boxes = await pg.evaluate("""()=>{const q=[...document.querySelectorAll('#v25-entry,#v25-eq,#v25-rt,#dow-open')].concat([...document.querySelectorAll('#dow-panel button')]);return q.map(e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})}""")
+        ck('main 三个开发者按钮 + 「开放世界」入口 + 面板八个按钮（含「突破预估」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 12 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(12) for j in range(i+1, 12)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
+        ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['dow-entry','dow-eq','dow-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
-        await pg.click('#v25-eq'); await pg.wait_for_timeout(500)
+        await pg.click('#dow-eq'); await pg.wait_for_timeout(500)
         eq = await pg.evaluate("(()=>{const G=Game.G;const s=['weapon','armor','acc1','acc2','treasure'];return s.filter(k=>G.eq[k]&&String(G.eq[k]).startsWith('dev_')).length})()")
         ck('全套神装：确认后 5 个槽位都穿上 dev 神装', eq == 5)
         # 2. 试炼场 → 取消 → 阶段3 债务奇遇
         dialog['accept'] = False
-        await pg.click('#v25-entry')
+        await pg.click('#dow-entry')
         try:
             await pg.wait_for_selector('.card .ct:text("债主之家")', timeout=3000); opened = True
         except Exception: opened = False
@@ -61,17 +63,17 @@ async def main():
         async def card_click(title, k):
             c = pg.locator(f'.card:has(.ct:text("{title}"))').last
             await c.wait_for(timeout=3000); await c.locator(f'.opt[data-k="{k}"]').click()
-        ck('#dev 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('v25-qy')"))
+        ck('#dev 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('dow-qy')"))
         b0 = await pg.evaluate("({debt:Game.G.debt,aff:(Game.G.aff.merchant||0),rel:(((Game.G.life34&&Game.G.life34.rel)||{}).merchant||0)})")
         try:
-            await pg.click('#v25-qy'); await card_click('钱多多的赊账单', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            await pg.click('#dow-qy'); await card_click('钱多多的赊账单', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
             s1 = await pg.evaluate("({debt:Game.G.debt,aff:Game.G.aff.merchant,step:Game.G.flags.s3m_step})")
             ck('奇遇链第 1 步：举报 → 债务 -200、钱多多好感 -40、记下 s3m_step', s1['debt'] == b0['debt'] - 200 and s1['aff'] == max(0, b0['aff'] - 40) and s1['step'] == 1)
             # 第十二轮：举报 = 记仇选项 → main 的 Life34.rel('merchant', -20)（真页面里 life34.js 已加载；只读检查 G.life34.rel 与存档）
             r1 = await pg.evaluate("({rel:(((Game.G.life34&&Game.G.life34.rel)||{}).merchant),sv:((JSON.parse(localStorage.getItem('wbx2_save')||'{}').life34||{}).rel||{}).merchant,sect:JSON.stringify(Game.G.sectRel||null)})")
             # 第十三轮：总变化 = -20（main 的好感同步 trunc(Δaff×0.5) + 补差额，不重复计）
             ck(f'举报 → L.rel 恩怨 merchant 总变化 {b0["rel"]}→{r1["rel"]}（恰好 -20：好感 {b0["aff"]}→{s1["aff"]} 的同步 + 补差额，不重复计）并已存档', r1['rel'] == max(-100, b0['rel'] - 20) and r1['sv'] == r1['rel'])
-            await pg.click('#v25-qy'); await card_click('钱多多回访', 0)
+            await pg.click('#dow-qy'); await card_click('钱多多回访', 0)
             res = pg.locator('.card:has(.ct:text("奇遇结果"))').last
             await res.wait_for(timeout=3000)
             vtxt = await res.inner_text()
@@ -80,20 +82,20 @@ async def main():
             exp = s1['debt'] + round(max(s1['debt'], 100) * 0.1)
             ck('奇遇链第 2 步（记仇）：欠款 +10%、挂讨债追兵、已存档', s2['debt'] == exp and s2['bounty'] == 1 and s2['done'] == 1 and s2['saved'] == exp and '讨债司' in vtxt)
             dialog['accept'] = False
-            await pg.click('#v25-entry'); await card_click('讨债追兵', 2); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            await pg.click('#dow-entry'); await card_click('讨债追兵', 2); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
             ck('债务后果接上第 1 条链：试炼场取消 → 弹「讨债追兵」', True)
         except Exception as e:
             ck('奇遇链真页面流程（异常：' + str(e)[:80] + '）', False)
         # 2c. 查账链（记账童子）：贿赂 → 一般 → 查账露馅
         try:
-            ck('#dev 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('v25-qy2')"))
+            ck('#dev 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('dow-qy2')"))
             await pg.evaluate("()=>{const G=Game.G;G.stone=1000;G.aff.xianguan=0;}")
             c0 = await pg.evaluate("({debt:Game.G.debt,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0),sect:JSON.stringify(Game.G.sectRel||null)})")
-            await pg.click('#v25-qy2'); await card_click('记账童子的错账', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
+            await pg.click('#dow-qy2'); await card_click('记账童子的错账', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
             c1 = await pg.evaluate("({debt:Game.G.debt,stone:Game.G.stone,aff:Game.G.aff.xianguan,step:Game.G.flags.s3x_step,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0)})")
             ck(f'贿赂（好感 0→20）→ L.rel xianguan {c0["rel"]}→{c1["rel"]}（只有 main 同步那份 +10）', c1['rel'] == min(100, c0['rel'] + 10))
             ck('查账链第 1 步：贿赂 → 灵石 -300、欠款 -1500、童子好感 20', c1['stone'] == 700 and c1['debt'] == c0['debt'] - 1500 and c1['aff'] == 20 and c1['step'] == 1)
-            await pg.click('#v25-qy2'); await card_click('天道查账', 0)
+            await pg.click('#dow-qy2'); await card_click('天道查账', 0)
             res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000); rtxt = await res.inner_text()
             await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             c2 = await pg.evaluate("({debt:Game.G.debt,done:Game.G.flags.s3x_done,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
@@ -106,12 +108,12 @@ async def main():
         try:
             await pg.evaluate("()=>{const G=Game.G;G.aff.xianguan=0;delete G.flags.s3x_step;delete G.flags.s3x_bribe;G.debt=5000;Game.save();}")
             d0 = await pg.evaluate("({rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0)})")
-            await pg.click('#v25-qy2'); await card_click('记账童子的错账', 0)
+            await pg.click('#dow-qy2'); await card_click('记账童子的错账', 0)
             res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000); htxt = await res.inner_text()
             await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             d1 = await pg.evaluate("({aff:Game.G.aff.xianguan,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan),sv:((JSON.parse(localStorage.getItem('wbx2_save')||'{}').life34||{}).rel||{}).xianguan})")
             ck(f'对账（好感 0→60）→ L.rel xianguan {d0["rel"]}→{d1["rel"]}（恰好 +20，封顶不再 +30）并已存档、结果卡写明「恩怨 +20」', d1['aff'] == 60 and d1['rel'] == min(100, d0['rel'] + 20) and d1['sv'] == d1['rel'] and '恩怨 +20' in htxt)
-            await pg.click('#v25-qy2'); await card_click('天道查账', 0)
+            await pg.click('#dow-qy2'); await card_click('天道查账', 0)
             res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000)
             await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             d2 = await pg.evaluate("({debt:Game.G.debt,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan)})")
@@ -120,7 +122,7 @@ async def main():
             ck('对账真页面流程（异常：' + str(e)[:80] + '）', False)
         # 3. 试炼场 → 确认 → 覆盖层，Escape 关闭
         dialog['accept'] = True
-        await pg.click('#v25-entry'); await pg.wait_for_timeout(500)
+        await pg.click('#dow-entry'); await pg.wait_for_timeout(500)
         ov = await pg.evaluate("!!document.querySelector('#v25-encounter-overlay iframe')")
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         ov2 = await pg.evaluate("!!document.getElementById('v25-encounter-overlay')")
@@ -129,7 +131,7 @@ async def main():
         try:
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;delete G.flags.bounty;Game.save();}")
             before = await pg.evaluate("JSON.stringify(Game.G)")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(800)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(800)
             z1 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),n:RealtimeBattle.state.enemies.length,label:RealtimeBattle.state.label,spr:RealtimeBattle.state.enemies.map(e=>e.spr),tr:RealtimeBattle.state.enemies.map(e=>[e.atkCdMul,e.windMul,e.shotCount,e.shotSpread]),rs:RealtimeBattle.state.enemies.map(e=>e.ringShots)})")
             ck('追兵战：欠 8888 → 债压「重债」，3 个讨债鬼进即时战，顶栏「追兵·重债·快攻双发」', z1['ov'] and z1['n'] == 3 and z1['label'] == '追兵·重债·快攻双发' and all(x == 'mon_collector' for x in z1['spr']))
             ck('重债档讨债鬼带档位参数进原型：冷却×0.75、前摇×0.8、2 发/14°', all(t == [0.75, 0.8, 2, 14] for t in z1['tr']))
@@ -139,7 +141,7 @@ async def main():
             after = await pg.evaluate("JSON.stringify(Game.G)")
             ck('追兵战关闭后覆盖层消失、存档 G 不变', not await pg.evaluate("!!document.getElementById('rtp-overlay')") and before == after)
             await pg.evaluate("()=>{Game.G.debt=30000;Game.G.flags.bounty=1;}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(500)
             z2 = await pg.evaluate("({n:RealtimeBattle.state.enemies.length,label:RealtimeBattle.state.label,boss:RealtimeBattle.state.enemies[0].name,rs:RealtimeBattle.state.enemies.map(e=>[e.ringShots,e.ringWarn,e.ringCd])})")
             ck('天道通缉档只有头子带环弹参数进原型：8 发 / 0.4s / 3s，其余 3 个讨债鬼 ringShots=0', z2['rs'][0] == [8, 0.4, 3] and all(r[0] == 0 for r in z2['rs'][1:]))
             ck('欠 30000 且被通缉 → 「天道通缉」4 个、领头讨债鬼头子，顶栏标注「疾攻三发」', z2['n'] == 4 and z2['label'] == '追兵·天道通缉·疾攻三发' and z2['boss'] == '讨债鬼头子')
@@ -154,7 +156,7 @@ async def main():
             await pg.screenshot(path=os.environ.get('SHOT_RING', '/tmp/dev_entry_ring.png'))
             await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
             await pg.evaluate("()=>{Game.G.debt=500;delete Game.G.flags.bounty;}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(300)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(300)
             z0 = await pg.evaluate("({n:RealtimeBattle.state.enemies.length,label:RealtimeBattle.state.label,sc:RealtimeBattle.state.enemies[0].shotCount,cd:RealtimeBattle.state.enemies[0].atkCdMul})")
             await pg.evaluate(volley_js); await pg.wait_for_timeout(3500)
             v0 = await pg.evaluate("({v:RealtimeBattle.state.foeVolleys,s:RealtimeBattle.state.foeShots,on:RealtimeBattle.state.on})")
@@ -171,7 +173,7 @@ async def main():
         # 5. 追兵战按胜负结算（债务系统强化 #2）：胜撤通缉、败加误工费，都存档；结算卡在覆盖层关掉后才弹
         try:
             await pg.evaluate("()=>{const G=Game.G;G.debt=30000;G.flags.bounty=1;G.flags.stage3_bountyDebt=30000;Game.save();}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             wtxt = await card.inner_text()
@@ -185,7 +187,7 @@ async def main():
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             # 再打赢一次天道通缉：计数累加到 2（卡片显示共 2 枚）
             await pg.evaluate("()=>{const G=Game.G;G.debt=30000;Game.save();}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             w2txt = await card.inner_text()
@@ -193,7 +195,7 @@ async def main():
             ck('再打赢一次天道通缉 → 「共 2 枚」，s3b_token 累加到 2 并存档', '缴获讨债令×1（共 2 枚）' in w2txt and t2['n'] == 2 and t2['sv'] == 2)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>{RealtimeBattle.state.player.hp=0;}")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             ltxt = await card.inner_text()
@@ -201,7 +203,7 @@ async def main():
             ck('追兵战打输（重债）→ 误工费 889（10%）记进欠款并存档', l['debt'] == 8888 + 889 and l['saved'] == l['debt'] and l['lose'] == 1 and '误工费 889' in ltxt and '追兵特性：快攻双发' in ltxt and '头子：' not in ltxt)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             # 重债打赢（没有头子）：结算卡不含讨债令，计数仍为 2
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             htxt = await card.inner_text()
@@ -215,16 +217,16 @@ async def main():
             hy = await pg.evaluate("({h:Game.G.flags.s3b_hunt_year,y:(Game.G.year||Game.G.age||0),sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_hunt_year})")
             ck(f'打过追兵战 → flags.s3b_hunt_year = 当年 {hy["y"]}（给 life34 侧读）并已存档', hy['h'] == hy['y'] and hy['sv'] == hy['y'])
             await pg.evaluate("()=>{const G=Game.G;Life34.st();G.life34.pending={type:'foe',npc:'merchant'};G.debt=8888;Game.save();}")
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(500)
             g1 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:!!(RealtimeBattle.state&&RealtimeBattle.state.on),debt:Game.G.debt,body:document.body.innerText})")
             ck('当年仇家上门挂着（life34 pending foe）→ 点「追兵战」不开即时战、欠款不变、提示「追兵战不触发」', not g1['ov'] and not g1['on'] and g1['debt'] == 8888 and '追兵战不触发' in g1['body'])
             # 第十三轮：main 的 life34 仇家来访写 L.seen['foe_'+(G.year||G.age)] → 同年追兵战只认这个键
             await pg.evaluate("()=>{const G=Game.G;G.life34.pending=null;G.life34.seen['foe_'+(G.year||G.age)]=1;Game.save();}"); await pg.wait_for_timeout(2600)
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(500)
             gk = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:!!(RealtimeBattle.state&&RealtimeBattle.state.on),body:document.body.innerText,k:'foe_'+(Game.G.year||Game.G.age)})")
             ck(f'本年 L.seen.{gk["k"]}（life34 仇家已来过）→ 点「追兵战」不开', not gk['ov'] and not gk['on'] and '追兵战不触发' in gk['body'])
             await pg.evaluate("()=>{const G=Game.G;delete G.life34.seen['foe_'+(G.year||G.age)];G.life34.seen['foe_'+((G.year||G.age)-1)]=1;Game.save();}"); await pg.wait_for_timeout(2600)
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(500)
             g2 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:!!(RealtimeBattle.state&&RealtimeBattle.state.on)})")
             await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
             g3 = await pg.evaluate("({debt:Game.G.debt})")
@@ -245,7 +247,7 @@ async def main():
                 raw = st['raw'] + (0.3 if st['realm'] == 1 and st['zjd'] else 0)
                 if st['realm'] >= 1 and st['pjd'] and raw < 0.95: raw += 0.15
                 base = round(min(0.97, raw) * 100); est = max(5, base - pen)
-                await pg.click('#v25-tp')
+                await pg.click('#dow-tp')
                 card = pg.locator('.card:has(.ct:text("突破预估"))').last; await card.wait_for(timeout=3000)
                 txt = await card.inner_text()
                 await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
@@ -261,12 +263,12 @@ async def main():
             KEY = 'wbx_dev_bounty_tuning'
             sig_js = "RealtimeBattle.state.enemies.map(e=>[e.name,e.maxHp,e.speed,e.atkCdMul,e.windMul,e.shotCount,e.shotSpread,e.ringShots,e.ringWarn,e.ringCd])"
             async def zb_sig():
-                await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+                await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
                 sg = await pg.evaluate(sig_js); lb = await pg.evaluate("RealtimeBattle.state.label")
                 await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
                 return sg, lb
             async def zt_card(k=0):
-                await pg.click('#v25-zt')
+                await pg.click('#dow-zt')
                 c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
                 tx = await c.inner_text(); nopt = await c.locator('.opt').count()
                 await c.locator(f'.opt[data-k="{k}"]').click(); await pg.wait_for_timeout(300)
@@ -287,7 +289,7 @@ async def main():
                '覆盖生效：改了 4 项' in t1 and 'tiers.wanted.shotCount 3→5' in t1 and 'boss.ringShots 8→12' in t1 and '天道通缉：2 只*' in t1 and '5 发*' in t1
                and '已钳制：tiers.wanted.atkCdMul 9→2' in t1 and 'boss.ringWarn="x"' in t1 and 'tiers.light.foo' in t1 and '当前：自定义覆盖' in t1 and n1 == 4)
             # 带覆盖打赢一场：结算卡注明调参生效；存档里没有覆盖键/调参字段，覆盖键本身也没被游戏改写
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             wt = await card.inner_text(); await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
@@ -320,7 +322,7 @@ async def main():
             ck('页面里有三个预设：好躲 / 原样（override=null）/ 地狱', [x['n'] for x in P] == ['好躲', '原样', '地狱'] and P[1]['json'] is None and P[0]['json'] and P[2]['json'])
             ls0 = await pg.evaluate(ls_js)
             # 卡片 4 个选项都在屏内可点（截图存证）
-            await pg.click('#v25-zt')
+            await pg.click('#dow-zt')
             c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
             labels = await c.locator('.opt').all_inner_texts()
             obox = await c.evaluate("c=>[...c.querySelectorAll('.opt')].map(b=>{const r=b.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})")
@@ -334,7 +336,7 @@ async def main():
             ck(f'地狱预设生效：天道通缉 {len(sgH)} 个、5 发、冷却×0.4、前摇×0.5、头子环弹 12 发/0.3s/1.5s；卡片「当前预设：地狱」「改了 30 项」、无钳制/非法',
                len(sgH) == 4 and all(e[5] == 5 and e[3] == 0.4 and e[4] == 0.5 for e in sgH) and sgH[0][7:10] == [12, 0.3, 1.5] and lbH == '追兵·天道通缉·疾攻三发'
                and '当前预设：地狱' in tH and '覆盖生效：改了 30 项' in tH and '已钳制' not in tH and '非法' not in tH and '未知字段' not in tH and nH == 4)
-            await pg.click('#v25-zt')
+            await pg.click('#dow-zt')
             c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
             await c.locator('.opt[data-k="1"]').click(); await pg.wait_for_timeout(300)
             rawE = await pg.evaluate(f"localStorage.getItem('{KEY}')")
@@ -342,7 +344,7 @@ async def main():
             ck(f'改点「预设·好躲」→ 覆盖键换成好躲 JSON；天道通缉 {len(sgE)} 个、2 发、冷却×0.85、头子环弹 6 发/0.6s/5s；卡片「当前预设：好躲」',
                rawE == P[0]['json'] and len(sgE) == 3 and sgE[0][0] == '讨债鬼头子' and all(e[5] == 2 and e[3] == 0.85 for e in sgE) and sgE[0][7:10] == [6, 0.6, 5] and '当前预设：好躲' in tE)
             # 带好躲预设打赢：结算照常（欠款不变、讨债令照记），存档不含任何调参内容
-            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             we = await card.inner_text(); await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
@@ -351,14 +353,14 @@ async def main():
                '胜·天道通缉' in we and '开发者调参：20 项生效' in we and '缴获讨债令×1' in we and sve['debt'] == 30000 and sve['raw'] == P[0]['json']
                and all(x not in sve['sv'] and x not in sve['g'] for x in ('wbx_dev', 'tuning', 'ringWarn', 'shotCount', '好躲')))
             ls2 = await pg.evaluate(ls_js)
-            await pg.click('#v25-zt')
+            await pg.click('#dow-zt')
             c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
             await c.locator('.opt[data-k="2"]').click(); await pg.wait_for_timeout(300)
             ls3 = await pg.evaluate(ls_js)
             sgP, lbP = await zb_sig(); tP, _ = await zt_card()
             ck('点「预设·原样（清除覆盖）」→ 覆盖键被删、其它键不变；追兵战与默认表逐字段一致；卡片「未设置覆盖」「当前预设：原样」',
                KEY not in ls3 and {k: v for k, v in ls3.items()} == {k: v for k, v in ls2.items() if k != KEY} and sgP == sig0 and lbP == lb0 and '未设置覆盖' in tP and '当前预设：原样' in tP)
-            await pg.click('#v25-zt')
+            await pg.click('#dow-zt')
             c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
             await c.locator('.opt[data-k="2"]').click(); await pg.wait_for_timeout(300)
             ck('没覆盖时再点「原样」→ 仍无覆盖键、不报错', await pg.evaluate(f"localStorage.getItem('{KEY}')") is None)
