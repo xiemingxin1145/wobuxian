@@ -48,7 +48,7 @@
 - [x] #17（PR #18，build-223）：讨债司公示只看超出年息的欠款增长。
 - [x] 好感节奏（favor34）：G.aff 变化同步 rel=trunc(Δ×0.5)；闲聊每年 +4/+1/+1（封顶 6）；送礼另加 3/6/10（每年封顶 15）；奇遇链每步 +15、末步再 +10；不衰减；老存档不回填。life34_unit 覆盖。
 - [x] chain40：qc34 整链完成链主（末步给予者）rel≥40，其他步给予者各 +5；talk.js 暴露 Talk.prefs（送礼最爱表），life34 读它（本地表仅兜底）。
-- [ ] **v3.4.0 发版**（分支 rel340）：已 bump VERSION=3.4.0、AGENTS/ROADMAP、新增 CHANGELOG.md；全门禁串行跑中 `/tmp/gate_rel.sh` → `/tmp/gr.txt`（olaf → `/tmp/gr_olaf.txt`，结束标志 GATE_DONE）。之后：合 main → 打 tag v3.4.0。
+- [ ] **v3.4.0 发版**（分支 rel340）：已 bump VERSION=3.4.0、AGENTS/ROADMAP、新增 CHANGELOG.md；S3 阻断查明并修：催收令标记旁有怪时点名牌命中了怪→开普通怪战（tries 不减、dmg=0、无结算卡），修后回归测 `test/wb33_mark_regress.py`（去掉修复可复现）；N1 同源：刷怪离 NPC/标记≥2 格。全门禁串行重跑 `/tmp/gate_rel.sh` → `/tmp/gr.txt`（olaf → `/tmp/gr_olaf.txt`，结束标志 GATE_DONE）。之后：合 main → 打 tag v3.4.0。
 - 下一步：江湖传闻面板与 life34 日志合并进江湖风云、其余 3 图奇遇链、NPC 之间恩怨。（olaf 输出 `/tmp/gl_olaf.txt`），结束标志 GATE_DONE。之后合 main。
 
 ## v3.3.0 线（Grok Bot，2026-10-18 起，UTC+8）
