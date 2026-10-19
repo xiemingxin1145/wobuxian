@@ -65,6 +65,8 @@ Life34.rel = function (id, d) { const L = Life34.st(); if (!L) return; L.rel[id]
 { const _ie = Game.interactEnt; Game.interactEnt = function (e) { try { if (e && e.kind === 'npc' && e.id && !e.id.startsWith('l34_')) { const L = Life34.st(); const k = 'talk_' + e.id + '_' + (Game.G.year || Game.G.age); if (L && !L.seen[k]) { L.seen[k] = 1; Life34.rel(e.id, 2); } } } catch (er) { } return _ie.apply(this, arguments); }; }
 Life34.spawnVisitor = function () {
   const G = Game.G, L = Life34.st(); if (!L || !L.pending || !R.player || R.mode !== 'map' || L.pending.shown === R.mapId) return; const p = L.pending;
+  // 无怪的仪式图（问道崖 wendao，mons: []）不刷来客：仇家应战没有怪可打，且会打断传承仪式
+  if (!MAPINFO[R.mapId] || !(MAPINFO[R.mapId].mons || []).length) return;
   const base = p.npc && NPCS[p.npc]; const spr = base ? base.spr : 'npc_disciple'; const nm = p.type === 'sect' ? `${SECTS[p.pair.split('|').find(s => s !== G.sect) || G.sect].n}弟子` : base ? base.n : '来客';
   const P = R.player; let spot = null; for (let r = 2; r <= 4 && !spot; r++) for (let a = 0; a < 8 && !spot; a++) { const i = Math.floor(P.i + Math.cos(a) * r), j = Math.floor(P.j + Math.sin(a) * r); if (walkable(i, j) && !R.ents.some(e => Math.floor(e.i) === i && Math.floor(e.j) === j)) spot = [i, j]; }
   if (!spot) return; loadSprite(spr);
@@ -80,7 +82,7 @@ Life34.visit = async function (e) {
       if (c === 1 && !can) { UI.toast(`灵石不足（需 ${fee}）`); continue; } break; }
     if (c === 1) { G.stone -= fee; Life34.rel(p.npc, 25); Life34.say(`你向${nm}赔礼，恩怨稍解。`); }
     else { L.pending = null; removeEnt(e); Life34.say(`${nm}找你寻仇。`);
-      const mons = MAPINFO[R.mapId].mons; const mon = mons[Math.floor(Math.random() * mons.length)]; const tier = MAPINFO[R.mapId].tier + 0.3;
+      const I = MAPINFO[R.mapId] || {}; const mons = (I.mons && I.mons.length) ? I.mons : (MAPINFO.village.mons || ['slime']); const mon = mons[Math.floor(Math.random() * mons.length)]; const tier = (I.tier || 0) + 0.3;
       const r = await Game.fight(mon, { tier, elite: true }); Life34.rel(p.npc, r && r.res === 'win' ? -10 : 5); Game.save(); UI.hud(); return; }
   } else if (p.type === 'friend') {
     const gf = Life34.gift(p.npc); const txt = gf.stone ? `灵石 +${gf.stone}` : `${ITEMS[gf.item].n} ×${gf.c}`; await UI.say(por, nm, `【知恩图报】“上次多亏你了，这点心意收下！”\n\n${txt}`, ['收下']); if (gf.stone) G.stone = (G.stone || 0) + gf.stone; else Game.give(gf.item, gf.c); Life34.say(`${nm}登门道谢。`);
