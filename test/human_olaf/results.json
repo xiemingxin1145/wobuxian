@@ -228,6 +228,197 @@
     "004_T0_quest_panel.png"
    ],
    "battles_on_way": 0
+  },
+  {
+   "case": "T1_hitbox_5_points",
+   "ok": true,
+   "map": "village",
+   "hit": "35/35",
+   "wrong_target": 0,
+   "by_part": {
+    "feet": "7/7",
+    "body": "7/7",
+    "head": "7/7",
+    "name": "7/7",
+    "mark": "7/7"
+   },
+   "misses": [],
+   "note": ""
+  },
+  {
+   "case": "T2_tap_npc_in_joystick_zone",
+   "ok": true,
+   "npc": "集市货郎",
+   "tap": [
+    137,
+    644
+   ],
+   "result": "npc",
+   "joy_activated_sampled": false,
+   "shot": "005_T2_npc_in_joystick_zone.png"
+  },
+  {
+   "case": "T3_near_interact_button",
+   "ok": true,
+   "npc": "集市货郎",
+   "dist": 1.41,
+   "button": "对话集市货郎",
+   "result": "npc",
+   "shot": "006_T3_near_npc.png",
+   "note": null
+  },
+  {
+   "case": "T4_wandering_npc_far_tap",
+   "ok": false,
+   "passed": "13/20",
+   "fails": [
+    {
+     "npc": "落魄剑仙",
+     "dist": 6,
+     "result": "other_npc:翠花  ♥0",
+     "pick_at_tap": "翠花",
+     "tap": [
+      344,
+      380
+     ]
+    },
+    {
+     "npc": "落魄剑仙",
+     "dist": 6,
+     "result": "other_npc:翠花  ♥0",
+     "pick_at_tap": "翠花",
+     "tap": [
+      344,
+      380
+     ]
+    },
+    {
+     "npc": "villager",
+     "result": "timeout(budget)"
+    },
+    {
+     "npc": "b34_peddler",
+     "result": "timeout(budget)"
+    },
+    {
+     "npc": "b34_boatman",
+     "result": "timeout(budget)"
+    },
+    {
+     "npc": "luren",
+     "result": "timeout(budget)"
+    },
+    {
+     "npc": "cuihua",
+     "result": "timeout(budget)"
+    }
+   ]
+  },
+  {
+   "case": "T5_empty_path_edge",
+   "ok": true,
+   "npc": "翠花",
+   "dist": 1.7,
+   "result": "npc",
+   "shot": "007_T5_setup.png",
+   "cheats": [
+    "dev:传送>站到最近NPC旁"
+   ]
+  },
+  {
+   "case": "T12_online_afk",
+   "ok": true,
+   "kills": 9,
+   "samples": 133,
+   "outside_box": 0,
+   "summary": "挂机 2 分 33 秒过了 15 年 · 击败 9 只妖怪灵石 -9 · 境界 凡人·锻体圆满",
+   "shots": [
+    "008_T12_afk_on.png",
+    "009_T12_afk_running.png",
+    "010_T12_afk_summary.png"
+   ],
+   "cheats": [
+    "dev:调试>×5"
+   ]
+  },
+  {
+   "case": "info_recoveries_used",
+   "ok": true,
+   "recoveries": 0,
+   "battles": 3,
+   "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
+  },
+  {
+   "case": "T6_prologue_ch1_by_tapping",
+   "ok": true,
+   "age": 6,
+   "main": "sect",
+   "awakened": true,
+   "tracker": "任务 | 自动 | 主·拜入仙门 | 需要「练气」，先修炼 | 修炼 | 附近有 1 个委托（！） | 路人甲有委托 | 前往▶",
+   "mentor_on_map": true,
+   "trail": [
+    "tap 前往",
+    "tap 前往",
+    "★"
+   ],
+   "shots": [
+    "011_T6_tracker.png",
+    "012_T6_end.png"
+   ],
+   "secs": 26
+  },
+  {
+   "case": "T10_dev_mode_entry",
+   "ok": true,
+   "no_devbtn_without_hash": true,
+   "ver_found": true,
+   "wbx2_dev_after_7_taps": "1",
+   "devbtn_in_game": true,
+   "shot": "013_T10_ver_7taps.png",
+   "note": null
+  },
+  {
+   "case": "T7_cross_map_nav",
+   "ok": true,
+   "map": "market",
+   "who": "奸商·钱多多",
+   "ap": [
+    4,
+    3
+   ],
+   "secs": 6,
+   "shots": [
+    "014_T7_after_confirm.png",
+    "015_T7_dialog.png"
+   ],
+   "cheats": [
+    "dev:境界>练气初期",
+    "dev:剧情>坊市查账",
+    "dev:传送>桃花村"
+   ]
+  },
+  {
+   "case": "T8_cancel_nav",
+   "ok": true,
+   "nav_before": true,
+   "nav_after": null,
+   "navbar_visible": false,
+   "shot": "016_T8_cancel.png"
+  },
+  {
+   "case": "T9_auto_quest_loop",
+   "ok": true,
+   "main": [
+    4,
+    5
+   ],
+   "teleport_jumps": 0,
+   "secs": 15,
+   "shot": "017_T9_end.png",
+   "cheats": [
+    "dev:境界>练气圆满",
+    "dev:剧情>坊市查账"
+   ]
   }
  ],
  "js_errors": [],

@@ -400,8 +400,10 @@ async def main():
         # ---- T4 NPC 闲逛：5–6 格外点身体 ----
         if want('T4'):
             rows = []; st = await npcs(c); ids = [x['id'] for x in st['npcs'] if x['kind'] == 'npc']; t4 = time.time()
+            # 3.4 地图变大（桃花村 22→36）后 NPC 分布更散，走到 5–6 格外站位的路程按边长线性变长：总预算按 R.n/22 线性放大（每次点按的判定不变）
+            mapn = await c.pg.evaluate('()=>R.n'); budget = T4_BUDGET * max(1.0, mapn / 22)
             for k in range(T4_N):
-                if time.time() - t4 > T4_BUDGET: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
+                if time.time() - t4 > budget: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
                 if not t:   # 先像真人一样关掉弹窗/打完遭遇战，再找一次
                     await clear_popups(c, 6); await ensure_map(c); st = await npcs(c); t = find(st, nid)
@@ -433,7 +435,7 @@ async def main():
                 else: await clear_popups(c, 8)
                 rows.append(dict(npc=t['name'], dist=round(d0, 1), result=o['result'], pick_at_tap=pk, tap=[round(x), round(y)]))
             okn = sum(r['result'] == 'npc' for r in rows)
-            case('T4_wandering_npc_far_tap', okn == len(rows) == T4_N, passed=f'{okn}/{T4_N}',
+            case('T4_wandering_npc_far_tap', okn == len(rows) == T4_N, passed=f'{okn}/{T4_N}', budget_s=round(budget), used_s=round(time.time() - t4),
                  fails=[r for r in rows if r['result'] != 'npc'])
         # ---- T5 空路径（需要开发者传送） ----
         if want('T5'):
