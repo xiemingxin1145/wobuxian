@@ -175,6 +175,16 @@ const DEV341 = {
   },
 };
 window.DEV341 = DEV341;
+// ---- 扩展接口：其他文件给开发者面板加 Tab（如开放世界线的「开放世界」）----
+// 用法（任意加载顺序，dev341.js 之前 push 到 window.DevTabs 也行）：
+//   DevPanel.registerTab('ow', '开放世界', (box, ctx) => { box.innerHTML = '<button class="opt" data-ow="x">…</button>'; box.onclick = e => { …; ctx.save(); ctx.toast('…'); }; });
+//   ctx = { G: Game.G, close(), rerender(), save(), toast(msg) }；render 抛错只在该 Tab 里显示错误，不影响其他 Tab。
+// 同 key 重复注册 = 覆盖。没有注册任何 Tab 时面板与原来一样。
+window.DevTabs = window.DevTabs || [];
+const DevPanel = window.DevPanel = {
+  registerTab(key, name, render) { if (!key || typeof render !== 'function') return false; const L = window.DevTabs; const i = L.findIndex(t => t.key === key); const t = { key: String(key), name: String(name || key), render }; if (i >= 0) L[i] = t; else L.push(t); return true; },
+  tabs() { return (window.DevTabs || []).filter(t => t && t.key && typeof t.render === 'function' && !DEV341.TABS.some(x => x[0] === t.key) && !['res', 'realm', 'unlock', 'story', 'tp', 'show', 'dbg'].includes(t.key)); },
+};
 (function () {
   const css = document.createElement('style');
   css.textContent = `.devtabs .dt{width:auto;min-width:52px;padding:0 6px;min-height:0}
@@ -200,7 +210,13 @@ window.DEV341 = DEV341;
         close(); if (k === 'trial') await DevEntry25.trial(); if (k === 'rt' && window.RealtimeBattle) await RealtimeBattle.start(); });
     }
     const bar = b.querySelector('.devtabs'); if (!bar) return r;
-    for (const [k, n] of DEV341.TABS) { const t = document.createElement('button'); t.className = 'dt' + (k === tab ? ' on' : ''); t.dataset.t = k; t.textContent = n; bar.appendChild(t); }
+    const ext = DevPanel.tabs();
+    for (const [k, n] of DEV341.TABS.concat(ext.map(t => [t.key, t.name]))) { const t = document.createElement('button'); t.className = 'dt' + (k === tab ? ' on' : ''); t.dataset.t = k; t.textContent = n; bar.appendChild(t); }
+    const xt = ext.find(t => t.key === tab);
+    if (xt) { const box = document.createElement('div'); box.className = 'dvext'; b.appendChild(box);
+      const ctx = { G: Game.G, close, rerender: () => re2(tab), save: () => { if (Game.G) { Game.G.dev = 1; Game.save(); } UI.hud(); }, toast: m => UI.toast(m) };
+      try { xt.render(box, ctx); } catch (er) { console.error('DevTab ' + tab, er); box.innerHTML = `<p class="hint">「${DEV341.esc(xt.name)}」渲染出错：${DEV341.esc(er.message)}</p>`; }
+      box.addEventListener('click', e => e.stopPropagation()); return r; }
     if (!mine) return r;
     const box = document.createElement('div'); box.className = 'dv341'; box.innerHTML = DEV341.body(tab); b.appendChild(box);
     DEV341.filter(b, tab);

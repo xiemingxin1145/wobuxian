@@ -164,6 +164,7 @@ async def main():
         # 角色面板是全屏弹窗：🛠 被弹窗层盖住属正常；改为战斗/演出中验证（无弹窗时 inMap 假）——这里只校验按钮存在
         ok('9_devbtn', hint)
         await close_panel()
+        ok('10_devpanel_api', await pg.evaluate("()=>typeof DevPanel==='object'&&typeof DevPanel.registerTab==='function'&&Array.isArray(window.DevTabs)"))
         ok('js_errors', not errs, errs[:5])
         await b.close()
     out = dict(fails=fails, cheats=cheats, results=res)
