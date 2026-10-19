@@ -22,8 +22,8 @@
   "tap": "ok",
   "diff": {
    "offAt": [
-    1792409707400,
-    1792409810174
+    1792410345739,
+    1792410368647
    ]
   },
   "mid_modal": false,
@@ -35,13 +35,8 @@
   "tab": "show",
   "a": "g3",
   "label": "抽卡演出·仙",
-  "tap": "missing",
-  "diff": {
-   "offAt": [
-    1792409810174,
-    1792409890863
-   ]
-  },
+  "tap": "ok",
+  "diff": {},
   "mid_modal": false,
   "mid_battle": false,
   "toast": [],
@@ -51,11 +46,11 @@
   "tab": "show",
   "a": "g4",
   "label": "抽卡演出·神",
-  "tap": "missing",
+  "tap": "ok",
   "diff": {
    "offAt": [
-    1792409890863,
-    1792409970412
+    1792410368647,
+    1792410388094
    ]
   },
   "mid_modal": false,
@@ -67,11 +62,11 @@
   "tab": "show",
   "a": "g10",
   "label": "十连演出",
-  "tap": "missing",
+  "tap": "ok",
   "diff": {
    "offAt": [
-    1792409970412,
-    1792410050134
+    1792410388094,
+    1792410408774
    ]
   },
   "mid_modal": false,
@@ -83,13 +78,8 @@
   "tab": "show",
   "a": "brk",
   "label": "突破演出·成功",
-  "tap": "missing",
-  "diff": {
-   "offAt": [
-    1792410050134,
-    1792410130481
-   ]
-  },
+  "tap": "ok",
+  "diff": {},
   "mid_modal": false,
   "mid_battle": false,
   "toast": [],
@@ -99,16 +89,366 @@
   "tab": "show",
   "a": "brkf",
   "label": "突破演出·失败",
-  "tap": "missing",
+  "tap": "ok",
+  "diff": {},
+  "mid_modal": false,
+  "mid_battle": false,
+  "toast": [],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "god",
+  "label": "无敌 关",
+  "tap": "ok",
+  "diff": {
+   "god": [
+    false,
+    true
+   ],
+   "offAt": [
+    1792410428084,
+    1792410431648
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：无敌 关"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "ohk",
+  "label": "一击必杀 关",
+  "tap": "ok",
+  "diff": {
+   "ohk": [
+    false,
+    true
+   ],
+   "offAt": [
+    1792410431648,
+    1792410436253
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：一击必杀 关"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "noenc",
+  "label": "不遇敌 关",
+  "tap": "ok",
+  "diff": {
+   "noEnc": [
+    false,
+    true
+   ],
+   "offAt": [
+    1792410436253,
+    1792410440771
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：不遇敌 关"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "rel50",
+  "label": "最近NPC恩怨−50",
+  "tap": "ok",
+  "diff": {
+   "rel": [
+    2,
+    14
+   ],
+   "offAt": [
+    1792410440771,
+    1792410445223
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "翠花 恩怨=-50",
+   "已执行：最近NPC恩怨−50"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "rel50p",
+  "label": "最近NPC恩怨+50",
+  "tap": "ok",
+  "diff": {
+   "rel": [
+    14,
+    13
+   ],
+   "offAt": [
+    1792410445223,
+    1792410449666
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "翠花 恩怨=50",
+   "已执行：最近NPC恩怨+50"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "off13",
+  "label": "离线模拟 +13 小时",
+  "tap": "ok",
+  "diff": {
+   "stone": [
+    110,
+    446
+   ],
+   "inv": [
+    5,
+    9
+   ],
+   "ninv": [
+    2,
+    3
+   ],
+   "hp": [
+    190,
+    230
+   ],
+   "mhp": [
+    200,
+    230
+   ],
+   "mp": [
+    64,
+    74
+   ],
+   "stage": [
+    0,
+    1
+   ],
+   "exp": [
+    0,
+    4
+   ],
+   "need": [
+    80,
+    108
+   ],
+   "offAt": [
+    1792410449666,
+    1792410454115
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "凡人·锻体二层！"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "off1",
+  "label": "离线模拟 +1 小时",
+  "tap": "ok",
+  "diff": {
+   "stone": [
+    446,
+    486
+   ],
+   "exp": [
+    4,
+    18
+   ],
+   "offAt": [
+    1792410454115,
+    1792410458683
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "offm",
+  "label": "离线模拟 -1 小时",
+  "tap": "ok",
   "diff": {
    "offAt": [
-    1792410130481,
-    1792410210533
+    1792410458683,
+    1792410463398
    ]
   },
   "mid_modal": false,
   "mid_battle": false,
   "toast": [],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "ts",
+  "label": "×1",
+  "tap": "ok",
+  "diff": {
+   "ts": [
+    null,
+    1
+   ],
+   "offAt": [
+    1792410463398,
+    1792410468059
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：×1"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "ts",
+  "label": "×2",
+  "tap": "ok",
+  "diff": {
+   "ts": [
+    1,
+    2
+   ],
+   "offAt": [
+    1792410468059,
+    1792410471533
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：×2"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "ts",
+  "label": "×5",
+  "tap": "ok",
+  "diff": {
+   "ts": [
+    2,
+    5
+   ],
+   "offAt": [
+    1792410471533,
+    1792410476042
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：×5"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "ts",
+  "label": "×10",
+  "tap": "ok",
+  "diff": {
+   "ts": [
+    5,
+    10
+   ],
+   "offAt": [
+    1792410476042,
+    1792410480478
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "已执行：×10"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "wb",
+  "label": "立即降临催收使",
+  "tap": "ok",
+  "diff": {
+   "wb33": [
+    false,
+    true
+   ],
+   "offAt": [
+    1792410480478,
+    1792410485259
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "fb9",
+  "label": "本命法宝 9 阶·好感 100",
+  "tap": "ok",
+  "diff": {
+   "fb33": [
+    null,
+    "9:100"
+   ],
+   "offAt": [
+    1792410485259,
+    1792410489412
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "本命法宝已设为 9 阶、好感 100"
+  ],
+  "errors": []
+ },
+ {
+  "tab": "dbg",
+  "a": "day",
+  "label": "日课：跳到明日 05:00",
+  "tap": "ok",
+  "diff": {
+   "offAt": [
+    1792410489412,
+    1792410494061
+   ]
+  },
+  "mid_modal": true,
+  "mid_battle": false,
+  "toast": [
+   "日课已跳到明日 05:00",
+   "天道今日派发了新的修行KPI。"
+  ],
   "errors": []
  }
 ]

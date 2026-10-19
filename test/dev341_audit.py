@@ -27,7 +27,11 @@ async def main():
             for k in range(n):
                 if await pg.evaluate('()=>UX.inMap()'): return
                 fx = await pg.evaluate("()=>{const e=document.querySelector('.gacha-fx,.brk-fx,.g22w,.mwrap');return !UI.modal&&!!document.querySelector('.gacha-fx,.brk-fx')}")
-                if fx: await tap(206, 140); await pg.wait_for_timeout(700); continue
+                if fx:
+                    for sel in ['.gacha-fx .gclose', '.gacha-fx .gskip', '.brk-fx']:
+                        if await pg.evaluate("(s)=>{const e=document.querySelector(s);return !!e&&e.offsetParent!==null}", sel): await tap_sel(sel, 0, 700); break
+                    else: await pg.wait_for_timeout(700)
+                    continue
                 if not await pg.evaluate('()=>!!UI.modal||(typeof B!=="undefined"&&B.on)'): await pg.wait_for_timeout(700); continue
                 if await pg.evaluate('()=>typeof B!=="undefined"&&B.on'):
                     await tap_sel('#battlebar button[data-a=auto]', 0, 1500); continue

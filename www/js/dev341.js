@@ -183,12 +183,22 @@ window.DEV341 = DEV341;
 .dvi{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 8px;border-top:1px dashed #e0c890}.dvi.on{background:rgba(255,210,90,.18)}
 .dvt{flex:1 1 150px;min-width:0}.dvt b{display:flex;align-items:center;gap:4px;font-size:14px}.dvt small{display:block;color:#7a5a3a;font-size:11px;line-height:1.35}
 .dvb{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}.dvx{min-height:36px;min-width:40px;padding:4px 8px;font-size:12px}.dvx.on{background:#d08a10;color:#fff}
+.devr .opt.spd{flex:1;min-width:0;width:auto}
 .dvchips{display:flex;flex-wrap:wrap;gap:4px}.dvic{display:inline-block;width:30px;height:30px;flex:none}`;
   document.head.appendChild(css);
   const _pd = UI.p_dev; UI.p_dev = function (b, re, close, tab) {
     tab = tab || DEV.tab || 'res';
     const mine = DEV341.TABS.some(t => t[0] === tab);
-    const r = _pd.call(this, b, re, close, tab);
+    // 3.4.1 修：原面板每点一个按钮就整页重绘、滚动条跳回顶部（剧情/传送等长列表点一下就找不到位置）→ 同一 Tab 内重绘保留滚动位置
+    const re2 = t => { const same = (t || DEV.tab) === tab; const sc = b.scrollTop; re(t); if (same) { const nb = document.querySelector('#modals .mwrap:last-child .pb'); if (nb) nb.scrollTop = sc; } };
+    const r = _pd.call(this, b, re2, close, tab);
+    if (tab === 'dbg' && window.DevEntry25) { // v2.5 浮动入口同样放进面板（浮动按钮在弹窗层之下）
+      const d = document.createElement('div'); d.className = 'devg'; d.innerHTML = '<button class="opt" data-v25="trial">试炼场 / 阶段3债务奇遇</button><button class="opt" data-v25="rt">即时战（原型）</button><button class="opt" data-v25="eq">全套神装（神品）</button>';
+      const flags = b.querySelector('details'); b.insertBefore(d, flags || null);
+      d.addEventListener('click', async e => { const t = e.target.closest('[data-v25]'); if (!t) return; e.stopPropagation(); const k = t.dataset.v25;
+        if (k === 'eq') { DevEntry25.giveFullGodGear(); UI.toast('已执行：全套神装（已穿上）'); UI.hud(); return; }
+        close(); if (k === 'trial') await DevEntry25.trial(); if (k === 'rt' && window.RealtimeBattle) await RealtimeBattle.start(); });
+    }
     const bar = b.querySelector('.devtabs'); if (!bar) return r;
     for (const [k, n] of DEV341.TABS) { const t = document.createElement('button'); t.className = 'dt' + (k === tab ? ' on' : ''); t.dataset.t = k; t.textContent = n; bar.appendChild(t); }
     if (!mine) return r;
@@ -198,7 +208,7 @@ window.DEV341 = DEV341;
     box.addEventListener('click', e => {
       const t = e.target.closest('[data-x]'); if (!t) return; e.stopPropagation();
       let res; try { res = DEV341.act(t.dataset.x, t.dataset.id, t.dataset.v, b); } catch (er) { console.error('dev341', er); UI.toast('执行失败：' + er.message); return; }
-      if (res === 're') { const sc = b.scrollTop; re(tab); const nb = document.querySelector('#modals .mwrap:last-child .pb'); if (nb) nb.scrollTop = sc; }
+      if (res === 're') re2(tab);
       else if (res) DEV341.refresh(b, res);
     });
     return r;
