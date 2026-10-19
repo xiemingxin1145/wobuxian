@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 103.4,
+   "moved_px": 108.5,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 138.1,
+   "moved_px": 141.4,
    "ok": true
   },
   {
@@ -52,7 +52,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 107.9,
+   "moved_px": 106.6,
    "ok": true
   },
   {
@@ -63,7 +63,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 140.5,
+   "moved_px": 133.2,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 208.1,
+   "moved_px": 200.4,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 129.2,
+   "moved_px": 135.7,
    "ok": true
   }
  ],
@@ -133,7 +133,7 @@
    "target": "(+2,-3)",
    "screen": [
     321,
-    469
+    470
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "NE",
@@ -151,7 +151,7 @@
    "end_dist_tiles": 0.0,
    "first_facing": "W",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 12,
+   "path_tiles": 11,
    "idle_on_arrival": true,
    "ok": true
   }
