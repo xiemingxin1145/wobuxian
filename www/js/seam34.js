@@ -56,6 +56,7 @@ const Seam34 = {
   tick() {
     const P = R.player; if (!P || this.busy || R.mode !== 'map' || (window.UI && UI.stack && UI.stack.length)) return;
     if (this.cool > 0) { this.cool -= 0.016; return; }
+    if (P.path && P.path.length && !P.joyMove) return; // 寻路途经出口（自动任务/追踪）不切图；停在出口或摇杆走上去才切
     const on = this.exits.find(x => Math.floor(P.i) === x.i && Math.floor(P.j) === x.j);
     if (!on) { this.armed = true; return; }
     if (!this.armed) return;
@@ -71,7 +72,8 @@ const Seam34 = {
       if (R.mapId === x.to) {
         const back = this.exits.find(e => e.to === from) || this.exits.find(e => e.side === this.OPP[x.side]);
         if (back) { // 落在反向出口内侧一格
-          const v = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[back.side]; let [ti, tj] = [back.i - v[0], back.j - v[1]]; if (!walkable(ti, tj)) [ti, tj] = [back.i, back.j];
+          const v = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[back.side]; let ti = back.i, tj = back.j, bo = 1e9; // 反向出口旁、更靠内侧的一格可走格
+          for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { if (!di && !dj) continue; const a = back.i + di, b = back.j + dj; if (!walkable(a, b) || !findPath(back.i, back.j, a, b)) continue; const o = (di * v[0] + dj * v[1]) * 3 + Math.abs(di) + Math.abs(dj); if (o < bo) { bo = o; ti = a; tj = b; } }
           const P = R.player; P.i = ti + 0.5; P.j = tj + 0.5; P.path = []; if (R.pet) { R.pet.i = P.i; R.pet.j = P.j; }
           const [px, py] = t2p(P.i, P.j); R.cam.x = px; R.cam.y = py - 60; Game.G.pos = [P.i, P.j];
           this.armed = false; this.cool = 0.6;
