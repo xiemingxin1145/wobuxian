@@ -7,6 +7,7 @@
 - [x] **无缝相邻地图** `www/js/seam34.js`（index.html 在 audio32 前加载）：按 world28 九州大地图节点坐标（MAPINFO.wx/wy 或 World28.DEFAULT_LAYOUT）给每张图四条等距边各连最近邻图（≤1500 世界格，贪心保证双向一致，共 50 条边向）。每条边在「与出生点连通、该方向最外侧且靠中线」的可走格放出口（发光光圈+箭头+「→ 邻图名」，未解锁显示 🔒 并 toast 境界不足）。停在出口（点按到达或摇杆走上去）即调 `Game.travel(id, true)`：免费、无菜单、跳过 UI.fade/UI.loading（无黑屏），进图时预加载所有邻图底板/道具图集；到达邻图反向出口内侧一格。寻路途经出口（自动任务/追踪）不切图。
 - [x] `test/seam34.py`（真实触摸；作弊：开发者面板「解锁全部地图」「不遇敌」）：桃花村→青云宗→桃花村，0 黑屏帧、行动力不变、落点正确、无 pageerror：通过。
 - [ ] 门禁（seam34 版，v34-world `HEAD`）：validate22 0 错、stage3_chain ALL PASS、jsscan33/sys33_unit/content33 errors []、panels21 ERRORS 0、controls FAILS 0、human23 13/13、seam34 通过；human_olaf 全量 11:35（UTC+8）开跑，输出 `/tmp/g_olaf.txt`（末行 `exit N`）。全绿后 `--no-ff` 合 main 推送。
+  - 12:05 human_olaf 进行到 T13：除 N1、T4 外全 PASS（含 T7 跨图导航、T9 自动任务、S1–S3）。N1/T4 是已知偶发（3.3.1 基线 g331full4 也挂 T3/T4，y_N1/g331v4n1 挂 N1，见 #12），接着单独重跑 ONLY=N1,T4 确认。
 - [x] 分支 `v34-big`（worktree `/workspace/game-ow34b`，基于 v34-world）：名牌与 #qt 任务栏重叠时淡到 12%；findPath 上限 max(4000, n²·3)。尚未跑门禁，随地图扩大一起合。
 - [x] `v34-big` 上：`www/js/bigmap34.js`（index 在 seam34 前）原型——village 36、sect/heaven 32、market/secret 28；旧 22×22 坐标不变，向 +i/+j 扩展；主路延伸+新区环路+池塘；本图道具图集放建筑/交互点/树；连通兜底（从出生点洪泛删堵路道具）；新区地块按 1024px 分块离屏缓存、只画视口内块。probe（412×915 DPR2 无头软件渲染）：村新区帧中位 33ms/p95 66ms（基线未测）。validate22 0 错。已应用 #12 补丁（ux23.js 部分）。
 - 下一步（v34-big）：①美化新区（地块有棋盘感，可加草纹/路边石）②在新区放 2–3 个已有 NPC/交互点 ③测基线帧时 ④把 seam34.py/全门禁在 v34-big 跑一遍 ⑤旧边缘 x 打通处与底板崖壁衔接检查截图。
