@@ -1,5 +1,6 @@
 {
  "dpr": 2.0,
+ "www": "/workspace/game-ow34b/www",
  "cases": [
   {
    "case": "T0a_new_life_enter_map",
@@ -419,8 +420,152 @@
     "dev:境界>练气圆满",
     "dev:剧情>坊市查账"
    ]
+  },
+  {
+   "case": "T9b_auto_quest_after_loss",
+   "ok": true,
+   "main": [
+    4,
+    5
+   ],
+   "grit": {
+    "main": 4,
+    "n": 2
+   },
+   "teleport_jumps": 0,
+   "secs": 32,
+   "shot": "018_T9b_end.png",
+   "cheats": [
+    "dev:境界>练气初期",
+    "dev:剧情>坊市查账"
+   ]
+  },
+  {
+   "case": "S1_mingge_pick3",
+   "ok": true,
+   "cards": 6,
+   "reroll_disabled": true,
+   "ok_label": "确定",
+   "mingge": [
+    "nitian",
+    "caimi",
+    "yaoxiang"
+   ],
+   "char_panel_has": "先天命格【天】逆天者突破成功率 +8 个百分点（封顶 95%）【凡】财迷斗法灵石收益 +15%【凡】药香炼丹成功率 +5%",
+   "shot": "019_S1_mingge_char.png"
+  },
+  {
+   "case": "S4_mingge_reshow_after_kill",
+   "ok": true,
+   "first": true,
+   "again": true,
+   "saved": {
+    "mgAsking": false,
+    "mingge": null
+   },
+   "shot": "020_S4_mingge_after_reload.png"
+  },
+  {
+   "case": "S2_fabao_pick_upgrade",
+   "ok": true,
+   "hint": "升到 2 阶：灵石 660、玄铁晶 1；成功率 92%（失败不掉阶，返还 50% 灵石）",
+   "tier": [
+    1,
+    2
+   ],
+   "stone_spent": 660,
+   "fail_card": false,
+   "shot": "021_S2_fabao.png",
+   "cheats": [
+    "dev:境界>金丹初期",
+    "dev:资源>灵石 +100万",
+    "dev:资源>全部物品 ×5",
+    "dev:调试>立即降临催收使"
+   ]
+  },
+  {
+   "case": "S3_worldboss_challenge",
+   "ok": true,
+   "notice": "天道催收令",
+   "mark": true,
+   "fought": true,
+   "card": "天道催收使：“今天先到这里。利息照算，明年见。”本次伤害 892累计伤害 892（1.7%）当前档位：未入档（需 ≥5%）讨债风云榜：第 9 名剩余挑战 2/3（奖励在 3 次用完",
+   "wb": {
+    "y": 1,
+    "hp": 52000,
+    "tries": 2,
+    "dmg": 892,
+    "best": null,
+    "done": false,
+    "killed": false
+   },
+   "shot": "022_S3_worldboss.png",
+   "cheats": [
+    "dev:境界>金丹初期",
+    "dev:资源>灵石 +100万",
+    "dev:资源>全部物品 ×5",
+    "dev:调试>立即降临催收使"
+   ]
+  },
+  {
+   "case": "T11_offline_income",
+   "ok": true,
+   "card": "闭关归来\n你离开了 12 小时 0 分钟（已达上限 12 小时），一直在打坐。\n\n修为 +84\n灵石 +336\n灵草 ×4\n\n（离线不长岁数；上限 12 小时，聚灵阵每级 +1 小时）\n收下",
+   "exp_gain": null,
+   "formula": 84,
+   "age": [
+    6,
+    6
+   ],
+   "negative_time_card": false,
+   "shot": "023_T11_offline_card.png"
+  },
+  {
+   "case": "T13_regression",
+   "ok": true,
+   "runs": {
+    "python3 test/controls.py": {
+     "rc": 0,
+     "secs": 52,
+     "tail": [
+      "EDGE {'case': '关闭面板后摇杆', 'dir': 'W', 'moved_left': True, 'ok': True}",
+      "JS errors 0 []",
+      "FAILS 0"
+     ]
+    },
+    "python3 test/panels21.py": {
+     "rc": 0,
+     "secs": 121,
+     "tail": [
+      "l quests [395, 760, 412, 915, 'opt qgo']",
+      "l comps [395, 760, 412, 915, '']",
+      "l ERRORS 0"
+     ]
+    },
+    "python3 test/multilife.py 1 120": {
+     "rc": 0,
+     "secs": 131,
+     "tail": [
+      "    at Object.draw (file:///workspace/game-ow34b/www/js/seam34.js:44:67)",
+      "    at f (file:///workspace/game-ow34b/www/js/seam34.js:109:153)",
+      "    at Object.f [as drawGround] (file:///workspace/"
+     ]
+    },
+    "node test/validate22.js": {
+     "rc": 0,
+     "secs": 0,
+     "tail": [
+      " ],",
+      " \"errors\": []",
+      "}"
+     ]
+    }
+   }
   }
  ],
- "js_errors": [],
- "partial": true
+ "fails": [
+  "N1_taps_still_work_after_battle",
+  "T4_wandering_npc_far_tap"
+ ],
+ "js_errors": []
 }
