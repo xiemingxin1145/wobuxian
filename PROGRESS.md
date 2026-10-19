@@ -6,7 +6,10 @@
 > 主人反馈：开发者面板很多按钮无效，缺功法/金手指/装备，天赋无效。目标：逐个点按审计+修复，新增 功法/装备/天赋/金手指 浏览选择器，test/dev341.py，门禁后开 PR「3.4.1 作弊菜单重做」（不合并）。
 - [x] 审计脚本 `test/dev341_audit.py`（真实触摸逐个按钮，记录状态差异；`TABS=res,realm` 只跑部分，结果 `test/results/dev341_audit.json`）。已跑 资源/境界/解锁/剧情/传送：按钮均生效（见 /tmp/dev341_audit_story_tp.txt）；演出页：抽卡演出后游戏长时间不回到可操作状态（UX.inMap 假）→ 🛠 点了没反应，待查 g2。
 - [x] `www/js/dev341.js`（index 在 jianghu34 后）：新 Tab 功法/装备/天赋/金手指/道具（搜索+分组列表，点按即发，行内刷新）；`Game.roll(p, kind)` 金手指钩子（必定突破/100% 掉落奇遇），G.cheat 开关存档内。
-- 下一步：查 g2 卡死；修 dev_entry_v25 全套神装（槽位 acc1/acc2 不存在、缺 base）；🛠 在不可开时给提示；写 test/dev341.py；门禁；PR。
+- [x] g2「卡死」是审计脚本没点抽卡演出的「收下」，非游戏 bug（已改脚本）。审计结论（真实点按）：旧面板 7 个 Tab 的按钮单看状态都生效；「不好用」的根因：①v2.5 浮动按钮（试炼场/全套神装/即时战，z-index 9999，右下角）盖住底部菜单（灵兽/伙伴/御剑/更多）和开发者面板底部按钮；②dev_entry_v25 自己数「标题页任意位置」点击，与开发者开关不同步，关了开发者模式按钮还在；③「全套神装」写不存在的槽位 acc1/acc2、装备缺 base；④每点一个按钮整页重绘、滚动跳回顶部；⑤🛠 在对话/演出中点了无反应；⑥无敌/一击必杀/不遇敌刷新即丢；⑦没有功法等级/神通/装备/天赋/灵根/命格/道具选择器。已全部修。
+- [x] `test/dev341.py` 全过（FAILS []，约 2 分钟）：布局/滚动保留/关闭、5 个新 Tab 各发放一项 → 正常界面可见 → 刷新读档仍在、必定突破（筑基→金丹含天劫）、全套神装 6 槽。human23 的开发者面板步骤加点 5 个新 Tab。
+- 下一步：门禁 validate22、jsscan33、panels21、controls、human23；最后 human_olaf 全量；开 PR。
+- 旧下一步（已完成）：查 g2 卡死；修 dev_entry_v25 全套神装（槽位 acc1/acc2 不存在、缺 base）；🛠 在不可开时给提示；写 test/dev341.py；门禁；PR。
 - [x] life34：`Life34._inApply` 重入标记（Game.apply / Talk.gift 包装期间为 true，计数防嵌套，finally 复位）；life34_unit `in_apply_flag` 通过。
 
 ## 3.4 自由度（Grok Bot，2026-10-19 起，分支 `v34-world`，worktree `/workspace/game-ow34`）
