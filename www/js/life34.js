@@ -50,7 +50,8 @@ Life34.simYear = function () {
   const foes = Object.entries(L.rel).filter(([, v]) => v <= -40), friends = Object.entries(L.rel).filter(([, v]) => v >= 40);
   const r = rnd();
   const yr = Life34.yr(); const fr = friends.filter(([id]) => !(yr - (L.seen['vf_' + id] ?? -99) < 3)); // 同一人 3 年冷却
-  if (foes.length) L.pending = { type: 'foe', npc: foes[Math.floor(rnd() * foes.length)][0] }; // 有仇家必上门（一年内）
+  const huntBlock = typeof Stage3 !== 'undefined' && Stage3.huntBlocksFoe && Stage3.huntBlocksFoe(G); // 讨债追猎占用本年 → 今年不派仇家（仇照记，明年再来）
+  if (foes.length && !huntBlock) L.pending = { type: 'foe', npc: foes[Math.floor(rnd() * foes.length)][0] }; // 有仇家必上门（一年内）
   else if (fr.length && r < 0.6) { let t = rnd() * fr.reduce((a, [, v]) => a + v, 0), pick = fr[0][0]; for (const [id, v] of fr) { t -= v; if (t <= 0) { pick = id; break; } } L.pending = { type: 'friend', npc: pick }; L.seen['vf_' + pick] = yr; }
   else if (worst && G.sect && worst[0].includes(G.sect) && r < 0.8) L.pending = { type: 'sect', pair: worst[0] };
   else if (r < 0.3) L.pending = { type: 'errand', npc: Life34.WANDER[Math.floor(rnd() * Life34.WANDER.length)] };
@@ -77,6 +78,7 @@ Life34.spawnVisitor = function () {
 Life34.visit = async function (e) {
   const G = Game.G, L = Life34.st(), p = L && L.pending; if (!p) { removeEnt(e); return; } const N = p.npc && NPCS[p.npc]; const por = (N && N.por) || 'npc_disciple'; const nm = e.label;
   if (p.type === 'foe') {
+    L.seen['foe_' + Life34.yr()] = 1; // 键：'foe_' + (G.year || G.age)，与 yearEnd 的 G.year 一致
     const fee = Life34.fee(); let c;
     for (;;) { const can = (G.stone || 0) >= fee; c = await UI.say(por, nm, `【冤家路窄】${nm}拦住了你：“上回那笔账，今天算清楚！”` + (can ? '' : `\n\n（赔礼要 ${fee} 灵石，你不够）`), ['应战', (can ? '' : '🔒') + `赔礼（灵石 ${fee}）`]);
       if (c === 1 && !can) { UI.toast(`灵石不足（需 ${fee}）`); continue; } break; }

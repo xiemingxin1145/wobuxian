@@ -38,6 +38,10 @@ JS = r"""async () => {
   G.realm = realmIx('金丹'); const gs = []; for (let k = 0; k < 60; k++) { L.seen.vfn_mom = 0; gs.push(Life34.gift('mom').stone); }
   ok('gift_jindan', Math.min(...gs) >= 195 && Math.max(...gs) <= 325, [Math.min(...gs), Math.max(...gs)]);
   L.seen.vfn_mom = 1; const g2 = Life34.gift('mom').stone; ok('gift_halved', g2 >= 97 && g2 <= 163, g2);
+  // Stage3 追猎占用 → 今年无仇家；放开后有
+  L.rel = { farmer: -50 }; L.pending = null; window.Stage3 = window.Stage3 || {}; const hb0 = Stage3.huntBlocksFoe; Stage3.huntBlocksFoe = () => true; Life34.simYear(); ok('hunt_blocks_foe', !(L.pending && L.pending.type === 'foe'), L.pending);
+  Stage3.huntBlocksFoe = () => false; L.pending = null; Life34.simYear(); ok('foe_after_hunt', L.pending && L.pending.type === 'foe', L.pending); Stage3.huntBlocksFoe = hb0;
+  picks.push(1); G.stone = 9999; await Life34.visit(e); ok('foe_seen_key', !!L.seen['foe_' + (G.year || G.age)], 'foe_' + (G.year || G.age));
   // 好感节奏
   G.year = 500; L.rel = {};
   for (let k = 0; k < 5; k++) Life34.onChat('cuihua'); ok('chat5_eq6', L.rel.cuihua === 6, L.rel.cuihua);
