@@ -1,4 +1,4 @@
-// 第十二轮：钱多多/记账童子记仇选项 → Life34.rel；追兵战 × life34「仇家上门」同一年互斥。
+// 第十二轮：钱多多/记账童子记仇选项 → Life34.rel；追兵战 × life34「仇家上门」同一年互斥。第十四轮：C 段 Life34._inApply（3.4.1 重入标记）。
 // node test/stage3_life34.js（退出码 = 失败数）。两部分：
 //   A. 间谍版 Life34（只有 rel，记录每次调用）：查每个记仇选项调的 id / 幅度、非记仇选项不调、Life34 不存在 / 无 rel / 抛错 / 非当前存档时不报错；
 //   B. vm 载入 main 真实的 www/js/life34.js（最小桩环境）+ stage3：真实 G.life34.rel 变化、simYear 生成的仇家上门、Life34.visit 写的日志，
@@ -77,7 +77,30 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
     spyLife(ctx); G = { debt: 5000, stone: 1000, aff: {}, flags: {} };
     await run(ctx, 'runLedgerChain', G, [0, 0]); await run(ctx, 'runLedgerChain', G, [0, 0]);
     ok(ctx.relCalls.length === 0, '对账 + 查账（亲近）：不调 rel');
-    ok(ctx.otherGets.every(k => k === 'syncAff'), '只用 Life34.rel / Life34.syncAff，不碰 Life34 的其它接口：' + J(ctx.otherGets));
+    ok(ctx.otherGets.every(k => k === 'syncAff' || k === '_inApply'), '只用 Life34.rel / Life34.syncAff（+ 只读 _inApply 标记），不碰 Life34 的其它接口：' + J(ctx.otherGets));
+
+    // A5b 第十四轮：Life34._inApply（3.4.1 重入标记）为 true → 不调 syncAff，只补「目标 − 外层将同步的那份」
+    {
+      const spyIn = (flag) => { spyLife(ctx); const t = { rel: (id, d) => ctx.relCalls.push([id, d]), syncAff: () => ctx.relCalls.push(['syncAff']) }; if (flag !== undefined) t._inApply = flag; ctx.Life34 = t; };
+      spyIn(true); G = { debt: 1000, stone: 0, aff: { merchant: 30 }, flags: {} };
+      r = await run(ctx, 'runMerchantChain', G, [1, 0]);
+      ok(J(ctx.relCalls) === J([['merchant', -5]]) && r.rel.ok && r.rel.deferred === true && r.rel.synced === -15 && r.rel.extra === -5 && r.rel.d === -20,
+        '_inApply=true：钱多多举报（好感 30→0）不调 syncAff，外层将同步 -15、这里只补 -5，返回 deferred：' + J(ctx.relCalls));
+      spyIn(true); G = { debt: 1000, stone: 0, aff: { merchant: 100 }, flags: {} };
+      r = await run(ctx, 'runMerchantChain', G, [1, 0]);
+      ok(ctx.relCalls.length === 0 && r.rel.synced === -20 && r.rel.extra === 0 && r.rel.deferred, '_inApply=true：好感 100→60 外层将同步 -20 已达标 → 一次都不调（不补、不 syncAff）');
+      spyIn(true); G = { debt: 1000, stone: 0, aff: { merchant: 0 }, flags: {} };
+      r = await run(ctx, 'runMerchantChain', G, [0, 0]);
+      ok(ctx.relCalls.length === 0 && r.rel.d === 30 && r.rel.synced === 30 && r.rel.deferred, '_inApply=true：扛税（无档位）只报告外层将同步的 +30，不调任何接口');
+      spyIn(true); G = { debt: 5000, stone: 1000, aff: {}, flags: {} };
+      await run(ctx, 'runLedgerChain', G, [1, 0]); ctx.relCalls.length = 0; r = await run(ctx, 'runLedgerChain', G, [0, 0]);
+      ok(r.exposed && J(ctx.relCalls) === J([['xianguan', -15]]) && r.rel.synced === 0 && r.rel.deferred, '_inApply=true：露馅（好感不变）同步 0 → 补全额 -15');
+      for (const [nm, flag] of [['缺省（3.4.0 / 当前 main）', undefined], ['false', false], ['字符串 "true"', 'true'], ['数字 1', 1]]) {
+        spyIn(flag); G = { debt: 1000, stone: 0, aff: { merchant: 30 }, flags: {} };
+        r = await run(ctx, 'runMerchantChain', G, [1, 0]);
+        ok(ctx.relCalls[0] && ctx.relCalls[0][0] === 'syncAff' && !r.rel.deferred, `_inApply ${nm} → 当 false：照第十三轮先调 syncAff（typeof 判断，不是 boolean true 不算）：` + J(ctx.relCalls));
+      }
+    }
 
     // A6 不调平行系统：举报/告发/露馅后存档里没有新的恩怨/仇恨字段，G.sectRel 原样（有则不变、无则不建）
     spyLife(ctx);
@@ -273,6 +296,66 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   ok(users(/canHunt|affRel/) === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调 canHunt（正式流程不接）：' + users(/canHunt|affRel/));
   ok(users(/huntBlocksFoe/) === 'life34.js' && /Stage3\.huntBlocksFoe\(G\)/.test(LIFE34) && /L\.seen\['foe_' \+ Life34\.yr\(\)\] = 1/.test(LIFE34) && !/s3b_hunt_year/.test(LIFE34),
     'main 的 life34.js 读 Stage3.huntBlocksFoe(G)、写 L.seen[\'foe_\' + Life34.yr()]；不直接读 s3b_hunt_year（本分支未改 life34.js）');
+
+  // ---------- C. 第十四轮：Game.apply 包装内部调链（3.4.1 的 Life34._inApply）不重复计 ----------
+  // C1 当前 main 的 life34（没有 _inApply）：手动模拟 3.4.1 的外层包装（置 _inApply → 跑链 → 复位 → syncAff(整次快照)），每选择总额与第十三轮一致
+  {
+    const outer = async (g, fn) => { const b = Object.assign({}, g.aff); L34._inApply = true; try { return await fn(); } finally { L34._inApply = false; L34.syncAff(b); } };
+    const cases = [['M', '举报', 1, 0, -20], ['M', '举报', 1, 30, -20], ['M', '举报', 1, 100, -20], ['M', '扛税', 0, 0, 30], ['M', '不掺和', 2, 30, -2], ['X', '告发', 2, 50, -20], ['X', '对账', 0, 0, 30], ['X', '贿赂', 1, 0, 10]];
+    for (const [ch, nm, pk, a0, want] of cases) {
+      const id = ch === 'M' ? 'merchant' : 'xianguan', fn = ch === 'M' ? 'runMerchantChain' : 'runLedgerChain';
+      const g = fresh({ [id]: a0 }); GM.G = g; pick(pk, 0); const r = await outer(g, () => S[fn](g));
+      ok(rel(g, id) === want && (want === 0 || (r.rel && r.rel.deferred && r.rel.d === want)), `C1 包装内调链（模拟 3.4.1）：${nm}@${a0} L.rel 总变化 ${want}，实得 ${rel(g, id)}（与不在包装内一致，不重复计）`);
+    }
+    const g = fresh({ xianguan: 0 }); GM.G = g; pick(1, 0); await S.runLedgerChain(g); const r0 = rel(g, 'xianguan'); pick(0, 0);
+    const r = await outer(g, () => S.runLedgerChain(g));
+    ok(r.exposed && rel(g, 'xianguan') - r0 === -15, 'C1 包装内露馅：这一步 -15');
+    // 只置标记、不做外层同步：说明 affRel 真的跳过了 syncAff（只剩补差额那份）
+    { const g2 = fresh({ merchant: 30 }); GM.G = g2; pick(1, 0); L34._inApply = true; try { await S.runMerchantChain(g2); } finally { L34._inApply = false; }
+      ok(rel(g2, 'merchant') === -5, 'C1 _inApply=true 且无外层同步：L.rel 只有补差额 -5 → affRel 确实跳过了 syncAff'); }
+    delete L34._inApply;
+    { const g3 = fresh({ merchant: 30 }); GM.G = g3; pick(1, 0); const r3 = await S.runMerchantChain(g3);
+      ok(rel(g3, 'merchant') === -20 && !r3.rel.deferred && r3.rel.synced === -15, 'C1 删掉标记（= 3.4.0 / 当前 main）：照第十三轮 syncAff -15 + 补 -5'); }
+    ok(!/_inApply/.test(LIFE34), '本分支的 life34.js 与 main 一致：还没有 _inApply（未改 life34.js）');
+  }
+  // C2 若本机有 origin/dev341（3.4.1 开发线），vm 载入它真实的 life34.js：链在真实 Game.apply 包装内部跑，总额仍不重复计；对照当前 main 会重复计
+  {
+    let DEV341 = null;
+    try { DEV341 = require('child_process').execSync('git show origin/dev341:www/js/life34.js', { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8'); } catch (e) { DEV341 = null; }
+    const nested = async (src) => {
+      const c = { console: { log() {}, error() {} }, Math, setTimeout: () => 0 }; c.window = c; vm.createContext(c);
+      vm.runInContext(`
+        var REALMS = [{ n: '凡人', need: 80 }, { n: '练气', need: 200 }];
+        var NPCS = { merchant: { n: '奸商·钱多多', spr: 'npc_merchant', map: 'market', at: [9, 9], por: 'npc_merchant' }, xianguan: { n: '仙官·记账童子', spr: 'npc_disciple', map: 'heaven', at: [10, 10], por: 'npc_disciple' } };
+        var QUESTS = {}, SECTS = {}, ITEMS = {}, MAPINFO = { market: { n: '云来坊市', mons: ['slime'], tier: 1 } }, ASSETS = { maps: {} };
+        var R = { ents: [], mapId: 'market', mode: 'map', player: null };
+        function t2p(i, j) { return [i, j]; } function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {}
+        var npcAI = function () {};
+        var UI = { picks: [], card: async () => (UI.picks.length ? UI.picks.shift() : 0), say: async () => 0, hud() {}, toast() {}, modal: null };
+        var Game = { G: null, save() {}, async yearEnd() {}, interactEnt() {}, refreshNpcs() {}, async enterMap() {}, acceptQuest() {}, async fight() { return { res: 'win' }; }, canEnter() { return true }, give() {},
+          async apply(eff) { const G = this.G; for (const tk of (eff || '').split(';')) { const p = tk.trim().split(':');
+            if (p[0] === 'aff') { const n = +p[2]; G.aff[p[1]] = Math.max(0, Math.min(150, (G.aff[p[1]] || 0) + n)); }
+            if (p[0] === 'chain') { this._last = await Stage3[p[1]](G); } } return []; } };
+      `, c);
+      vm.runInContext(src, c); vm.runInContext(STAGE3, c);
+      const out = {};
+      for (const [k, fn, id, a0, pk] of [['举报@30', 'runMerchantChain', 'merchant', 30, 1], ['举报@0', 'runMerchantChain', 'merchant', 0, 1], ['扛税@0', 'runMerchantChain', 'merchant', 0, 0], ['告发@50', 'runLedgerChain', 'xianguan', 50, 2]]) {
+        const g = { year: 4, age: 14, realm: 1, debt: 5000, stone: 1000, aff: { [id]: a0 }, flags: {}, life34: { v: 1, fav: 1, rel: {}, seen: {}, log: [], pending: null } };
+        vm.runInContext('Game', c).G = g; vm.runInContext('UI', c).picks = [pk, 0];
+        await vm.runInContext('Game', c).apply('chain:' + fn);
+        out[k] = { rel: (g.life34.rel || {})[id] || 0, deferred: !!(vm.runInContext('Game', c)._last.rel || {}).deferred, flagAfter: vm.runInContext('typeof Life34._inApply === "undefined" ? "none" : Life34._inApply', c) };
+      }
+      return out;
+    };
+    const mainOut = await nested(LIFE34);
+    ok(mainOut['举报@30'].rel === -35 && mainOut['扛税@0'].rel === 60, 'C2 对照（当前 main，无 _inApply）：链在 Game.apply 内部跑会重复计（举报@30 = -35、扛税 = +60）——这就是 3.4.1 要加标记的原因：' + J(mainOut));
+    if (!DEV341 || !/_inApply/.test(DEV341)) ok(true, 'C2 跳过：本机没有 origin/dev341 或其 life34.js 没有 _inApply');
+    else {
+      const o = await nested(DEV341);
+      ok(o['举报@30'].rel === -20 && o['举报@0'].rel === -20 && o['扛税@0'].rel === 30 && o['告发@50'].rel === -20 && Object.values(o).every(v => v.deferred && v.flagAfter === false),
+        'C2 dev341 真实 life34（有 _inApply）：链在 Game.apply 包装内部跑，举报/告发 -20、扛税 +30，不重复计；返回 deferred，包装结束后标记复位 false：' + J(o));
+    }
+  }
 
   console.log(fails ? fails + ' FAILED' : 'ALL PASS');
   process.exit(fails);

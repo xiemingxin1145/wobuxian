@@ -132,7 +132,10 @@ const Stage3 = {
   //   所以这里改好感统一走 affRel：直接写 G.aff 后，若 L.rel 没被同步（包装没触发）就调 main 的 Life34.syncAff(改前快照)，
   //   让同步那份照 main 的规则进来；再按「本选择的目标恩怨」只补差额：目标 = 举报/告发 -20、露馅 -15；没有目标的选择（扛税/对账/贿赂/不掺和）= 只有同步那份。
   //   差额与目标同号，已达到（或超过）目标就补 0，不会反向抵消。Life34 不存在 / 没有 syncAff → 同步那份算 0，目标照补。
-  //   注意：若以后有人在 Game.apply 包装内部调这两条链，外层包装会再同步一次（重复计）——目前只有 dev_entry 按钮调用。
+  //   第十四轮：main 3.4.1（dev341 起）在 Game.apply / Talk.gift 包装运行期间置 Life34._inApply = true。为 true 时说明外层包装
+  //   返回后会自己按 trunc(Δ×0.5) 同步一次，这里就**不调 syncAff**（避免重复计），把「外层将同步的那份」按本次实际 Δ 预估，只补目标差额；
+  //   返回值标 deferred: true。_inApply 一律 typeof 判断，不存在（3.4.0 / 当前 main）或不是 true 都当 false，行为与第十三轮一致。
+  //   预估与外层实际同步可能差 1：外层用整次 apply 的快照，若同一次 apply 里该 NPC 好感还有别的变化，trunc 合并取整会不同。
   relOf(G, id) { const L = G && G.life34; const v = L && L.rel && L.rel[id]; return typeof v === 'number' ? v : 0; },
   affRel(G, id, n, target) {
     const before = Object.assign({}, G.aff || {});
@@ -143,12 +146,17 @@ const Stage3 = {
     if (!L34 || typeof L34.rel !== 'function') return target ? { id, d: target, ok: false, why: 'no-life34' } : null;
     if (!GM || GM.G !== G) return target ? { id, d: target, ok: false, why: 'not-current-save' } : null; // Life34 只认 Game.G
     try {
-      if (this.relOf(G, id) === r0 && typeof L34.syncAff === 'function') L34.syncAff(before);
-      const synced = this.relOf(G, id) - r0;
+      const inApply = typeof L34._inApply === 'boolean' && L34._inApply === true; // 3.4.1 重入标记；没有就当 false
+      let synced;
+      if (inApply) synced = Math.trunc((((G.aff && G.aff[id]) || 0) - (before[id] || 0)) * 0.5); // 外层包装稍后同步的那份（预估，同 syncAff 算法）
+      else {
+        if (this.relOf(G, id) === r0 && typeof L34.syncAff === 'function') L34.syncAff(before);
+        synced = this.relOf(G, id) - r0;
+      }
       let extra = 0;
       if (target) { extra = target < 0 ? Math.min(0, target - synced) : Math.max(0, target - synced); if (extra) L34.rel(id, extra); }
       const d = synced + extra; // 本选择的恩怨总变化（Life34.rel 自己会钳到 -100..100）
-      return d ? { id, d, synced, extra, ok: true } : null;
+      return d ? (inApply ? { id, d, synced, extra, ok: true, deferred: true } : { id, d, synced, extra, ok: true }) : null;
     } catch (e) { return { id, d: target || 0, ok: false, why: 'error' }; }
   },
   relNote(rel, name) { return rel && rel.ok && rel.d ? (rel.d < 0 ? `\n${name}记仇：恩怨 ${rel.d}` : `\n${name}恩怨 +${rel.d}`) : ''; },

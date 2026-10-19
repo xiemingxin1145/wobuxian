@@ -201,6 +201,13 @@
 - 注意：若以后在 `Game.apply` 包装内部调这两条链，外层包装会再同步一次（重复计），届时要改 affRel。
 - 下一步：主人在开发者入口试玩两条链的恩怨数值；接进正常流程另开 PR 给奥拉夫审；追兵数值待试打定。
 
+### 2026-10-19 第十四轮（UTC+8，openworld-wip，20:07 起）
+- [x] 步骤 25：`Stage3.affRel` 认 main 3.4.1（dev341 分支已有）的重入标记 `Life34._inApply`：`typeof L34._inApply === 'boolean' && === true` 才算在 `Game.apply` / `Talk.gift` 包装内部——此时不调 `Life34.syncAff`（外层返回后自己同步），按本次实际好感 Δ 预估外层那份 `trunc(Δ×0.5)`，只补「目标 − 预估」的差额（同号，已达标补 0），返回值多 `deferred: true`。标记不存在 / 非布尔 true（3.4.0、当前 main）→ 当 false，行为与第十三轮逐值一致。不改 life34.js / dev_entry_v25.js / ux23.js。
+  - 约定：3.4.0 打标签前不往 main 合任何东西；3.4.0 发布后再给 openworld-wip 开 PR，跟 3.4.1 一起进。
+  - 测试：`node test/stage3_life34.js` 109/109（新增 22 条：A5b 间谍 Life34 `_inApply=true` → 举报@30 只补 −5（预估外层 −15）、@100 已达标零调用、扛税只报告 +30、露馅补全额 −15；标记缺省 / false / "true" / 1 都当 false 先调 syncAff；C1 当前 main 的真实 life34 + 手动模拟 3.4.1 外层包装，8 种选择 + 露馅的 L.rel 总额与不在包装内一致；只置标记无外层同步时只剩差额 −5（证明确实跳过 syncAff）；删标记回到第十三轮；C2 `git show origin/dev341:www/js/life34.js` 载入真实 3.4.1 包装、链在真实 `Game.apply` 内部跑：举报@30 / 举报@0 / 告发@50 = −20、扛税 +30、deferred、包装后标记复位 false；对照当前 main 同样嵌套会重复计成 −35 / +60 / −40）；stage3_chain 203/203、dev_entry_v25_page 56/56、battle_rt_proto 143/143、lowpoly_box 55/55、battle_rt_proto_page 12/12、validate22 0 错、encounter_chain_verify 14/14、sys33_unit / jsscan33 / content33 errors []、life34_unit fails []、life34_visitor_nomons fails []、jianghu34_unit fails []、seam34 FAILS []。
+  - 涉及文件：`www/js/stage3_encounter_draft.js`、`test/stage3_life34.js`、`docs/openworld_upgrade.md`、`PROGRESS.md`
+- 下一步：按优先级回到债务系统强化（下一小步候选：讨债令加上限 / 冷却，防反复刷），之后即时战原型、低模方块角色、奇遇链；3.4.1 合进 main 后再跑一遍 C2 确认（届时 C1 的「本分支 life34 没有 _inApply」断言要换掉）。两条链接进正常流程仍须单独开 PR 给奥拉夫审。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
