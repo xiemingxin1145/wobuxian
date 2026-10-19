@@ -16,6 +16,8 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(executable_path=os.environ.get('CHROME', '/opt/google/chrome/chrome'), args=['--allow-file-access-from-files'])
         ctx = await b.new_context(viewport={'width': VW, 'height': VH}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        # 模拟别的文件用 window.DevTabs 注册一个 Tab（在 dev341.js 加载前 push；不改游戏状态，只测扩展接口）
+        await ctx.add_init_script("window.DevTabs=[{key:'ext_t',name:'扩展测试',render:(box,ctx)=>{box.innerHTML='<button class=\\'opt\\' id=\\'extbtn\\'>扩展按钮</button><span id=\\'extout\\'></span>';box.querySelector('#extbtn').onclick=()=>{box.querySelector('#extout').textContent='clicked:'+(!!ctx.G)};}}]")
         pg = await ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
         cdp = await ctx.new_cdp_session(pg)
         async def tap(x, y):
@@ -164,6 +166,9 @@ async def main():
         # 角色面板是全屏弹窗：🛠 被弹窗层盖住属正常；改为战斗/演出中验证（无弹窗时 inMap 假）——这里只校验按钮存在
         ok('9_devbtn', hint)
         await close_panel()
+        await dev('ext_t'); await tap_sel('#extbtn', 400)
+        ok('10_ext_tab', await pg.evaluate("()=>(document.querySelector('#extout')||{}).textContent==='clicked:true'&&!!document.querySelector('.devtabs .dt[data-t=ext_t]')"))
+        await pg.screenshot(path=f'{SHOTS}/tab_ext.png'); await close_panel()
         ok('10_devpanel_api', await pg.evaluate("()=>typeof DevPanel==='object'&&typeof DevPanel.registerTab==='function'&&Array.isArray(window.DevTabs)"))
         ok('js_errors', not errs, errs[:5])
         await b.close()
