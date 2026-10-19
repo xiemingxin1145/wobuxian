@@ -5,6 +5,8 @@
 #      追兵战按档位分化敌人（债务强化 #4）：重债/通缉档讨债鬼带快攻/散射参数、顶栏与结算卡标注特性，真页面齐射 2/3 发 vs 小账 1 发；
 #      天道通缉头子专属招式（债务强化 #5）：只有头子带环弹参数，真页面前冲收招后放一圈 8 发环形弹，小账前冲不放；结算卡「头子：…」。
 #      头子掉「讨债令」（债务强化 #6）：天道通缉打赢 → 结算卡「缴获讨债令×1（共 N 枚）」且 flags.s3b_token 已存档；重债打输/打赢都不含、计数不变。
+#      追兵调参（债务强化 #7）：localStorage wbx_dev_bounty_tuning 写覆盖 → 追兵战敌人参数按合并表变化（越界被钳制）、「追兵调参」卡显示生效表与被覆盖字段；
+#      坏 JSON / 非对象 → 回退默认并在卡片提示；清除覆盖后与默认逐字段一致；覆盖键不进存档。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
@@ -30,8 +32,9 @@ async def main():
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
-        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb','v25-tp'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom]})")
-        ck('七个开发者按钮（含「突破预估」）互不重叠且都在屏内（可点）', all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(7) for j in range(i+1, 7)) and all(b[0] >= 0 and b[1] <= 915 for b in boxes))
+        await pg.evaluate("localStorage.removeItem('wbx_dev_bounty_tuning')")
+        boxes = await pg.evaluate("['v25-entry','v25-eq','v25-rt','v25-qy','v25-qy2','v25-zb','v25-tp','v25-zt'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})")
+        ck('八个开发者按钮（含「突破预估」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 8 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(8) for j in range(i+1, 8)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
         ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['v25-entry','v25-eq','v25-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
@@ -205,6 +208,61 @@ async def main():
                 if not okc: print('  card:', txt.replace(chr(10), ' | ')[:200])
         except Exception as e:
             ck('突破预估真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 7. 追兵调参（债务强化 #7）：开发者覆盖只走 localStorage 专用键；覆盖生效 / 钳制 / 坏 JSON 回退 / 清除后与默认一致 / 不进存档
+        try:
+            KEY = 'wbx_dev_bounty_tuning'
+            sig_js = "RealtimeBattle.state.enemies.map(e=>[e.name,e.maxHp,e.speed,e.atkCdMul,e.windMul,e.shotCount,e.shotSpread,e.ringShots,e.ringWarn,e.ringCd])"
+            async def zb_sig():
+                await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+                sg = await pg.evaluate(sig_js); lb = await pg.evaluate("RealtimeBattle.state.label")
+                await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
+                return sg, lb
+            async def zt_card(k=0):
+                await pg.click('#v25-zt')
+                c = pg.locator('.card:has(.ct:text("追兵调参"))').last; await c.wait_for(timeout=3000)
+                tx = await c.inner_text(); nopt = await c.locator('.opt').count()
+                await c.locator(f'.opt[data-k="{k}"]').click(); await pg.wait_for_timeout(300)
+                return tx, nopt
+            await pg.evaluate(f"()=>{{localStorage.removeItem('{KEY}');const G=Game.G;G.debt=30000;delete G.flags.bounty;Game.save();}}")
+            sig0, lb0 = await zb_sig()
+            t0, n0 = await zt_card()
+            ck('没设覆盖：追兵调参卡显示「未设置覆盖：使用默认表」与四档默认值、头子 8 发，只有「知道了」', '未设置覆盖' in t0 and '天道通缉：4 只 血×1.45 冷却×0.6 前摇×0.7 3 发/16° 移速+8' in t0 and '小账：1 只' in t0
+               and '8 发 预警 0.4s 间隔 3s' in t0 and KEY in t0 and n0 == 1 and len(sig0) == 4 and sig0[0][7] == 8)
+            ov = {'tiers': {'wanted': {'shotCount': 5, 'hunters': 2, 'atkCdMul': 9}, 'light': {'foo': 1}}, 'boss': {'ringShots': 12, 'ringWarn': 'x'}}
+            await pg.evaluate(f"()=>{{localStorage.setItem('{KEY}', {json.dumps(json.dumps(ov))});}}")
+            sv0 = await pg.evaluate("localStorage.getItem('wbx2_save')")
+            sig1, lb1 = await zb_sig()
+            ck(f'写入覆盖后追兵战敌人参数变化：天道通缉 {len(sig1)} 个（覆盖 2）、5 发、冷却×9→钳到 2、头子环弹 12 发、ringWarn 非法回退 0.4；默认 {len(sig0)} 个/3 发/8 发',
+               len(sig1) == 2 and all(e[5] == 5 and e[3] == 2 for e in sig1) and sig1[0][7] == 12 and sig1[0][8] == 0.4 and sig1[1][7] == 0 and lb1 == lb0 == '追兵·天道通缉·疾攻三发')
+            t1, n1 = await zt_card()
+            ck('追兵调参卡：标出覆盖生效项、被覆盖字段（*）、钳制、非法回退与未知字段，并给「清除覆盖」',
+               '覆盖生效：改了 4 项' in t1 and 'tiers.wanted.shotCount 3→5' in t1 and 'boss.ringShots 8→12' in t1 and '天道通缉：2 只*' in t1 and '5 发*' in t1
+               and '已钳制：tiers.wanted.atkCdMul 9→2' in t1 and 'boss.ringWarn="x"' in t1 and 'tiers.light.foo' in t1 and n1 == 2)
+            # 带覆盖打赢一场：结算卡注明调参生效；存档里没有覆盖键/调参字段，覆盖键本身也没被游戏改写
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            wt = await card.inner_text(); await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            sv1 = await pg.evaluate(f"({{sv:localStorage.getItem('wbx2_save'),g:JSON.stringify(Game.G),raw:localStorage.getItem('{KEY}')}})")
+            ck('带覆盖打赢：结算卡含「开发者调参：4 项生效」；存档/G 不含覆盖键与调参字段，覆盖键原样未被改写',
+               '开发者调参：4 项生效' in wt and '胜·天道通缉' in wt and all(x not in sv1['sv'] and x not in sv1['g'] for x in ('wbx_dev', 'tuning', 'ringWarn', 'shotCount')) and sv1['raw'] == json.dumps(ov) and sv0 != sv1['sv'])
+            # 坏 JSON / 非对象：回退默认表（与没覆盖逐字段一致），卡片提示
+            bad_ok = []
+            for raw, hint in (('{bad json', '不是合法 JSON'), ('[1,2]', '不是 JSON 对象'), ('null', '不是 JSON 对象'), ('"str"', '不是 JSON 对象')):
+                await pg.evaluate(f"()=>{{localStorage.setItem('{KEY}', {json.dumps(raw)});const G=Game.G;G.debt=30000;delete G.flags.bounty;Game.save();}}")
+                sg, _ = await zb_sig(); tb, nb = await zt_card()
+                bad_ok.append(sg == sig0 and '⚠' in tb and hint in tb and '天道通缉：4 只 血×1.45' in tb and nb == 2)
+            ck(f'坏 JSON / 数组 / null / 字符串覆盖：追兵与默认逐字段一致，卡片提示「⚠ …已用默认表」：{bad_ok}', all(bad_ok))
+            # 清除覆盖：卡片「清除覆盖」→ 键被删，追兵与默认逐字段一致
+            await pg.evaluate(f"()=>{{localStorage.setItem('{KEY}', {json.dumps(json.dumps(ov))});}}")
+            sigx, _ = await zb_sig()
+            await zt_card(1)
+            gone = await pg.evaluate(f"localStorage.getItem('{KEY}')")
+            sig2, lb2 = await zb_sig()
+            t2, _ = await zt_card()
+            ck('「清除覆盖」后覆盖键被删，追兵战与默认表逐字段一致、卡片回到「未设置覆盖」', sigx != sig0 and gone is None and sig2 == sig0 and lb2 == lb0 and '未设置覆盖' in t2)
+        except Exception as e:
+            ck('追兵调参真页面流程（异常：' + str(e)[:80] + '）', False)
         ck('无 JS 错误', not errs)
         await b.close()
     for m, c in checks: print(('PASS ' if c else 'FAIL ') + m)

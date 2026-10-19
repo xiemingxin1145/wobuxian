@@ -1,11 +1,47 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）+ 突破预估（债压→突破难度，只读）
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）+ 突破预估（债压→突破难度，只读）+ 追兵调参（开发者覆盖）
 
 (function () {
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
   const gameObj = () => (typeof Game !== 'undefined' && Game ? Game : null);
   const uiObj = () => (typeof UI !== 'undefined' && UI ? UI : null);
   const toast = (...a) => { const u = uiObj(); if (u && u.toast) u.toast(...a); };
+
+  // 债务强化 #7：追兵档位参数的开发者覆盖。只有这里读 localStorage 专用键（JSON），交给 Stage3.bountyTuning 校验/钳制后只给开发者「追兵战」用；
+  // 不写进游戏存档（wbx2_save），正式游戏逻辑不读。坏 JSON / 非对象 → 回退默认表，并在「追兵调参」卡片与追兵战提示里标出。
+  const TUNING_KEY = 'wbx_dev_bounty_tuning';
+  function readBountyTuning() {
+    let raw = null;
+    try { raw = localStorage.getItem(TUNING_KEY); } catch (e) { raw = null; }
+    if (raw == null || raw === '') return Object.assign(Stage3.bountyTuning(null), { raw: null });
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (e) {
+      return Object.assign(Stage3.bountyTuning(null), { raw, source: 'invalid', error: '覆盖不是合法 JSON（' + String(e && e.message || e).slice(0, 40) + '），已用默认表' });
+    }
+    if (parsed === null) return Object.assign(Stage3.bountyTuning(null), { raw, source: 'invalid', error: '覆盖不是 JSON 对象（null），已用默认表' });
+    const r = Stage3.bountyTuning(parsed);
+    if (r.error) r.source = 'invalid';
+    return Object.assign(r, { raw });
+  }
+  const short = v => { let t; try { t = JSON.stringify(v); } catch (e) { t = String(v); } t = t === undefined ? String(v) : t; return t.length > 24 ? t.slice(0, 24) + '…' : t; };
+  function tuningCardText(tu) {
+    const T = tu.table, B = T.boss, L = [];
+    L.push(tu.error ? '⚠ ' + tu.error : tu.raw == null ? '未设置覆盖：使用默认表' : tu.changed.length ? `覆盖生效：改了 ${tu.changed.length} 项` : '覆盖里没有改动任何数值：等同默认表');
+    const mark = new Set(tu.changed.map(c => c.path));
+    const m = (i, f, txt) => txt + (mark.has('tiers.' + Stage3.DEBT_TIERS[i].key + '.' + f) ? '*' : '');
+    Stage3.DEBT_TIERS.forEach((d, i) => {
+      const v = T.tiers[i];
+      L.push(`${d.n}：${m(i, 'hunters', v.hunters + ' 只')} ${m(i, 'hpMul', '血×' + v.hpMul)} ${m(i, 'atkCdMul', '冷却×' + v.atkCdMul)} ${m(i, 'windMul', '前摇×' + v.windMul)} ${m(i, 'shotCount', v.shotCount + ' 发')}/${m(i, 'shotSpread', v.shotSpread + '°')} ${m(i, 'spdAdd', '移速+' + v.spdAdd)}`);
+    });
+    const mb = (f, txt) => txt + (mark.has('boss.' + f) ? '*' : '');
+    L.push(`通缉头子环弹：${mb('ringShots', B.ringShots ? B.ringShots + ' 发' : '不放')} ${mb('ringWarn', '预警 ' + B.ringWarn + 's')} ${mb('ringCd', '间隔 ' + B.ringCd + 's')}`);
+    if (tu.changed.length) L.push('已覆盖（*）：' + tu.changed.map(c => `${c.path} ${c.from}→${c.to}`).join('；'));
+    if (tu.clamped.length) L.push('已钳制：' + tu.clamped.map(c => `${c.path} ${short(c.value)}→${c.to}`).join('；'));
+    if (tu.rejected.length) L.push('非法，回退默认：' + tu.rejected.map(c => `${c.path}=${short(c.value)}（${c.why}）`).join('；'));
+    if (tu.unknown.length) L.push('未知字段，已忽略：' + tu.unknown.join('、'));
+    L.push(`改法：localStorage 键 ${TUNING_KEY} 写 JSON，如 {"tiers":{"wanted":{"shotCount":5}},"boss":{"ringShots":12}}。只影响开发者「追兵战」，不进存档。`);
+    return L.join('\n');
+  }
 
   function addEntry() {
     if (document.getElementById('v25-entry')) return;
@@ -88,10 +124,13 @@
       if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
       if (!window.RealtimeBattle || !RealtimeBattle.open) return;
       const G = g.G;
-      const P = Stage3.debtPressure(G);
-      const h = RealtimeBattle.open(Stage3.bountyEnemies(G), { force: true, label: '追兵·' + P.n + (P.trait ? '·' + P.trait : '') });
+      // 债务强化 #7：读开发者调参覆盖（没设 = 默认表，与 c46c1ef 完全一样）
+      const tu = readBountyTuning();
+      const P = Stage3.debtPressure(G, tu.table);
+      const h = RealtimeBattle.open(Stage3.bountyEnemies(G, tu.table), { force: true, label: '追兵·' + P.n + (P.trait ? '·' + P.trait : '') });
       if (!h) return;
-      toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了${P.trait ? '（' + P.trait + '）' : ''}${P.bossMove ? '，头子会' + P.bossMove : ''}`, '#ffb0a0');
+      const tuneTag = tu.error ? '【调参表无效，已用默认】' : tu.changed.length ? `【开发者调参 ${tu.changed.length} 项】` : '';
+      toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了${P.trait ? '（' + P.trait + '）' : ''}${P.bossMove ? '，头子会' + P.bossMove : ''}${tuneTag}`, '#ffb0a0');
       const r = await h.done;
       const s = Stage3.settleBounty(G, Object.assign({}, r, { tier: P.tier }));
       if (s.settled && typeof g.save === 'function') g.save();
@@ -99,7 +138,7 @@
       const u = uiObj();
       if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
       if (u && u.card) {
-        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}`, 'i:bill', ['好']);
+        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}${tu.error ? '\n调参表无效，本场用默认表' : tu.changed.length ? `\n开发者调参：${tu.changed.length} 项生效（见「追兵调参」）` : ''}`, 'i:bill', ['好']);
         if (u.hud) u.hud();
       }
     };
@@ -123,6 +162,25 @@
       await u.card('突破预估', body, 'i:sk_meditate', ['知道了']);
     };
     document.body.appendChild(tp);
+
+    // 追兵调参按钮：债务强化 #7——显示当前生效的追兵档位参数表（默认表 + localStorage 开发者覆盖）、哪些字段被覆盖/钳制/回退；可一键清除覆盖。不改存档
+    const zt = document.createElement('button');
+    zt.id = 'v25-zt';
+    zt.textContent = '追兵调参';
+    zt.style.cssText = 'position:fixed;right:12px;bottom:470px;z-index:9999;padding:8px 14px;background:#4a2a3a;color:#ffc0d8;border:1px solid #ffc0d8;border-radius:20px;font-size:14px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    zt.onclick = async () => {
+      const u = uiObj();
+      if (!window.Stage3 || !Stage3.bountyTuning) return;
+      if (!u || !u.card) return;
+      const tu = readBountyTuning();
+      const opts = tu.raw == null ? ['知道了'] : ['知道了', '清除覆盖'];
+      const c = await u.card('追兵调参', tuningCardText(tu), 'i:bill', opts);
+      if (c === 1 && tu.raw != null) {
+        try { localStorage.removeItem(TUNING_KEY); } catch (e) { /* 无 localStorage 时忽略 */ }
+        toast('已清除追兵调参覆盖，恢复默认表', '#ffc0d8');
+      }
+    };
+    document.body.appendChild(zt);
   }
 
   function openEncounterOverlay() {

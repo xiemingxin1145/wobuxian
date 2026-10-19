@@ -472,6 +472,38 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     RB.end('lose', 'closed'); S.rand = Math.random;
   }
 
+  // 6g. 债务强化 #7：追兵调参表（Stage3.bountyTuning）的钳制与原型 foeTrait/foeRing 一致；合并后的表进原型原样生效
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const base = { name: '讨债鬼', hp: 80, x: 300, y: 110, speed: 0, atkCd: 99 };
+    const viaProto = (f, v) => { const d = RB.start([Object.assign({}, base, { [f]: v })], { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); const val = S.enemies[0][f]; RB.end('lose', 'closed'); return [d, val]; };
+    const cases = { atkCdMul: [0.1, 0.3, 0.55, 1, 1.7, 2, 5], windMul: [0.05, 0.3, 0.8, 2, 9], shotCount: [1, 2, 2.7, 5, 9], shotSpread: [0.5, 14, 30, 45], ringShots: [3, 7.9, 8, 16, 99], ringWarn: [0.01, 0.15, 0.4, 1, 3], ringCd: [0, 1.5, 10, 30] };
+    const mism = []; const dones = [];
+    for (const f of Object.keys(cases)) for (const v of cases[f]) {
+      const boss = /^ring/.test(f);
+      const t = S3.bountyTuning(boss ? { boss: { [f]: v } } : { tiers: { wanted: { [f]: v } } }).table;
+      const tv = boss ? t.boss[f] : t.tiers[3][f]; const [d, pv] = viaProto(f, v); dones.push(d);
+      if (tv !== pv) mism.push(`${f}=${v}: 表 ${tv} / 原型 ${pv}`);
+    }
+    await Promise.all(dones);
+    ok(!mism.length, '合法数值的钳制：调参表 = 原型 foeTrait/foeRing（倍率 0.3–2、≤5 发取整、≤30°、环弹 3–16 取整、预警 0.15–1s、间隔 0–10s）' + (mism.length ? '；不一致：' + mism.join(' ') : ''));
+    const TO = S3.bountyTuning({ tiers: { wanted: { shotCount: 5, shotSpread: 20, atkCdMul: 0.4, windMul: 0.5 }, light: { shotCount: 2, shotSpread: 9 } }, boss: { ringShots: 12, ringWarn: 0.25, ringCd: 1 } }).table;
+    const foes = S3.bountyEnemies({ debt: 30000 }, TO);
+    let d7 = RB.start(foes, { timeLimit: 99, hp: 1e6, atk: 28, scale: false });
+    const st7 = S.enemies.map(e => [e.atkCdMul, e.windMul, e.shotCount, e.shotSpread, e.ringShots, e.ringWarn, e.ringCd].join('/'));
+    ok(st7[0] === '0.4/0.5/5/20/12/0.25/1' && st7.slice(1).every(x => x === '0.4/0.5/5/20/0/0.4/3'), '合并表进原型原样生效（表内值已在原型范围内，原型不再改动）：' + st7.join(' '));
+    RB.end('lose', 'closed'); await d7;
+    // 站桩远射 6s：通缉档调成 5 发 → 每次齐射 5 发；默认表 3 发
+    const volley = async (enemies) => {
+      const d = RB.start(enemies.map((e, i) => Object.assign({}, e, { speed: 0, x: [300, 150, 450, 220][i], y: 110 })), { timeLimit: 99, hp: 1e7, atk: 28, scale: false });
+      S.player.x = 300; S.player.y = 320; S.rand = () => 0.5;
+      for (let i = 0; i < 360; i++) { S.player.x = 300; S.player.y = 320; RB.update(1 / 60); }
+      const out = { v: S.foeVolleys, s: S.foeShots }; RB.end('lose', 'closed'); await d; S.rand = Math.random; return out;
+    };
+    const vT = await volley(foes), vD = await volley(S3.bountyEnemies({ debt: 30000 }));
+    ok(vT.v >= 4 && vT.s === 5 * vT.v && vD.v >= 4 && vD.s === 3 * vD.v && vT.v > vD.v, `站桩远射 6s：调参（5 发、冷却×0.4）齐射 ${vT.v} 次/弹丸 ${vT.s}，默认（3 发、冷却×0.6）齐射 ${vD.v} 次/弹丸 ${vD.s}`);
+  }
+
   // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因
   {
     let d8 = RB.start(null, { timeLimit: 99 }); S.player.hp = 0; RB.update(0.016);

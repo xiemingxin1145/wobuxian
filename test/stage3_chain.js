@@ -338,6 +338,118 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
   ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
 
+  // 16. 债务强化 #7：追兵档位参数可调表（BOUNTY_TUNING_DEFAULT 深冻结）+ bountyTuning 合并/校验/钳制 + 只有开发者入口读覆盖键
+  {
+    const fs7 = require('fs'), vm7 = require('vm');
+    const D7 = S.BOUNTY_TUNING_DEFAULT, BT = o => S.bountyTuning(o), J7 = v => JSON.stringify(v);
+    const TF = ['hunters', 'hpMul', 'atkCdMul', 'windMul', 'shotCount', 'shotSpread', 'spdAdd'], BF = ['ringShots', 'ringWarn', 'ringCd'];
+    ok(Object.isFrozen(D7) && Object.isFrozen(D7.tiers) && D7.tiers.every(Object.isFrozen) && Object.isFrozen(D7.boss), '默认表 BOUNTY_TUNING_DEFAULT 深冻结（表/tiers/每档/boss）');
+    let threw = 0; for (const f of [() => { D7.tiers[3].shotCount = 9; }, () => { D7.boss.ringShots = 1; }, () => { D7.tiers.push({}); }, () => { D7.extra = 1; }]) { try { f(); } catch (e) { threw++; } }
+    ok(threw === 4 && D7.tiers[3].shotCount === 3 && D7.boss.ringShots === 8 && D7.tiers.length === 4 && !('extra' in D7), '默认表改不动（严格模式赋值/push/加键都抛错，值不变）');
+    ok(D7.tiers.length === 4 && D7.tiers.every((t, i) => Object.keys(t).join() === TF.join() && TF.every(f => t[f] === S.DEBT_TIERS[i][f])) && Object.keys(D7.boss).join() === BF.join() && BF.every(f => D7.boss[f] === S.BOSS_RING[f]),
+      '默认表 = DEBT_TIERS 每档 7 个数值 + BOSS_RING 3 个环弹数值（逐字段一致）：' + JSON.stringify(D7));
+    const r0 = BT(), rN = BT(null), rE = BT({});
+    ok(r0.table === D7 && rN.table === D7 && r0.source === 'default' && !r0.error && [r0, rN].every(r => !r.changed.length && !r.clamped.length && !r.rejected.length && !r.unknown.length), '不传/传 null → 原样返回默认表，无改动无报错');
+    ok(rE.table === D7 && rE.source === 'override' && !rE.error && !rE.changed.length, '空覆盖 {} → 仍是默认表（同一个冻结对象）');
+    // 合并
+    const ov = { tiers: { wanted: { shotCount: 5, hpMul: 2 }, 0: { hunters: 3 } }, boss: { ringShots: 12 } }; const ovSnap = JSON.stringify(ov);
+    const rm = BT(ov), tm = rm.table;
+    ok(tm !== D7 && tm.tiers[3].shotCount === 5 && tm.tiers[3].hpMul === 2 && tm.tiers[0].hunters === 3 && tm.boss.ringShots === 12 && tm.boss.ringWarn === 0.4 && tm.boss.ringCd === 3, '合并：覆盖字段生效（通缉 5 发/血×2、小账 3 只、环弹 12 发），其余字段沿用默认');
+    ok(tm.tiers.every((t, i) => TF.every(f => ['tiers.' + S.DEBT_TIERS[i].key + '.' + f].some(p => rm.changed.some(c => c.path === p)) || t[f] === D7.tiers[i][f])), '没覆盖的字段与默认表逐字段一致');
+    ok(rm.changed.map(c => c.path).sort().join() === 'boss.ringShots,tiers.light.hunters,tiers.wanted.hpMul,tiers.wanted.shotCount' && rm.changed.find(c => c.path === 'boss.ringShots').from === 8, 'changed 列出被覆盖的字段（路径 + 默认值 → 新值）：' + rm.changed.map(c => `${c.path} ${c.from}→${c.to}`).join('；'));
+    ok(Object.isFrozen(tm) && tm.tiers.every(Object.isFrozen) && Object.isFrozen(tm.boss) && JSON.stringify(ov) === ovSnap && D7.tiers[3].shotCount === 3 && D7.boss.ringShots === 8, '合并结果深冻结；不改传入的覆盖对象、不改默认表');
+    ok(JSON.stringify(BT(ov)) === JSON.stringify(rm) && JSON.stringify(BT({ tiers: { 3: { shotCount: 5, hpMul: 2 }, light: { hunters: 3 } }, boss: { ringShots: 12 } }).table) === JSON.stringify(tm) && JSON.stringify(BT({ tiers: [{ hunters: 3 }, null, undefined, { shotCount: 5, hpMul: 2 }], boss: { ringShots: 12 } }).table) === JSON.stringify(tm), '纯函数：同输入同输出；档位可写下标/英文键/4 项数组，结果一致');
+    ok(BT(tm).table.tiers[3].shotCount === 5 && JSON.stringify(BT(JSON.parse(JSON.stringify(tm))).table) === JSON.stringify(tm) && JSON.stringify(BT(JSON.parse(JSON.stringify(D7))).table) === JSON.stringify(D7) && BT(JSON.parse(JSON.stringify(D7))).table === D7, '把整张表当覆盖传回去 = 原表（幂等）；整张默认表 → 默认表');
+    // 钳制（与即时战原型 foeTrait/foeRing 一致；原型没钳的 hunters/hpMul/spdAdd 另定 1–4 / 0.3–3 / 0–40）
+    const one = (f, v, boss) => { const r = BT(boss ? { boss: { [f]: v } } : { tiers: { wanted: { [f]: v } } }); return { v: boss ? r.table.boss[f] : r.table.tiers[3][f], r }; };
+    const clampCases = [['atkCdMul', 0.1, 0.3], ['atkCdMul', 5, 2], ['windMul', 0.05, 0.3], ['windMul', 2.5, 2], ['shotCount', 9, 5], ['shotCount', 2.7, 2], ['shotSpread', 45, 30], ['hunters', 9, 4], ['hunters', 2.5, 2], ['hpMul', 10, 3], ['hpMul', 0.1, 0.3], ['spdAdd', 100, 40]];
+    const clampOk = clampCases.map(([f, v, w]) => { const o = one(f, v); return o.v === w && o.r.clamped.length === 1 && o.r.clamped[0].to === w && o.r.clamped[0].value === v && !o.r.rejected.length; });
+    ok(clampOk.every(Boolean), '档位字段越界钳到边界并记进 clamped：' + clampCases.map(([f, v, w], i) => `${f} ${v}→${w}${clampOk[i] ? '' : '✗'}`).join(' '));
+    const ringCases = [['ringShots', 2, 0], ['ringShots', 0, 0], ['ringShots', 99, 16], ['ringShots', 7.9, 7], ['ringWarn', 0.01, 0.15], ['ringWarn', 3, 1], ['ringCd', 30, 10], ['ringCd', 0, 0]];
+    const ringOk = ringCases.map(([f, v, w]) => { const o = one(f, v, true); return o.v === w && !o.r.rejected.length; });
+    ok(ringOk.every(Boolean), '头子环弹字段钳制（<3 发 = 0 不放、≤16 发取整、预警 0.15–1s、间隔 0–10s）：' + ringCases.map(([f, v, w], i) => `${f} ${v}→${w}${ringOk[i] ? '' : '✗'}`).join(' '));
+    ok(one('shotSpread', 0).v === 0 && !one('shotSpread', 0).r.clamped.length && one('spdAdd', 0).v === 0 && one('ringCd', 0, true).r.clamped.length === 0, '边界合法值（0° 夹角 / 移速 +0 / 间隔 0s）原样接受、不算钳制');
+    // 非法 → 回退默认
+    const bad = ['abc', '0.5', NaN, Infinity, -Infinity, null, true, {}, [], [1]];
+    ok(TF.every(f => bad.every(v => { const o = one(f, v); return o.v === D7.tiers[3][f] && o.r.rejected.length === 1 && o.r.rejected[0].path === 'tiers.wanted.' + f && !o.r.changed.length; })) && BF.every(f => bad.every(v => one(f, v, true).v === D7.boss[f])), `非数字（${bad.length} 种：字符串/数字串/NaN/±无穷/null/布尔/对象/数组）→ 该字段回退默认并记进 rejected`);
+    const domainBad = [['atkCdMul', 0], ['atkCdMul', -1], ['windMul', 0], ['hpMul', -2], ['shotCount', 0.5], ['shotCount', -3], ['hunters', 0], ['shotSpread', -5], ['spdAdd', -1]];
+    const boDomainBad = [['ringShots', -1], ['ringWarn', 0], ['ringWarn', -0.2], ['ringCd', -1]];
+    ok(domainBad.every(([f, v]) => { const o = one(f, v); return o.v === D7.tiers[3][f] && o.r.rejected.length === 1; }) && boDomainBad.every(([f, v]) => { const o = one(f, v, true); return o.v === D7.boss[f] && o.r.rejected.length === 1; }), '不合法的数（倍率 ≤0、发数/只数 <1、负夹角/负移速/负环弹/预警 ≤0/负间隔）→ 回退默认：' + domainBad.concat(boDomainBad).map(([f, v]) => f + '=' + v).join(' '));
+    const ru = BT({ foo: 1, tiers: { boss: { shotCount: 3 }, 4: { hunters: 1 }, wanted: { trait: 'x', n: '假', shotCount: 4 } }, boss: { move: '乱改', ringShots: 10 } });
+    ok(ru.unknown.sort().join() === 'boss.move,foo,tiers.4,tiers.boss,tiers.wanted.n,tiers.wanted.trait' && ru.table.tiers[3].shotCount === 4 && ru.table.boss.ringShots === 10 && !('trait' in ru.table.tiers[3]) && !('move' in ru.table.boss), '未知顶层键/档位/字段 → 忽略并记进 unknown，其余合法字段照常生效：' + ru.unknown.join('、'));
+    ok(BT({ tiers: [null, null, null, null, { hunters: 1 }] }).unknown.join() === 'tiers.4' && BT({ tiers: 'x' }).rejected[0].path === 'tiers' && BT({ tiers: { wanted: 5 } }).rejected[0].path === 'tiers.wanted' && BT({ boss: [] }).rejected[0].path === 'boss' && BT({ tiers: 'x', boss: 7 }).table === D7, 'tiers/boss/某档不是对象 → 记进 rejected 并整块用默认；数组多出第 5 项 → unknown');
+    const nonObj = ['x', 42, true, [], [{ hunters: 2 }]].map(v => BT(v));
+    ok(nonObj.every(r => r.table === D7 && /不是 JSON 对象/.test(r.error)), '覆盖本身不是对象（字符串/数字/布尔/数组）→ 整张回退默认表并给 error');
+    // 无覆盖时：debtPressure / bountyEnemies / settleBounty / breakthroughPreview 与 c46c1ef 逐字段完全一致（vm 载入 git show 的旧版本）
+    let src46 = null; try { src46 = require('child_process').execSync('git show c46c1ef:www/js/stage3_encounter_draft.js', { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { src46 = null; }
+    if (src46) {
+      const mkCx = (src, withGame) => {
+        const cx = vm7.createContext({ console: { log() {} }, window: {}, localStorage: { getItem() { return null; }, setItem() {} }, document: {} });
+        if (withGame) {
+          vm7.runInContext(fs7.readFileSync(path.join(jsDir, 'data.js'), 'utf8'), cx);
+          vm7.runInContext(fs7.readFileSync(path.join(jsDir, 'game.js'), 'utf8'), cx);
+          vm7.runInContext("var UI = { card: async () => 1, hud() {}, toast() {} }; var Sfx = { play() {} }; Game.meta = { perks: {}, achs: {}, endings: {} };", cx);
+        }
+        vm7.runInContext(src + '\n;window.__S = Stage3;', cx); return cx;
+      };
+      const oldCx = mkCx(src46, false), O = oldCx.window.__S;
+      const saves7 = [{}, { debt: 0 }, { debt: 1000 }, { debt: 1001 }, { debt: 3000 }, { debt: 5000 }, { debt: 5001 }, { debt: 8888 }, { debt: 20000 }, { debt: 20001 }, { debt: 30000 }, { debt: 99999, year: 7 },
+        { debt: 10, flags: { bounty: 1 } }, { debt: 3000, flags: { bounty: 1 } }, { debt: 8888, flags: { bounty: 1, stage3_bountyDebt: 8888 } }, { debt: 30000, flags: { bounty: 1, s3b_token: 2 } },
+        { debt: -5 }, { debt: 'abc' }, { debt: NaN }, { debt: '9000' }, { debt: 12345.6, flags: 'x' }, { debt: 30000, flags: null }];
+      const J = v => JSON.stringify(v), cl = g => JSON.parse(J(g === undefined ? null : g));
+      const tunings = [undefined, null, D7, BT().table, BT({}).table, BT({}), {}];
+      const dpSame = saves7.every(g => tunings.every(t => J(S.debtPressure(cl(g), t)) === J(O.debtPressure(cl(g))))) && J(S.debtPressure(null)) === J(O.debtPressure(null)) && J(S.debtPressure(undefined)) === J(O.debtPressure(undefined));
+      const beSame = saves7.every(g => tunings.every(t => J(S.bountyEnemies(cl(g), t)) === J(O.bountyEnemies(cl(g))))) && J(S.bountyEnemies(null)) === J(O.bountyEnemies(null));
+      ok(dpSame, `无覆盖（不传/null/默认表/空覆盖等 ${tunings.length} 种写法）× ${saves7.length + 2} 种存档：debtPressure 与 c46c1ef 逐字段一致`);
+      ok(beSame, `无覆盖 × ${saves7.length + 1} 种存档：bountyEnemies 与 c46c1ef 逐字段一致（含头子环弹字段）`);
+      const team46 = O.bountyEnemies({ debt: 30000 }).map(e => e.name);
+      const outs7 = [{ result: 'win', reason: 'cleared', tier: 3, defeated: team46 }, { result: 'win', reason: 'cleared', tier: 3, defeated: ['讨债鬼'] }, { result: 'win', reason: 'cleared' }, { result: 'win', tier: 1 },
+        { result: 'lose', reason: 'dead', tier: 2 }, { result: 'lose', reason: 'timeout', tier: 0 }, { result: 'lose', reason: 'dead' }, { result: 'win', reason: 'closed', tier: 3 }, { result: 'lose', reason: 'closed' },
+        { result: 'draw' }, null, { result: 'win', reason: 'timeout', tier: 3, defeated: team46 }, { result: 'win', tier: 9, defeated: team46 }];
+      let sbN = 0; const sbSame = saves7.every(g => outs7.every(o => { const gn = cl(g), go = cl(g); sbN++; return J(S.settleBounty(gn, cl(o))) === J(O.settleBounty(go, cl(o))) && J(gn) === J(go); }));
+      ok(sbSame && J(S.settleBounty(null, outs7[0])) === J(O.settleBounty(null, outs7[0])), `settleBounty 与 c46c1ef 逐字段一致（${sbN} 组 存档×结果：返回值 + 结算后整份存档）`);
+      const bpSaves = saves7.map((g, i) => Object.assign(cl(g), { realm: [0, 1, 2, 3, 4, 5, 6, 99, 'x'][i % 9], st: i % 4 ? { int: i, luck: 3 } : {}, inv: i % 3 ? { zjd: 1, pjd: 1 } : {}, brkBonus: 0.01 * (i % 5), tmpBrk: i % 2 ? 0.05 : 0 }));
+      const bpSame0 = bpSaves.every(g => J(S.breakthroughPreview(cl(g), null)) === J(O.breakthroughPreview(cl(g), null)));
+      const newG = mkCx(fs7.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8'), true), oldG = mkCx(src46, true);
+      vm7.runInContext('window.__bp = (G) => { Game.G = G; G.stage = 3; G.exp = Game.need(); return JSON.stringify(window.__S.breakthroughPreview(G, Game)); };', newG);
+      vm7.runInContext('window.__bp = (G) => { Game.G = G; G.stage = 3; G.exp = Game.need(); return JSON.stringify(window.__S.breakthroughPreview(G, Game)); };', oldG);
+      const realSaves = bpSaves.filter(g => Number.isInteger(g.realm) && g.realm < 9).map(g => Object.assign(cl(g), { tree: {}, flags: Object.assign({ awakened: 1 }, g.flags && typeof g.flags === 'object' ? g.flags : {}), st: { int: 4, luck: 2 } }));
+      const bpSameG = realSaves.every(g => newG.window.__bp(cl(g)) === oldG.window.__bp(cl(g)));
+      ok(bpSame0 && bpSameG && realSaves.length >= 10, `breakthroughPreview 与 c46c1ef 逐字段一致（${bpSaves.length} 种存档无 Game 回退路径 + ${realSaves.length} 种存档载入真实 data.js/game.js）`);
+    } else ok(false, '读不到 c46c1ef 的 stage3_encounter_draft.js（git show 失败），无法做无覆盖对照');
+    // 覆盖生效：追兵数/血量/移速/出手参数/头子环弹都按合并表；档名/阈值/特性名/结算不受影响
+    const TO = BT({ tiers: { light: { hunters: 3, hpMul: 2, shotCount: 2, shotSpread: 10 }, wanted: { shotCount: 5, atkCdMul: 0.4, spdAdd: 20 } }, boss: { ringShots: 12, ringWarn: 0.6, ringCd: 1.5 } }).table;
+    const eL = S.bountyEnemies({ debt: 10 }, TO), eW = S.bountyEnemies({ debt: 30000 }, TO);
+    ok(eL.length === 3 && eL.every(e => e.hp === 160 && e.shotCount === 2 && e.shotSpread === 10 && e.tier === 0 && e.name === '讨债鬼' && !('ringShots' in e)) && eL.map(e => e.speed).join() === '70,70,70', '覆盖小账档：3 个讨债鬼、血 80×2=160、2 发/10°，仍是小账档（无头子无环弹）');
+    ok(eW.length === 4 && eW.every(e => e.shotCount === 5 && e.atkCdMul === 0.4 && e.speed === 70 + 18 + 20 && e.windMul === 0.7) && eW[0].name === '讨债鬼头子' && eW[0].ringShots === 12 && eW[0].ringWarn === 0.6 && eW[0].ringCd === 1.5 && eW.slice(1).every(e => !('ringShots' in e)), '覆盖通缉档：5 发、冷却×0.4、移速 +20、前摇沿用默认 0.7；头子环弹 12 发/0.6s/1.5s，只有头子带');
+    const pW = S.debtPressure({ debt: 30000 }, TO), pL = S.debtPressure({ debt: 10 }, TO);
+    ok(pW.n === '天道通缉' && pW.trait === '疾攻三发' && pW.tier === 3 && /弹道 5 发/.test(pW.traitNote) && /冷却 ×0\.4/.test(pW.traitNote) && /预警 0\.6s，放一圈 12 发环形弹（每 1\.5s 至多一次）/.test(pW.bossNote) && pW.bossMove === '回身环弹', '通缉档 debtPressure：档名/特性名不变，traitNote/bossNote 用覆盖后的数值');
+    ok(pL.hunters === 3 && pL.trait === '' && /^开发者调参：/.test(pL.traitNote) && S.debtPressure({ debt: 10 }).traitNote === '与普通讨债鬼相同', '小账档被调成非中性 → 说明标「开发者调参：…」；没覆盖仍是「与普通讨债鬼相同」');
+    const offRing = BT({ boss: { ringShots: 0 } }).table, eOff = S.bountyEnemies({ debt: 30000 }, offRing)[0];
+    ok(eOff.ringShots === 0 && S.debtPressure({ debt: 30000 }, offRing).bossMove === '' && S.debtPressure({ debt: 30000 }, offRing).bossNote === '', '覆盖 ringShots=0 → 头子不放环弹（原型 ringShots 0 = 旧行为），提示里也不写头子招式');
+    const rawOv = { tiers: { wanted: { shotCount: 5, atkCdMul: 'x' } } };
+    ok(J7(S.bountyEnemies({ debt: 30000 }, rawOv)) === J7(S.bountyEnemies({ debt: 30000 }, BT(rawOv).table)) && J7(S.bountyEnemies({ debt: 30000 }, BT(rawOv))) === J7(S.bountyEnemies({ debt: 30000 }, BT(rawOv).table)) && S.bountyEnemies({ debt: 30000 }, rawOv)[0].atkCdMul === 0.6, '直接传未校验的覆盖对象 / bountyTuning 结果也先校验（非法字段回退默认），与传合并表结果一致');
+    ok(J7(S.bountyEnemies({ debt: 30000 }, 'garbage')) === J7(S.bountyEnemies({ debt: 30000 })) && J7(S.debtPressure({ debt: 8888 }, [1, 2])) === J7(S.debtPressure({ debt: 8888 })), '传入非对象覆盖 → 等同默认表');
+    // 覆盖不改存档、不影响结算
+    const Gt7 = mk({ debt: 30000, year: 5, flags: { bounty: 1 } }); const snap7 = JSON.stringify(Gt7);
+    S.debtPressure(Gt7, TO); S.bountyEnemies(Gt7, TO); S.bountyTuning({ tiers: { wanted: { hunters: 1 } } });
+    ok(JSON.stringify(Gt7) === snap7 && !/tuning|wbx_dev/i.test(JSON.stringify(Gt7)), '带覆盖生成追兵：存档逐字段不变、没写进任何调参字段');
+    const Ga7 = mk({ debt: 30000, flags: { bounty: 1 } }), Gb7 = JSON.parse(JSON.stringify(Ga7));
+    const team7 = S.bountyEnemies(Ga7, TO).map(e => e.name);
+    ok(J7(S.settleBounty(Ga7, { result: 'win', reason: 'cleared', tier: S.debtPressure(Ga7, TO).tier, defeated: team7 })) === J7(S.settleBounty(Gb7, { result: 'win', reason: 'cleared', tier: S.debtPressure(Gb7).tier, defeated: S.bountyEnemies(Gb7).map(e => e.name) })) && J7(Ga7) === J7(Gb7), '覆盖不影响结算：同一存档带/不带覆盖打赢，结算返回值与结算后存档一致（档位、误工费率、讨债令照旧）');
+    // 只有开发者入口读覆盖键；stage3 本身不碰 localStorage；正式游戏文件不引用 bountyTuning
+    const keyFiles = fs7.readdirSync(jsDir).filter(f => f.endsWith('.js') && /wbx_dev_bounty_tuning/.test(fs7.readFileSync(path.join(jsDir, f), 'utf8')));
+    ok(keyFiles.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 提到覆盖键 wbx_dev_bounty_tuning：' + keyFiles.join(','));
+    const s3code = fs7.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    ok(!/localStorage|sessionStorage|Game\.save|\.save\(\)/.test(s3code.slice(s3code.indexOf('TUNE_RULES'), s3code.indexOf('BOUNTY_FEE:'))) && !/localStorage/.test(s3code), 'stage3 不读 localStorage；调参代码不存档');
+    const tuneCallers = fs7.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /bountyTuning|BOUNTY_TUNING_DEFAULT|tuningTable/.test(fs7.readFileSync(path.join(jsDir, f), 'utf8')));
+    ok(tuneCallers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 bountyTuning：' + tuneCallers.join(','));
+    const de7 = fs7.readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
+    const rbt = de7.slice(de7.indexOf('function readBountyTuning'), de7.indexOf('const short'));
+    ok(/const TUNING_KEY = 'wbx_dev_bounty_tuning'/.test(de7) && /localStorage\.getItem\(TUNING_KEY\)/.test(rbt) && !/setItem\(TUNING_KEY|\.save\(/.test(de7.replace(/^\s*\/\/.*$/gm, '').slice(0, de7.indexOf('function addEntry'))) && !/setItem/.test(rbt), '开发者入口只 getItem 读覆盖键（不 setItem、读取时不存档）');
+    ok(/Stage3\.debtPressure\(G, tu\.table\)/.test(de7) && /Stage3\.bountyEnemies\(G, tu\.table\)/.test(de7) && /id = 'v25-zt'/.test(de7) && /removeItem\(TUNING_KEY\)/.test(de7), '开发者「追兵战」用合并后的表；新增「追兵调参」按钮（可清除覆盖）');
+  }
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

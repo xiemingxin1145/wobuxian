@@ -279,42 +279,133 @@ const Stage3 = {
     { key: 'heavy', n: '重债', hunters: 3, hpMul: 1.3, atkCdMul: 0.75, windMul: 0.8, shotCount: 2, shotSpread: 14, spdAdd: 4, trait: '快攻双发' },
     { key: 'wanted', n: '天道通缉', hunters: 4, hpMul: 1.45, atkCdMul: 0.6, windMul: 0.7, shotCount: 3, shotSpread: 16, spdAdd: 8, trait: '疾攻三发' },
   ],
-  debtPressure(G) {
+  // 债务强化 #7：tuning 可选——不传 = 默认表 BOUNTY_TUNING_DEFAULT（输出与 c46c1ef 逐字段一致）；传入开发者覆盖时先经 bountyTuning 校验/钳制再用。
+  //   档位阈值、档名、特性名、误工费率、结算规则都不受调参影响；只改每档追兵的数量/血量/出手参数与头子环弹参数。
+  debtPressure(G, tuning) {
     const raw = Number(G && G.debt);
     const debt = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
     const bounty = !!(G && G.flags && typeof G.flags === 'object' && G.flags.bounty);
     let tier = debt > 20000 ? 3 : debt > 5000 ? 2 : debt > 1000 ? 1 : 0;
     if (bounty) tier = Math.min(3, tier + 1);
-    const T = this.DEBT_TIERS[tier];
-    return { tier, key: T.key, n: T.n, debt, bounty, hunters: T.hunters, hpMul: T.hpMul,
-      atkCdMul: T.atkCdMul, windMul: T.windMul, shotCount: T.shotCount, shotSpread: T.shotSpread, spdAdd: T.spdAdd, trait: T.trait,
-      traitNote: this.tierTraitNote(T), bossMove: tier === 3 ? this.BOSS_RING.move : '', bossNote: tier === 3 ? this.bossRingNote() : '' };
+    const TB = this.tuningTable(tuning);
+    const T = this.DEBT_TIERS[tier], V = TB.tiers[tier];
+    const ring = tier === 3 && TB.boss.ringShots > 0;
+    return { tier, key: T.key, n: T.n, debt, bounty, hunters: V.hunters, hpMul: V.hpMul,
+      atkCdMul: V.atkCdMul, windMul: V.windMul, shotCount: V.shotCount, shotSpread: V.shotSpread, spdAdd: V.spdAdd, trait: T.trait,
+      traitNote: this.tierTraitNote(Object.assign({ trait: T.trait }, V)), bossMove: ring ? this.BOSS_RING.move : '', bossNote: ring ? this.bossRingNote(TB.boss) : '' };
   },
   // 债务强化 #5「天道通缉头子专属招式」：只有天道通缉档的「讨债鬼头子」带——前冲收招后原地预警一圈，再以自身为中心放 ringShots 发等角环形弹。
   //   ringShots 环形弹发数、ringWarn 收招后预警圈秒数、ringCd 两次环弹最短间隔（秒）；即时战原型读取并钳制，缺字段 / 非法值 = 不放环弹（旧行为）。
   //   普通讨债鬼与低三档一律不带这些字段。数值只给开发者「追兵战」试手感，待主人试玩定。
   BOSS_RING: { ringShots: 8, ringWarn: 0.4, ringCd: 3, move: '回身环弹' },
-  bossRingNote() {
-    const B = this.BOSS_RING;
-    return `${B.move}：前冲收招后原地预警 ${B.ringWarn}s，放一圈 ${B.ringShots} 发环形弹（每 ${B.ringCd}s 至多一次）`;
+  bossRingNote(B) {
+    B = Object.assign({}, this.BOSS_RING, B || {});
+    return `${this.BOSS_RING.move}：前冲收招后原地预警 ${B.ringWarn}s，放一圈 ${B.ringShots} 发环形弹（每 ${B.ringCd}s 至多一次）`;
   },
-  // 档位特性说明（结算卡/提示用）：低档 = 「与普通讨债鬼相同」
+  // 档位特性说明（结算卡/提示用）：低档 = 「与普通讨债鬼相同」；低档被开发者调成非中性值时标「开发者调参」
   tierTraitNote(T) {
-    if (!T || !T.trait) return '与普通讨债鬼相同';
-    return `${T.trait}：出手冷却 ×${T.atkCdMul}、前摇 ×${T.windMul}、弹道 ${T.shotCount} 发散射（夹角 ${T.shotSpread}°）、移速 +${T.spdAdd}`;
+    if (!T) return '与普通讨债鬼相同';
+    const neutral = T.atkCdMul === 1 && T.windMul === 1 && T.shotCount === 1 && T.shotSpread === 0 && T.spdAdd === 0;
+    if (!T.trait && neutral) return '与普通讨债鬼相同';
+    return `${T.trait || '开发者调参'}：出手冷却 ×${T.atkCdMul}、前摇 ×${T.windMul}、弹道 ${T.shotCount} 发散射（夹角 ${T.shotSpread}°）、移速 +${T.spdAdd}`;
   },
   // 追兵：讨债鬼（data.js MONS.collector 的精灵 mon_collector；方块皮肤用「讨债鬼差」）。出手冷却错开，避免同帧一起前摇
   HUNTER_SLOTS: [[300, 150], [140, 200], [460, 200], [300, 450]],
-  bountyEnemies(G) {
-    const P = this.debtPressure(G);
+  bountyEnemies(G, tuning) {
+    const TB = this.tuningTable(tuning);
+    const P = this.debtPressure(G, TB);
     return this.HUNTER_SLOTS.slice(0, P.hunters).map(([x, y], i) => ({
       name: i === 0 && P.tier === 3 ? '讨债鬼头子' : '讨债鬼', spr: 'mon_collector', box: 'taozhai',
       hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier + P.spdAdd, atkCd: 1.0 + 0.6 * i,
       // 债务强化 #4：档位行为参数（即时战原型读取；缺字段 / 中性值 = 旧行为）
       atkCdMul: P.atkCdMul, windMul: P.windMul, shotCount: P.shotCount, shotSpread: P.shotSpread, tier: P.tier,
       // 债务强化 #5：只有天道通缉档的头子带专属招式参数（其余讨债鬼不带 → 原型里与上一轮完全一样）
-      ...(i === 0 && P.tier === 3 ? { ringShots: this.BOSS_RING.ringShots, ringWarn: this.BOSS_RING.ringWarn, ringCd: this.BOSS_RING.ringCd } : {}),
+      ...(i === 0 && P.tier === 3 ? { ringShots: TB.boss.ringShots, ringWarn: TB.boss.ringWarn, ringCd: TB.boss.ringCd } : {}),
     }));
+  },
+
+  // ======== 债务强化 #7：追兵档位参数可调表 + 开发者覆盖（纯函数，不读 localStorage、不写 G） ========
+  // BOUNTY_TUNING_DEFAULT（文件末尾由 DEBT_TIERS / BOSS_RING 生成并深冻结）= { tiers: [4 档 {hunters,hpMul,atkCdMul,windMul,shotCount,shotSpread,spdAdd}], boss: {ringShots,ringWarn,ringCd} }。
+  // bountyTuning(override) 把开发者覆盖与默认表合并，逐字段校验 + 钳制，返回 { table（深冻结）, source, error, changed, clamped, rejected, unknown }：
+  //   override 形如 { tiers: { wanted: { shotCount: 5 }, 2: { hpMul: 2 } }, boss: { ringShots: 12 } }；tiers 也可以是 4 项数组（null 项跳过），档位可写下标 0–3 或 light/owing/heavy/wanted。
+  //   非数字 / 非有限数 / 字符串 / 不合法的值（倍率 ≤0、发数 <1、负数）→ 该字段回退默认，记进 rejected；合法但越界 → 钳到范围边界（整数字段先取整），记进 clamped；
+  //   未知档位 / 未知字段 / 未知顶层键 → 忽略，记进 unknown；override 不是对象（数组/字符串/数字）→ 整张回退默认并给 error；null/undefined = 默认表。
+  //   钳制范围与即时战原型一致：atkCdMul/windMul 0.3–2、shotCount 1–5 取整、shotSpread 0–30°（= 原型 FOE_TRAIT）；ringShots <3 = 0 不放、3–16 取整、
+  //   ringWarn 0.15–1s、ringCd 0–10s（= 原型 RING）。原型里没有钳制的三个字段另定：hunters 1–4 取整（只有 4 个站位）、hpMul 0.3–3、spdAdd 0–40。
+  //   开发者覆盖只由开发者入口（dev_entry_v25.js）从 localStorage 专用键读取后传进来；本文件与正式游戏逻辑不读 localStorage，也不把覆盖写进存档。
+  TUNE_RULES: {
+    tier: {
+      hunters: { kind: 'int', min: 1, max: 4 },
+      hpMul: { kind: 'pos', min: 0.3, max: 3 },
+      atkCdMul: { kind: 'pos', min: 0.3, max: 2 },
+      windMul: { kind: 'pos', min: 0.3, max: 2 },
+      shotCount: { kind: 'int', min: 1, max: 5 },
+      shotSpread: { kind: 'num', min: 0, max: 30 },
+      spdAdd: { kind: 'num', min: 0, max: 40 },
+    },
+    boss: {
+      ringShots: { kind: 'ring', min: 3, max: 16 },
+      ringWarn: { kind: 'pos', min: 0.15, max: 1 },
+      ringCd: { kind: 'num', min: 0, max: 10 },
+    },
+  },
+  // 单个字段：返回 { ok:false, why } 或 { ok:true, v }（v 已钳制）
+  tuneField(rule, v) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return { ok: false, why: '不是数字' };
+    if (rule.kind === 'pos') return v > 0 ? { ok: true, v: Math.max(rule.min, Math.min(rule.max, v)) } : { ok: false, why: '须 > 0' };
+    if (rule.kind === 'int') return v >= rule.min ? { ok: true, v: Math.min(rule.max, Math.floor(v)) } : { ok: false, why: '须 ≥ ' + rule.min };
+    if (rule.kind === 'ring') return v >= 0 ? { ok: true, v: v < rule.min ? 0 : Math.min(rule.max, Math.floor(v)) } : { ok: false, why: '须 ≥ 0（<3 = 不放）' };
+    return v >= rule.min ? { ok: true, v: Math.min(rule.max, v) } : { ok: false, why: '须 ≥ ' + rule.min };
+  },
+  deepFreeze(o) {
+    if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.values(o).forEach(v => this.deepFreeze(v)); Object.freeze(o); }
+    return o;
+  },
+  bountyTuning(override) {
+    const D = this.BOUNTY_TUNING_DEFAULT;
+    const res = { table: D, source: 'default', error: '', changed: [], clamped: [], rejected: [], unknown: [] };
+    if (override == null) return res;
+    const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
+    if (!isObj(override)) { res.error = '覆盖不是 JSON 对象（' + (Array.isArray(override) ? '数组' : typeof override) + '），已用默认表'; return res; }
+    const tiers = D.tiers.map(t => Object.assign({}, t)), boss = Object.assign({}, D.boss);
+    const keys = this.DEBT_TIERS.map(t => t.key);
+    const applyObj = (dst, src, rules, base, label) => {
+      if (!isObj(src)) { res.rejected.push({ path: label, value: src, why: '不是对象' }); return; }
+      Object.keys(src).forEach(f => {
+        const path = label + '.' + f, v = src[f];
+        if (!Object.prototype.hasOwnProperty.call(rules, f)) { res.unknown.push(path); return; }
+        const r = this.tuneField(rules[f], v);
+        if (!r.ok) { res.rejected.push({ path, value: v, why: r.why }); dst[f] = base[f]; return; }
+        if (r.v !== v) res.clamped.push({ path, value: v, to: r.v });
+        dst[f] = r.v;
+      });
+    };
+    Object.keys(override).forEach(k => {
+      const v = override[k];
+      if (k === 'boss') applyObj(boss, v, this.TUNE_RULES.boss, D.boss, 'boss');
+      else if (k === 'tiers') {
+        if (Array.isArray(v)) v.forEach((t, i) => { if (t == null) return; if (i > 3) res.unknown.push('tiers.' + i); else applyObj(tiers[i], t, this.TUNE_RULES.tier, D.tiers[i], 'tiers.' + keys[i]); });
+        else if (isObj(v)) Object.keys(v).forEach(tk => {
+          const i = /^[0-3]$/.test(tk) ? Number(tk) : keys.indexOf(tk);
+          if (i < 0) { res.unknown.push('tiers.' + tk); return; }
+          applyObj(tiers[i], v[tk], this.TUNE_RULES.tier, D.tiers[i], 'tiers.' + keys[i]);
+        });
+        else res.rejected.push({ path: 'tiers', value: v, why: '不是对象或数组' });
+      } else res.unknown.push(k);
+    });
+    tiers.forEach((t, i) => Object.keys(t).forEach(f => { if (t[f] !== D.tiers[i][f]) res.changed.push({ path: 'tiers.' + keys[i] + '.' + f, from: D.tiers[i][f], to: t[f] }); }));
+    Object.keys(boss).forEach(f => { if (boss[f] !== D.boss[f]) res.changed.push({ path: 'boss.' + f, from: D.boss[f], to: boss[f] }); });
+    res.source = 'override';
+    if (res.changed.length) { res.table = this.deepFreeze({ tiers, boss }); this._tuned.add(res.table); }
+    return res;
+  },
+  // 内部：把 debtPressure / bountyEnemies 的 tuning 参数解析成一张已校验的表（null = 默认表；bountyTuning 产出的表直接用；其余当覆盖再校验一遍）
+  _tuned: typeof WeakSet !== 'undefined' ? new WeakSet() : { add() {}, has() { return false; } },
+  tuningTable(t) {
+    if (t == null || t === this.BOUNTY_TUNING_DEFAULT) return this.BOUNTY_TUNING_DEFAULT;
+    if (this._tuned.has(t)) return t;
+    if (t && t.table && (t.table === this.BOUNTY_TUNING_DEFAULT || this._tuned.has(t.table))) return t.table;
+    return this.bountyTuning(t).table;
   },
 
   // ======== 债务系统强化 #2：追兵战按胜负结算（只由开发者入口「追兵战」在战斗结束后调用） ========
@@ -432,6 +523,12 @@ const Stage3 = {
     return r;
   },
 };
+
+// 债务强化 #7：默认调参表 = DEBT_TIERS / BOSS_RING 里的数值快照（深冻结，运行中改不动）
+Stage3.BOUNTY_TUNING_DEFAULT = Stage3.deepFreeze({
+  tiers: Stage3.DEBT_TIERS.map(t => ({ hunters: t.hunters, hpMul: t.hpMul, atkCdMul: t.atkCdMul, windMul: t.windMul, shotCount: t.shotCount, shotSpread: t.shotSpread, spdAdd: t.spdAdd })),
+  boss: { ringShots: Stage3.BOSS_RING.ringShots, ringWarn: Stage3.BOSS_RING.ringWarn, ringCd: Stage3.BOSS_RING.ringCd },
+});
 
 if (typeof window !== 'undefined') window.Stage3 = Stage3;
 if (typeof module !== 'undefined') module.exports = Stage3;
