@@ -292,6 +292,52 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const de5 = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8');
   ok(/头子：' \+ P\.bossNote/.test(de5) && /头子会' \+ P\.bossMove/.test(de5), '开发者「追兵战」toast 与结算卡带「头子：…」说明');
 
+  // 15. 债务强化 #6：追兵战胜利且天道通缉头子被打倒 → 缴获「讨债令」凭证（只记 flags.s3b_token 计数 + 最近来源/年份，不发正式物品）
+  const TK = ['s3b_token', 's3b_token_src', 's3b_token_year'];
+  const team6 = S.bountyEnemies({ debt: 30000 }).map(e => e.name);
+  const W6 = (o) => Object.assign({ result: 'win', reason: 'cleared', tier: 3, defeated: team6.slice() }, o);
+  let G6 = mk({ debt: 30000, year: 12, flags: { bounty: 1, stage3_bountyDebt: 30000 } });
+  let s6 = SB(G6, W6());
+  ok(team6[0] === S.BOSS_NAME && s6.settled && s6.token === true && s6.tokens === 1 && G6.flags.s3b_token === 1, '天道通缉打赢、头子被打倒 → 返回 token:true、tokens 1，flags.s3b_token = 1');
+  ok(G6.flags.s3b_token_src === '天道通缉·讨债鬼头子' && G6.flags.s3b_token_year === 12 && S.TOKEN_NAME === '讨债令', '记下最近一次来源「天道通缉·讨债鬼头子」与获得年份 G.year=12');
+  ok(G6.debt === 30000 && !G6.flags.bounty && s6.bountyCleared && G6.flags.s3b_win === 1 && s6.fee === 0, '得令不影响原有胜利结算（撤通缉、欠款不变、胜场 +1）');
+  G6.year = 15; s6 = SB(G6, W6());
+  ok(s6.token && s6.tokens === 2 && G6.flags.s3b_token === 2 && G6.flags.s3b_token_year === 15, '再打赢一次：计数累加到 2，年份更新为最近一次 15');
+  G6 = mk({ debt: 30000, flags: { s3b_token: 5 } }); s6 = SB(G6, W6());
+  ok(s6.tokens === 6 && G6.flags.s3b_token === 6, '已有 5 枚 → 累加到 6');
+  G6 = { debt: 30000, year: 3 }; s6 = SB(G6, W6());
+  ok(s6.token && G6.flags.s3b_token === 1 && G6.flags.s3b_token_year === 3, '旧存档（没有 flags）：补出 flags 并记 1 枚');
+  G6 = mk({ debt: 30000, flags: { s3b_win: 4 } }); s6 = SB(G6, W6());
+  ok(s6.tokens === 1 && G6.flags.s3b_win === 5 && S.tokenCount(mk()) === 0 && S.tokenCount({}) === 0 && S.tokenCount(null) === 0, '旧存档（有 flags 无 s3b_token）按 0 算；tokenCount 对缺字段/无存档返回 0');
+  // 不得令的各条路径：三个 flag 都不被碰（原有 3 枚保持 3），返回 token:false 且 tokens 报当前枚数
+  const noTok = (out, o) => { const g = mk(Object.assign({ debt: 30000, year: 9, flags: { s3b_token: 3, s3b_token_src: '旧', s3b_token_year: 1 } }, o || {})); const r = SB(g, out); return r.token === false && g.flags.s3b_token === 3 && g.flags.s3b_token_src === '旧' && g.flags.s3b_token_year === 1 && (!r.settled || r.tokens === 3); };
+  ok(noTok(W6({ defeated: ['讨债鬼', '讨债鬼', '讨债鬼'] })), '打赢但头子没被打倒（不在 defeated 里）：不得令');
+  ok(noTok(W6({ tier: 2, defeated: ['讨债鬼', '讨债鬼', '讨债鬼'] }), { debt: 8888 }) && noTok(W6({ tier: 2 })), '重债档打赢不得令（即便名单里混进头子名，开战档位不是天道通缉也不给）');
+  ok([0, 1].every(t => noTok(W6({ tier: t, defeated: ['讨债鬼'] }))), '小账/欠款档打赢不得令');
+  ok(noTok(W6({ defeated: undefined })) && noTok({ result: 'win', reason: 'cleared', tier: 3 }), '没带 defeated（旧调用方）：不得令');
+  ok(noTok(W6({ result: 'lose', reason: 'dead' })) && noTok(W6({ result: 'lose', reason: 'timeout' })) && noTok(W6({ reason: 'timeout' })), '败（倒下/超时）、以及矛盾的 win+timeout：不得令');
+  ok(noTok(W6({ reason: 'closed' })) && noTok(W6({ result: 'lose', reason: 'closed' })) && SB(mk(), W6({ reason: 'closed' })).settled === false, '中途关闭：不结算、不得令');
+  ok([undefined, null, {}, 'win', { result: 'WIN', defeated: team6 }, { result: 'draw', tier: 3, defeated: team6 }].every(o => noTok(o)) && SB(null, W6()).token === false && SB('x', W6()).token === false, '非法结果/无存档：返回 token:false、不崩、不动讨债令');
+  ok(['讨债鬼头子', null, {}, 42, [null, 7], [['讨债鬼头子']]].every(d => { try { return noTok(W6({ defeated: d })); } catch (e) { return false; } }), 'defeated 非法（字符串/null/对象/数字/元素非法/嵌套数组）：不崩、不得令');
+  ok([['abc', 1], [-2, 1], [NaN, 1], [Infinity, 1], [2.7, 3], ['4', 5], [null, 1]].every(([v, want]) => { const g = mk({ debt: 30000, flags: { s3b_token: v } }); SB(g, W6()); return g.flags.s3b_token === want; }), '已有 s3b_token 异常（字符串/负数/NaN/无穷/小数/数字串/null）：按 0 或取整后 +1，不崩');
+  ok([undefined, 'x', NaN, null, {}].every(y => { const g = mk({ debt: 30000, year: y, flags: { s3b_token_year: 7 } }); SB(g, W6()); return g.flags.s3b_token === 1 && !('s3b_token_year' in g.flags); }), 'G.year 非数字：照常得令，只是不记年份（也不留旧年份）');
+  // 不改其他字段：同一输入「得令」与「没头子」两份结算后，除三个讨债令 flag 外整份存档逐字段一致
+  const Ga = mk({ debt: 30000, year: 8, inv: { zjd: 1 }, eqs: [], flags: { bounty: 1, stage3_bountyDebt: 30000, s3m_done: 1 } }), Gn = JSON.parse(JSON.stringify(Ga));
+  const ra = SB(Ga, W6()), rn = SB(Gn, W6({ defeated: ['讨债鬼'] }));
+  const stripTK = g => { const o = JSON.parse(JSON.stringify(g)); TK.forEach(k => delete o.flags[k]); return JSON.stringify(o); };
+  ok(ra.token && !rn.token && stripTK(Ga) === stripTK(Gn) && Ga.stone === 500 && JSON.stringify(Ga.inv) === '{"zjd":1}' && Ga.eqs.length === 0, '得令只多出 s3b_token/src/year 三个 flag：灵石/物品/装备/欠款等其余字段与不得令一致');
+  const keysA = Object.keys(ra).sort().join(), keysN = Object.keys(rn).sort().join();
+  ok(keysA === keysN && /token/.test(keysA) && /tokens/.test(keysA) && ['settled', 'result', 'tier', 'n', 'debtBefore', 'debtAfter', 'fee', 'bountyCleared', 'note'].every(k => ra[k] === rn[k]), '返回值带 token/tokens，其余字段与不得令时一致');
+  const srcSB = require('fs').readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  const sbBody = srcSB.slice(srcSB.indexOf('BOSS_NAME:'), srcSB.indexOf('BRK_PENALTY'));
+  ok(sbBody.length > 300 && !/G\.(stone|inv|eqs|eq|exp|items?)\b|\.give\(|\.addItem\(|\.gain\(|Game\./.test(sbBody), '讨债令只记 flags：结算代码不碰灵石/物品/装备/修为，不调 Game.give 等正式发奖');
+  const tokFiles = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && /s3b_token/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(tokFiles.join(',') === 'dev_entry_v25.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'stage3_encounter_draft.js', '只有 stage3（与开发者入口注释）提到 s3b_token：' + tokFiles.join(','));
+  const tokCallers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /TOKEN_NAME|bountyTokenEarned|tokenCount/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
+  ok(tokCallers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 引用讨债令相关接口：' + tokCallers.join(','));
+  const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
+  ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

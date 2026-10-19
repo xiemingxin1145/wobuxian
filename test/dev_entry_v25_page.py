@@ -4,6 +4,7 @@
 #      「突破预估」按债压档位弹卡显示基础成功率 − 惩罚（只读，存档不变）；
 #      追兵战按档位分化敌人（债务强化 #4）：重债/通缉档讨债鬼带快攻/散射参数、顶栏与结算卡标注特性，真页面齐射 2/3 发 vs 小账 1 发；
 #      天道通缉头子专属招式（债务强化 #5）：只有头子带环弹参数，真页面前冲收招后放一圈 8 发环形弹，小账前冲不放；结算卡「头子：…」。
+#      头子掉「讨债令」（债务强化 #6）：天道通缉打赢 → 结算卡「缴获讨债令×1（共 N 枚）」且 flags.s3b_token 已存档；重债打输/打赢都不含、计数不变。
 import asyncio, os, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
@@ -150,6 +151,19 @@ async def main():
             w = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),debt:Game.G.debt,bounty:!!Game.G.flags.bounty,bd:'stage3_bountyDebt' in Game.G.flags,win:Game.G.flags.s3b_win,sv:JSON.parse(localStorage.getItem('wbx2_save')||'{}')})")
             ck('追兵战打赢（天道通缉）→ 结算卡在覆盖层关掉后弹出、撤掉通缉、欠款不变、已存档', not w['ov'] and not w['bounty'] and not w['bd'] and w['debt'] == 30000 and w['win'] == 1
                and not (w['sv'].get('flags') or {}).get('bounty') and w['sv'].get('debt') == 30000 and '通缉已撤销' in wtxt and '追兵特性：疾攻三发' in wtxt and '头子：回身环弹' in wtxt)
+            t = await pg.evaluate("({n:Game.G.flags.s3b_token,src:Game.G.flags.s3b_token_src,y:Game.G.flags.s3b_token_year,gy:Game.G.year,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{})})")
+            ck(f'天道通缉打赢、头子被打倒 → 结算卡含「缴获讨债令×1（共 1 枚）：只是凭证，暂无用途」，flags.s3b_token={t["n"]} 来源/年份已记并存档',
+               '缴获讨债令×1（共 1 枚）：只是凭证，暂无用途' in wtxt and t['n'] == 1 and t['src'] == '天道通缉·讨债鬼头子' and t['y'] == t['gy']
+               and t['sv'].get('s3b_token') == 1 and t['sv'].get('s3b_token_src') == '天道通缉·讨债鬼头子' and t['sv'].get('s3b_token_year') == t['gy'])
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            # 再打赢一次天道通缉：计数累加到 2（卡片显示共 2 枚）
+            await pg.evaluate("()=>{const G=Game.G;G.debt=30000;Game.save();}")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            w2txt = await card.inner_text()
+            t2 = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token})")
+            ck('再打赢一次天道通缉 → 「共 2 枚」，s3b_token 累加到 2 并存档', '缴获讨债令×1（共 2 枚）' in w2txt and t2['n'] == 2 and t2['sv'] == 2)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
             await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
@@ -158,6 +172,14 @@ async def main():
             ltxt = await card.inner_text()
             l = await pg.evaluate("({debt:Game.G.debt,lose:Game.G.flags.s3b_lose,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
             ck('追兵战打输（重债）→ 误工费 889（10%）记进欠款并存档', l['debt'] == 8888 + 889 and l['saved'] == l['debt'] and l['lose'] == 1 and '误工费 889' in ltxt and '追兵特性：快攻双发' in ltxt and '头子：' not in ltxt)
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            # 重债打赢（没有头子）：结算卡不含讨债令，计数仍为 2
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            htxt = await card.inner_text()
+            h = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token,win:Game.G.flags.s3b_win})")
+            ck('重债打赢（没有头子）→ 结算卡不含「讨债令」、s3b_token 仍为 2（存档同）；重债打输卡也不含', '胜·重债' in htxt and '讨债令' not in htxt and '讨债令' not in ltxt and h['n'] == 2 and h['sv'] == 2 and h['win'] == 3)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
         except Exception as e:
             ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)

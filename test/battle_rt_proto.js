@@ -74,6 +74,18 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   const rTo = await done;
   ok(rTo.result === 'lose', '超时保底 → lose');
   ok(rTo.reason === 'timeout', '超时 → 结束原因 timeout（宿主据此结算误工费）');
+  ok(Array.isArray(r.defeated) && r.defeated.join() === '史莱姆,背后怪' && Array.isArray(rTo.defeated) && rTo.defeated.length === 0, '结束结果带 defeated（已倒下敌人名单）：全灭 = 两只都在、超时没打死 = 空');
+  // 债务强化 #6：真实追兵配置进原型 → 打倒全部 → defeated 含讨债鬼头子 → Stage3.settleBounty 记讨债令；只打倒小弟时超时 → 名单无头子、不得令
+  const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+  done = RB.start(S3.bountyEnemies({ debt: 30000 }), { timeLimit: 99 });
+  S.enemies.forEach(e => { e.hp = 0; }); RB.update(0.016);
+  const r6 = await done; const G6 = { debt: 30000, year: 4, flags: {} };
+  const s6 = S3.settleBounty(G6, Object.assign({}, r6, { tier: 3 }));
+  ok(r6.reason === 'cleared' && r6.defeated[0] === '讨债鬼头子' && r6.defeated.length === 4 && s6.token && G6.flags.s3b_token === 1, '天道通缉追兵全灭 → defeated 含讨债鬼头子 → settleBounty 记 1 枚讨债令');
+  done = RB.start(S3.bountyEnemies({ debt: 30000 }), { timeLimit: 0.2 });
+  S.enemies.slice(1).forEach(e => { e.hp = 0; }); for (let i = 0; i < 20; i++) RB.update(0.016);
+  const r6b = await done; const G6b = { debt: 30000, flags: {} };
+  ok(r6b.reason === 'timeout' && r6b.defeated.length === 3 && !r6b.defeated.includes('讨债鬼头子') && !S3.settleBounty(G6b, Object.assign({}, r6b, { tier: 3 })).token && !('s3b_token' in G6b.flags), '头子没倒、超时 → defeated 无头子、不得令');
   const saveDS = global.drawSprite; global.drawSprite = undefined;
   let threw = false; try { RB.draw(fakeCtx()); } catch (e) { threw = true; }
   global.drawSprite = saveDS;

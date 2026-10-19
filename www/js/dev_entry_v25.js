@@ -78,6 +78,7 @@
     // 打完按胜负结算（Stage3.settleBounty：胜撤通缉、败加误工费）并存档；中途关掉不结算。不发奖。
     // 债务强化 #4：重债/天道通缉档追兵出手更快、前摇更短、弹道散射（参数由 bountyEnemies 带上），顶栏与结算卡标注档位特性。
     // 债务强化 #5：天道通缉档「讨债鬼头子」前冲收招后放一圈环形弹（ringShots/ringWarn/ringCd 由 bountyEnemies 只给头子），toast 与结算卡加「头子：…」。
+    // 债务强化 #6：天道通缉档打赢且头子被打倒（原型结束带 defeated 名单）→ settleBounty 记一枚「讨债令」凭证（flags.s3b_token），结算卡加一行说明；不发正式物品。
     const zb = document.createElement('button');
     zb.id = 'v25-zb';
     zb.textContent = '追兵战';
@@ -98,7 +99,7 @@
       const u = uiObj();
       if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
       if (u && u.card) {
-        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}`, 'i:bill', ['好']);
+        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}`, 'i:bill', ['好']);
         if (u.hud) u.hud();
       }
     };

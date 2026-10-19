@@ -487,6 +487,7 @@
   }
 
   // reason：'dead' 主角倒下 / 'cleared' 敌人清空 / 'timeout' 超时 / 'closed' 玩家中途关掉覆盖层（宿主据此决定是否结算）
+  // defeated：结束时已被打倒（hp≤0）的敌人名单（宿主据此判断头子是否被打倒，如追兵战「讨债令」）；只读，不影响战斗逻辑
   function endRealtime(result, reason) {
     if (!RT.on) return;
     RT.on = false;
@@ -497,7 +498,8 @@
     RT.enemyProjectiles = [];
     toast('遭遇战结束：' + (result === 'win' ? '胜' : '败'), result === 'win' ? '#9aff9a' : '#ff9a9a');
     if (RT._resolve) {
-      RT._resolve({ result, reason: RT.endReason, time: RT.time, playerHp: RT.player ? RT.player.hp : 0 });
+      RT._resolve({ result, reason: RT.endReason, time: RT.time, playerHp: RT.player ? RT.player.hp : 0,
+        defeated: (RT.enemies || []).filter(e => e.hp <= 0).map(e => e.name) });
       RT._resolve = null;
     }
   }
