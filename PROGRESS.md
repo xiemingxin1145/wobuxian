@@ -44,6 +44,7 @@
 - [x] **v34-life 为 3.4 自由度唯一主线分支**：已并入 v34-jianghu（`jianghu34.js`：6 位自主 NPC 月推进、三宗势力、更多→江湖风云面板、CH34 奇遇链 + 两个测试）。去重：life34 不再自己漂移宗门关系，统一读写 G.sectRel（JH34/war29）；life34 保留 #12、找上门来客、qc34 奇遇链。v34-jianghu 不再单独开发。
 - [x] 全门禁 /tmp/gl4.txt 全绿：validate/jsscan33/stage3_chain/sys33_unit/content33/panels21/controls/seam34/human23 13/13/jianghu34_unit/jianghu34_ui/human_olaf 23 PASS（T4、N1 一次过，#12 已根治）。
 - [x] `--no-ff` 合并 `c93ab6f` 推 main → CI build 成功，预发布 **build-221**：wobuxian.apk 371,542,381 B、wobuxian-lite.apk 83,385,933 B（未打标签）。
+- [x] v34-fix（Olaf 审 c93ab6f 来客问题）：赔礼价 need×0.15（练气 30/金丹 195/化神 1140）写在按钮上，不够灵石🔒+提示、toast 后回到选择，不再误开战；恩怨负面来源（奇遇链接 3 年未交 −20、征伐打赢敌宗弟子该宗 NPC −15、讨债司公示逾期（本年欠款上涨）正恩怨全体 −5/年、来客打发走 −10、打赢仇家 −10/打输 +5/赔礼 +25）；有仇家（≤−40）必在一年内上门；报恩按恩怨加权随机 + 同一人 3 年冷却（L.seen.vf_id）、礼金 need×(0.15~0.25)、第 2 次起减半、第 3 次起可能给灵草×3/玄铁晶×1；开发者面板「最近NPC恩怨∓50」。新测 `test/life34_unit.py` 全过；validate/jsscan/jianghu34×2/controls/seam34/human23 13/13 全过。
 - 下一步：江湖传闻面板与 life34 日志合并进江湖风云、其余 3 图奇遇链、NPC 之间恩怨。（olaf 输出 `/tmp/gl_olaf.txt`），结束标志 GATE_DONE。之后合 main。
 
 ## v3.3.0 线（Grok Bot，2026-10-18 起，UTC+8）
