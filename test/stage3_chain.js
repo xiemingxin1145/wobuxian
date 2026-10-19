@@ -522,7 +522,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     vm.runInContext(`var window = globalThis;
       var REALMS = [{ n: '凡人', need: 80 }, { n: '练气', need: 200 }], NPCS = { merchant: { n: '奸商·钱多多', por: 'npc_merchant' }, xianguan: { n: '仙官·记账童子', por: 'npc_disciple' } };
       var QUESTS = {}, SECTS = {}, ITEMS = {}, MAPINFO = { market: { n: '坊市', mons: ['slime'], tier: 1 } }, ASSETS = { maps: {} }, R = { ents: [], mapId: 'market', mode: 'map' };
-      function t2p(i, j) { return [i, j]; } function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {} var npcAI = function () {};
+      function t2p(i, j) { return [i, j]; } function s2w(x, y) { return [x, y]; } var pickAt = function () { return null; }; function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {} var npcAI = function () {};
       var UI = { picks: [], card: async () => (UI.picks.length ? UI.picks.shift() : 0), say: async () => (UI.picks.length ? UI.picks.shift() : 0), hud() {}, toast() {} };
       var Game = { G: null, save() {}, async yearEnd() { this.G.year++; this.G.age++; }, interactEnt() {}, refreshNpcs() {}, async enterMap() {}, acceptQuest() {}, async fight() { return { res: 'win' }; }, canEnter() { return true }, give() {},
         async apply(eff) { const G = this.G; for (const tk of eff.split(';')) { const p = tk.split(':'); if (p[0] === 'aff') G.aff[p[1]] = Math.max(0, Math.min(150, (G.aff[p[1]] || 0) + +p[2])); } } };`, c9);
@@ -532,8 +532,8 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     const nG = (aff) => ({ year: 5, age: 15, realm: 1, debt: 5000, stone: 1000, aff: Object.assign({}, aff), flags: {}, life34: { v: 1, fav: 1, rel: {}, seen: {}, log: [], pending: null } });
     const rv = (g, id) => (g.life34.rel[id] || 0);
     const one = async (fn, id, a0, pk) => { const g = nG({ [id]: a0 }); G9.G = g; U9.picks = [pk, 0]; await S9[fn](g); return { g, d: rv(g, id) }; };
-    const rows = [['runMerchantChain', 'merchant', '举报', 1, [[0, -20], [30, -20], [100, -20]]], ['runMerchantChain', 'merchant', '扛税', 0, [[0, 30]]], ['runMerchantChain', 'merchant', '不掺和', 2, [[30, -2]]],
-      ['runLedgerChain', 'xianguan', '告发', 2, [[0, -20], [50, -20]]], ['runLedgerChain', 'xianguan', '对账', 0, [[0, 30]]], ['runLedgerChain', 'xianguan', '贿赂', 1, [[0, 10]]]];
+    const rows = [['runMerchantChain', 'merchant', '举报', 1, [[0, -20], [30, -20], [100, -20]]], ['runMerchantChain', 'merchant', '扛税', 0, [[0, 20], [120, 15]]], ['runMerchantChain', 'merchant', '不掺和', 2, [[30, -2]]],
+      ['runLedgerChain', 'xianguan', '告发', 2, [[0, -20], [50, -20]]], ['runLedgerChain', 'xianguan', '对账', 0, [[0, 20], [120, 15]]], ['runLedgerChain', 'xianguan', '贿赂', 1, [[0, 10]]]];
     for (const [fn, id, nm, pk, cs] of rows) for (const [a0, want] of cs) { const { d } = await one(fn, id, a0, pk); ok(d === want, `L.rel：${id}「${nm}」起始好感 ${a0} → 总变化 ${want}（实得 ${d}，不重复计）`); }
     { const { g } = await one('runLedgerChain', 'xianguan', 0, 1); const r0 = rv(g, 'xianguan'); U9.picks = [0, 0]; const r = await S9.runLedgerChain(g);
       ok(r.exposed && rv(g, 'xianguan') - r0 === -15, 'L.rel：贿赂露馅这一步总变化 -15'); }

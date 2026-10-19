@@ -91,7 +91,13 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
       ok(ctx.relCalls.length === 0 && r.rel.synced === -20 && r.rel.extra === 0 && r.rel.deferred, '_inApply=true：好感 100→60 外层将同步 -20 已达标 → 一次都不调（不补、不 syncAff）');
       spyIn(true); G = { debt: 1000, stone: 0, aff: { merchant: 0 }, flags: {} };
       r = await run(ctx, 'runMerchantChain', G, [0, 0]);
-      ok(ctx.relCalls.length === 0 && r.rel.d === 30 && r.rel.synced === 30 && r.rel.deferred, '_inApply=true：扛税（无档位）只报告外层将同步的 +30，不调任何接口');
+      ok(J(ctx.relCalls) === J([['merchant', -10]]) && r.rel.d === 20 && r.rel.synced === 30 && r.rel.extra === -10 && r.rel.deferred, '_inApply=true：扛税（第十五轮封顶 +20）外层将同步 +30 → 这里补 -10，不调 syncAff：' + J(ctx.relCalls));
+      spyIn(true); G = { debt: 1000, stone: 0, aff: { merchant: 120 }, flags: {} };
+      r = await run(ctx, 'runMerchantChain', G, [0, 0]);
+      ok(ctx.relCalls.length === 0 && r.rel.d === 15 && r.rel.synced === 15 && r.rel.extra === 0 && r.rel.deferred, '_inApply=true：扛税好感钳 150（120→150）外层将同步 +15 < 上限 20 → 不补、不调任何接口');
+      spyIn(true); G = { debt: 5000, stone: 0, aff: {}, flags: {} };
+      r = await run(ctx, 'runLedgerChain', G, [0, 0]);
+      ok(J(ctx.relCalls) === J([['xianguan', -10]]) && r.rel.d === 20 && r.rel.synced === 30 && r.rel.deferred, '_inApply=true：对账（封顶 +20）外层将同步 +30 → 这里补 -10');
       spyIn(true); G = { debt: 5000, stone: 1000, aff: {}, flags: {} };
       await run(ctx, 'runLedgerChain', G, [1, 0]); ctx.relCalls.length = 0; r = await run(ctx, 'runLedgerChain', G, [0, 0]);
       ok(r.exposed && J(ctx.relCalls) === J([['xianguan', -15]]) && r.rel.synced === 0 && r.rel.deferred, '_inApply=true：露馅（好感不变）同步 0 → 补全额 -15');
@@ -153,7 +159,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
     var QUESTS = {}, SECTS = { qingyun: { n: '青云宗' }, tianmo: { n: '天魔殿' } }, ITEMS = {};
     var MAPINFO = { market: { n: '云来坊市', mons: ['slime'], tier: 1 } }, ASSETS = { maps: {} };
     var R = { ents: [], mapId: 'market', mode: 'map', player: null };
-    function t2p(i, j) { return [i, j]; } function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {}
+    function t2p(i, j) { return [i, j]; } function s2w(x, y) { return [x, y]; } var pickAt = function () { return null; }; function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {}
     var npcAI = function () {};
     var UI = { picks: [], card: async () => (UI.picks.length ? UI.picks.shift() : 0), say: async (por, nm, txt, opts) => { says.push(txt); return UI.picks.length ? UI.picks.shift() : 0; }, hud() {}, toast() {}, modal: null };
     var Game = { G: null, save() { saves++; }, async yearEnd() { this.G.year++; this.G.age++; }, interactEnt() {}, refreshNpcs() {}, async enterMap() {}, acceptQuest() {},
@@ -194,8 +200,8 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   await caseM('举报', 1, 0, -20, 0);    // 好感已 0：同步 0 + 补 -20
   await caseM('举报', 1, 30, -20, 0);   // Δ-30：同步 -15 + 补 -5
   await caseM('举报', 1, 100, -20, 60); // Δ-40：同步 -20 + 补 0（已达标）
-  await caseM('扛税', 0, 0, 30, 60);    // 正向：只有同步 +30，不另加
-  await caseM('扛税', 0, 120, 15, 150); // 钳 150：实际 Δ+30 → +15
+  await caseM('扛税', 0, 0, 20, 60);    // 第十五轮：同步 +30 → 封顶补 -10 = +20（G.aff 仍 +60，第 2 步照样亲近）
+  await caseM('扛税', 0, 120, 15, 150); // 钳 150：实际 Δ+30 → 同步 +15 < 上限 20，不补 → +15
   await caseM('不掺和', 2, 30, -2, 25); // Δ-5 → trunc(-2.5) = -2
   const caseX = async (nm, pk, a0, want, wantAff) => {
     const g = fresh({ xianguan: a0 }); GM.G = g; pick(pk, 0); const r = await S.runLedgerChain(g);
@@ -204,7 +210,8 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
       `记账童子「${nm}」好感 ${a0}→${wantAff}：L.rel 总变化 = ${want}，实得 ${rel(g, 'xianguan')}`);
     return g;
   };
-  await caseX('对账', 0, 0, 30, 60);
+  await caseX('对账', 0, 0, 20, 60);
+  await caseX('对账', 0, 120, 15, 150);
   await caseX('告发', 2, 0, -20, 0);
   await caseX('告发', 2, 50, -20, 10);
   const gb = await caseX('贿赂', 1, 0, 10, 20);
@@ -301,7 +308,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   // C1 当前 main 的 life34（没有 _inApply）：手动模拟 3.4.1 的外层包装（置 _inApply → 跑链 → 复位 → syncAff(整次快照)），每选择总额与第十三轮一致
   {
     const outer = async (g, fn) => { const b = Object.assign({}, g.aff); L34._inApply = true; try { return await fn(); } finally { L34._inApply = false; L34.syncAff(b); } };
-    const cases = [['M', '举报', 1, 0, -20], ['M', '举报', 1, 30, -20], ['M', '举报', 1, 100, -20], ['M', '扛税', 0, 0, 30], ['M', '不掺和', 2, 30, -2], ['X', '告发', 2, 50, -20], ['X', '对账', 0, 0, 30], ['X', '贿赂', 1, 0, 10]];
+    const cases = [['M', '举报', 1, 0, -20], ['M', '举报', 1, 30, -20], ['M', '举报', 1, 100, -20], ['M', '扛税', 0, 0, 20], ['M', '扛税', 0, 120, 15], ['M', '不掺和', 2, 30, -2], ['X', '告发', 2, 50, -20], ['X', '对账', 0, 0, 20], ['X', '对账', 0, 120, 15], ['X', '贿赂', 1, 0, 10]];
     for (const [ch, nm, pk, a0, want] of cases) {
       const id = ch === 'M' ? 'merchant' : 'xianguan', fn = ch === 'M' ? 'runMerchantChain' : 'runLedgerChain';
       const g = fresh({ [id]: a0 }); GM.G = g; pick(pk, 0); const r = await outer(g, () => S[fn](g));
@@ -329,7 +336,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
         var NPCS = { merchant: { n: '奸商·钱多多', spr: 'npc_merchant', map: 'market', at: [9, 9], por: 'npc_merchant' }, xianguan: { n: '仙官·记账童子', spr: 'npc_disciple', map: 'heaven', at: [10, 10], por: 'npc_disciple' } };
         var QUESTS = {}, SECTS = {}, ITEMS = {}, MAPINFO = { market: { n: '云来坊市', mons: ['slime'], tier: 1 } }, ASSETS = { maps: {} };
         var R = { ents: [], mapId: 'market', mode: 'map', player: null };
-        function t2p(i, j) { return [i, j]; } function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {}
+        function t2p(i, j) { return [i, j]; } function s2w(x, y) { return [x, y]; } var pickAt = function () { return null; }; function walkable() { return true; } function addEnt() {} function removeEnt() {} function loadSprite() {}
         var npcAI = function () {};
         var UI = { picks: [], card: async () => (UI.picks.length ? UI.picks.shift() : 0), say: async () => 0, hud() {}, toast() {}, modal: null };
         var Game = { G: null, save() {}, async yearEnd() {}, interactEnt() {}, refreshNpcs() {}, async enterMap() {}, acceptQuest() {}, async fight() { return { res: 'win' }; }, canEnter() { return true }, give() {},
@@ -348,12 +355,12 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
       return out;
     };
     const mainOut = await nested(LIFE34);
-    ok(mainOut['举报@30'].rel === -35 && mainOut['扛税@0'].rel === 60, 'C2 对照（当前 main，无 _inApply）：链在 Game.apply 内部跑会重复计（举报@30 = -35、扛税 = +60）——这就是 3.4.1 要加标记的原因：' + J(mainOut));
+    ok(mainOut['举报@30'].rel === -35 && mainOut['扛税@0'].rel === 50, 'C2 对照（当前 main，无 _inApply）：链在 Game.apply 内部跑会重复计（举报@30 = -35、扛税 = +20 + 外层 +30 = +50）——这就是 3.4.1 要加标记的原因：' + J(mainOut));
     if (!DEV341 || !/_inApply/.test(DEV341)) ok(true, 'C2 跳过：本机没有 origin/dev341 或其 life34.js 没有 _inApply');
     else {
       const o = await nested(DEV341);
-      ok(o['举报@30'].rel === -20 && o['举报@0'].rel === -20 && o['扛税@0'].rel === 30 && o['告发@50'].rel === -20 && Object.values(o).every(v => v.deferred && v.flagAfter === false),
-        'C2 dev341 真实 life34（有 _inApply）：链在 Game.apply 包装内部跑，举报/告发 -20、扛税 +30，不重复计；返回 deferred，包装结束后标记复位 false：' + J(o));
+      ok(o['举报@30'].rel === -20 && o['举报@0'].rel === -20 && o['扛税@0'].rel === 20 && o['告发@50'].rel === -20 && Object.values(o).every(v => v.deferred && v.flagAfter === false),
+        'C2 dev341 真实 life34（有 _inApply）：链在 Game.apply 包装内部跑，举报/告发 -20、扛税 +20，不重复计；返回 deferred，包装结束后标记复位 false：' + J(o));
     }
   }
 

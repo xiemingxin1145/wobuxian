@@ -124,14 +124,19 @@ const Stage3 = {
   //   两条链里目前没有「赖账」选项，renege 档只占位给以后用。
   //   Life34 是 life34.js 的顶层 const（另挂了 window.Life34），这里一律 typeof 判断；不存在 / 没有 rel / 不是当前存档 / 抛错 → 不调用、不报错，只在返回值里标出。
   GRUDGE_REL: Object.freeze({ renege: -10, bribeExposed: -15, report: -20 }),
+  // 第十五轮（合 main 3d008fb / v3.4.0 后，团队定数值）：扛税（钱多多）/ 对账（记账童子）这一步 L.rel 总变化 = +20（参考 qc34 每步 +15），不再是 +60 好感同步出的 +30。
+  //   G.aff 仍 +60 —— 第 2 步按 talk.js 60/20 阈值结算，+60 才能从 0 直接到「亲近」（回访替还 500 / 查账单利 ×0.8），不能动。
+  //   所以正向目标是**上限**：同步那份超过 +20 就补负差额压回 +20；不到 +20（如好感钳 150：120→150 同步 +15）就不补，保持 +15。
+  //   _inApply=true 时同样按预估的外层同步那份（+30）补 -10，外层同步后总计 +20。贿赂 +10（只有同步那份）与各负向档位不变。
+  GOOD_REL: Object.freeze({ cover: 20, help: 20 }),
   // 与 Life34.yr() 同一算法：G.year || G.age（都没有 = 0）
   lifeYear(G) { return (G && (G.year || G.age)) || 0; },
   // ---- 第十三轮（合 main 8ee2459 后）：好感 → 恩怨同步，不重复计 ----
   // main 的 life34.js 把 G.aff 的每次变化按 trunc(Δ×0.5) 同步进 L.rel，但只挂在 Game.apply（aff:id:n 效果）和 Talk.gift 的包装上。
   //   本文件的 addAffTo 直接写 G.aff（不经 Game.apply）→ 包装不会触发（test/stage3_life34.js「B0」实测）。
   //   所以这里改好感统一走 affRel：直接写 G.aff 后，若 L.rel 没被同步（包装没触发）就调 main 的 Life34.syncAff(改前快照)，
-  //   让同步那份照 main 的规则进来；再按「本选择的目标恩怨」只补差额：目标 = 举报/告发 -20、露馅 -15；没有目标的选择（扛税/对账/贿赂/不掺和）= 只有同步那份。
-  //   差额与目标同号，已达到（或超过）目标就补 0，不会反向抵消。Life34 不存在 / 没有 syncAff → 同步那份算 0，目标照补。
+  //   让同步那份照 main 的规则进来；再按「本选择的目标恩怨」只补差额：目标 = 举报/告发 -20、露馅 -15；没有目标的选择（贿赂/不掺和）= 只有同步那份；扛税/对账见 GOOD_REL（正向目标 = 上限 +20）。
+  //   负向目标：差额与目标同号，已达到（或超过）目标就补 0，不会反向抵消；正向目标（GOOD_REL）只封顶：超过就补负差额，不到不补。Life34 不存在 / 没有 syncAff → 同步那份算 0，目标照补。
   //   第十四轮：main 3.4.1（dev341 起）在 Game.apply / Talk.gift 包装运行期间置 Life34._inApply = true。为 true 时说明外层包装
   //   返回后会自己按 trunc(Δ×0.5) 同步一次，这里就**不调 syncAff**（避免重复计），把「外层将同步的那份」按本次实际 Δ 预估，只补目标差额；
   //   返回值标 deferred: true。_inApply 一律 typeof 判断，不存在（3.4.0 / 当前 main）或不是 true 都当 false，行为与第十三轮一致。
@@ -154,7 +159,7 @@ const Stage3 = {
         synced = this.relOf(G, id) - r0;
       }
       let extra = 0;
-      if (target) { extra = target < 0 ? Math.min(0, target - synced) : Math.max(0, target - synced); if (extra) L34.rel(id, extra); }
+      if (target) { extra = target < 0 ? Math.min(0, target - synced) : Math.min(0, target - synced); if (extra) L34.rel(id, extra); } // 负目标：补到目标；正目标：只封顶不补足
       const d = synced + extra; // 本选择的恩怨总变化（Life34.rel 自己会钳到 -100..100）
       return d ? (inApply ? { id, d, synced, extra, ok: true, deferred: true } : { id, d, synced, extra, ok: true }) : null;
     } catch (e) { return { id, d: target || 0, ok: false, why: 'error' }; }
@@ -188,7 +193,7 @@ const Stage3 = {
     const F = this.flags(G);
     const before = G.debt || 0, affBefore = (G.aff && G.aff[this.M_NPC]) || 0;
     G.debt = Math.max(0, before + c.debt);
-    const rel = this.affRel(G, this.M_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : 0); // 改好感 + 同步 + 补差额
+    const rel = this.affRel(G, this.M_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : (this.GOOD_REL[c.key] || 0)); // 改好感 + 同步 + 补差额（扛税封顶 +20）
     F.s3m_step = 1; F.s3m_choice = c.key; // s3m_choice 只是选择记录，不作为好感/恩怨来源
     return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.M_NPC], attitude: this.merchantAttitude(G), rel };
   },
@@ -258,7 +263,7 @@ const Stage3 = {
     const erased = Math.min(before, -c.debt);
     G.debt = Math.max(0, before + c.debt);
     G.stone = Math.max(0, (G.stone || 0) + c.stone);
-    const rel = this.affRel(G, this.X_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : 0);
+    const rel = this.affRel(G, this.X_NPC, c.aff, c.key === 'report' ? this.GRUDGE_REL.report : (this.GOOD_REL[c.key] || 0)); // 对账封顶 +20
     F.s3x_step = 1; F.s3x_choice = c.key;
     if (c.key === 'bribe') F.s3x_bribe = erased; // 实际抹掉的数额，露馅时按它补回
     return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.X_NPC], attitude: this.attitudeOf(G, this.X_NPC), rel };

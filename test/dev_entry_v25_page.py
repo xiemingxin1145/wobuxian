@@ -102,6 +102,22 @@ async def main():
             ck(f'贿赂露馅这一步 → L.rel 恩怨 xianguan {c1["rel"]}→{c3["rel"]}（恰好 -15）并已存档、结果卡写明、G.sectRel 不变', c3['rel'] == max(-100, c1['rel'] - 15) and c3['sv'] == c3['rel'] and '恩怨 -15' in rtxt and c3['sect'] == c0['sect'])
         except Exception as e:
             ck('查账链真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 2d. 第十五轮：对账（好感 +60）→ L.rel 总变化封顶 +20（参考 qc34 每步 +15；不再是同步出的 +30），第 2 步仍按亲近结算
+        try:
+            await pg.evaluate("()=>{const G=Game.G;G.aff.xianguan=0;delete G.flags.s3x_step;delete G.flags.s3x_bribe;G.debt=5000;Game.save();}")
+            d0 = await pg.evaluate("({rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0)})")
+            await pg.click('#v25-qy2'); await card_click('记账童子的错账', 0)
+            res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000); htxt = await res.inner_text()
+            await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            d1 = await pg.evaluate("({aff:Game.G.aff.xianguan,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan),sv:((JSON.parse(localStorage.getItem('wbx2_save')||'{}').life34||{}).rel||{}).xianguan})")
+            ck(f'对账（好感 0→60）→ L.rel xianguan {d0["rel"]}→{d1["rel"]}（恰好 +20，封顶不再 +30）并已存档、结果卡写明「恩怨 +20」', d1['aff'] == 60 and d1['rel'] == min(100, d0['rel'] + 20) and d1['sv'] == d1['rel'] and '恩怨 +20' in htxt)
+            await pg.click('#v25-qy2'); await card_click('天道查账', 0)
+            res = pg.locator('.card:has(.ct:text("奇遇结果"))').last; await res.wait_for(timeout=3000)
+            await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            d2 = await pg.evaluate("({debt:Game.G.debt,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan)})")
+            ck('对账后查账仍按亲近：欠款 ×0.8（5000→4000），这一步 L.rel 不变', d2['debt'] == 4000 and d2['rel'] == d1['rel'])
+        except Exception as e:
+            ck('对账真页面流程（异常：' + str(e)[:80] + '）', False)
         # 3. 试炼场 → 确认 → 覆盖层，Escape 关闭
         dialog['accept'] = True
         await pg.click('#v25-entry'); await pg.wait_for_timeout(500)
