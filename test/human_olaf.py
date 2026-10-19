@@ -416,8 +416,12 @@ async def main():
                     a, b = int(t['i']) + di, int(t['j']) + dj
                     if not await c.pg.evaluate(JS_WALK, [a, b]): continue
                     tries += 1
-                    if await walk_to(c, a, b): placed = True; break
-                    if tries >= 10: break
+                    if await walk_to(c, a, b):
+                        # 3.4 大地图：站位后若 NPC 身体在屏幕外/被 UI 挡住，像真人一样换个站位再点（最多再换 3 次）
+                        await c.pg.wait_for_timeout(600); st_ = await npcs(c); t_ = find(st_, nid)
+                        if t_ and await free_point(c, *t_['pts']['body']): placed = True; break
+                        if tries >= 13: placed = True; break
+                    if tries >= 13: break
                 if not placed:   # 5–6 格环上没找到可走到的格子（房屋/水边），放宽到 4–7 格再试
                     for di, dj in sorted([(di, dj) for di in range(-7, 8) for dj in range(-7, 8) if 4 <= math.hypot(di, dj) <= 7 and not 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0]))):
                         a, b = int(t['i']) + di, int(t['j']) + dj
