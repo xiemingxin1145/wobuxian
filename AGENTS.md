@@ -59,7 +59,7 @@ node test/validate22.js           # 内容数据校验（章节/NPC/任务/BOSS/
 1. `python3 test/human_olaf.py` 退出码 0（包括 T1–T13 全部用例，结果在 `test/human_olaf/results.json`）。
 2. `python3 test/human23.py` 全部通过。
 3. `node test/validate22.js` 0 错误。
-4. T13 回归包含的 `test/controls.py`、`test/panels21.py`、`test/multilife.py` 也要过；改了演出/抽卡再跑 `test/brk22.py`、`test/gacha22.py`、`test/fx21.py`；改了章节跑 `test/content22.py`。
+4. T13 回归包含的 `test/controls.py`、`test/panels21.py`、`test/multilife.py` 也要过；改了演出/抽卡再跑 `test/brk22.py`、`test/gacha22.py`、`test/fx21.py`；改了章节跑 `test/content22.py`。改了开发者面板（ux23.js 的 p_dev、`dev341.js`、`dev_entry_v25.js`）跑 `test/dev341.py`（3.4.1 起）；逐按钮审计可用 `test/dev341_audit.py`。
 5. 推到 main 后看 CI：两个 APK 签名校验通过、`aapt` 显示的 versionName 正确。
 6. 更新 `README.md` 新版本说明与截图、`PROGRESS.md`、`docs/ROADMAP.md`。
 
