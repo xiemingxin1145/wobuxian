@@ -23,6 +23,11 @@
   - r3（合 main 后）：N1 PASS、T1 34/34、T4 18/20（2 次均为 #12 剑仙→翠花，同一坐标），human23 13/13。再跑 ONLY=T4 → `/tmp/gb_r4.txt`。
   - r4：T4 19/20（1 次点路人甲时被怪近身进战斗，#12 同类）。按负责人决定接受 #12 类偶发，合 main。
 - [x] 合并 `166361b` 推 main → CI run 119 build 成功，预发布 **build-219**：wobuxian.apk 371,495,896 B、wobuxian-lite.apk 83,339,448 B（未打标签）。
+- [x] build-219 补记（15:50 UTC+8 核实）：CI run 39216688382 build + emulator-smoke(30/34) 全部 success；build-219 target `166361b`，prerelease。
+- [x] #13 已关闭（15:40）：核实 main 上 `24303ed`（经 #14 合入）——无头 `Seam34.build()` 20 张图无任何边向连 wendao；go() finally 复位 busy；tick 走 UX.inMap。
+- [ ] **心魔幻境合 main**（15:38 起，分支 `v34-xinmo`，worktree `/workspace/game-xm34`）：`xinmo34` `--no-ff` 合入 origin/main（`8bce075`）。冲突：index.html（xinmo34.js 放 seam34 后）、ux23.js（**保留 main 的 #12 v1 版**；xinmo34 分支底下带的 #12 v2 属 fix331 线，不随心魔合入）。门禁 `/tmp/gate_xm.sh` → 汇总 `/tmp/gate_xm.txt`、各项 `/tmp/gx_*.txt`：validate22 0 错、stage3 ALL PASS、xinmo34_unit fails []、xinmo34_ui ok（贪→嗔→痴→评级）、jsscan33/sys33_unit/content33 errors []、panels21 ERRORS 0、controls FAILS 0、seam34 FAILS []、human23 13/13；human_olaf 全量（含 X1）15:47 开跑 → `/tmp/gx_olaf.txt`。
+- [x] **江湖自转第一片**（分支 `v34-jianghu`，worktree `/workspace/game-jh34`，`c3ae528`，未合 main）：`www/js/jianghu34.js`（seam34 后加载）+ `test/jianghu34_unit.py`（fails []，跑 3 次稳定）。存档字段 `G.jh34`（缺省惰性初始化，不改 G.v）。详见下条「交接注意」。
+- ⚠ **交接注意（并行冲突，15:47）**：本轮在 `/workspace/game-life34`（分支 `v34-life`）写的江湖代码一度覆盖了开放世界线同名文件 `www/js/life34.js`（56ed5e2 #12 根治 + 660cbb2 设计文档），已用 `0dd0029` revert 恢复原样（与 660cbb2 内容一致），并已推送；开放世界线 15:41 起在该 worktree 跑的 `ONLY=N1,T1,T4`（`/tmp/lf_r1.txt`）中途约 15:46:52–15:48 期间读到的是被覆盖的文件，**结果需重跑**。本线代码已改名搬到 `v34-jianghu`（对象 JH34/CH34/Chain34、NPC id `jh_*`、面板 `jh34`），与 life34.js（G.life34、流动 luren/b34_*、恩怨、找上门、qc34_ 任务式奇遇链）不冲突、可同时加载；两条线的世界模拟/奇遇链有概念重叠，合并前需要协调（建议：life34 管已有 NPC 流动/恩怨/找上门，jianghu34 管新江湖人物 + 宗门势力 + CH34 多 NPC 链）。
 - 下一步（3.4 自由度）：新区外观再打磨（路边装饰、缺纹理类型改借邻图纹理）、天外天收费站位置、其余 22 格图视需要扩、#12 根治（剑仙/翠花重叠、点 NPC 撞怪）。
 - 旧下一步（v34-big）：①美化新区（地块有棋盘感，可加草纹/路边石）②在新区放 2–3 个已有 NPC/交互点 ③测基线帧时 ④把 seam34.py/全门禁在 v34-big 跑一遍 ⑤旧边缘 x 打通处与底板崖壁衔接检查截图。
 - [ ] 未做：邻图边缘地块预渲染（现在只有出口标识，没画邻图边条）；地图扩大（桃花村 36、青云宗/天外天 32，计划：在 +i/+j 方向扩展，旧坐标不变免迁移，新区域用程序化地块+现有道具图集）；§E.3 分块绘制/寻路上限；名牌压任务栏；#12 补丁。
