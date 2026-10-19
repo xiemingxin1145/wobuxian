@@ -254,6 +254,21 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const callers5 = fsB.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /breakthroughPreview|breakBase/.test(fsB.readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers5.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 breakthroughPreview：' + callers5.join(','));
 
+  // 13. 债务强化 #4：追兵战按档位分化敌人（参数单调、低档 = 旧行为、只出数据不改存档）
+  const T4 = S.DEBT_TIERS;
+  const mono = (k, dir) => T4.every((t, i) => i === 0 || (dir < 0 ? t[k] <= T4[i - 1][k] : t[k] >= T4[i - 1][k]));
+  ok(mono('atkCdMul', -1) && mono('windMul', -1) && mono('shotCount', 1) && mono('shotSpread', 1) && mono('spdAdd', 1) && mono('hpMul', 1), '四档参数单调：冷却/前摇倍率不增，弹道数/夹角/移速/血量不减：' + T4.map(t => `${t.n}(${t.atkCdMul}/${t.windMul}/${t.shotCount}发/${t.shotSpread}°/+${t.spdAdd})`).join(' '));
+  ok(T4[3].atkCdMul < T4[2].atkCdMul && T4[2].atkCdMul < T4[1].atkCdMul && T4[3].windMul < T4[2].windMul && T4[2].windMul < 1 && T4[3].shotCount > T4[2].shotCount && T4[2].shotCount > 1, '高两档严格更凶：通缉 < 重债 < 1（冷却/前摇），3 发 > 2 发 > 1 发');
+  ok(T4.slice(0, 2).every(t => t.atkCdMul === 1 && t.windMul === 1 && t.shotCount === 1 && t.shotSpread === 0 && t.spdAdd === 0 && t.trait === ''), '低两档（小账/欠款）全为中性值 = 旧行为、无特性名');
+  ok(T4[2].trait === '快攻双发' && T4[3].trait === '疾攻三发' && /冷却 ×0\.75/.test(DP({ debt: 8888 }).traitNote) && DP({ debt: 10 }).traitNote === '与普通讨债鬼相同', '档位特性名/说明文案');
+  const hz4 = [0, 3000, 8888, 30000].map(d => S.bountyEnemies({ debt: d }));
+  ok(hz4.every((a, t) => a.every(e => e.atkCdMul === T4[t].atkCdMul && e.windMul === T4[t].windMul && e.shotCount === T4[t].shotCount && e.shotSpread === T4[t].shotSpread && e.tier === t)), 'bountyEnemies 每个讨债鬼都带本档 atkCdMul/windMul/shotCount/shotSpread/tier');
+  ok(hz4.map(a => a[0].speed).join() === '70,76,86,96' && hz4[3].map(e => e.atkCd).join() === '1,1.6,2.2,2.8' && hz4.map(a => a[0].hp).join() === '80,92,104,116', '移速 70/76/86/96（高档额外 +4/+8）；首次出手错开与血量与上轮一致');
+  ok(hz4[1].every(e => ['name', 'spr', 'box', 'hp', 'x', 'y', 'speed', 'atkCd'].every(k => k in e)) && hz4[0][0].speed === 70 && hz4[1][0].speed === 76, '低档旧字段与数值不变（只多出中性参数）');
+  ok(S.bountyEnemies({ debt: 10, flags: { bounty: 1 } })[0].tier === 1 && S.bountyEnemies({ debt: 8888, flags: { bounty: 1 } })[0].shotCount === 3, '挂通缉 +1 档同样带上一档的行为参数');
+  const Gt4 = mk({ debt: 30000, flags: { bounty: 1 } }); const snapT4 = JSON.stringify(Gt4); S.bountyEnemies(Gt4); S.debtPressure(Gt4);
+  ok(JSON.stringify(Gt4) === snapT4, '生成档位参数不改存档');
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

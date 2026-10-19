@@ -293,6 +293,77 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     done = RB.start(null, { timeLimit: 99, label: 'x'.repeat(40) }); ok(S.label.length === 16, '标题截到 16 字，不撑破顶栏'); RB.end('lose'); await done;
   }
 
+  // 6e. 债务强化 #4：追兵按档位分化（高档冷却/前摇更短、弹道散射更多；缺字段/中性值/非法值 = 旧行为，逐帧一致）
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const vmE = require('vm');
+    const F = RB.FOE;
+    const loadProto = src => { const c = vmE.createContext({ console, window: {} }); vmE.runInContext(src, c); return c.window.RealtimeBattle; };
+    const srcNow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    let srcOld = null; try { srcOld = require('child_process').execSync('git show c83f5cc:www/js/battle_realtime_prototype.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { srcOld = null; }
+    const NEW = loadProto(srcNow);
+    const lcg = seed => () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const clone = a => a && JSON.parse(JSON.stringify(a));
+    // 固定随机种子、主角站桩不还手（血量 1e6 不会倒），逐帧记录敌人/弹道/主角血，统计起手次数、弹丸数
+    const sim = (R, foes, sec) => {
+      const St = R.state; St.rand = lcg(7);
+      R.start(clone(foes), { timeLimit: 999, hp: 1e6, atk: 28, scale: false }); St.player.x = 300; St.player.y = 320;
+      const seen = new Set(), trace = []; let shots = 0, windups = 0; const prev = St.enemies.map(e => e.state);
+      for (let i = 0; i < Math.round(sec * 60); i++) {
+        R.update(1 / 60);
+        St.enemies.forEach((e, k) => { if (e.state === 'windup' && prev[k] !== 'windup') windups++; prev[k] = e.state; });
+        for (const pr of St.enemyProjectiles) if (!seen.has(pr)) { seen.add(pr); shots++; }
+        trace.push(JSON.stringify([St.enemies.map(e => [e.x, e.y, e.state, e.wind, e.atkCd, e.aimX, e.aimY]), St.enemyProjectiles.map(q => [q.x, q.y, q.vx, q.vy, q.dmg]), St.player.hp]));
+      }
+      const out = { trace, shots, windups, hp: St.player.hp, volleys: St.foeVolleys };
+      R.end('lose', 'closed'); return out;
+    };
+    const strip = a => a.map(e => { const o = Object.assign({}, e); ['atkCdMul', 'windMul', 'shotCount', 'shotSpread', 'tier'].forEach(k => delete o[k]); return o; });
+    const mixed = [{ name: '远', hp: 999, x: 300, y: 110, speed: 0, atkCd: 0.2 }, { name: '近', hp: 999, x: 380, y: 300, speed: 0, atkCd: 0.5 }, { name: '追', hp: 999, x: 100, y: 100, speed: 70 }];
+    const b0 = S3.bountyEnemies({ debt: 0 }), b1 = S3.bountyEnemies({ debt: 3000 }), b2 = S3.bountyEnemies({ debt: 8888 }), b3 = S3.bountyEnemies({ debt: 30000 });
+    // 1) 与上一轮提交 c83f5cc 的原型逐帧对照（旧文件不认识新字段 → 就是旧行为）
+    if (srcOld) {
+      const OLD = loadProto(srcOld);
+      const same = [mixed, b0, b1].map(f => { const a = sim(OLD, f, 12), b = sim(NEW, f, 12); return a.trace.length === b.trace.length && a.trace.every((t, i) => t === b.trace[i]) && a.shots === b.shots; });
+      ok(same.every(Boolean), '缺字段 / 小账 / 欠款：新原型与 c83f5cc 旧原型 12s（720 帧）逐帧数值完全一致（敌人位置/状态/前摇/冷却/弹道/主角血）：' + same.join(','));
+      const o3 = sim(OLD, b3, 12), n3 = sim(NEW, b3, 12);
+      ok(n3.windups > o3.windups && n3.hp < o3.hp, `天道通缉同一场 12s（4 只追到身边前冲）：新原型起手 ${n3.windups} > 旧 ${o3.windups}，主角挨打 -${1e6 - n3.hp} > 旧 -${1e6 - o3.hp}`);
+    } else ok(false, '读不到 c83f5cc 旧原型（git show 失败），无法做旧行为对照');
+    // 2) 显式中性值 / 非法值 = 缺字段（逐帧一致）
+    const neutral = mixed.map(e => Object.assign({}, e, { atkCdMul: 1, windMul: 1, shotCount: 1, shotSpread: 0 }));
+    const bad = mixed.map((e, i) => Object.assign({}, e, [{ atkCdMul: NaN, windMul: -1, shotCount: 0, shotSpread: -5 }, { atkCdMul: 'x', windMul: null, shotCount: '3', shotSpread: Infinity }, { atkCdMul: 0, windMul: {}, shotCount: -2, shotSpread: NaN }][i]));
+    const tA = sim(NEW, mixed, 10), tN = sim(NEW, neutral, 10), tB = sim(NEW, bad, 10), tS = sim(NEW, strip(b1), 10), tb1 = sim(NEW, b1, 10);
+    ok(tA.trace.every((t, i) => t === tN.trace[i]) && tA.trace.every((t, i) => t === tB.trace[i]), '显式中性值、非法值（NaN/负/0/字符串/null/Infinity/对象）→ 回退旧行为，10s 逐帧一致');
+    ok(tS.trace.every((t, i) => t === tb1.trace[i]) && tb1.shots === tb1.volleys, '欠款档：带中性参数 = 去掉参数，逐帧一致；每次齐射只 1 发');
+    ok(['atkCdMul', 'windMul'].every(k => RB.foeTrait({ [k]: 0.01 })[k] === 0.3 && RB.foeTrait({ [k]: 10 })[k] === 2) && RB.foeTrait({ shotCount: 99 }).shotCount === 5 && RB.foeTrait({ shotCount: 2.7 }).shotCount === 2 && RB.foeTrait({ shotSpread: 90 }).shotSpread === 30 && JSON.stringify(RB.foeTrait(null)) === '{"atkCdMul":1,"windMul":1,"shotCount":1,"shotSpread":0}', '参数钳制：倍率 0.3–2、弹道最多 5 发取整、夹角 ≤30°；null → 中性');
+    // 3) 固定步数内：高档远程齐射/弹丸更多、近战起手更多（单只站桩怪，四档同位置同种子）
+    const one = (b, x, y) => [Object.assign({}, b[0], { x, y, speed: 0, hp: 9999, maxHp: 9999 })];
+    const shoot = [b0, b1, b2, b3].map(b => sim(NEW, one(b, 300, 110), 10));
+    const lunge = [b0, b1, b2, b3].map(b => sim(NEW, one(b, 300, 240), 10));
+    ok(shoot[0].volleys === shoot[1].volleys && shoot[2].volleys > shoot[1].volleys && shoot[3].volleys > shoot[2].volleys, '远程 10s 齐射次数 小账=欠款 < 重债 < 天道通缉：' + shoot.map(r => r.volleys).join('/'));
+    ok(shoot.map((r, t) => r.shots === r.volleys * [1, 1, 2, 3][t]).every(Boolean) && shoot[3].shots >= 3 * shoot[0].shots, '弹丸数 = 齐射 × 1/1/2/3 发，通缉档 ≥ 小账 3 倍：' + shoot.map(r => r.shots).join('/'));
+    ok(lunge[0].windups === lunge[1].windups && lunge[2].windups > lunge[1].windups && lunge[3].windups > lunge[2].windups && lunge[3].hp < lunge[0].hp, '近战 10s 前冲起手次数 小账=欠款 < 重债 < 通缉，挨打更多：' + lunge.map(r => r.windups + '次/-' + (1e6 - r.hp)).join(' '));
+    // 4) 前摇更短：通缉档 0.45×0.7=0.315s 就出弹，小账同时刻还在前摇；散射几何
+    S.rand = () => 0;
+    const at = (b, sec) => { RB.start(one(b, 300, 120), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; RB.update(1 / 60); const tg = RB.telegraphs()[0]; for (let t = 1 / 60; t < sec - 1e-9; t += 1 / 60) RB.update(1 / 60); return tg; };
+    let tg3 = at(b3, 0.34); const shots3 = S.enemyProjectiles.slice(), cd3 = S.enemies[0].atkCd; RB.end('lose', 'closed');
+    let tg0 = at(b0, 0.34); const n0s = S.enemyProjectiles.length, st0 = S.enemies[0].state; RB.end('lose', 'closed');
+    ok(shots3.length === 3 && n0s === 0 && st0 === 'windup', `前摇：通缉档 ${(F.windShot * 0.7).toFixed(3)}s 出弹（0.34s 已 3 发），小账 ${F.windShot}s 还在前摇`);
+    const ang = shots3.map(q => Math.atan2(q.vy, q.vx) * 180 / Math.PI).sort((a, b) => a - b);
+    ok(Math.abs(ang[1] - 90) < 1e-6 && Math.abs(ang[0] - 74) < 1e-6 && Math.abs(ang[2] - 106) < 1e-6 && shots3.every(q => Math.abs(Math.hypot(q.vx, q.vy) - F.shotSpd) < 1e-6 && q.dmg === F.shotDmg), '散射：中间一发正对主角，两侧 ±16°，弹速/伤害与单发相同');
+    ok(Math.abs(cd3 - F.cdMin * 0.6) < 0.02 && tg3.count === 3 && tg3.spread === 16 && tg0.count === 1 && tg0.spread === 0, `出手后冷却 ×0.6（${cd3.toFixed(2)}s vs 旧 ${F.cdMin}s）；预警线 3 条/16° vs 1 条`);
+    RB.start(one(b3, 300, 120), { timeLimit: 99, hp: 1e6, scale: false }); S.enemies[0].atkCd = 0; RB.update(1 / 60); RB.update(0.2);
+    ok(Math.abs(RB.telegraphs()[0].k - 0.2 / (F.windShot * 0.7)) < 1e-6, '预警填充进度按缩短后的前摇计算（缩短也能填满）');
+    let rf = 0; const rctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fillRect' && /255,60,40/.test(t.fillStyle || '')) rf++; }), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.draw(rctx); ok(rf === 3, 'draw()：通缉档弹道前摇画 3 条红色预警线');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 5) 顶栏标注档位特性
+    const texts = []; const lctx = new Proxy({}, { get: (t, k) => (k === 'fillText' ? (s) => texts.push(String(s)) : (k in t ? t[k] : () => {})), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.start(b3, { timeLimit: 99, label: '追兵·天道通缉·疾攻三发' }); RB.draw(lctx);
+    ok(S.label === '追兵·天道通缉·疾攻三发' && texts.some(t => t.startsWith('追兵·天道通缉·疾攻三发 ')), '顶栏完整显示「追兵·天道通缉·疾攻三发」（12 字，不被截断）');
+    RB.end('lose', 'closed');
+  }
+
   // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因
   {
     let d8 = RB.start(null, { timeLimit: 99 }); S.player.hp = 0; RB.update(0.016);

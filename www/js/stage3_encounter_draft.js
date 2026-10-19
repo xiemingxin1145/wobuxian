@@ -270,11 +270,14 @@ const Stage3 = {
   // 「欠得多了有追兵」：按当前 G.debt 分 4 档（阈值 1000 / 5000 与「债主之家」态度一致，另加 20000 天道通缉），
   // 身上挂着 flags.bounty（反杀债主 / 钱多多卖行踪）再加一档。档位决定追兵数量、血量倍率、移速。
   // 只产出敌人数据给开发者入口「追兵战」按钮喂即时战原型；本文件不直接调用即时战原型、不写 G（胜负结算见下方 settleBounty）。
+  // 债务强化 #4「追兵战按档位分化敌人」：高档追兵出手更凶——atkCdMul 出手后冷却倍率（越小越快）、windMul 前摇倍率（越小预警越短）、
+  //   shotCount 一次弹道发数（扇形散射）、shotSpread 相邻两发夹角（度）、spdAdd 额外移速；低两档全是中性值（= 旧行为）。
+  //   trait = 顶栏/结算卡上的档位特性短名（低档为空）。数值只给开发者「追兵战」试手感，待主人试玩定。
   DEBT_TIERS: [
-    { key: 'light', n: '小账', hunters: 1, hpMul: 1 },
-    { key: 'owing', n: '欠款', hunters: 2, hpMul: 1.15 },
-    { key: 'heavy', n: '重债', hunters: 3, hpMul: 1.3 },
-    { key: 'wanted', n: '天道通缉', hunters: 4, hpMul: 1.45 },
+    { key: 'light', n: '小账', hunters: 1, hpMul: 1, atkCdMul: 1, windMul: 1, shotCount: 1, shotSpread: 0, spdAdd: 0, trait: '' },
+    { key: 'owing', n: '欠款', hunters: 2, hpMul: 1.15, atkCdMul: 1, windMul: 1, shotCount: 1, shotSpread: 0, spdAdd: 0, trait: '' },
+    { key: 'heavy', n: '重债', hunters: 3, hpMul: 1.3, atkCdMul: 0.75, windMul: 0.8, shotCount: 2, shotSpread: 14, spdAdd: 4, trait: '快攻双发' },
+    { key: 'wanted', n: '天道通缉', hunters: 4, hpMul: 1.45, atkCdMul: 0.6, windMul: 0.7, shotCount: 3, shotSpread: 16, spdAdd: 8, trait: '疾攻三发' },
   ],
   debtPressure(G) {
     const raw = Number(G && G.debt);
@@ -283,7 +286,14 @@ const Stage3 = {
     let tier = debt > 20000 ? 3 : debt > 5000 ? 2 : debt > 1000 ? 1 : 0;
     if (bounty) tier = Math.min(3, tier + 1);
     const T = this.DEBT_TIERS[tier];
-    return { tier, key: T.key, n: T.n, debt, bounty, hunters: T.hunters, hpMul: T.hpMul };
+    return { tier, key: T.key, n: T.n, debt, bounty, hunters: T.hunters, hpMul: T.hpMul,
+      atkCdMul: T.atkCdMul, windMul: T.windMul, shotCount: T.shotCount, shotSpread: T.shotSpread, spdAdd: T.spdAdd, trait: T.trait,
+      traitNote: this.tierTraitNote(T) };
+  },
+  // 档位特性说明（结算卡/提示用）：低档 = 「与普通讨债鬼相同」
+  tierTraitNote(T) {
+    if (!T || !T.trait) return '与普通讨债鬼相同';
+    return `${T.trait}：出手冷却 ×${T.atkCdMul}、前摇 ×${T.windMul}、弹道 ${T.shotCount} 发散射（夹角 ${T.shotSpread}°）、移速 +${T.spdAdd}`;
   },
   // 追兵：讨债鬼（data.js MONS.collector 的精灵 mon_collector；方块皮肤用「讨债鬼差」）。出手冷却错开，避免同帧一起前摇
   HUNTER_SLOTS: [[300, 150], [140, 200], [460, 200], [300, 450]],
@@ -291,7 +301,9 @@ const Stage3 = {
     const P = this.debtPressure(G);
     return this.HUNTER_SLOTS.slice(0, P.hunters).map(([x, y], i) => ({
       name: i === 0 && P.tier === 3 ? '讨债鬼头子' : '讨债鬼', spr: 'mon_collector', box: 'taozhai',
-      hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier, atkCd: 1.0 + 0.6 * i,
+      hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier + P.spdAdd, atkCd: 1.0 + 0.6 * i,
+      // 债务强化 #4：档位行为参数（即时战原型读取；缺字段 / 中性值 = 旧行为）
+      atkCdMul: P.atkCdMul, windMul: P.windMul, shotCount: P.shotCount, shotSpread: P.shotSpread, tier: P.tier,
     }));
   },
 

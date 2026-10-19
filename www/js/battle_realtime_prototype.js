@@ -10,6 +10,8 @@
 //             主角血/攻只读取自 Game.stats()（+G.hp），异常回退 180/28；敌人血量/伤害同比缩放。
 // 2026-10-19 第四轮：技能按「灵根 × 武器」变形：火=锥形灼烧、水/冰=减速水珠、金=贯穿剑气、木=定身藤、其他=灵弹；
 //             剑/扇/伞分别加伤害弹速/范围/冷却修正；多灵根 E 键或「换」按钮切元素。灵根/武器只读，缺失回退。
+// 2026-10-19 第七轮（债务强化 #4）：敌人配置可带 atkCdMul（出手后冷却倍率）/ windMul（前摇倍率）/ shotCount + shotSpread（一次几发、
+//             相邻夹角°，扇形散射），追兵战按债压档位填；缺字段或非法值一律回退中性值 = 旧行为（数值逐帧一致）。
 (function () {
   const W0 = 600, H0 = 520; // 逻辑战场尺寸
   const BOUND = { x0: 40, x1: 560, y0: 60, y1: 480 };
@@ -23,6 +25,19 @@
     cdMin: 1.4, cdVar: 0.8,
   };
   const DODGE = { cd: 1.2, dist: 90, inv: 0.3 };
+  // 敌人行为参数（债务强化 #4）：缺字段 / 非数字 / 越界 → 中性值（与旧行为完全一致）；合法值钳到安全范围
+  const FOE_TRAIT = { mulMin: 0.3, mulMax: 2, shotMax: 5, spreadMax: 30 };
+  function foeTrait(e) {
+    const num = v => (typeof v === 'number' && isFinite(v) ? v : null);
+    const mul = v => { const n = num(v); return n !== null && n > 0 ? Math.max(FOE_TRAIT.mulMin, Math.min(FOE_TRAIT.mulMax, n)) : 1; };
+    const sc = num(e && e.shotCount), sp = num(e && e.shotSpread);
+    return {
+      atkCdMul: mul(e && e.atkCdMul),
+      windMul: mul(e && e.windMul),
+      shotCount: sc !== null && sc >= 1 ? Math.min(FOE_TRAIT.shotMax, Math.floor(sc)) : 1,
+      shotSpread: sp !== null && sp > 0 ? Math.min(FOE_TRAIT.spreadMax, sp) : 0,
+    };
+  }
   // 灵根技能：主灵根元素决定形态（多灵根可按 E / 「换」切换），武器类型给修正。k = 伤害系数（×攻击）
   const SKILL = {
     fire: { n: '焚天扇火', el: '火', cd: 2.0, k: 0.6, range: 120, arc: Math.PI * 35 / 180, burnT: 2.0, burnK: 0.15, c: '#ff6a3a' }, // 面前锥形灼烧 + 持续掉血
@@ -153,6 +168,7 @@
     RT.enemyProjectiles = [];
     RT.dmgNums = [];
     RT.fx = [];
+    RT.foeVolleys = 0; RT.foeShots = 0; // 敌人弹道齐射次数 / 弹丸总数（测试与调试用）
     // 主角属性：opts 覆盖 > 存档只读 > 默认；敌人血量/伤害按同比缩放，保证「几刀砍死、几下被打死」的节奏不随境界变
     const ps = readPlayerStats();
     const sr = opts.els ? { els: opts.els.slice(), src: 'opts' } : readSpiritRoot();
@@ -175,6 +191,7 @@
       speed: e.speed != null ? e.speed : 70,
       state: 'chase', wind: 0, windKind: null, aimX: 0, aimY: 1, lunge: 0, lungeHit: false,
       atkCd: e.atkCd != null ? e.atkCd : (e.skillCd != null ? e.skillCd : 0.8 + RT.rand() * 1.2),
+      ...foeTrait(e), attacks: 0, windMax: 0, // 档位行为参数（缺省 = 旧行为）；attacks = 已起手次数
       slowT: 0, slowMul: 1, burnT: 0, burnDps: 0, burnAcc: 0, rootT: 0,
       flash: 0, at: 0, moving: false,
     }));
@@ -259,8 +276,15 @@
         if (e.wind <= 0) {
           if (e.windKind === 'lunge') { e.state = 'lunge'; e.lunge = FOE.lungeT; e.lungeHit = false; }
           else {
-            RT.enemyProjectiles.push({ x: e.x + e.aimX * 16, y: e.y + e.aimY * 16, vx: e.aimX * FOE.shotSpd, vy: e.aimY * FOE.shotSpd, life: 2.0, dmg: Math.max(1, Math.round(FOE.shotDmg * e.dmgMul)), dodged: false });
-            e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar;
+            // shotCount 发以锁定方向为中心对称散开（相邻 shotSpread°）；1 发时与旧行为完全一致
+            const n = e.shotCount || 1, step = (e.shotSpread || 0) * Math.PI / 180, a0 = Math.atan2(e.aimY, e.aimX);
+            for (let i = 0; i < n; i++) {
+              const off = (i - (n - 1) / 2) * step;
+              const ax = n === 1 ? e.aimX : Math.cos(a0 + off), ay = n === 1 ? e.aimY : Math.sin(a0 + off);
+              RT.enemyProjectiles.push({ x: e.x + ax * 16, y: e.y + ay * 16, vx: ax * FOE.shotSpd, vy: ay * FOE.shotSpd, life: 2.0, dmg: Math.max(1, Math.round(FOE.shotDmg * e.dmgMul)), dodged: false });
+            }
+            RT.foeVolleys++; RT.foeShots += n;
+            e.state = 'chase'; e.atkCd = (FOE.cdMin + RT.rand() * FOE.cdVar) * e.atkCdMul;
           }
         }
         continue;
@@ -270,7 +294,7 @@
         e.x += e.aimX * FOE.lungeSpd * step; e.y += e.aimY * FOE.lungeSpd * step; clamp(e);
         e.lunge -= dt; e.moving = true;
         if (!e.lungeHit && Math.hypot(p.x - e.x, p.y - e.y) < FOE.hitR) { e.lungeHit = true; damagePlayer(Math.max(1, Math.round(FOE.lungeDmg * e.dmgMul))); }
-        if (e.lunge <= 0) { e.state = 'chase'; e.atkCd = FOE.cdMin + RT.rand() * FOE.cdVar; }
+        if (e.lunge <= 0) { e.state = 'chase'; e.atkCd = (FOE.cdMin + RT.rand() * FOE.cdVar) * e.atkCdMul; }
         continue;
       }
       // chase
@@ -284,7 +308,8 @@
       if (e.atkCd <= 0 && d < FOE.shotRange) {
         e.state = 'windup';
         e.windKind = d < FOE.lungeRange ? 'lunge' : 'shot';
-        e.wind = e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot;
+        e.wind = (e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot) * e.windMul; // 高档追兵前摇更短
+        e.windMax = e.wind; e.attacks++;
         e.aimX = dx / d; e.aimY = dy / d; // 前摇开始即锁定方向 → 横移/闪避可躲
       }
     }
@@ -350,7 +375,8 @@
       enemy: e, kind: e.windKind, x: e.x, y: e.y, aimX: e.aimX, aimY: e.aimY,
       len: e.windKind === 'lunge' ? FOE.lungeSpd * FOE.lungeT + FOE.hitR : 260,
       width: e.windKind === 'lunge' ? FOE.hitR * 2 : FOE.shotR * 2,
-      k: 1 - e.wind / (e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot), // 0→1 越来越满
+      k: 1 - e.wind / (e.windMax || (e.windKind === 'lunge' ? FOE.windLunge : FOE.windShot)), // 0→1 越来越满
+      count: e.windKind === 'shot' ? (e.shotCount || 1) : 1, spread: e.windKind === 'shot' ? (e.shotSpread || 0) : 0, // 散射：几条预警线、夹角°
     }));
   }
 
@@ -476,13 +502,16 @@
 
     // 敌人前摇预警：红色区域由淡到浓，敌人闪烁
     for (const tg of telegraphs()) {
-      const a = Math.atan2(tg.aimY, tg.aimX);
-      ctx.save(); ctx.translate(tg.x, tg.y); ctx.rotate(a);
-      ctx.fillStyle = `rgba(255,60,40,${0.15 + 0.35 * tg.k})`;
-      ctx.fillRect(0, -tg.width / 2, tg.len, tg.width);
-      ctx.fillStyle = 'rgba(255,90,60,0.8)';
-      ctx.fillRect(0, -tg.width / 2, tg.len * tg.k, 3); ctx.fillRect(0, tg.width / 2 - 3, tg.len * tg.k, 3);
-      ctx.restore();
+      const a0 = Math.atan2(tg.aimY, tg.aimX);
+      for (let i = 0; i < tg.count; i++) { // 散射：每一发各画一条预警线
+        const a = a0 + (i - (tg.count - 1) / 2) * tg.spread * Math.PI / 180;
+        ctx.save(); ctx.translate(tg.x, tg.y); ctx.rotate(a);
+        ctx.fillStyle = `rgba(255,60,40,${0.15 + 0.35 * tg.k})`;
+        ctx.fillRect(0, -tg.width / 2, tg.len, tg.width);
+        ctx.fillStyle = 'rgba(255,90,60,0.8)';
+        ctx.fillRect(0, -tg.width / 2, tg.len * tg.k, 3); ctx.fillRect(0, tg.width / 2 - 3, tg.len * tg.k, 3);
+        ctx.restore();
+      }
       tg.enemy.flash = Math.sin(RT.time * 30) > 0 ? 0.05 : 0;
     }
 
@@ -654,6 +683,8 @@
     WEAPON,
     ATK,
     FOE,
+    FOE_TRAIT,
+    foeTrait,
     DODGE,
     telegraphs,
     _key: { down: _rtKeyDown, up: _rtKeyUp },
