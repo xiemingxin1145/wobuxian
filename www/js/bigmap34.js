@@ -110,7 +110,7 @@ const Big34 = {
 for (const id in Big34.CFG) try { Big34.extend(id); } catch (e) { console.error('Big34', id, e); }
 (function () {
   Big34.hook = function () { if (R.drawGround && R.drawGround._big) return; const oG = R.drawGround; const f = ctx => { try { Big34.draw(ctx); } catch (e) { console.error(e); } if (oG) oG(ctx); }; f._big = 1; if (oG && oG._seam) f._seam = 1; R.drawGround = f; };
-  Big34.hook(); setInterval(() => Big34.hook(), 500);
+  try { Big34.hook(); setInterval(() => Big34.hook(), 500); } catch (e) { /* 无头校验环境无 setInterval */ }
 })();
 // ---- 新区 NPC（复用现有精灵/头像，闲聊台词；位置取新区环路旁的可走格）----
 Big34.NPCS = {
