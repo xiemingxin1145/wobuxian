@@ -38,3 +38,4 @@ art/ai_pipeline/trimmed/
 # 临时 URL 备份与下载日志（一次性抢救凭证，不进 git）
 art/ai_pipeline/mon_urls.json
 art/ai_pipeline/*.log
+test/jianghu34/

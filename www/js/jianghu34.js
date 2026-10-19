@@ -280,7 +280,8 @@ const Chain34 = {
     try { const G = this.G; JH34.sync(); for (const k in NPCS) { if (!NPCS[k].jh34) continue; const a = Chain34.avail(G, k, id); if (a.length) { const key = 'ch34hint_' + a[0][0] + '_' + a[0][2].s; if (!G.used[key]) { G.used[key] = 1; setTimeout(() => UI.toast(`【奇遇】${JH34.nm(k)}在${MAPINFO[id].n}，好像有事找你`, '#ffd8a0'), 1200); } } } } catch (e) { console.error('jh34 enter', e); }
     return r;
   };
-  const _mk = Game.npcMark; Game.npcMark = function (id) { const m = _mk.apply(this, arguments); if (m) return m; try { if (NPCS[id] && NPCS[id].jh34 && Chain34.avail(this.G, id).length) return '…'; } catch (e) { } return m; };
+  // 奇遇标记 ⚑（红底）：不覆盖主线/任务的 ！？★，覆盖闲聊 💬；不用 ★/！，免得 #bot 和自动任务把它当主线目标
+  const _mk = Game.npcMark; Game.npcMark = function (id) { const m = _mk.apply(this, arguments); if (m === '!' || m === '?' || m === '★') return m; try { if (NPCS[id] && NPCS[id].jh34 && Chain34.avail(this.G, id).length) return '⚑'; } catch (e) { } return m; };
   // ---- 「更多 → 江湖风云」面板 ----
   function install() {
     if (typeof UI === 'undefined' || !UI.p_more || !UI.titles) { setTimeout(install, 300); return; }
