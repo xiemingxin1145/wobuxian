@@ -210,6 +210,14 @@
   - 涉及文件：`www/js/stage3_encounter_draft.js`、`test/stage3_life34.js`、`docs/openworld_upgrade.md`、`PROGRESS.md`
 - 下一步：按优先级回到债务系统强化（下一小步候选：讨债令加上限 / 冷却，防反复刷），之后即时战原型、低模方块角色、奇遇链；3.4.1 合进 main 后再跑一遍 C2 确认（届时 C1 的「本分支 life34 没有 _inApply」断言要换掉）。两条链接进正常流程仍须单独开 PR 给奥拉夫审。
 
+### 2026-10-19 第十五轮（UTC+8，openworld-wip，20:23 起）
+- [x] 步骤 26：`git fetch` 后普通 merge origin/main **`ea4926e`**（含 `3d008fb` Merge rel340 = v3.4.0：S3 点催收令名牌优先于怪、N1 刷怪离 NPC/标记 ≥2 格，回归测 `test/wb33_mark_regress.py`），合并提交 **`c1ec4f0`**，无冲突；huashen33.js / controls.py / life34.js / jianghu34.js / game.js / talk.js / ux23.js / 章节剧情文件与 main 一致（dev_entry_v25.js 仍是本分支早先几轮的开发者按钮改动，本轮未动）。
+- [x] 步骤 27：团队定数值——扛税（钱多多）/ 对账（记账童子）这一步 L.rel 总变化 +30 → **+20**（参考 qc34 每步 +15）。G.aff 仍 +60（保住第 2 步 60 阈值「亲近」结算）；新增 `Stage3.GOOD_REL = { cover: 20, help: 20 }`，正向目标 = 上限：0→60 同步 +30 补 −10 = +20；好感钳 150（120→150）同步 +15 不补 = +15；`_inApply=true` 时预估外层 +30、这里补 −10，合计 +20。贿赂 +10、负向档位不变。提交 `fb34bda`。
+  - 合并后 main 的 life34.js 包装了 `pickAt`（S3），vm 单测桩补 `pickAt` / `s2w`（只改测试）。
+  - 测试（逐个串行）：stage3_chain 205/205、stage3_life34 114/114、battle_rt_proto 143/143、lowpoly_box 55/55、validate22 errors []、dev_entry_v25_page 58/58（新增真页面对账 0→60：L.rel +20、卡片「恩怨 +20」、查账仍 ×0.8）、battle_rt_proto_page 12/12、encounter_chain_verify 14/14、life34_unit / life34_visitor_nomons / jianghu34_unit fails []、jianghu34_ui ok、seam34 FAILS []（首跑一次 `cross` 偶发，复跑 3 次 + main 上 2 次均过）、sys33_unit / jsscan33（21 图）/ content33 errors []、wb33_mark_regress fails []。
+- [x] 步骤 28：开 PR **#23**（openworld-wip → main，https://github.com/xiemingxin1145/wobuxian/pull/23），未合并、未指定审阅人（奥拉夫的 GitHub 账号未知）。
+- 下一步：等 PR #23 审阅；两条链接进正常流程另开 PR 给奥拉夫审。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
