@@ -38,8 +38,11 @@ Life34.simYear = function () {
   // ② 宗门关系：统一用 jianghu34/war29 的 G.sectRel（三宗势力由 JH34 年度推进），这里只读最差的一对
   const rel = G.sectRel || {}; let worst = null; for (const k in rel) if (rel[k] <= -50 && (!worst || rel[k] < worst[1])) worst = [k, rel[k]];
   // ②b 负面来源（数值按研究员定稿）：宗门敌对外溢在 sectWar 里处理；讨债司公示逾期（本年欠款涨了）→ 所有正恩怨 −5（每年一次）
-  const yr0 = Life34.yr(); if ((G.debt || 0) > 0 && L.lastDebt !== undefined && G.debt > L.lastDebt && L.seen.debtPost !== yr0) { L.seen.debtPost = yr0; for (const id in L.rel) if (L.rel[id] > 0) Life34.rel(id, -5); Life34.say('讨债司张榜公示你的逾期欠款，熟人脸上都挂不住。'); }
-  L.lastDebt = G.debt || 0;
+  // #17：年息 3%（game.js 每年 ceil(debt×0.03) 自动滚）不算公示；只有超出「上次记录按年息滚到今天」+ 小余量（新借款/催收失败加罚）才算
+  const yr0 = Life34.yr(); const d = G.debt || 0;
+  if (L.lastDebt !== undefined && L.lastDebtYr !== undefined && d > 0) { let exp = L.lastDebt; for (let y = L.lastDebtYr; y < yr0 && y < L.lastDebtYr + 200; y++) if (exp > 0) exp += Math.ceil(exp * 0.03);
+    if (d > exp + Math.max(5, exp * 0.005) && L.seen.debtPost !== yr0) { L.seen.debtPost = yr0; for (const id in L.rel) if (L.rel[id] > 0) Life34.rel(id, -5); Life34.say('讨债司张榜公示你的逾期欠款，熟人脸上都挂不住。'); } }
+  L.lastDebt = d; L.lastDebtYr = yr0;
   // 奇遇链任务接了 3 年还没交 → 超时作废，给予者 −20
   for (const q in (G.quests || {})) if (q.startsWith('qc34_') && L.qt && L.qt[q] !== undefined && yr0 - L.qt[q] >= 3) { delete G.quests[q]; delete L.qt[q]; Life34.rel(QUESTS[q].giver, -20); Life34.say(`你没办完「${QUESTS[q].n}」，${NPCS[QUESTS[q].giver].n}很失望。`); }
   // ③ 找上门事件（每年最多 1 个；已有未处理的就不再生成）
