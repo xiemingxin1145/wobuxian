@@ -39,7 +39,7 @@ const Seam34 = {
   },
   preload(id) { try { const M = ASSETS.maps[id]; loadImg('assets/maps/' + id + '.webp'); loadImg('assets/maps/' + M.propAtlas.img); } catch (e) { } },
   draw(ctx) {
-    if (!R.M || R.mode !== 'map' || !this.exits.length) return;
+    if (!Game.G || !R.M || R.mode !== 'map' || !this.exits.length) return;
     const t = R.t || 0;
     for (const x of this.exits) try { this.strip(ctx, x); } catch (e) { }
     for (const x of this.exits) {

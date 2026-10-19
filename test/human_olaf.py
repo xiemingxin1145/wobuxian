@@ -68,7 +68,7 @@ return {modal:UI.stack.length,top:top?top.className:null,dlg:!!(top&&top.querySe
  joy:!!(R.joy&&R.joy.active),age:G?G.age:null,main:G&&typeof MAIN!=='undefined'&&MAIN[G.main]?MAIN[G.main].id:null,awakened:!!(G&&G.flags&&G.flags.awakened),
  ap:G?G.ap:null,mapId:R.mapId,ingame:document.body.classList.contains('ingame')}}"""
 JS_RECT = """([sel,txt])=>{const e=[...document.querySelectorAll(sel)].filter(e=>{const r=e.getBoundingClientRect();const cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none'&&!e.closest('.outm')&&(!txt||e.textContent.includes(txt))}).pop();
-if(!e)return null;const r=e.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,e.textContent.trim().slice(0,30)]}"""
+if(!e)return null;let r=e.getBoundingClientRect();/* 被可滚动容器裁掉或在屏外：像手指滑动一样滚动最近的可滚动容器（不滚 body） */for(let p=e.parentElement;p&&p!==document.body;p=p.parentElement){const o=getComputedStyle(p).overflowY;if((o==='auto'||o==='scroll')&&p.scrollHeight>p.clientHeight){const pr=p.getBoundingClientRect();const top=Math.max(pr.top,0),bot=Math.min(pr.bottom,innerHeight);if(r.top<top||r.bottom>bot){p.scrollTop+=r.top+r.height/2-(top+bot)/2;r=e.getBoundingClientRect()}break}}return [r.x+r.width/2,r.y+r.height/2,e.textContent.trim().slice(0,30)]}"""
 JS_HIT = "([x,y])=>{const e=document.elementFromPoint(x,y);return e?(e.id?'#'+e.id:e.tagName.toLowerCase()+(e.className&&e.className.baseVal===undefined?'.'+e.className:'')):null}"
 JS_WALK = "([i,j])=>walkable(i,j)"   # 只读：网格可走
 JS_TILE_S = "([i,j])=>{const [x,y]=t2p(i,j);const [a,b]=w2s(x,y);return [a/R.dpr,b/R.dpr]}"
@@ -691,7 +691,7 @@ async def main():
                     hint = await cs.pg.evaluate("()=>{const e=document.querySelector('.fb33 .hint');return e?e.textContent:''}")
                     st0 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
                     await tap_el(cs, '.fb33 .opt', '升阶', 700); s_ = await scr(cs); fail_card = s_['title'] == '升阶失败'
-                    if fail_card: await clear_popups(cs, 2)
+                    if fail_card: await tap_el(cs, '#modals .mwrap .opt', '好', 600)   # 只关失败卡；clear_popups 会误点洞府面板里的「升阶」再升一次
                     st1 = await cs.pg.evaluate("()=>({s:Game.G.stone,fb:Object.assign({},Game.G.fb33)})")
                     spent = st0['s'] - st1['s']; okc = (st1['fb']['tier'] == 2 and spent == 660) or (st1['fb']['tier'] == 1 and spent == 330)
                     f = await shot(cs, 'S2_fabao'); await tap_el(cs, '#modals .mwrap .x', None, 500); await clear_popups(cs, 4)
