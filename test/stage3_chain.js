@@ -446,8 +446,61 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     ok(tuneCallers.join(',') === 'dev_entry_v25.js', '只有 dev_entry_v25.js 调用 bountyTuning：' + tuneCallers.join(','));
     const de7 = fs7.readFileSync(path.join(jsDir, 'dev_entry_v25.js'), 'utf8');
     const rbt = de7.slice(de7.indexOf('function readBountyTuning'), de7.indexOf('const short'));
-    ok(/const TUNING_KEY = 'wbx_dev_bounty_tuning'/.test(de7) && /localStorage\.getItem\(TUNING_KEY\)/.test(rbt) && !/setItem\(TUNING_KEY|\.save\(/.test(de7.replace(/^\s*\/\/.*$/gm, '').slice(0, de7.indexOf('function addEntry'))) && !/setItem/.test(rbt), '开发者入口只 getItem 读覆盖键（不 setItem、读取时不存档）');
+    // 债务强化 #8 起开发者入口可以写覆盖键（一键预设），但只许写这一个专用键：整个文件唯一一处 setItem = writeBountyPreset 里的 localStorage.setItem(TUNING_KEY, …)；读取函数仍只 getItem
+    const de7c = de7.replace(/^\s*\/\/.*$/gm, ''), setCalls = de7c.match(/\bsetItem\s*\(/g) || [];
+    const wbp = de7c.slice(de7c.indexOf('function writeBountyPreset'), de7c.indexOf('function addEntry'));
+    ok(/const TUNING_KEY = 'wbx_dev_bounty_tuning'/.test(de7) && /localStorage\.getItem\(TUNING_KEY\)/.test(rbt) && !/setItem|removeItem|\.save\(/.test(rbt)
+      && setCalls.length === 1 && (de7c.match(/localStorage\.setItem\(TUNING_KEY, JSON\.stringify\(p\.override\)\)/g) || []).length === 1 && /localStorage\.setItem\(TUNING_KEY/.test(wbp)
+      && (de7c.match(/removeItem\(([^)]*)\)/g) || []).every(x => x === 'removeItem(TUNING_KEY)') && !/wbx2_save/.test(de7c) && !/\.save\(|Game\.|gameObj/.test(wbp + rbt),
+      '开发者入口读覆盖键只 getItem；setItem 全文件仅 1 处且只写 TUNING_KEY（预设 JSON），removeItem 只删 TUNING_KEY，不碰 wbx2_save、读写覆盖时不存档');
     ok(/Stage3\.debtPressure\(G, tu\.table\)/.test(de7) && /Stage3\.bountyEnemies\(G, tu\.table\)/.test(de7) && /id = 'v25-zt'/.test(de7) && /removeItem\(TUNING_KEY\)/.test(de7), '开发者「追兵战」用合并后的表；新增「追兵调参」按钮（可清除覆盖）');
+  }
+
+  // 17. 债务强化 #8：追兵调参一键预设 BOUNTY_TUNING_PRESETS（好躲/原样/地狱）——纯数据深冻结、每个值都原样通过 bountyTuning、难度单调、只给开发者入口用
+  {
+    const fs8 = require('fs');
+    const PR = S.BOUNTY_TUNING_PRESETS, D8 = S.BOUNTY_TUNING_DEFAULT, BT = o => S.bountyTuning(o), J8 = v => JSON.stringify(v);
+    const TF = ['hunters', 'hpMul', 'atkCdMul', 'windMul', 'shotCount', 'shotSpread', 'spdAdd'], BF = ['ringShots', 'ringWarn', 'ringCd'];
+    const snapD = J8(D8), snapT = J8(S.DEBT_TIERS), snapB = J8(S.BOSS_RING);
+    ok(Array.isArray(PR) && PR.map(p => p.key).join() === 'easy,plain,hell' && PR.map(p => p.n).join() === '好躲,原样,地狱' && PR.every(p => typeof p.note === 'string' && p.note.length > 4), '三个预设：easy 好躲 / plain 原样 / hell 地狱（顺序固定，各带说明）');
+    const deepFrozen = o => !o || typeof o !== 'object' || (Object.isFrozen(o) && Object.values(o).every(deepFrozen));
+    let threw8 = 0; for (const f of [() => { PR.push({}); }, () => { PR[0].n = 'x'; }, () => { PR[2].override.boss.ringShots = 99; }, () => { PR[0].override.tiers.wanted.hunters = 1; }, () => { PR[1].override = {}; }]) { try { f(); } catch (e) { threw8++; } }
+    ok(deepFrozen(PR) && threw8 === 5 && PR.length === 3 && PR[2].override.boss.ringShots === 12 && PR[1].override === null, '预设表深冻结（数组/每个预设/override 各层），改不动');
+    const res8 = PR.map(p => BT(p.override));
+    ok(res8.every(r => !r.error && !r.clamped.length && !r.rejected.length && !r.unknown.length), '每个预设的覆盖都原样通过 bountyTuning：0 钳制 / 0 非法 / 0 未知 / 无 error：' + res8.map((r, i) => `${PR[i].key} 改 ${r.changed.length} 项`).join('，'));
+    const inRange = PR.every(p => !p.override || (Object.entries(p.override.tiers || {}).every(([k, t]) => S.DEBT_TIERS.some(d => d.key === k) && Object.entries(t).every(([f, v]) => S.tuneField(S.TUNE_RULES.tier[f], v).v === v))
+      && Object.entries(p.override.boss || {}).every(([f, v]) => S.tuneField(S.TUNE_RULES.boss[f], v).v === v)));
+    ok(inRange, '预设每个字段都在 TUNE_RULES 范围内（整数字段为整数，tuneField 原值返回），档位键都是 light/owing/heavy/wanted');
+    ok(res8[1].table === D8 && res8[0].changed.length > 0 && res8[2].changed.length > 0 && res8.every((r, i) => J8(BT(JSON.parse(J8(PR[i].override))).table) === J8(r.table)), '原样 = 默认表（同一冻结对象）；好躲/地狱确有改动；JSON 往返（开发者入口写进 localStorage 的形态）结果一致');
+    // 难度单调：好躲每个字段都不比默认难、地狱每个字段都不比默认易（夹角不算难度，不比较）；每档至少一项严格变化
+    const easier = { hunters: -1, hpMul: -1, atkCdMul: 1, windMul: 1, shotCount: -1, spdAdd: -1, ringShots: -1, ringWarn: 1, ringCd: 1 };
+    const dir = (t, base, f) => Math.sign(t[f] - base[f]) * easier[f]; // 1 = 更好躲，-1 = 更难
+    const E = res8[0].table, H = res8[2].table;
+    const eOk = E.tiers.every((t, i) => TF.every(f => f === 'shotSpread' || dir(t, D8.tiers[i], f) >= 0) && TF.some(f => f !== 'shotSpread' && dir(t, D8.tiers[i], f) > 0)) && BF.every(f => dir(E.boss, D8.boss, f) > 0);
+    const hOk = H.tiers.every((t, i) => TF.every(f => f === 'shotSpread' || dir(t, D8.tiers[i], f) <= 0) && TF.some(f => f !== 'shotSpread' && dir(t, D8.tiers[i], f) < 0)) && BF.every(f => dir(H.boss, D8.boss, f) < 0);
+    ok(eOk, '好躲：四档每个字段都不比默认难（人/血/发数/移速 ≤、冷却/前摇 ≥），每档至少一项更好躲；头子环弹更少/预警更长/间隔更长：' + E.tiers.map(t => `${t.hunters}只×${t.hpMul}/冷却${t.atkCdMul}/前摇${t.windMul}/${t.shotCount}发`).join(' | '));
+    ok(hOk, '地狱：四档每个字段都不比默认易，每档至少一项更难；头子环弹更多/预警更短/间隔更短：' + H.tiers.map(t => `${t.hunters}只×${t.hpMul}/冷却${t.atkCdMul}/前摇${t.windMul}/${t.shotCount}发`).join(' | '));
+    // 查找与识别
+    ok(S.bountyPreset('easy') === PR[0] && S.bountyPreset('hell') === PR[2] && S.bountyPreset('plain') === PR[1] && S.bountyPreset('x') === null && S.bountyPreset() === null, 'bountyPreset(key) 按 key 取预设，未知 key → null');
+    ok(S.bountyPresetOf(null) === PR[1] && S.bountyPresetOf(D8) === PR[1] && S.bountyPresetOf(BT({})) === PR[1] && S.bountyPresetOf(res8[0].table) === PR[0] && S.bountyPresetOf(res8[2]) === PR[2] && S.bountyPresetOf(JSON.parse(J8(PR[2].override))) === PR[2]
+      && S.bountyPresetOf(BT({ tiers: { wanted: { shotCount: 4 } } }).table) === null && S.bountyPresetOf(BT(Object.assign({}, JSON.parse(J8(PR[0].override)), { boss: { ringShots: 7 } })).table) === null && S.bountyPresetOf('garbage') === PR[1],
+      'bountyPresetOf：默认/空覆盖/非对象 → 原样；好躲/地狱的表、结果、未校验覆盖都能认出；改过一项的自定义覆盖 → null');
+    // 生效：追兵数/参数按预设；档名、阈值、特性名、结算不变
+    const eE = S.bountyEnemies({ debt: 30000 }, E), eH0 = S.bountyEnemies({ debt: 10 }, H), eHW = S.bountyEnemies({ debt: 30000 }, H);
+    ok(eE.length === 3 && eE[0].name === '讨债鬼头子' && eE[0].ringShots === 6 && eE[0].ringWarn === 0.6 && eE[0].ringCd === 5 && eE.every(e => e.shotCount === 2 && e.atkCdMul === 0.85 && e.windMul === 1 && e.hp === Math.round(80 * 1.3)), '好躲·通缉档：3 个（头子仍在）、2 发、冷却×0.85、前摇×1、血 104，头子环弹 6 发/0.6s/5s');
+    ok(eH0.length === 2 && eH0.every(e => e.shotCount === 2 && e.name === '讨债鬼' && !('ringShots' in e)) && eHW.length === 4 && eHW.every(e => e.shotCount === 5 && e.atkCdMul === 0.4 && e.hp === 144) && eHW[0].ringShots === 12 && eHW[0].ringWarn === 0.3 && eHW[0].ringCd === 1.5, '地狱：小账 2 个双发（无头子无环弹）；通缉 4 个、5 发、冷却×0.4、血 144，头子环弹 12 发/0.3s/1.5s');
+    const pWs = PR.map(p => S.debtPressure({ debt: 30000 }, BT(p.override).table)), pLs = PR.map(p => S.debtPressure({ debt: 3000 }, BT(p.override).table));
+    ok(pWs.every(p => p.n === '天道通缉' && p.trait === '疾攻三发' && p.tier === 3 && p.bossMove === '回身环弹') && pLs.every(p => p.n === '欠款' && p.tier === 1) && /^开发者调参：/.test(pLs[0].traitNote) && pLs[1].traitNote === '与普通讨债鬼相同' && J8(pWs[1]) === J8(S.debtPressure({ debt: 30000 })), '三个预设下档名/阈值/特性名不变；原样与不传逐字段一致；好躲把欠款档调成非中性 → 说明标「开发者调参」');
+    const Ga8 = mk({ debt: 30000, year: 3, flags: { bounty: 1 } }), sets8 = PR.map(p => { const g = JSON.parse(J8(Ga8)); const tb = BT(p.override).table; const r = S.settleBounty(g, { result: 'win', reason: 'cleared', tier: S.debtPressure(g, tb).tier, defeated: S.bountyEnemies(g, tb).map(e => e.name) }); return J8(r) + J8(g); });
+    ok(sets8.every(x => x === sets8[1]) && J8(Ga8) === J8(mk({ debt: 30000, year: 3, flags: { bounty: 1 } })), '三个预设打赢天道通缉：结算返回值 + 结算后存档完全一致（预设只改战斗参数，不改结算/讨债令/存档）');
+    ok(J8(D8) === snapD && J8(S.DEBT_TIERS) === snapT && J8(S.BOSS_RING) === snapB, '预设与识别全程不改默认表 / DEBT_TIERS / BOSS_RING');
+    // 只给开发者入口：除 stage3 外只有 dev_entry 引用预设；stage3 仍不读写 localStorage；dev_entry 预设写入走 writeBountyPreset，卡片选项 = 知道了 + 三个预设
+    const jsDir8 = path.join(__dirname, '..', 'www', 'js');
+    const prUsers = fs8.readdirSync(jsDir8).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /BOUNTY_TUNING_PRESETS|bountyPreset/.test(fs8.readFileSync(path.join(jsDir8, f), 'utf8')));
+    ok(prUsers.join(',') === 'dev_entry_v25.js', '除 stage3 外只有 dev_entry_v25.js 引用预设：' + prUsers.join(','));
+    const s3c8 = fs8.readFileSync(path.join(jsDir8, 'stage3_encounter_draft.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    const de8 = fs8.readFileSync(path.join(jsDir8, 'dev_entry_v25.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    ok(!/localStorage|sessionStorage|wbx_dev/.test(s3c8) && /writeBountyPreset\(p\)/.test(de8) && /\['知道了'\]\.concat\(presets\.map/.test(de8) && /Stage3\.bountyPresetOf\(tu\.table\)/.test(de8), 'stage3 不读写 localStorage；dev_entry 点预设走 writeBountyPreset，卡片选项 = 知道了 + 预设，并标出当前预设');
   }
 
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）

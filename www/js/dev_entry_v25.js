@@ -1,5 +1,5 @@
 'use strict';
-// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）+ 突破预估（债压→突破难度，只读）+ 追兵调参（开发者覆盖）
+// v2.5 开发者入口：试炼场 + 阶段3 债务奇遇 + 一键全套神装 + 即时战斗 + 奇遇链（钱多多）+ 查账链（记账童子）+ 追兵战（债压档位）+ 突破预估（债压→突破难度，只读）+ 追兵调参（开发者覆盖 + 一键预设）
 
 (function () {
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
@@ -27,6 +27,8 @@
   function tuningCardText(tu) {
     const T = tu.table, B = T.boss, L = [];
     L.push(tu.error ? '⚠ ' + tu.error : tu.raw == null ? '未设置覆盖：使用默认表' : tu.changed.length ? `覆盖生效：改了 ${tu.changed.length} 项` : '覆盖里没有改动任何数值：等同默认表');
+    const pm = Stage3.bountyPresetOf ? Stage3.bountyPresetOf(tu.table) : null;
+    L.push(pm ? `当前预设：${pm.n}（${pm.note}）` : '当前：自定义覆盖（不等于任何预设）');
     const mark = new Set(tu.changed.map(c => c.path));
     const m = (i, f, txt) => txt + (mark.has('tiers.' + Stage3.DEBT_TIERS[i].key + '.' + f) ? '*' : '');
     Stage3.DEBT_TIERS.forEach((d, i) => {
@@ -39,8 +41,18 @@
     if (tu.clamped.length) L.push('已钳制：' + tu.clamped.map(c => `${c.path} ${short(c.value)}→${c.to}`).join('；'));
     if (tu.rejected.length) L.push('非法，回退默认：' + tu.rejected.map(c => `${c.path}=${short(c.value)}（${c.why}）`).join('；'));
     if (tu.unknown.length) L.push('未知字段，已忽略：' + tu.unknown.join('、'));
-    L.push(`改法：localStorage 键 ${TUNING_KEY} 写 JSON，如 {"tiers":{"wanted":{"shotCount":5}},"boss":{"ringShots":12}}。只影响开发者「追兵战」，不进存档。`);
+    L.push(`改法：点下方预设一键写入（好躲 / 原样 = 清除覆盖 / 地狱），或 localStorage 键 ${TUNING_KEY} 写 JSON，如 {"tiers":{"wanted":{"shotCount":5}},"boss":{"ringShots":12}}。只影响开发者「追兵战」，不进存档。`);
     return L.join('\n');
+  }
+
+  // 债务强化 #8：一键预设（Stage3.BOUNTY_TUNING_PRESETS）。整个开发者入口唯一一处写 localStorage：只写调参专用键 TUNING_KEY，
+  // 预设 override 为 null（「原样」）= 删键回到默认表。不碰游戏存档（wbx2_save）、不调 Game.save。
+  function writeBountyPreset(p) {
+    try {
+      if (p.override == null) localStorage.removeItem(TUNING_KEY);
+      else localStorage.setItem(TUNING_KEY, JSON.stringify(p.override));
+      return true;
+    } catch (e) { return false; }
   }
 
   function addEntry() {
@@ -164,6 +176,7 @@
     document.body.appendChild(tp);
 
     // 追兵调参按钮：债务强化 #7——显示当前生效的追兵档位参数表（默认表 + localStorage 开发者覆盖）、哪些字段被覆盖/钳制/回退；可一键清除覆盖。不改存档
+    // 债务强化 #8：卡片选项固定为「知道了」+ 三个预设（好躲 / 原样（清除覆盖）/ 地狱），点预设 = 把预设 JSON 写进 TUNING_KEY（原样 = 删键）
     const zt = document.createElement('button');
     zt.id = 'v25-zt';
     zt.textContent = '追兵调参';
@@ -173,12 +186,14 @@
       if (!window.Stage3 || !Stage3.bountyTuning) return;
       if (!u || !u.card) return;
       const tu = readBountyTuning();
-      const opts = tu.raw == null ? ['知道了'] : ['知道了', '清除覆盖'];
+      const presets = Stage3.BOUNTY_TUNING_PRESETS || [];
+      const opts = ['知道了'].concat(presets.map(p => '预设·' + p.n + (p.override == null ? '（清除覆盖）' : '')));
       const c = await u.card('追兵调参', tuningCardText(tu), 'i:bill', opts);
-      if (c === 1 && tu.raw != null) {
-        try { localStorage.removeItem(TUNING_KEY); } catch (e) { /* 无 localStorage 时忽略 */ }
-        toast('已清除追兵调参覆盖，恢复默认表', '#ffc0d8');
-      }
+      const p = c >= 1 ? presets[c - 1] : null;
+      if (!p) return;
+      if (!writeBountyPreset(p)) { toast('写入调参覆盖失败（localStorage 不可用）', '#ffc0d8'); return; }
+      if (p.override == null) toast(tu.raw == null ? '已是默认表（原样）' : '已清除追兵调参覆盖，恢复默认表', '#ffc0d8');
+      else toast(`已套用追兵调参预设「${p.n}」：改了 ${Stage3.bountyTuning(p.override).changed.length} 项（下一场追兵战生效）`, '#ffc0d8');
     };
     document.body.appendChild(zt);
   }

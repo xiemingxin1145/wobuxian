@@ -502,6 +502,24 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     };
     const vT = await volley(foes), vD = await volley(S3.bountyEnemies({ debt: 30000 }));
     ok(vT.v >= 4 && vT.s === 5 * vT.v && vD.v >= 4 && vD.s === 3 * vD.v && vT.v > vD.v, `站桩远射 6s：调参（5 发、冷却×0.4）齐射 ${vT.v} 次/弹丸 ${vT.s}，默认（3 发、冷却×0.6）齐射 ${vD.v} 次/弹丸 ${vD.s}`);
+    // 6h. 债务强化 #8：三个一键预设（好躲/原样/地狱）进原型——四档 × 每只追兵的参数原样生效（预设值都在原型钳制范围内）；通缉档站桩远射 好躲 < 原样 < 地狱
+    const PR = S3.BOUNTY_TUNING_PRESETS, pMism = [];
+    for (const pr of PR) {
+      const tb = S3.bountyTuning(pr.override).table;
+      for (const debt of [10, 3000, 8888, 30000]) {
+        const fs8 = S3.bountyEnemies({ debt }, tb);
+        const d8 = RB.start(fs8, { timeLimit: 99, hp: 1e6, atk: 28, scale: false });
+        S.enemies.forEach((e, i) => { for (const f of ['atkCdMul', 'windMul', 'shotCount', 'shotSpread']) if (e[f] !== fs8[i][f]) pMism.push(`${pr.key}/${debt}/${i}/${f}`); for (const f of ['ringShots', 'ringWarn', 'ringCd']) if (f in fs8[i] && e[f] !== fs8[i][f]) pMism.push(`${pr.key}/${debt}/${i}/${f}`); });
+        if (S.enemies.length !== fs8.length) pMism.push(`${pr.key}/${debt}/count`);
+        RB.end('lose', 'closed'); await d8;
+      }
+    }
+    ok(PR.length === 3 && !pMism.length, '三个预设 × 四档追兵进原型：出手/弹道/环弹参数原样生效（原型不再钳制）' + (pMism.length ? '；不一致：' + pMism.join(' ') : ''));
+    const vE = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('easy').override).table));
+    const vP = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('plain').override).table));
+    const vH = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('hell').override).table));
+    ok(vE.s === 2 * vE.v && vP.s === 3 * vP.v && vH.s === 5 * vH.v && vE.s < vP.s && vP.s < vH.s && vP.v === vD.v && vP.s === vD.s,
+      `通缉档站桩远射 6s：好躲（3 个、2 发、冷却×0.85）弹丸 ${vE.s}（齐射 ${vE.v}）< 原样 ${vP.s}（${vP.v}，= 默认）< 地狱（5 发、冷却×0.4）${vH.s}（${vH.v}）`);
   }
 
   // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因

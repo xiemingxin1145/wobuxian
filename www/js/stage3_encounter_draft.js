@@ -399,6 +399,15 @@ const Stage3 = {
     if (res.changed.length) { res.table = this.deepFreeze({ tiers, boss }); this._tuned.add(res.table); }
     return res;
   },
+  // 债务强化 #8：追兵调参预设（BOUNTY_TUNING_PRESETS 在文件末尾定义并深冻结）。纯函数：按 key 取预设 / 判断一张已校验的表等于哪个预设。
+  //   预设只是「一份覆盖 JSON」：开发者入口把 override 写进它自己的 localStorage 专用键（override 为 null = 原样，删键）；本文件不读写 localStorage。
+  bountyPreset(key) {
+    return (this.BOUNTY_TUNING_PRESETS || []).find(p => p.key === key) || null;
+  },
+  bountyPresetOf(tu) {
+    const t = this.tuningTable(tu), J = JSON.stringify(t);
+    return (this.BOUNTY_TUNING_PRESETS || []).find(p => JSON.stringify(this.bountyTuning(p.override).table) === J) || null;
+  },
   // 内部：把 debtPressure / bountyEnemies 的 tuning 参数解析成一张已校验的表（null = 默认表；bountyTuning 产出的表直接用；其余当覆盖再校验一遍）
   _tuned: typeof WeakSet !== 'undefined' ? new WeakSet() : { add() {}, has() { return false; } },
   tuningTable(t) {
@@ -529,6 +538,27 @@ Stage3.BOUNTY_TUNING_DEFAULT = Stage3.deepFreeze({
   tiers: Stage3.DEBT_TIERS.map(t => ({ hunters: t.hunters, hpMul: t.hpMul, atkCdMul: t.atkCdMul, windMul: t.windMul, shotCount: t.shotCount, shotSpread: t.shotSpread, spdAdd: t.spdAdd })),
   boss: { ringShots: Stage3.BOSS_RING.ringShots, ringWarn: Stage3.BOSS_RING.ringWarn, ringCd: Stage3.BOSS_RING.ringCd },
 });
+
+// 债务强化 #8：追兵调参一键预设（只给开发者「追兵调参」卡写覆盖用；深冻结；每个 override 都必须原样通过 bountyTuning：0 钳制 / 0 非法 / 0 未知）。
+//   好躲：出手冷却更长、前摇更长、弹道更少、通缉只来 3 个、头子环弹更少更慢；原样：不覆盖（= 默认表，开发者入口删键）；
+//   地狱：各档人更多、血更厚、出手更快、前摇更短、弹道更多更快，头子环弹 12 发 / 预警 0.3s / 每 1.5s（都在钳制范围内）。数值只供试手感，待主人试打定。
+Stage3.BOUNTY_TUNING_PRESETS = Stage3.deepFreeze([
+  { key: 'easy', n: '好躲', note: '冷却更长、前摇更长、弹道更少，通缉只来 3 个，头子环弹 6 发/预警 0.6s/每 5s',
+    override: { tiers: {
+      light: { atkCdMul: 1.3, windMul: 1.3 },
+      owing: { atkCdMul: 1.3, windMul: 1.3 },
+      heavy: { hpMul: 1.15, atkCdMul: 1, windMul: 1.1, shotCount: 1, shotSpread: 0, spdAdd: 0 },
+      wanted: { hunters: 3, hpMul: 1.3, atkCdMul: 0.85, windMul: 1, shotCount: 2, shotSpread: 12, spdAdd: 4 },
+    }, boss: { ringShots: 6, ringWarn: 0.6, ringCd: 5 } } },
+  { key: 'plain', n: '原样', note: '不覆盖，用默认表（清除覆盖）', override: null },
+  { key: 'hell', n: '地狱', note: '人更多、血更厚、出手更快、前摇更短、弹道更多，头子环弹 12 发/预警 0.3s/每 1.5s',
+    override: { tiers: {
+      light: { hunters: 2, hpMul: 1.15, atkCdMul: 0.8, windMul: 0.85, shotCount: 2, shotSpread: 12, spdAdd: 4 },
+      owing: { hunters: 3, hpMul: 1.3, atkCdMul: 0.7, windMul: 0.8, shotCount: 2, shotSpread: 14, spdAdd: 6 },
+      heavy: { hunters: 4, hpMul: 1.5, atkCdMul: 0.55, windMul: 0.65, shotCount: 3, shotSpread: 16, spdAdd: 10 },
+      wanted: { hunters: 4, hpMul: 1.8, atkCdMul: 0.4, windMul: 0.5, shotCount: 5, shotSpread: 18, spdAdd: 16 },
+    }, boss: { ringShots: 12, ringWarn: 0.3, ringCd: 1.5 } } },
+]);
 
 if (typeof window !== 'undefined') window.Stage3 = Stage3;
 if (typeof module !== 'undefined') module.exports = Stage3;
