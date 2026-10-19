@@ -14,6 +14,7 @@
 #  T1  判定框：每个 NPC 点 脚/身体/头/名字/头顶标记 5 点，100% 打开该 NPC 对话，0 次命中道具/地面
 #  T2  摇杆区点按：走位让 NPC 落在左下摇杆区 (≈120,700)，点它 → 对话，且摇杆没被激活
 #  T3  靠近交互按钮：走到 NPC 1.5 格内，300ms 内出现 #actbtn/#talkbtn（含 NPC 名），点它 → 该 NPC 对话
+#  X1  3.4 心魔幻境：开发者触发 → 三关（嗔关实战）→ 评级 → 突破卡「基础+心魔=最终」
 #  T4  NPC 闲逛：5–6 格外点 NPC 身体 20 次（村里 NPC 轮流），20/20 打开正确对话
 #  T5  空路径边界（需开发者传送）
 #  T6  前两章可点：新人生不按“过年”，只点追踪栏“前往”+ 点按，60 秒内觉醒灵根、主线到“宗门”
@@ -508,7 +509,7 @@ async def main():
             await c.ctx.close()
 
         # =============== 开发者模式相关：T7 T8 T9 T10② T11 ===============
-        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3') or want('S4'):
+        if want('T10') or want('T7') or want('T8') or want('T9') or want('T9b') or want('T11') or want('S1') or want('S2') or want('S3') or want('S4') or want('X1'):
             c = await new_page()
             r = await rect(c, '#title .ver'); before = await c.pg.evaluate("()=>localStorage.getItem('wbx2_dev')")
             if r:
@@ -648,6 +649,33 @@ async def main():
                 f = await shot(cs, 'S4_mingge_after_reload')
                 case('S4_mingge_reshow_after_kill', first and again and not saved['mgAsking'], first=first, again=again, saved=saved, shot=f)
                 await cs.ctx.close()
+            if want('X1'):   # 3.4 心魔幻境：开发者「触发心魔幻境」→ 入幻境 → 贪 / 嗔（实战·点自动）/ 痴 → 评级卡 → 「冲击瓶颈」显示 基础+心魔=最终 → 点「再等等」
+                cx = await new_page('#dev'); await new_life(cx); await ensure_map(cx)
+                okd = await dev_tap(cx, '调试', '触发心魔幻境'); seen = []; text = ''; battled = False; t0 = time.time()
+                GOOD = ('不是自己挣的钱，不要', '问一句：这钱从哪来？', '合上箱子', '拔剑，与它一战', '迎上去', '向前一步', '“等我回来。”然后转身', '轻轻松开手', '不回头')
+                while time.time() - t0 < 180:
+                    s_ = await scr(cx)
+                    if s_['battle'] and not s_['modal']:
+                        battled = True
+                        if not await cx.pg.evaluate("()=>{const a=document.querySelector('#battlebar button[data-a=auto]');return !a||a.classList.contains('on')}"): await tap_el(cx, '#battlebar button[data-a=auto]', None, 300)
+                        await cx.pg.wait_for_timeout(500); continue
+                    if s_['chapter']: await tap_el(cx, '.chapter-fx', None, 500); continue
+                    if not s_['modal'] or not s_['opts']: await cx.pg.wait_for_timeout(300); continue
+                    ttl = s_['title'] or ''
+                    if ttl == '冲击瓶颈':
+                        text = await cx.pg.evaluate("()=>{const t=[...document.querySelectorAll('#modals .mwrap')].filter(w=>!w.classList.contains('outm')).pop();return t?t.innerText:''}")
+                        await tap_el(cx, '#modals .mwrap .opt', '再等等', 600); break
+                    seen.append(ttl)
+                    pick = next((o for o in s_['opts'] if o in GOOD), None) if ttl.startswith('心魔幻境 · ') else ('入幻境' if ttl == '心魔幻境' else None)
+                    await tap_el(cx, '#modals .mwrap .opt', pick or s_['opts'][0], 600)
+                import re as _re
+                m = _re.search(r'基础 (-?\d+)% ([+−]) 心魔「(.+?)」(\d+)% = 最终 (\d+)%', text)
+                sum_ok = bool(m) and (int(m.group(1)) + (1 if m.group(2) == '+' else -1) * int(m.group(4))) == int(m.group(5)) and int(m.group(5)) <= 95
+                f = await shot(cx, 'X1_xinmo_brk'); await clear_popups(cx, 4)
+                order = [t for t in seen if t.startswith('心魔幻境')][:4]
+                case('X1_xinmo_trial', okd and order == ['心魔幻境', '心魔幻境 · 一关·贪', '心魔幻境 · 二关·嗔', '心魔幻境 · 三关·痴'] and any(t.startswith('幻境评级') for t in seen) and battled and sum_ok,
+                     seen=seen[:12], battled=battled, brk_line=m.group(0) if m else text[:120], secs=round(time.time() - t0), shot=f, cheats=cx.cheats)
+                await cx.ctx.close()
             if want('S2') or want('S3'):
                 cs = await new_page('#dev'); await new_life(cs); await ensure_map(cs)
                 okd = await dev_setup(cs, ('境界', '金丹初期'), ('资源', '灵石 +100万'), ('资源', '全部物品 ×5'))
