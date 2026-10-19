@@ -20,10 +20,20 @@
      "翠花",
      "cuihua",
      "💬",
-     2.2,
+     2.8,
      [
       51,
       89
+     ]
+    ],
+    [
+     "路人甲",
+     "luren",
+     "!",
+     6.4,
+     [
+      52,
+      80
      ]
     ],
     [
@@ -37,30 +47,10 @@
      ]
     ],
     [
-     "路人甲",
-     "luren",
-     "!",
-     9.2,
-     [
-      52,
-      80
-     ]
-    ],
-    [
-     "娘",
-     "mom",
-     "💬",
-     9.2,
-     [
-      51,
-      89
-     ]
-    ],
-    [
      "说书先生",
      "villager",
      "💬",
-     10.8,
+     9.2,
      [
       51,
       89
@@ -70,17 +60,17 @@
      "王大爷",
      "farmer",
      "💬",
-     11.7,
+     10.3,
      [
       51,
       89
      ]
     ],
     [
-     "渡口船夫",
-     "b34_boatman",
+     "娘",
+     "mom",
      "💬",
-     22.6,
+     10.4,
      [
       51,
       89
@@ -90,7 +80,17 @@
      "集市货郎",
      "b34_peddler",
      "💬",
-     25.1,
+     23.5,
+     [
+      51,
+      89
+     ]
+    ],
+    [
+     "渡口船夫",
+     "b34_boatman",
+     "💬",
+     24.2,
      [
       51,
       89
@@ -102,17 +102,13 @@
      51,
      89
     ],
-    "讨债史莱姆": [
-     50,
-     77
-    ],
     "路人甲": [
      52,
      80
     ],
-    "娘": [
-     51,
-     89
+    "讨债史莱姆": [
+     50,
+     77
     ],
     "说书先生": [
      51,
@@ -122,11 +118,15 @@
      51,
      89
     ],
-    "渡口船夫": [
+    "娘": [
      51,
      89
     ],
     "集市货郎": [
+     51,
+     89
+    ],
+    "渡口船夫": [
      51,
      89
     ]
@@ -135,26 +135,72 @@
   },
   {
    "case": "N1_taps_still_work_after_battle",
-   "ok": false,
+   "ok": true,
    "ontap_before": true,
    "npc_tap_before_battle": "npc",
-   "fought": false,
+   "battle_shot": "002_N1_battle.png",
+   "fought": true,
    "ontap_after_battle": true,
-   "ground_tap_moved_tiles": 4.83,
-   "npc": "翠花",
+   "ground_tap_moved_tiles": 3.78,
+   "npc": "路人甲",
    "npc_tap_after_battle": "npc",
-   "shot": "002_N1_after_battle_tap_dead.png"
+   "shot": "003_N1_after_battle_tap_dead.png"
+  },
+  {
+   "case": "T1_hitbox_5_points",
+   "ok": true,
+   "map": "village",
+   "hit": "34/34",
+   "wrong_target": 0,
+   "by_part": {
+    "feet": "6/6",
+    "body": "7/7",
+    "head": "7/7",
+    "name": "7/7",
+    "mark": "7/7"
+   },
+   "misses": [],
+   "note": ""
+  },
+  {
+   "case": "T4_wandering_npc_far_tap",
+   "ok": false,
+   "passed": "18/20",
+   "budget_s": 1473,
+   "used_s": 716,
+   "fails": [
+    {
+     "npc": "落魄剑仙",
+     "dist": 6,
+     "result": "other_npc:翠花  ♥0",
+     "pick_at_tap": "翠花",
+     "tap": [
+      344,
+      380
+     ]
+    },
+    {
+     "npc": "落魄剑仙",
+     "dist": 6,
+     "result": "other_npc:翠花  ♥0",
+     "pick_at_tap": "翠花",
+     "tap": [
+      344,
+      380
+     ]
+    }
+   ]
   },
   {
    "case": "info_recoveries_used",
    "ok": true,
    "recoveries": 0,
-   "battles": 0,
+   "battles": 7,
    "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
   }
  ],
  "fails": [
-  "N1_taps_still_work_after_battle"
+  "T4_wandering_npc_far_tap"
  ],
  "js_errors": []
 }
