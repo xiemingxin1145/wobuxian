@@ -95,13 +95,13 @@ async def main():
         await pg.screenshot(path=f'{SHOTS}/use_eq.png')
         ok('2_state', await G("(()=>{const e=G.eqs.find(x=>x.uid===G.eq.weapon);return !!e&&e.base==='紫电剑'&&e.rar===4&&e.tier===5&&G.fb33&&G.fb33.id==='fb_ding'&&G.fb33.tier===5})()"), await G("[G.eqs.find(x=>x.uid===G.eq.weapon),G.fb33]"))
         # ---------- 3 天赋 ----------
-        await dev('tf'); st0 = await G("G.st.con")
-        await search('重生'); await row_btn('tal', 'reborn', 'add')
+        await dev('tf'); st0 = await G("G.st.con"); tal0 = await G("G.talents.slice()")
+        await search('重生'); await row_btn('tal', 'reborn', 'add'); c_r0 = st0; c_r1 = await G("G.st.con")
         await search('雷灵根'); await row_btn('lg', 'lei', 'set')
         await search('逆天者'); await row_btn('mg', 'nitian', 'add')
-        await search('皮糙'); await row_btn('tal', 'tough', 'add'); await row_btn('tal', 'tough', 'del')
+        await search('皮糙'); c_t0 = await G("G.st.con"); await row_btn('tal', 'tough', 'add'); c_t1 = await G("G.st.con"); await row_btn('tal', 'tough', 'del'); c_t2 = await G("G.st.con")
         await pg.screenshot(path=f'{SHOTS}/use_tf.png')
-        ok('3_state', await G(f"G.talents.includes('reborn')&&!G.talents.includes('tough')&&G.lg==='lei'&&G.mingge.includes('nitian')&&G.st.con==={st0}+2"), await G("[G.talents,G.lg,G.mingge,G.st]"))
+        ok('3_state', await G(f"G.talents.includes('reborn')&&!G.talents.includes('tough')&&G.lg==='lei'&&G.mingge.includes('nitian')&&G.st.con>=0") and c_r1 == c_r0 + 2 and c_t1 == c_t0 + 2 and c_t2 == c_t0, dict(con=[c_r0, c_r1, c_t0, c_t1, c_t2], st0=st0, tal0=tal0, now=await G("[G.talents,G.lg,G.mingge,G.st]")))
         # ---------- 4 金手指 ----------
         await dev('jsz'); await search('无限灵石'); await row_btn('chk', 'stone', 1); await search('必定突破'); await row_btn('chk', 'brk', 1)
         await search('掉落'); await row_btn('chk', 'luck', 1)
