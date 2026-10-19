@@ -55,7 +55,12 @@ JS = r"""async () => {
   L.rel = {}; await Game.apply('aff:sister:9'); await Game.apply('aff:sister:-5'); ok('apply_sync', L.rel.sister === 2, L.rel.sister);
   // 奇遇链：给予者从 0 → ≥40
   L.rel = {}; for (const q of ['qc34_v1', 'qc34_v2', 'qc34_v3']) { G.quests[q] = { k0: {} }; if (QUESTS[q].need.i) for (const [i, c] of Object.entries(QUESTS[q].need.i)) Game.give(i, c); await Game.finishQuest(q); }
-  ok('chain_giver_40', L.rel.b34_boatman >= 40, L.rel);
+  ok('chain_giver_40', L.rel.b34_boatman >= 40 && L.rel.farmer >= 20, L.rel);
+  // 所有 qc34 链：链主 ≥40，中间步其他给予者 ≥ +20
+  const chains = [...new Set(Object.keys(QUESTS).filter(q => q.startsWith('qc34_')).map(q => q.slice(0, -1)))]; const bad = [];
+  for (const c of chains) { L.rel = { farmer: -10, danlao: 7 }; const before = Object.assign({}, L.rel); for (const k of [1, 2, 3]) { const q = c + k; G.quests[q] = { k0: {} }; if (QUESTS[q].need.i) for (const [i, n] of Object.entries(QUESTS[q].need.i)) Game.give(i, n); delete G.qdone[q]; await Game.finishQuest(q); }
+    const own = QUESTS[c + 3].giver; if (!(L.rel[own] >= 40)) bad.push(c + ':owner'); const mid = QUESTS[c + 2].giver; if (mid !== own && !(L.rel[mid] - (before[mid] || 0) >= 20)) bad.push(c + ':mid'); }
+  ok('all_chains', bad.length === 0 && chains.length === 5, { chains: chains.length, bad });
   // 老存档：高 G.aff、无 life34 → 不立刻来报恩
   delete G.life34; G.aff = { mentor: 150, cuihua: 140, sister: 120 }; let fr = 0; for (let k = 0; k < 20; k++) { G.year++; Life34.simYear(); if (G.life34.pending && G.life34.pending.type === 'friend') fr++; G.life34.pending = null; }
   ok('old_save_no_backfill', fr === 0 && Object.keys(G.life34.rel).length === 0, fr);

@@ -76,7 +76,7 @@ const Talk = {
     if (!have.length) { await UI.say(N.por, N.n, '你身上没有合适的礼物。（桃花酿、暖玉、折扇、蟠桃、灵鱼、古钱可以送人，坊市有卖）', ['好']); return; }
     const c = await UI.say(N.por, '送礼', '选择要送的礼物：', [...have.map(g => `${ITEMS[g].n}（${G.inv[g]}）`), '算了']);
     if (c >= have.length) return; const g = have[c]; Game.take(g);
-    const like = { mentor: 'wine', sister: 'jadeg', cuihua: 'jadeg', ali: 'fish', aoxiao: 'peach', sumei: 'coin', xiaoyi: 'fan', aotian: 'coin', ruyan: 'wine', bailang: 'fan', lengyue: 'jadeg' }[id];
+    const like = Talk.prefs[id];
     const v = g === like ? 22 : ri(8, 12); G.aff[id] = Math.min(150, (G.aff[id] || 0) + v); G.giftCount++; if (G.giftCount >= 20) Game.ach('gift');
     Sfx.play('pickup'); await UI.say(N.por, N.n, g === like ? '“这、这正是我最喜欢的！”（好感+' + v + '）' : '“谢谢你。”（好感+' + v + '）', ['不客气']);
   },
@@ -141,6 +141,7 @@ const Talk = {
     Game.refreshNpcs(); Game.save();
   },
 };
+Talk.prefs = { mentor: 'wine', sister: 'jadeg', cuihua: 'jadeg', ali: 'fish', aoxiao: 'peach', sumei: 'coin', xiaoyi: 'fan', aotian: 'coin', ruyan: 'wine', bailang: 'fan', lengyue: 'jadeg' }; // 送礼最爱表（3.4：供 life34 读取）
 // ------- 交互点 -------
 const Acts = {
   async board() {
