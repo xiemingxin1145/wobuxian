@@ -104,6 +104,9 @@ async def main():
         ok('3_state', await G(f"G.talents.includes('reborn')&&!G.talents.includes('tough')&&G.lg==='lei'&&G.mingge.includes('nitian')&&G.st.con==={st0}+2"), await G("[G.talents,G.lg,G.mingge,G.st]"))
         # ---------- 4 金手指 ----------
         await dev('jsz'); await search('无限灵石'); await row_btn('chk', 'stone', 1); await search('必定突破'); await row_btn('chk', 'brk', 1)
+        await search('掉落'); await row_btn('chk', 'luck', 1)
+        ok('4_luck_roll', await pg.evaluate("()=>Game.roll(0,'drop')===true&&Game.roll(0,'qiyu')===true&&Game.roll(0,'other')===false"))
+        await row_btn('chk', 'luck', 0)
         await search('翠花'); await row_btn('npc', 'cuihua', 100, x='aff'); await row_btn('comp', 'cuihua', 'fol')
         await search('仙鹤'); await row_btn('mount', 'crane', 'ride')
         await search('羽衣'); await row_btn('cos', 'yuyi', 'wear')
