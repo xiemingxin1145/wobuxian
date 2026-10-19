@@ -6,7 +6,7 @@
    "ok": true,
    "age": 6,
    "map": "village",
-   "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 附近有 1 个委托（！） | 路人甲有委托 | 前往▶",
+   "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 附近有 2 个委托（！） | 路人甲有委托 | 前往▶",
    "popups": [
     "chapter",
     "哇哇大哭",
@@ -78,8 +78,8 @@
     [
      "渡口船夫",
      "b34_boatman",
-     "💬",
-     22.6,
+     "!",
+     20.2,
      [
       51,
       89
@@ -131,6 +131,86 @@
     ]
    },
    "shot": "001_T0_enter_map.png"
+  },
+  {
+   "case": "N1_taps_still_work_after_battle",
+   "ok": true,
+   "ontap_before": true,
+   "npc_tap_before_battle": "npc",
+   "battle_shot": "002_N1_battle.png",
+   "fought": true,
+   "ontap_after_battle": true,
+   "ground_tap_opened": [
+    "路人甲"
+   ],
+   "ground_tap_moved_tiles": 4.27,
+   "npc": "王大爷",
+   "npc_tap_after_battle": "npc",
+   "shot": "003_N1_after_battle_tap_dead.png"
+  },
+  {
+   "case": "N2_mark_does_not_steal_npc_tap",
+   "ok": true,
+   "checked": 8,
+   "rows": [
+    {
+     "npc": "luren",
+     "near": "洞府",
+     "css_dist": 51,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "luren",
+     "near": "洞府",
+     "css_dist": 51,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "cuihua",
+     "near": "洞府",
+     "css_dist": 59,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "cuihua",
+     "near": "洞府",
+     "css_dist": 59,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "farmer",
+     "near": "告示栏",
+     "css_dist": 70,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "farmer",
+     "near": "告示栏",
+     "css_dist": 70,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "mom",
+     "near": "打坐",
+     "css_dist": 70,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "mom",
+     "near": "打坐",
+     "css_dist": 70,
+     "part": "body",
+     "result": "npc"
+    }
+   ],
+   "note": null
   }
  ],
  "js_errors": [],

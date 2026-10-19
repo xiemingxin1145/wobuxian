@@ -64,19 +64,19 @@ Life34.spawnVisitor = function () {
 Life34.visit = async function (e) {
   const G = Game.G, L = Life34.st(), p = L && L.pending; if (!p) { removeEnt(e); return; } const N = p.npc && NPCS[p.npc]; const por = (N && N.por) || 'npc_disciple'; const nm = e.label;
   if (p.type === 'foe') {
-    const c = await UI.card('冤家路窄', `${nm}拦住了你：“上回那笔账，今天算清楚！”`, por, ['应战', '赔礼（灵石 200）']);
+    const c = await UI.say(por, nm, `【冤家路窄】${nm}拦住了你：“上回那笔账，今天算清楚！”`, ['应战', '赔礼（灵石 200）']);
     if (c === 1 && G.stone >= 200) { G.stone -= 200; Life34.rel(p.npc, 25); Life34.say(`你向${nm}赔礼，恩怨稍解。`); }
     else { L.pending = null; removeEnt(e); Life34.say(`${nm}找你寻仇。`);
       const mons = MAPINFO[R.mapId].mons; const mon = mons[Math.floor(Math.random() * mons.length)]; const tier = MAPINFO[R.mapId].tier + 0.3;
       const r = await Game.fight(mon, { tier, elite: true }); Life34.rel(p.npc, r && r.res === 'win' ? 20 : 5); Game.save(); UI.hud(); return; }
   } else if (p.type === 'friend') {
-    const gift = 150 + Math.floor(Math.random() * 250); await UI.card('知恩图报', `${nm}：“上次多亏你了，这点心意收下！”\n\n灵石 +${gift}`, por, ['收下']); G.stone += gift; Life34.say(`${nm}登门道谢。`);
+    const gift = 150 + Math.floor(Math.random() * 250); await UI.say(por, nm, `【知恩图报】“上次多亏你了，这点心意收下！”\n\n灵石 +${gift}`, ['收下']); G.stone += gift; Life34.say(`${nm}登门道谢。`);
   } else if (p.type === 'sect') {
     const [a, b] = p.pair.split('|'); const other = a === G.sect ? b : a;
-    const c = await UI.card('宗门纠纷', `${SECTS[other].n}与本门起了冲突，${nm}请你出面调停。`, por, ['出面调停（宗门贡献 +20）', '不掺和']);
+    const c = await UI.say(por, nm, `【宗门纠纷】${SECTS[other].n}与本门起了冲突，${nm}请你出面调停。`, ['出面调停（宗门贡献 +20）', '不掺和']);
     if (c === 0) { G.contrib = (G.contrib || 0) + 20; L.sect[p.pair] = Math.min(100, (L.sect[p.pair] || 0) + 40); Life34.say(`你出面调停了${SECTS[other].n}的纷争。`); } else { L.sect[p.pair] -= 10; }
   } else {
-    const c = await UI.card('托付小事', `${nm}：“劳驾帮我跑一趟，回头请你喝茶。”`, por, ['答应（恩怨 +15，修为 +）', '没空']);
+    const c = await UI.say(por, nm, `【托付小事】“劳驾帮我跑一趟，回头请你喝茶。”`, ['答应（恩怨 +15，修为 +）', '没空']);
     if (c === 0) { Life34.rel(p.npc, 15); G.exp = (G.exp || 0) + 60 + G.realm * 40; Life34.say(`你帮${nm}跑了一趟腿。`); }
   }
   L.pending = null; removeEnt(e); Game.save(); UI.hud();
@@ -104,5 +104,6 @@ Life34.CHAINS = {
   qc34_h2: { n: '踩云费·二', giver: 'b34_clerk', pre: 'qc34_h1', d: '收费站缺建材，送 2 块玄铁晶。', need: { i: { ore: 2 } }, rw: { exp: 2000, stone: 1000 } },
   qc34_h3: { n: '踩云费·三', giver: 'b34_clerk', pre: 'qc34_h2', d: '讨债鬼想抢收费站，打跑 4 只。', need: { k: { collector: 4 } }, rw: { exp: 4000, stone: 2000 } },
 };
-{ const groups = {}; for (const q in Life34.CHAINS) (groups[q.slice(0, -1)] = groups[q.slice(0, -1)] || []).push(q); // 整条链的给予者都在才注册
+{ const groups = {}; for (const q in Life34.CHAINS) { Life34.CHAINS[q].minAge = Life34.CHAINS[q].minAge || 8; } // 8 岁后才出现，不挤新手期追踪栏
+  for (const q in Life34.CHAINS) (groups[q.slice(0, -1)] = groups[q.slice(0, -1)] || []).push(q); // 整条链的给予者都在才注册
   for (const g in groups) if (groups[g].every(q => NPCS[Life34.CHAINS[q].giver])) for (const q of groups[g]) if (!QUESTS[q]) QUESTS[q] = Life34.CHAINS[q]; }
