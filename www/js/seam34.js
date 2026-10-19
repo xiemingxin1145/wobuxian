@@ -10,7 +10,9 @@ const Seam34 = {
   OPP: { ip: 'im', im: 'ip', jp: 'jm', jm: 'jp' },
   pos(id) { const I = MAPINFO[id]; if (!I) return null; if (I.wx !== undefined && I.wy !== undefined) return [I.wx, I.wy]; return (typeof World28 !== 'undefined' && World28.DEFAULT_LAYOUT[id]) || null; },
   build() {
-    const ids = Object.keys(MAPINFO).filter(id => this.pos(id) && ASSETS.maps[id]);
+    // 只连常规地图（MAP_ORDER）：问道崖 wendao 按 maps26 设定只由主线/传承仪式进入，不能从边缘走进去
+    const reg = (typeof MAP_ORDER !== 'undefined' && MAP_ORDER.length) ? new Set(MAP_ORDER) : null;
+    const ids = Object.keys(MAPINFO).filter(id => this.pos(id) && ASSETS.maps[id] && (!reg || reg.has(id)));
     const L = {}; for (const id of ids) L[id] = {};
     // 先收集候选边 (a,side,b,dist)，按距离贪心，保证双向一致：a 的 side 连 b ⇔ b 的 OPP[side] 连 a
     const cand = [];
@@ -55,6 +57,7 @@ const Seam34 = {
   },
   tick() {
     const P = R.player; if (!P || this.busy || R.mode !== 'map' || (window.UI && UI.stack && UI.stack.length)) return;
+    if (typeof UX !== 'undefined' && UX.inMap && !UX.inMap()) return; // 战斗/剧情/突破抽卡特效/死亡/Game._busy 期间不切图
     if (this.cool > 0) { this.cool -= 0.016; return; }
     if (P.path && P.path.length && !P.joyMove) return; // 寻路途经出口（自动任务/追踪）不切图；停在出口或摇杆走上去才切
     const on = this.exits.find(x => Math.floor(P.i) === x.i && Math.floor(P.j) === x.j);
@@ -66,9 +69,8 @@ const Seam34 = {
   async go(x) {
     this.busy = true; const from = R.mapId; this.noFade = true;
     try {
-      R.player.path = []; await Game.travel(x.to, true);
-    } finally { this.noFade = false; }
-    try {
+      try { R.player.path = []; await Game.travel(x.to, true); }
+      finally { this.noFade = false; }
       if (R.mapId === x.to) {
         const back = this.exits.find(e => e.to === from) || this.exits.find(e => e.side === this.OPP[x.side]);
         if (back) { // 落在反向出口内侧一格
@@ -79,7 +81,7 @@ const Seam34 = {
           this.armed = false; this.cool = 0.6;
         }
       }
-    } finally { this.busy = false; }
+    } catch (e) { console.error(e); } finally { this.busy = false; } // travel 抛错也要复位 busy，否则本局所有出口失效
   },
 };
 window.Seam34 = Seam34;
