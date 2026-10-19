@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 108.5,
+   "moved_px": 114.3,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 141.4,
+   "moved_px": 159.2,
    "ok": true
   },
   {
@@ -30,7 +30,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 211.9,
+   "moved_px": 245.3,
    "ok": true
   },
   {
@@ -41,7 +41,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 141.3,
+   "moved_px": 151.1,
    "ok": true
   },
   {
@@ -52,7 +52,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 106.6,
+   "moved_px": 112.4,
    "ok": true
   },
   {
@@ -63,7 +63,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 133.2,
+   "moved_px": 135.6,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 200.4,
+   "moved_px": 224.8,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 135.7,
+   "moved_px": 143.0,
    "ok": true
   }
  ],
@@ -99,7 +99,7 @@
    "end_dist_tiles": 0.0,
    "first_facing": "SE",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 8,
+   "path_tiles": 9,
    "idle_on_arrival": true,
    "ok": true
   },
@@ -107,7 +107,7 @@
    "target": "(+0,+3)",
    "screen": [
     137,
-    516
+    517
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "SW",
@@ -120,7 +120,7 @@
    "target": "(-3,-2)",
    "screen": [
     183,
-    424
+    425
    ],
    "end_dist_tiles": 0.0,
    "first_facing": "NW",
@@ -149,9 +149,9 @@
     470
    ],
    "end_dist_tiles": 0.0,
-   "first_facing": "W",
+   "first_facing": "NW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 11,
+   "path_tiles": 10,
    "idle_on_arrival": true,
    "ok": true
   }
