@@ -33,7 +33,8 @@
 - [x] 设计：`docs/openworld_upgrade.md`「3.4 自由度层设计」。
 - [x] 年度世界模拟（life34 第 2 部分）：流动 NPC（非任务给予者，当前只有集市货郎）按 seam34 邻接换图；恩怨值 G.life34.rel（闲聊每年 +2、托付 +15、寻仇后 +）；宗门关系漂移；找上门事件（寻仇=精英战/报恩=灵石/宗门纠纷=贡献/托付=修为），进图 1.5 s 后在玩家旁生成带「！」的来客。存档 G.life34 惰性默认值。
 - [x] 奇遇链 15 个任务（5 图×3 步，`qc34_*`，pre 串联，复用任务栏/追踪）。validate22 0 错。probe 截图 `/workspace/shots34/life_visitor.png`。
-- [ ] 下一步：地表打磨（缺纹理类型程序化细节、源格去栅栏/影子）、邻图真实边条；life34_unit 测试；门禁；合 main。
+- [x] 地表打磨：缺纹理类型（如青云宗土路）借邻图真实源格（异步加载后重建分块）；`tools/big34_src.py` 加 BAD 表剔除 20 个带栅栏/建筑轮廓线/水面反光的源格；邻图预览椭圆 → 沿边 5×3.5 格平移对齐的真实地块边条、向外渐隐。截图 `/workspace/shots34/strip_*.png`、`*_v6.png`。
+- [ ] 全门禁跑中：`/tmp/gate_life.sh` → `/tmp/gl.txt`（olaf 输出 `/tmp/gl_olaf.txt`），结束标志 GATE_DONE。之后合 main。
 
 ## v3.3.0 线（Grok Bot，2026-10-18 起，UTC+8）
 > 基线：main `2134d8c`（v3.2.0 HD 包）。避开开放世界线认领的文件（stage3_encounter_draft.js、test/stage3_chain.js）。
