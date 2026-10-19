@@ -47,6 +47,8 @@ const Big34 = {
     for (const t of C.build) place(t, 400, true);
     const area = n * n - n0 * n0; for (let k = 0; k < area * 0.07; k++) place(C.deco[Math.floor(rnd() * C.deco.length)], 30, false);
     M.tiles = T.map(r => r.join('')); M.props = props; M.n = n; M._big34 = { n0, C };
+    // 怪物数量按边长线性放大，保持新手村等地图的遇怪密度（村 4→7）
+    const I = MAPINFO[id]; if (I && I.cnt) I.cnt = Math.round(I.cnt * n / n0);
     // 连通性兜底：从出生点洪泛，堵住的道具移除（逐个从后往前）
     this.fixConnect(id);
   },
