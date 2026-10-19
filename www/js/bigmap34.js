@@ -23,8 +23,8 @@ const Big34 = {
       build: ['obelisk', 'altar', 'herb', 'crystal_r', 'lavarock'], deco: ['lavarock', 'deadtree', 'bonespike', 'crystal_r'] },
   },
   // 源格表由 tools/big34_src.py 离线生成（颜色接近类型中位色、无道具、不透明）
-  SRC: {"village":{"g":[[5,2],[15,19],[1,11],[16,8],[4,2],[16,19]],"d":[[14,5],[12,5],[14,6],[13,5],[13,6]],"p":[[10,17],[3,10],[10,10]],"w":[[6,15],[5,14],[5,15]]},"sect":{"g":[[17,5],[5,19],[12,18],[5,17],[17,4],[5,18],[17,6],[17,7]],"s":[[10,11],[9,12],[11,12]]},"heaven":{"c":[[4,7],[17,11],[2,11],[18,11],[18,10],[17,9],[18,12],[3,11]],"j":[[9,9],[9,7],[9,8],[9,10],[12,9],[10,7],[10,9],[11,8]]},"market":{"s":[[15,7],[12,16],[13,16],[19,13],[4,7],[14,7],[20,8],[5,8]],"p":[[10,11]],"w":[[3,18],[4,19],[4,18],[3,19]],"g":[[15,19]]},"secret":{"l":[[14,6],[15,5],[14,5],[5,15],[15,6],[16,6],[4,15]],"p":[[10,10],[10,11],[11,11],[11,10]],"m":[[17,18]]},"graveyard":{"b":[[16,5],[6,14],[15,6],[14,6],[8,2]],"p":[[10,12]],"w":[[15,15],[16,15],[15,16]]},"island":{"s":[[13,5],[12,4],[10,7],[13,4],[12,5]],"g":[[19,10]],"p":[[10,12]],"a":[[12,14],[18,14]],"w":[[8,18],[7,19],[5,18],[6,18],[6,17],[7,18],[6,19],[5,19]]},"rift":{"r":[[7,11],[5,10],[5,11],[6,11],[12,18],[4,11],[8,11],[12,17]],"l":[[5,6],[5,5],[4,6],[5,7]],"s":[[10,7],[9,7],[11,7]]}},
-  orig: {}, chunks: null, chunkFor: null,
+  SRC: {"village":{"g":[[5,2],[15,19],[1,11],[16,8],[4,2],[16,19]],"d":[[14,5],[12,5],[14,6],[13,5],[13,6]],"p":[[3,10],[10,17]],"w":[[5,14]]},"sect":{"g":[[5,19],[12,18],[5,17],[17,5],[17,7],[17,8]],"s":[[9,12]]},"heaven":{"c":[[4,7],[17,11],[2,11],[18,11],[18,10],[17,9],[18,12],[3,11]],"j":[[9,9],[9,7],[9,8],[10,7],[12,9],[10,9],[11,8],[10,8]]},"market":{"s":[[15,7],[12,16],[13,16],[19,13],[4,7],[14,7],[20,8],[15,8]],"p":[[10,11]],"w":[[3,18],[4,19],[4,18],[3,19]],"g":[[15,19]]},"secret":{"l":[[14,6],[15,5],[14,5],[5,15],[15,6],[16,6],[4,15]],"p":[[10,10],[10,11],[11,10]],"m":[[17,18]]},"graveyard":{"b":[[16,5],[6,14],[15,6],[14,6],[8,2]],"p":[[10,12]],"w":[[15,15],[16,15],[15,16]]},"island":{"s":[[12,5],[12,4]],"g":[[19,10]],"p":[[10,12]],"a":[[12,14],[18,14]],"w":[[8,18],[7,19],[5,18],[6,18],[6,17],[7,18],[6,19],[5,19]]},"rift":{"r":[[5,10],[7,11],[5,11],[6,11],[12,18],[4,11],[8,11]],"l":[[5,5],[4,5]],"s":[[9,7]]}},
+  orig: {}, _dl: {}, chunks: null, chunkFor: null,
   rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; },
   extend(id) {
     const C = this.CFG[id], M = ASSETS.maps[id]; if (!C || !M || M.n !== 22 || M._big34) return;
@@ -86,6 +86,9 @@ const Big34 = {
       const [sx, sy] = t2p(si, sj), [dx, dy] = t2p(di, dj); g.save(); poly(g, clipPts); g.clip();
       const bx = Math.min(...clipPts.map(p => p[0])) - 2, by = Math.min(...clipPts.map(p => p[1])) - 2, bw = Math.max(...clipPts.map(p => p[0])) - bx + 4, bh = Math.max(...clipPts.map(p => p[1])) - by + 4;
       const ox = bx - dx + sx, oy = by - dy + sy; g.drawImage(plate, ox * pk, oy * pk, bw * pk, bh * pk, bx, by, bw, bh); g.restore(); };
+    // 本图缺某类地块纹理（如青云宗的土路）时，借其他图同类源格（底板图异步加载，加载完重建分块）
+    const DONORS = ['village', 'market', 'sect', 'secret', 'graveyard', 'island', 'rift', 'heaven'];
+    const donor = t => { for (const m of DONORS) { if (m === R.mapId) continue; const L = (Big34.SRC[m] || {})[t]; if (!L || L.length < 2) continue; const im = img('assets/maps/' + m + '.webp'); if (im) return { m, L, im }; if (!Big34._dl[m]) { Big34._dl[m] = 1; loadImg('assets/maps/' + m + '.webp').then(() => { Big34.chunks = null; }); } return null; } return null; };
     for (const ch of chunks) {
       const g = ch.g; g.translate(-ch.x, -ch.y);
       for (const [i, j, , c] of cells) { const dz = 64;
@@ -95,7 +98,10 @@ const Big34 = {
         const tt = (src[t] && src[t].length) || C.pal[t] ? t : C.base; const pool = src[tt] && src[tt].length ? src[tt] : null; t = tt; ch.used = true;
         // 稍放大一圈避免缝
         const cx = (c[0][0] + c[2][0]) / 2, cy = (c[0][1] + c[2][1]) / 2; const pts = c.map(([x, y]) => [cx + (x - cx) * 1.1, cy + (y - cy) * 1.1]);
+        const dn = !pool && donor(t);
         if (plate && pool && pool.length) { const s = pool[Math.floor(hash(i, j, 3) * pool.length)]; blit(g, s[0], s[1], i, j, pts); }
+        else if (dn) { const s = dn.L[Math.floor(hash(i, j, 3) * dn.L.length)]; const DP = ASSETS.maps[dn.m].plate, dk = DP.k || 1; const [sx, sy] = [DP.ox + s[0] * DP.ex[0] + s[1] * DP.ej[0], DP.oy + s[0] * DP.ex[1] + s[1] * DP.ej[1]], [dx, dy] = t2p(i, j);
+          g.save(); poly(g, pts); g.clip(); const bx = Math.min(...pts.map(p => p[0])) - 2, by = Math.min(...pts.map(p => p[1])) - 2, bw = Math.max(...pts.map(p => p[0])) - bx + 4, bh = Math.max(...pts.map(p => p[1])) - by + 4; g.drawImage(dn.im, (bx - dx + sx) * dk, (by - dy + sy) * dk, bw * dk, bh * dk, bx, by, bw, bh); g.restore(); }
         else { g.fillStyle = shade(C.pal[t] || C.pal[C.base], 0.96 + hash(i, j, 4) * 0.06); poly(g, pts); g.fill(); const [mx, my] = t2p(i + 0.5, j + 0.5); for (let q = 0; q < 7; q++) { g.fillStyle = `rgba(90,70,50,${0.12 + hash(i, j, q + 9) * 0.15})`; g.beginPath(); g.ellipse(mx + (hash(i, j, q + 20) - 0.5) * 60, my + (hash(i, j, q + 30) - 0.5) * 28, 2 + hash(i, j, q) * 3, 1 + hash(i, j, q) * 1.5, 0, 0, 7); g.fill(); } }
       }
     }

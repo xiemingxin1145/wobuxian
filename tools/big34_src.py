@@ -3,6 +3,8 @@ import json, sys
 from PIL import Image
 import numpy as np
 js = open('www/assets/assets.js').read(); A = json.loads(js[js.index('{'):js.rindex('}') + 1])
+# 人工复核剔除：截图里带栅栏/建筑轮廓线、水面反光的源格（map, type, i, j）
+BAD = {tuple(x) for x in [["village", "p", 10, 10], ["village", "w", 6, 15], ["village", "w", 5, 15], ["sect", "g", 17, 4], ["sect", "g", 5, 18], ["sect", "g", 17, 6], ["sect", "s", 10, 11], ["sect", "s", 11, 12], ["heaven", "j", 9, 10], ["market", "s", 5, 8], ["secret", "p", 11, 11], ["island", "s", 13, 5], ["island", "s", 10, 7], ["island", "s", 13, 4], ["rift", "r", 12, 17], ["rift", "l", 5, 6], ["rift", "l", 4, 6], ["rift", "l", 5, 7], ["rift", "s", 10, 7], ["rift", "s", 11, 7]]}
 out = {}
 for id in sys.argv[1].split(','):
     m = A['maps'][id]; P = m['plate']; k = P.get('k', 1); im = np.asarray(Image.open('www/assets/maps/%s.webp' % id).convert('RGBA')).astype(float)
@@ -20,12 +22,14 @@ for id in sys.argv[1].split(','):
     for j in range(1, 21):
         for i in range(1, 21):
             t = m['tiles'][j][i]
-            if t == 'x' or (i, j) in foot: continue
+            if t == 'x' or (i, j) in foot or (id, t, i, j) in BAD: continue
             nb = [m['tiles'][j + b][i + a] for a in (-1, 0, 1) for b in (-1, 0, 1)]
             pure = all(c == t for c in nb); pure4 = all(m['tiles'][j + b][i + a] == t for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)))
             if not pure4: continue
             p = patch(i, j)
             if p is None or p[..., 3].min() < 250: continue
+            lum = p[..., :3].mean(2); dark = float((lum < np.median(lum) * 0.45).mean())  # 栅栏/影子碎片 = 明显暗像素
+            if dark > 0.02: continue
             stats.setdefault(t, []).append((i, j, p[..., :3].reshape(-1, 3).mean(0), p[..., :3].std(), pure))
     res = {}
     for t, L in stats.items():
