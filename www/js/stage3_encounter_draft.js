@@ -114,6 +114,26 @@ const Stage3 = {
     return { ok: true, step: 'family', attitude, debtBefore: r.debtBefore, debtAfter: r.debtAfter, choice: chosen.t, affDelta: chosen.aff };
   },
 
+  // ======== 记仇选项 → life34 恩怨（2026-10-19 第十二轮） ========
+  // 钱多多 / 记账童子两条开发者奇遇链里「记仇」的选择，统一调用 main 已有的 Life34.rel(id, d)（life34.js：id = NPCS 的 NPC id，
+  //   d = 恩怨增量，写 G.life34.rel[id] 并钳到 -100..100；≤ -40 时 life34 年度模拟会安排「仇家上门」）。不另起平行的恩怨/仇恨字段。
+  //   好感 G.aff（talk.js 60/20 阈值，决定第 2 步结算）照旧；恩怨只走 Life34.rel。两条链都不涉及宗门，所以不读写 G.sectRel
+  //   （宗门好感若以后要用，统一读写 G.sectRel / war29，不在这里另建）。
+  //   档位（docs/研究文档里没有研究员定的档，按严重程度自定，写在 docs/openworld_upgrade.md）：赖账 -10 / 贿赂露馅 -15 / 举报·告发 -20。
+  //   两条链里目前没有「赖账」选项，renege 档只占位给以后用。
+  //   Life34 是 life34.js 的顶层 const（另挂了 window.Life34），这里一律 typeof 判断；不存在 / 没有 rel / 不是当前存档 / 抛错 → 不调用、不报错，只在返回值里标出。
+  GRUDGE_REL: Object.freeze({ renege: -10, bribeExposed: -15, report: -20 }),
+  // 与 Life34.yr() 同一算法：G.year || G.age（都没有 = 0）
+  lifeYear(G) { return (G && (G.year || G.age)) || 0; },
+  lifeRel(G, id, d) {
+    const L34 = typeof Life34 !== 'undefined' && Life34 ? Life34 : null;
+    if (!L34 || typeof L34.rel !== 'function') return { id, d, ok: false, why: 'no-life34' };
+    const GM = typeof Game !== 'undefined' && Game ? Game : null;
+    if (!GM || GM.G !== G) return { id, d, ok: false, why: 'not-current-save' }; // Life34.rel 只认 Game.G
+    try { L34.rel(id, d); return { id, d, ok: true }; } catch (e) { return { id, d, ok: false, why: 'error' }; }
+  },
+  relNote(rel, name) { return rel && rel.ok ? `\n${name}记仇：恩怨 ${rel.d}` : ''; },
+
   // ======== 阶段 3 小闭环 #2：钱多多的赊账单（奇遇选择 → NPC 态度变化 → 债务后果） ========
   // 复用正式存档：真实 NPC `merchant`（奸商·钱多多，data.js NPCS）的 G.aff.merchant、G.debt、G.flags。
   // 态度阈值与 talk.js greet() 一致：≥60 亲近 / ≥20 一般 / <20 记仇。闲聊、送礼等正式玩法改的好感也会影响第 2 步。
@@ -142,8 +162,9 @@ const Stage3 = {
     const before = G.debt || 0, affBefore = (G.aff && G.aff[this.M_NPC]) || 0;
     G.debt = Math.max(0, before + c.debt);
     this.addAffTo(G, this.M_NPC, c.aff);
-    F.s3m_step = 1; F.s3m_choice = c.key;
-    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.M_NPC], attitude: this.merchantAttitude(G) };
+    F.s3m_step = 1; F.s3m_choice = c.key; // s3m_choice 只是选择记录，不作为好感/恩怨来源
+    const rel = c.key === 'report' ? this.lifeRel(G, this.M_NPC, this.GRUDGE_REL.report) : null;
+    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.M_NPC], attitude: this.merchantAttitude(G), rel };
   },
   // 第 2 步：按当时态度结算
   applyMerchant2(G) {
@@ -187,7 +208,7 @@ const Stage3 = {
     if (idx < 0 || idx >= opts.length) return { ok: false, msg: 'cancelled' };
     const r = this.applyMerchant1(G, opts[idx]);
     save();
-    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n钱多多好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）\n他会记住这件事的……`, 'i:scroll', ['好']);
+    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n钱多多好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）${this.relNote(r.rel, '钱多多')}\n他会记住这件事的……`, 'i:scroll', ['好']);
     if (ui.hud) ui.hud();
     return { ok: true, step: 'bill', choice: opts[idx].key, ...r };
   },
@@ -214,7 +235,8 @@ const Stage3 = {
     this.addAffTo(G, this.X_NPC, c.aff);
     F.s3x_step = 1; F.s3x_choice = c.key;
     if (c.key === 'bribe') F.s3x_bribe = erased; // 实际抹掉的数额，露馅时按它补回
-    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.X_NPC], attitude: this.attitudeOf(G, this.X_NPC) };
+    const rel = c.key === 'report' ? this.lifeRel(G, this.X_NPC, this.GRUDGE_REL.report) : null;
+    return { debtBefore: before, debtAfter: G.debt, affBefore, affAfter: G.aff[this.X_NPC], attitude: this.attitudeOf(G, this.X_NPC), rel };
   },
   applyLedger2(G) {
     const F = this.flags(G);
@@ -238,7 +260,9 @@ const Stage3 = {
       note = `记账童子记仇，在你账上添了一笔“误工费”：欠款 +${add}。`;
     }
     delete F.s3x_step; delete F.s3x_bribe; F.s3x_done = 1;
-    return { attitude: att, debtBefore: before, debtAfter: G.debt, note, exposed };
+    const rel = exposed ? this.lifeRel(G, this.X_NPC, this.GRUDGE_REL.bribeExposed) : null;
+    if (rel && rel.ok) note += this.relNote(rel, '记账童子');
+    return { attitude: att, debtBefore: before, debtAfter: G.debt, note, exposed, rel };
   },
   async runLedgerChain(G) {
     const ui = stage3UI();
@@ -261,7 +285,7 @@ const Stage3 = {
     if (idx < 0 || idx >= opts.length) return { ok: false, msg: 'cancelled' };
     const r = this.applyLedger1(G, opts[idx]);
     save();
-    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n记账童子好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）\n天道迟早会来查账……`, 'i:scroll', ['好']);
+    await ui.card('奇遇结果', `你选择了「${opts[idx].t}」\n债务：${r.debtBefore} → ${r.debtAfter}\n记账童子好感：${r.affBefore} → ${r.affAfter}（${this.M_ATT_NAME[r.attitude]}）${this.relNote(r.rel, '记账童子')}\n天道迟早会来查账……`, 'i:scroll', ['好']);
     if (ui.hud) ui.hud();
     return { ok: true, step: 'ledger', choice: opts[idx].key, ...r };
   },
@@ -439,6 +463,44 @@ const Stage3 = {
     return !!out && out.result === 'win' && (out.reason == null || out.reason === 'cleared') && tier === 3 &&
       Array.isArray(out.defeated) && out.defeated.includes(this.BOSS_NAME);
   },
+  // ======== 追兵战 × life34「仇家上门」同一年互斥（2026-10-19 第十二轮） ========
+  // 读 life34.js 确认：G.life34 = { rel, seen, log, pending, ... }。仇家上门 = 年度模拟 simYear（每次过年、年份 +1 之后跑）
+  //   在 L.pending 放 { type:'foe', npc }；玩家处理后 pending 清空，Life34.say 记一条「第N年：X找你寻仇。」（应战）或
+  //   「第N年：你向X赔礼，恩怨稍解。」（赔礼）进 L.log。L.seen 目前只记 debtPost / vf_id / vfn_id / talk_id_年 / war_宗_年，**不记仇家上门**。
+  // ① 当年已有仇家上门 → 不触发追兵战：foeVisitThisYear 认三种迹象——
+  //    L.pending.type === 'foe'（仇家已在路上，pending 只在年初生成，一直挂到处理为止）、
+  //    L.seen['foe_' + 年]（约定键：life34 侧目前不写，留给它以后补）、L.log 里本年前缀「第N年：」的寻仇 / 赔礼两句。
+  //    年份与 Life34.yr() 同式（G.year || G.age）。
+  // ② 当年已打过追兵战 → 仇家上门不再来：拦这一步要改 life34.js（禁止改），所以这里只在追兵战结算（胜/败，中途关掉不算）时
+  //    写本分支自己的标记 flags.s3b_hunt_year = 当年；huntBlocksFoe(G) 给 life34 侧读（待办记在 PROGRESS.md）。
+  //    按现行 life34 逻辑，仇家上门只在年初生成，若年初没生成，同一年里本来就不会再来，所以眼下两方向都成立；标记防的是 life34 以后改成年中生成。
+  // 跨年不互斥：去年打过追兵战不挡今年的仇家；去年的寻仇日志不挡今年的追兵战（还挂着没处理的 pending 除外——仇家仍在路上）。
+  HUNT_FLAG: 's3b_hunt_year',
+  foeVisitThisYear(G) {
+    const L = G && G.life34 && typeof G.life34 === 'object' ? G.life34 : null;
+    if (!L) return { hit: false };
+    const yr = this.lifeYear(G);
+    const p = L.pending;
+    if (p && typeof p === 'object' && p.type === 'foe') return { hit: true, src: 'pending', npc: p.npc || null, year: yr };
+    const seen = L.seen && typeof L.seen === 'object' ? L.seen : {};
+    if (seen['foe_' + yr]) return { hit: true, src: 'seen', npc: null, year: yr };
+    const pre = `第${yr}年：`;
+    const log = Array.isArray(L.log) ? L.log : [];
+    if (log.some(t => typeof t === 'string' && t.startsWith(pre) && (t.endsWith('找你寻仇。') || t.endsWith('恩怨稍解。')))) return { hit: true, src: 'log', npc: null, year: yr };
+    return { hit: false, year: yr };
+  },
+  canHunt(G) {
+    const f = this.foeVisitThisYear(G);
+    if (!f.hit) return { ok: true, year: f.year };
+    const nm = f.npc && typeof NPCS !== 'undefined' && NPCS && NPCS[f.npc] ? NPCS[f.npc].n : '仇家';
+    return { ok: false, reason: 'foe', src: f.src, npc: f.npc, year: f.year,
+      note: f.src === 'pending' ? `${nm}正找上门寻仇，今年讨债司的追兵不来凑热闹。` : '今年已经有仇家上过门了，讨债司的追兵今年不来。' };
+  },
+  huntBlocksFoe(G) {
+    const F = G && G.flags && typeof G.flags === 'object' ? G.flags : null;
+    return !!F && typeof F[this.HUNT_FLAG] === 'number' && F[this.HUNT_FLAG] === this.lifeYear(G);
+  },
+  markHunt(G) { this.flags(G)[this.HUNT_FLAG] = this.lifeYear(G); },
   settleBounty(G, out) {
     if (!G || typeof G !== 'object' || !out || (out.result !== 'win' && out.result !== 'lose')) return { settled: false, reason: 'invalid', token: false };
     if (out.reason === 'closed') return { settled: false, reason: 'closed', token: false };
@@ -447,6 +509,7 @@ const Stage3 = {
     const F = this.flags(G);
     const raw = Number(G.debt);
     const before = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+    this.markHunt(G); // 第十二轮：当年打过追兵战（胜/败都算）→ 给 life34 侧读的互斥标记
     if (out.result === 'win') {
       const hadBounty = !!F.bounty;
       delete F.bounty; delete F.stage3_bountyDebt;

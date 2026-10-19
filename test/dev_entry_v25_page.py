@@ -62,11 +62,14 @@ async def main():
             c = pg.locator(f'.card:has(.ct:text("{title}"))').last
             await c.wait_for(timeout=3000); await c.locator(f'.opt[data-k="{k}"]').click()
         ck('#dev 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('v25-qy')"))
-        b0 = await pg.evaluate("({debt:Game.G.debt,aff:(Game.G.aff.merchant||0)})")
+        b0 = await pg.evaluate("({debt:Game.G.debt,aff:(Game.G.aff.merchant||0),rel:(((Game.G.life34&&Game.G.life34.rel)||{}).merchant||0)})")
         try:
             await pg.click('#v25-qy'); await card_click('钱多多的赊账单', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
             s1 = await pg.evaluate("({debt:Game.G.debt,aff:Game.G.aff.merchant,step:Game.G.flags.s3m_step})")
             ck('奇遇链第 1 步：举报 → 债务 -200、钱多多好感 -40、记下 s3m_step', s1['debt'] == b0['debt'] - 200 and s1['aff'] == max(0, b0['aff'] - 40) and s1['step'] == 1)
+            # 第十二轮：举报 = 记仇选项 → main 的 Life34.rel('merchant', -20)（真页面里 life34.js 已加载；只读检查 G.life34.rel 与存档）
+            r1 = await pg.evaluate("({rel:(((Game.G.life34&&Game.G.life34.rel)||{}).merchant),sv:((JSON.parse(localStorage.getItem('wbx2_save')||'{}').life34||{}).rel||{}).merchant,sect:JSON.stringify(Game.G.sectRel||null)})")
+            ck(f'举报 → Life34.rel 恩怨 merchant {b0["rel"]}→{r1["rel"]}（-20）并已存档', r1['rel'] == max(-100, b0['rel'] - 20) and r1['sv'] == r1['rel'])
             await pg.click('#v25-qy'); await card_click('钱多多回访', 0)
             res = pg.locator('.card:has(.ct:text("奇遇结果"))').last
             await res.wait_for(timeout=3000)
@@ -84,7 +87,7 @@ async def main():
         try:
             ck('#dev 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('v25-qy2')"))
             await pg.evaluate("()=>{const G=Game.G;G.stone=1000;G.aff.xianguan=0;}")
-            c0 = await pg.evaluate("({debt:Game.G.debt})")
+            c0 = await pg.evaluate("({debt:Game.G.debt,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0),sect:JSON.stringify(Game.G.sectRel||null)})")
             await pg.click('#v25-qy2'); await card_click('记账童子的错账', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
             c1 = await pg.evaluate("({debt:Game.G.debt,stone:Game.G.stone,aff:Game.G.aff.xianguan,step:Game.G.flags.s3x_step})")
             ck('查账链第 1 步：贿赂 → 灵石 -300、欠款 -1500、童子好感 20', c1['stone'] == 700 and c1['debt'] == c0['debt'] - 1500 and c1['aff'] == 20 and c1['step'] == 1)
@@ -93,6 +96,8 @@ async def main():
             await res.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             c2 = await pg.evaluate("({debt:Game.G.debt,done:Game.G.flags.s3x_done,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
             ck('查账链第 2 步：露馅补回 1650 并存档', c2['debt'] == c1['debt'] + 1650 and c2['done'] == 1 and c2['saved'] == c2['debt'] and '露馅' in rtxt)
+            c3 = await pg.evaluate("({rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan),sv:((JSON.parse(localStorage.getItem('wbx2_save')||'{}').life34||{}).rel||{}).xianguan,sect:JSON.stringify(Game.G.sectRel||null)})")
+            ck(f'贿赂露馅 → Life34.rel 恩怨 xianguan {c0["rel"]}→{c3["rel"]}（-15）并已存档、结果卡写明、G.sectRel 不变', c3['rel'] == max(-100, c0['rel'] - 15) and c3['sv'] == c3['rel'] and '恩怨 -15' in rtxt and c3['sect'] == c0['sect'])
         except Exception as e:
             ck('查账链真页面流程（异常：' + str(e)[:80] + '）', False)
         # 3. 试炼场 → 确认 → 覆盖层，Escape 关闭
@@ -187,6 +192,22 @@ async def main():
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
         except Exception as e:
             ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)
+        # 5b. 第十二轮：追兵战 × life34「仇家上门」同一年互斥（造场景：直接挂一个 life34 仇家 pending，与上面造债务的做法相同）
+        try:
+            hy = await pg.evaluate("({h:Game.G.flags.s3b_hunt_year,y:(Game.G.year||Game.G.age||0),sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_hunt_year})")
+            ck(f'打过追兵战 → flags.s3b_hunt_year = 当年 {hy["y"]}（给 life34 侧读）并已存档', hy['h'] == hy['y'] and hy['sv'] == hy['y'])
+            await pg.evaluate("()=>{const G=Game.G;Life34.st();G.life34.pending={type:'foe',npc:'merchant'};G.debt=8888;Game.save();}")
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            g1 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:!!(RealtimeBattle.state&&RealtimeBattle.state.on),debt:Game.G.debt,body:document.body.innerText})")
+            ck('当年仇家上门挂着（life34 pending foe）→ 点「追兵战」不开即时战、欠款不变、提示「追兵战不触发」', not g1['ov'] and not g1['on'] and g1['debt'] == 8888 and '追兵战不触发' in g1['body'])
+            await pg.evaluate("()=>{Game.G.life34.pending=null;Game.save();}"); await pg.wait_for_timeout(2600)
+            await pg.click('#v25-zb'); await pg.wait_for_timeout(500)
+            g2 = await pg.evaluate("({ov:!!document.getElementById('rtp-overlay'),on:!!(RealtimeBattle.state&&RealtimeBattle.state.on)})")
+            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
+            g3 = await pg.evaluate("({debt:Game.G.debt})")
+            ck('仇家处理完（pending 清空、本年无寻仇日志）→ 追兵战照常打开；Escape 中途离场不结算', g2['ov'] and g2['on'] and g3['debt'] == 8888)
+        except Exception as e:
+            ck('追兵战同年互斥真页面流程（异常：' + str(e)[:80] + '）', False)
         # 6. 突破预估（债务强化 #3）：按债压档位显示 基础成功率 − 惩罚 0/3/8/15，只读：G 与存档都不变
         try:
             await pg.evaluate("()=>{const G=Game.G;G.realm=4;G.stage=3;G.exp=Game.need();Game.save();}")

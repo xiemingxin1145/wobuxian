@@ -406,8 +406,10 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
       const outs7 = [{ result: 'win', reason: 'cleared', tier: 3, defeated: team46 }, { result: 'win', reason: 'cleared', tier: 3, defeated: ['讨债鬼'] }, { result: 'win', reason: 'cleared' }, { result: 'win', tier: 1 },
         { result: 'lose', reason: 'dead', tier: 2 }, { result: 'lose', reason: 'timeout', tier: 0 }, { result: 'lose', reason: 'dead' }, { result: 'win', reason: 'closed', tier: 3 }, { result: 'lose', reason: 'closed' },
         { result: 'draw' }, null, { result: 'win', reason: 'timeout', tier: 3, defeated: team46 }, { result: 'win', tier: 9, defeated: team46 }];
-      let sbN = 0; const sbSame = saves7.every(g => outs7.every(o => { const gn = cl(g), go = cl(g); sbN++; return J(S.settleBounty(gn, cl(o))) === J(O.settleBounty(go, cl(o))) && J(gn) === J(go); }));
-      ok(sbSame && J(S.settleBounty(null, outs7[0])) === J(O.settleBounty(null, outs7[0])), `settleBounty 与 c46c1ef 逐字段一致（${sbN} 组 存档×结果：返回值 + 结算后整份存档）`);
+      // 第十二轮：结算（胜/败）时多写一个同年互斥标记 flags.s3b_hunt_year，对照旧版时剥掉它；其余字段仍须逐字段一致。标记本身另有断言（见第十二轮用例）。
+      const stripHunt = g => { const o = cl(g); if (o && o.flags && typeof o.flags === 'object') delete o.flags.s3b_hunt_year; return o; };
+      let sbN = 0, huntOk = true; const sbSame = saves7.every(g => outs7.every(o => { const gn = cl(g), go = cl(g); sbN++; const rn = S.settleBounty(gn, cl(o)); const hk = !!(gn && gn.flags && typeof gn.flags === 'object' && 's3b_hunt_year' in gn.flags); if (hk !== !!rn.settled) huntOk = false; return J(rn) === J(O.settleBounty(go, cl(o))) && J(stripHunt(gn)) === J(go); }));
+      ok(sbSame && huntOk && J(S.settleBounty(null, outs7[0])) === J(O.settleBounty(null, outs7[0])), `settleBounty 与 c46c1ef 逐字段一致（${sbN} 组 存档×结果：返回值 + 结算后整份存档，除新增的 s3b_hunt_year；该标记当且仅当结算时写）`);
       const bpSaves = saves7.map((g, i) => Object.assign(cl(g), { realm: [0, 1, 2, 3, 4, 5, 6, 99, 'x'][i % 9], st: i % 4 ? { int: i, luck: 3 } : {}, inv: i % 3 ? { zjd: 1, pjd: 1 } : {}, brkBonus: 0.01 * (i % 5), tmpBrk: i % 2 ? 0.05 : 0 }));
       const bpSame0 = bpSaves.every(g => J(S.breakthroughPreview(cl(g), null)) === J(O.breakthroughPreview(cl(g), null)));
       const newG = mkCx(fs7.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8'), true), oldG = mkCx(src46, true);

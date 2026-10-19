@@ -126,6 +126,7 @@
     // 打完按胜负结算（Stage3.settleBounty：胜撤通缉、败加误工费）并存档；中途关掉不结算。不发奖。
     // 债务强化 #4：重债/天道通缉档追兵出手更快、前摇更短、弹道散射（参数由 bountyEnemies 带上），顶栏与结算卡标注档位特性。
     // 债务强化 #5：天道通缉档「讨债鬼头子」前冲收招后放一圈环形弹（ringShots/ringWarn/ringCd 由 bountyEnemies 只给头子），toast 与结算卡加「头子：…」。
+    // 第十二轮：当年已有仇家上门 → 不开追兵战（Stage3.canHunt）；打完结算时 settleBounty 记 flags.s3b_hunt_year（给 life34 侧读，挡同年仇家上门）。
     // 债务强化 #6：天道通缉档打赢且头子被打倒（原型结束带 defeated 名单）→ settleBounty 记一枚「讨债令」凭证（flags.s3b_token），结算卡加一行说明；不发正式物品。
     const zb = document.createElement('button');
     zb.id = 'v25-zb';
@@ -136,6 +137,9 @@
       if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
       if (!window.RealtimeBattle || !RealtimeBattle.open) return;
       const G = g.G;
+      // 第十二轮：与 life34「仇家上门」同一年互斥——当年已有仇家上门（或仇家正在路上）就不开追兵战（Stage3.canHunt 只读）
+      const gate = typeof Stage3.canHunt === 'function' ? Stage3.canHunt(G) : { ok: true };
+      if (!gate.ok) { toast('追兵战不触发：' + gate.note, '#cccccc'); return; }
       // 债务强化 #7：读开发者调参覆盖（没设 = 默认表，与 c46c1ef 完全一样）
       const tu = readBountyTuning();
       const P = Stage3.debtPressure(G, tu.table);
