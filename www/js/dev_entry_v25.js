@@ -77,6 +77,7 @@
     // 追兵战按钮：债务系统强化 #1/#2——按当前债压档位（Stage3.debtPressure）刷讨债鬼进即时战原型；
     // 打完按胜负结算（Stage3.settleBounty：胜撤通缉、败加误工费）并存档；中途关掉不结算。不发奖。
     // 债务强化 #4：重债/天道通缉档追兵出手更快、前摇更短、弹道散射（参数由 bountyEnemies 带上），顶栏与结算卡标注档位特性。
+    // 债务强化 #5：天道通缉档「讨债鬼头子」前冲收招后放一圈环形弹（ringShots/ringWarn/ringCd 由 bountyEnemies 只给头子），toast 与结算卡加「头子：…」。
     const zb = document.createElement('button');
     zb.id = 'v25-zb';
     zb.textContent = '追兵战';
@@ -89,7 +90,7 @@
       const P = Stage3.debtPressure(G);
       const h = RealtimeBattle.open(Stage3.bountyEnemies(G), { force: true, label: '追兵·' + P.n + (P.trait ? '·' + P.trait : '') });
       if (!h) return;
-      toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了${P.trait ? '（' + P.trait + '）' : ''}`, '#ffb0a0');
+      toast(`债压「${P.n}」（欠 ${P.debt}${P.bounty ? '，被通缉' : ''}）：${P.hunters} 个讨债鬼追上来了${P.trait ? '（' + P.trait + '）' : ''}${P.bossMove ? '，头子会' + P.bossMove : ''}`, '#ffb0a0');
       const r = await h.done;
       const s = Stage3.settleBounty(G, Object.assign({}, r, { tier: P.tier }));
       if (s.settled && typeof g.save === 'function') g.save();
@@ -97,7 +98,7 @@
       const u = uiObj();
       if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
       if (u && u.card) {
-        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}\n追兵特性：${P.traitNote}`, 'i:bill', ['好']);
+        await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}`, 'i:bill', ['好']);
         if (u.hud) u.hud();
       }
     };

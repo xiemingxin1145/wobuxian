@@ -269,6 +269,29 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const Gt4 = mk({ debt: 30000, flags: { bounty: 1 } }); const snapT4 = JSON.stringify(Gt4); S.bountyEnemies(Gt4); S.debtPressure(Gt4);
   ok(JSON.stringify(Gt4) === snapT4, '生成档位参数不改存档');
 
+  // 14. 债务强化 #5：天道通缉头子专属招式「回身环弹」——只给通缉档头子带 ringShots/ringWarn/ringCd，其余讨债鬼一个字段都不多
+  const RK = ['ringShots', 'ringWarn', 'ringCd'];
+  const hasRing = e => RK.some(k => k in e);
+  const boss5 = hz4[3][0];
+  ok(boss5.name === '讨债鬼头子' && boss5.ringShots === 8 && boss5.ringWarn === 0.4 && boss5.ringCd === 3 && S.BOSS_RING.move === '回身环弹', '天道通缉头子带专属招式参数：8 发环形弹 / 预警 0.4s / 间隔 3s（回身环弹）');
+  ok(hz4[3].slice(1).every(e => e.name === '讨债鬼' && !hasRing(e)) && hz4.slice(0, 3).every(a => a.every(e => !hasRing(e))), '通缉档普通讨债鬼、小账/欠款/重债所有讨债鬼都不带环弹字段（= 上一轮配置）');
+  const strip5 = e => { const o = Object.assign({}, e); RK.forEach(k => delete o[k]); return JSON.stringify(o); };
+  ok(strip5(boss5) === JSON.stringify(Object.assign({}, hz4[3][1], { name: '讨债鬼头子', x: 300, y: 150, atkCd: 1 })), '头子除环弹字段外与同档讨债鬼的其余参数（血/移速/档位行为）一致');
+  const bb5 = S.bountyEnemies({ debt: 8888, flags: { bounty: 1 } }), bl5 = S.bountyEnemies({ debt: 10, flags: { bounty: 1 } });
+  ok(bb5[0].ringShots === 8 && bb5.filter(hasRing).length === 1 && bl5.every(e => !hasRing(e)), '重债 + 通缉 → 升到天道通缉档，只有头子带环弹；小账 + 通缉 → 欠款档无环弹');
+  ok(DP({ debt: 30000 }).bossMove === '回身环弹' && /前冲收招后原地预警 0\.4s，放一圈 8 发环形弹（每 3s 至多一次）/.test(DP({ debt: 30000 }).bossNote) && [0, 3000, 8888].every(d => DP({ debt: d }).bossMove === '' && DP({ debt: d }).bossNote === ''), 'debtPressure 头子招式名/说明：仅天道通缉档有，低三档为空');
+  let src84 = null; try { src84 = require('child_process').execSync('git show 84f4bd0:www/js/stage3_encounter_draft.js', { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { src84 = null; }
+  if (src84) {
+    const c84 = require('vm').createContext({ console, window: {} }); require('vm').runInContext(src84 + '\n;window.__S = Stage3;', c84);
+    const games5 = [{ debt: 0 }, { debt: 3000 }, { debt: 8888 }, { debt: 30000 }, { debt: 10, flags: { bounty: 1 } }, { debt: 8888, flags: { bounty: 1 } }, { debt: 99999, flags: { bounty: 1 } }];
+    const same5 = games5.map(g => JSON.stringify(c84.window.__S.bountyEnemies(JSON.parse(JSON.stringify(g)))) === JSON.stringify(S.bountyEnemies(g).map(e => JSON.parse(strip5(e)))));
+    ok(same5.every(Boolean), '与上一提交 84f4bd0 的 bountyEnemies 对照 7 种存档：去掉头子的 3 个环弹字段后逐字段一致：' + same5.join(','));
+  } else ok(false, '读不到 84f4bd0 的 stage3_encounter_draft.js（git show 失败）');
+  const Gt5 = mk({ debt: 30000, flags: { bounty: 1 } }); const snapT5 = JSON.stringify(Gt5); S.bountyEnemies(Gt5); S.debtPressure(Gt5);
+  ok(JSON.stringify(Gt5) === snapT5, '生成头子招式参数不改存档');
+  const de5 = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_entry_v25.js'), 'utf8');
+  ok(/头子：' \+ P\.bossNote/.test(de5) && /头子会' \+ P\.bossMove/.test(de5), '开发者「追兵战」toast 与结算卡带「头子：…」说明');
+
   // 7. 真实页面里 UI/Game 是顶层 const（不在 window 上）：vm 模拟，确认奇遇仍能弹卡并改债务（旧版 window.UI 判断 → 永远 no game or UI）
   const vm = require('vm'), fs = require('fs');
   const cx = vm.createContext({ console });

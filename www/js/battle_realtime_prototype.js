@@ -12,6 +12,8 @@
 //             剑/扇/伞分别加伤害弹速/范围/冷却修正；多灵根 E 键或「换」按钮切元素。灵根/武器只读，缺失回退。
 // 2026-10-19 第七轮（债务强化 #4）：敌人配置可带 atkCdMul（出手后冷却倍率）/ windMul（前摇倍率）/ shotCount + shotSpread（一次几发、
 //             相邻夹角°，扇形散射），追兵战按债压档位填；缺字段或非法值一律回退中性值 = 旧行为（数值逐帧一致）。
+// 2026-10-19 第八轮（债务强化 #5）：敌人配置可带 ringShots（环形弹发数）/ ringWarn（收招预警秒）/ ringCd（两次环弹最短间隔秒）：
+//             前冲收招后原地画预警圈，到点以自身为中心放一圈等角环形弹（追兵战只给天道通缉档头子）；缺字段 / 非法值 = 不放环弹（旧行为，逐帧一致）。
 (function () {
   const W0 = 600, H0 = 520; // 逻辑战场尺寸
   const BOUND = { x0: 40, x1: 560, y0: 60, y1: 480 };
@@ -36,6 +38,19 @@
       windMul: mul(e && e.windMul),
       shotCount: sc !== null && sc >= 1 ? Math.min(FOE_TRAIT.shotMax, Math.floor(sc)) : 1,
       shotSpread: sp !== null && sp > 0 ? Math.min(FOE_TRAIT.spreadMax, sp) : 0,
+    };
+  }
+  // 头子专属招式「回身环弹」（债务强化 #5）：ringShots 不是数字或 < 3 → 0（不放，旧行为）；合法值取整钳到 3–16。
+  //   ringWarn 非法 → 默认 0.4s，合法钳 0.15–1s；ringCd 非法 → 默认 3s，合法钳 0–10s（0 = 每次前冲都放）。
+  const RING = { min: 3, max: 16, warnDef: 0.4, warnMin: 0.15, warnMax: 1, cdDef: 3, cdMax: 10, spd: 170, dmg: 10, r0: 18, r1: 70 };
+  function foeRing(e) {
+    const num = v => (typeof v === 'number' && isFinite(v) ? v : null);
+    const n = num(e && e.ringShots), w = num(e && e.ringWarn), c = num(e && e.ringCd);
+    const shots = n !== null && n >= RING.min ? Math.min(RING.max, Math.floor(n)) : 0;
+    return {
+      ringShots: shots,
+      ringWarn: w !== null && w > 0 ? Math.max(RING.warnMin, Math.min(RING.warnMax, w)) : RING.warnDef,
+      ringCd: c !== null && c >= 0 ? Math.min(RING.cdMax, c) : RING.cdDef,
     };
   }
   // 灵根技能：主灵根元素决定形态（多灵根可按 E / 「换」切换），武器类型给修正。k = 伤害系数（×攻击）
@@ -169,6 +184,7 @@
     RT.dmgNums = [];
     RT.fx = [];
     RT.foeVolleys = 0; RT.foeShots = 0; // 敌人弹道齐射次数 / 弹丸总数（测试与调试用）
+    RT.foeRings = 0; RT.foeRingShots = 0; // 头子环形弹次数 / 环形弹丸总数（单独计数，不混进上面的齐射统计）
     // 主角属性：opts 覆盖 > 存档只读 > 默认；敌人血量/伤害按同比缩放，保证「几刀砍死、几下被打死」的节奏不随境界变
     const ps = readPlayerStats();
     const sr = opts.els ? { els: opts.els.slice(), src: 'opts' } : readSpiritRoot();
@@ -192,6 +208,7 @@
       state: 'chase', wind: 0, windKind: null, aimX: 0, aimY: 1, lunge: 0, lungeHit: false,
       atkCd: e.atkCd != null ? e.atkCd : (e.skillCd != null ? e.skillCd : 0.8 + RT.rand() * 1.2),
       ...foeTrait(e), attacks: 0, windMax: 0, // 档位行为参数（缺省 = 旧行为）；attacks = 已起手次数
+      ...foeRing(e), ringT: 0, ringReady: 0, rings: 0, // 头子环弹参数（ringShots 0 = 不放）；ringT 预警剩余、ringReady 冷却剩余
       slowT: 0, slowMul: 1, burnT: 0, burnDps: 0, burnAcc: 0, rootT: 0,
       flash: 0, at: 0, moving: false,
     }));
@@ -268,9 +285,15 @@
       }
       e.slowT = Math.max(0, e.slowT - dt); if (e.slowT <= 0) e.slowMul = 1;
       e.rootT = Math.max(0, e.rootT - dt);
+      if (e.ringShots > 0) e.ringReady = Math.max(0, e.ringReady - dt); // 只有带环弹的头子走这里
       const dx = p.x - e.x, dy = p.y - e.y;
       const d = Math.hypot(dx, dy) || 1;
       e.moving = false;
+      if (e.state === 'ring') { // 头子收招预警：原地不动，预警圈缩满后放一圈环形弹；出手冷却照常倒数（环弹是额外招式，不拖慢原节奏）
+        e.ringT -= dt; e.atkCd = Math.max(0, e.atkCd - dt);
+        if (e.ringT <= 0) { fireRing(e); e.state = 'chase'; e.ringReady = e.ringCd; }
+        continue;
+      }
       if (e.state === 'windup') {
         e.wind -= dt;
         if (e.wind <= 0) {
@@ -294,7 +317,10 @@
         e.x += e.aimX * FOE.lungeSpd * step; e.y += e.aimY * FOE.lungeSpd * step; clamp(e);
         e.lunge -= dt; e.moving = true;
         if (!e.lungeHit && Math.hypot(p.x - e.x, p.y - e.y) < FOE.hitR) { e.lungeHit = true; damagePlayer(Math.max(1, Math.round(FOE.lungeDmg * e.dmgMul))); }
-        if (e.lunge <= 0) { e.state = 'chase'; e.atkCd = (FOE.cdMin + RT.rand() * FOE.cdVar) * e.atkCdMul; }
+        if (e.lunge <= 0) {
+          e.state = 'chase'; e.atkCd = (FOE.cdMin + RT.rand() * FOE.cdVar) * e.atkCdMul;
+          if (e.ringShots > 0 && e.ringReady <= 0) { e.state = 'ring'; e.ringT = e.ringWarn; } // 头子：前冲收招接环弹
+        }
         continue;
       }
       // chase
@@ -357,6 +383,23 @@
     if (p.hp <= 0) endRealtime('lose', 'dead');
     else if (RT.enemies.every(e => e.hp <= 0)) endRealtime('win', 'cleared');
     else if (RT.time > RT.timeLimit) endRealtime('lose', 'timeout'); // 超时保底，避免卡死
+  }
+
+  // 环形弹：以敌人为中心 ringShots 发等角散开，第一发沿前冲方向；弹速/伤害取 RING（伤害随 dmgMul 缩放）
+  function fireRing(e) {
+    const n = e.ringShots, a0 = Math.atan2(e.aimY, e.aimX);
+    for (let i = 0; i < n; i++) {
+      const a = a0 + i * 2 * Math.PI / n, ax = Math.cos(a), ay = Math.sin(a);
+      RT.enemyProjectiles.push({ x: e.x + ax * 16, y: e.y + ay * 16, vx: ax * RING.spd, vy: ay * RING.spd, life: 2.0, dmg: Math.max(1, Math.round(RING.dmg * e.dmgMul)), dodged: false, ring: true });
+    }
+    e.rings++; RT.foeRings++; RT.foeRingShots += n;
+  }
+  // 头子环弹预警（绘制与测试共用）：k 0→1 预警圈从外向内收紧
+  function ringTelegraphs() {
+    return RT.enemies.filter(e => e.hp > 0 && e.state === 'ring').map(e => ({
+      enemy: e, x: e.x, y: e.y, count: e.ringShots, aimX: e.aimX, aimY: e.aimY,
+      k: 1 - e.ringT / (e.ringWarn || RING.warnDef), r: RING.r1 - (RING.r1 - RING.r0) * (1 - e.ringT / (e.ringWarn || RING.warnDef)),
+    }));
   }
 
   // 玩家受击：闪避无敌中免伤并提示「闪避!」。返回是否真的扣血
@@ -514,6 +557,17 @@
       }
       tg.enemy.flash = Math.sin(RT.time * 30) > 0 ? 0.05 : 0;
     }
+    // 头子环弹预警：橙色圈由外向内收紧 + 每发一根短刺标出弹道方向
+    for (const rg of ringTelegraphs()) {
+      ctx.strokeStyle = `rgba(255,140,40,${0.4 + 0.5 * rg.k})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2); ctx.stroke();
+      const a0 = Math.atan2(rg.aimY, rg.aimX);
+      for (let i = 0; i < rg.count; i++) {
+        const a = a0 + i * 2 * Math.PI / rg.count, c = Math.cos(a), s = Math.sin(a);
+        ctx.beginPath(); ctx.moveTo(rg.x + c * rg.r, rg.y + s * rg.r); ctx.lineTo(rg.x + c * (rg.r + 14), rg.y + s * (rg.r + 14)); ctx.stroke();
+      }
+      rg.enemy.flash = Math.sin(RT.time * 30) > 0 ? 0.05 : 0;
+    }
 
     // 按 y 深度排序画角色
     const units = [...RT.enemies.filter(e => e.hp > 0).map(e => [e, false]), [p, true]].sort((a, b) => a[0].y - b[0].y);
@@ -547,7 +601,7 @@
       if (e.slowT > 0) { ctx.strokeStyle = '#4aa8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 22, 9, 0, 0, Math.PI * 2); ctx.stroke(); }
       if (e.rootT > 0) { ctx.strokeStyle = '#5adf6a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(e.x, e.y, 18, 7, 0, 0, Math.PI * 2); ctx.stroke(); }
     }
-    for (const proj of RT.enemyProjectiles) { ctx.fillStyle = '#e05a4a'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2); ctx.fill(); }
+    for (const proj of RT.enemyProjectiles) { ctx.fillStyle = proj.ring ? '#ff9a3a' : '#e05a4a'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2); ctx.fill(); }
 
     // 伤害飘字
     ctx.textAlign = 'center'; ctx.font = 'bold 18px sans-serif';
@@ -685,6 +739,9 @@
     FOE,
     FOE_TRAIT,
     foeTrait,
+    RING,
+    foeRing,
+    ringTelegraphs,
     DODGE,
     telegraphs,
     _key: { down: _rtKeyDown, up: _rtKeyUp },

@@ -288,7 +288,15 @@ const Stage3 = {
     const T = this.DEBT_TIERS[tier];
     return { tier, key: T.key, n: T.n, debt, bounty, hunters: T.hunters, hpMul: T.hpMul,
       atkCdMul: T.atkCdMul, windMul: T.windMul, shotCount: T.shotCount, shotSpread: T.shotSpread, spdAdd: T.spdAdd, trait: T.trait,
-      traitNote: this.tierTraitNote(T) };
+      traitNote: this.tierTraitNote(T), bossMove: tier === 3 ? this.BOSS_RING.move : '', bossNote: tier === 3 ? this.bossRingNote() : '' };
+  },
+  // 债务强化 #5「天道通缉头子专属招式」：只有天道通缉档的「讨债鬼头子」带——前冲收招后原地预警一圈，再以自身为中心放 ringShots 发等角环形弹。
+  //   ringShots 环形弹发数、ringWarn 收招后预警圈秒数、ringCd 两次环弹最短间隔（秒）；即时战原型读取并钳制，缺字段 / 非法值 = 不放环弹（旧行为）。
+  //   普通讨债鬼与低三档一律不带这些字段。数值只给开发者「追兵战」试手感，待主人试玩定。
+  BOSS_RING: { ringShots: 8, ringWarn: 0.4, ringCd: 3, move: '回身环弹' },
+  bossRingNote() {
+    const B = this.BOSS_RING;
+    return `${B.move}：前冲收招后原地预警 ${B.ringWarn}s，放一圈 ${B.ringShots} 发环形弹（每 ${B.ringCd}s 至多一次）`;
   },
   // 档位特性说明（结算卡/提示用）：低档 = 「与普通讨债鬼相同」
   tierTraitNote(T) {
@@ -304,6 +312,8 @@ const Stage3 = {
       hp: Math.round(80 * P.hpMul), x, y, speed: 70 + 6 * P.tier + P.spdAdd, atkCd: 1.0 + 0.6 * i,
       // 债务强化 #4：档位行为参数（即时战原型读取；缺字段 / 中性值 = 旧行为）
       atkCdMul: P.atkCdMul, windMul: P.windMul, shotCount: P.shotCount, shotSpread: P.shotSpread, tier: P.tier,
+      // 债务强化 #5：只有天道通缉档的头子带专属招式参数（其余讨债鬼不带 → 原型里与上一轮完全一样）
+      ...(i === 0 && P.tier === 3 ? { ringShots: this.BOSS_RING.ringShots, ringWarn: this.BOSS_RING.ringWarn, ringCd: this.BOSS_RING.ringCd } : {}),
     }));
   },
 

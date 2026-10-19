@@ -364,6 +364,102 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
     RB.end('lose', 'closed');
   }
 
+  // 6f. 债务强化 #5：天道通缉头子专属招式「回身环弹」（前冲收招 → 预警圈 → 一圈等角环形弹）；没有环弹字段的敌人与 84f4bd0 逐帧一致
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const vmF = require('vm');
+    const RG = RB.RING;
+    const loadProto = src => { const c = vmF.createContext({ console, window: {} }); vmF.runInContext(src, c); return c.window.RealtimeBattle; };
+    const srcNow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    let src84 = null; try { src84 = require('child_process').execSync('git show 84f4bd0:www/js/battle_realtime_prototype.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { src84 = null; }
+    const NEW = loadProto(srcNow);
+    const lcg = seed => () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const clone = a => a && JSON.parse(JSON.stringify(a));
+    const sim = (R, foes, sec, pos) => {
+      const St = R.state; St.rand = lcg(11);
+      R.start(clone(foes), { timeLimit: 999, hp: 1e6, atk: 28, scale: false }); St.player.x = (pos || [300, 320])[0]; St.player.y = (pos || [300, 320])[1];
+      const seen = new Set(), trace = [], ringAt = []; let shots = 0, windups = 0, lastRings = 0; const prev = St.enemies.map(e => e.state);
+      for (let i = 0; i < Math.round(sec * 60); i++) {
+        R.update(1 / 60);
+        St.enemies.forEach((e, k) => { if (e.state === 'windup' && prev[k] !== 'windup') windups++; prev[k] = e.state; });
+        for (const pr of St.enemyProjectiles) if (!seen.has(pr)) { seen.add(pr); shots++; }
+        if ((St.foeRings || 0) > lastRings) { ringAt.push(St.time); lastRings = St.foeRings; }
+        trace.push(JSON.stringify([St.enemies.map(e => [e.x, e.y, e.state, e.wind, e.atkCd, e.aimX, e.aimY, e.hp]), St.enemyProjectiles.map(q => [q.x, q.y, q.vx, q.vy, q.dmg]), St.player.hp]));
+      }
+      const out = { trace, shots, windups, hp: St.player.hp, volleys: St.foeVolleys, vshots: St.foeShots, rings: St.foeRings || 0, ringShots: St.foeRingShots || 0, ringAt };
+      R.end('lose', 'closed'); return out;
+    };
+    const eq = (a, b) => a.trace.length === b.trace.length && a.trace.every((t, i) => t === b.trace[i]) && a.shots === b.shots && a.volleys === b.volleys && a.vshots === b.vshots;
+    const RK = ['ringShots', 'ringWarn', 'ringCd'];
+    const stripR = a => a.map(e => { const o = Object.assign({}, e); RK.forEach(k => delete o[k]); return o; });
+    const mixed = [{ name: '远', hp: 999, x: 300, y: 110, speed: 0, atkCd: 0.2 }, { name: '近', hp: 999, x: 380, y: 300, speed: 0, atkCd: 0.5 }, { name: '追', hp: 999, x: 100, y: 100, speed: 70 }];
+    const b = [0, 3000, 8888, 30000].map(d => S3.bountyEnemies({ debt: d }));
+    const boss = b[3][0];
+    // 1) 与上一提交 84f4bd0 的旧原型逐帧对照：缺字段 / 小账 / 欠款 / 重债 / 通缉档普通讨债鬼 / 去掉环弹字段的通缉全队 → 720 帧完全一致
+    if (src84) {
+      const OLD = loadProto(src84);
+      const groups = { 缺字段: mixed, 小账: b[0], 欠款: b[1], 重债: b[2], 通缉普通讨债鬼: b[3].slice(1), 通缉全队去环弹: stripR(b[3]) };
+      const res = Object.entries(groups).map(([k, f]) => k + ':' + eq(sim(OLD, f, 12), sim(NEW, f, 12)));
+      ok(res.every(r => r.endsWith('true')), '没有环弹字段的敌人：新原型与 84f4bd0 旧原型 12s（720 帧）逐帧一致（位置/状态/前摇/冷却/血/弹道/齐射计数）：' + res.join(' '));
+      const o3 = sim(OLD, b[3], 12), n3 = sim(NEW, b[3], 12);
+      ok(n3.rings >= 1 && n3.ringShots === 8 * n3.rings && n3.hp < o3.hp && n3.windups >= o3.windups,
+        `通缉全队（带头子）12s：新原型环弹 ${n3.rings} 次 / ${n3.ringShots} 发，主角挨打 -${1e6 - n3.hp} > 旧 -${1e6 - o3.hp}，起手 ${n3.windups} ≥ 旧 ${o3.windups}（环弹不拖慢原节奏）`);
+    } else ok(false, '读不到 84f4bd0 旧原型（git show 失败），无法做旧行为对照');
+    // 2) 非法值 → 不放环弹，逐帧 = 缺字段；钳制
+    const near = [Object.assign({}, boss, { x: 300, y: 240, speed: 0, hp: 9999, maxHp: 9999 })];
+    const tNo = sim(NEW, stripR(near), 10);
+    const bads = [{ ringShots: NaN }, { ringShots: '8' }, { ringShots: 2 }, { ringShots: -8 }, { ringShots: null }, { ringShots: Infinity }, { ringShots: {} }, { ringShots: 0, ringWarn: 0.4, ringCd: 3 }];
+    const badSame = bads.map(o => eq(sim(NEW, [Object.assign({}, stripR(near)[0], o)], 10), tNo));
+    ok(badSame.every(Boolean) && tNo.rings === 0, 'ringShots 非数字/字符串/<3/负/null/Infinity/对象/0 → 不放环弹，10s 逐帧 = 缺字段：' + badSame.join(','));
+    const fr = RB.foeRing;
+    ok(fr({ ringShots: 99 }).ringShots === 16 && fr({ ringShots: 8.7 }).ringShots === 8 && fr({ ringShots: 3 }).ringShots === 3 && fr({ ringWarn: 0.01 }).ringWarn === 0.15 && fr({ ringWarn: 5 }).ringWarn === 1 && fr({ ringWarn: -1 }).ringWarn === RG.warnDef
+      && fr({ ringCd: -1 }).ringCd === RG.cdDef && fr({ ringCd: 99 }).ringCd === 10 && fr({ ringCd: 0 }).ringCd === 0 && fr({ ringCd: 'x' }).ringCd === RG.cdDef && JSON.stringify(fr(null)) === '{"ringShots":0,"ringWarn":0.4,"ringCd":3}',
+      '环弹参数钳制：发数取整 3–16、预警 0.15–1s（非法 0.4）、间隔 0–10s（非法 3）；null → 不放');
+    ok(JSON.stringify(fr(boss)) === '{"ringShots":8,"ringWarn":0.4,"ringCd":3}' && b.slice(0, 3).every(a => a.every(e => fr(e).ringShots === 0)) && b[3].slice(1).every(e => fr(e).ringShots === 0), '原型读到的：通缉头子 8 发/0.4s/3s 原样，其余讨债鬼全 0（不放）');
+    // 3) 招式时序与几何：前冲收招 → 预警圈（原地不动）→ 0.4s 后 8 发等角环形弹，第一发沿前冲方向
+    S.rand = () => 0;
+    RB.start(clone(near), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320;
+    let guard = 0; while (S.enemies[0].state !== 'ring' && guard++ < 600) RB.update(1 / 60);
+    const e0 = S.enemies[0], rx = e0.x, ry = e0.y, tg = RB.ringTelegraphs();
+    const pre = S.enemyProjectiles.filter(q => q.ring).length;
+    ok(e0.state === 'ring' && e0.attacks === 1 && tg.length === 1 && tg[0].count === 8 && tg[0].k < 0.1 && Math.abs(tg[0].r - RG.r1) < 6 && pre === 0 && RB.telegraphs().length === 0, `第 1 次前冲收招即进入环弹预警：预警圈 8 刺、半径 ${tg[0] && tg[0].r.toFixed(1)} 由外向内收、还没出弹`);
+    let rf = 0, spokes = 0; const rctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { if (/255,140,40/.test(t.strokeStyle || '')) { if (k === 'arc') rf++; if (k === 'lineTo') spokes++; } }), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.draw(rctx); ok(rf === 1 && spokes === 8, `draw()：环弹预警画 1 个橙色圈 + 8 根方向刺（${rf}/${spokes}）`);
+    S.player.x = 560; S.player.y = 470; // 主角挪到角落（不在 8 条弹道上），免得贴身的几发当场命中被移除，方便数整圈
+    for (let t = 0; t < RG.warnDef - 1 / 60 - 1e-9; t += 1 / 60) RB.update(1 / 60);
+    const mid = S.enemyProjectiles.filter(q => q.ring).length, kMid = RB.ringTelegraphs()[0] ? RB.ringTelegraphs()[0].k : -1;
+    RB.update(1 / 60); RB.update(1 / 60);
+    const ring = S.enemyProjectiles.filter(q => q.ring);
+    const angs = ring.map(q => ((Math.atan2(q.vy, q.vx) * 180 / Math.PI) + 360) % 360).sort((a, c) => a - c);
+    ok(mid === 0 && kMid > 0.9 && ring.length === 8 && S.foeRings === 1 && S.foeRingShots === 8 && e0.rings === 1 && e0.state === 'chase' && Math.abs(e0.x - rx) < 1e-9 && Math.abs(e0.y - ry) < 1e-9,
+      `预警 ${RG.warnDef}s 满（k=${kMid.toFixed(2)}）才出弹：一圈 ${ring.length} 发、预警期间头子原地不动、出完回追击`);
+    const first = ring[0] ? ((Math.atan2(ring[0].vy, ring[0].vx) * 180 / Math.PI) + 360) % 360 : -1;
+    ok(angs.length === 8 && angs.every((a, i) => Math.abs(a - 45 * i) < 1e-6) && Math.abs(first - 90) < 1e-6 && ring.every(q => Math.abs(Math.hypot(q.vx, q.vy) - RG.spd) < 1e-6 && q.dmg === RG.dmg),
+      '环形弹 8 发等角 45°（第一发沿前冲方向 90°）、弹速 ' + RG.spd + '、伤害 ' + RG.dmg + '：' + angs.map(a => a.toFixed(0)).join('/'));
+    ok(S.foeVolleys === 0 && S.foeShots === 0, '环形弹单独计数（foeRings/foeRingShots），不混进齐射统计 foeVolleys/foeShots');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 4) 间隔：10s 里每次前冲都想接环弹，但两次环弹至少隔 ringCd=3s；远射（不前冲）不触发；环弹伤害随 dmgMul 缩放
+    const tR = sim(NEW, near, 10);
+    const gaps = tR.ringAt.slice(1).map((t, i) => t - tR.ringAt[i]);
+    ok(tR.rings >= 2 && tR.rings < tR.windups && gaps.every(g => g >= 3 - 1e-6) && tR.ringShots === 8 * tR.rings && tR.hp < tNo.hp && tR.windups === tNo.windups,
+      `近身 10s：起手 ${tR.windups} 次（= 无环弹 ${tNo.windups}），环弹 ${tR.rings} 次、间隔 ${gaps.map(g => g.toFixed(2)).join('/')}s ≥ 3s，挨打 -${1e6 - tR.hp} > -${1e6 - tNo.hp}`);
+    const far = [Object.assign({}, boss, { x: 300, y: 110, speed: 0, hp: 9999, maxHp: 9999 })];
+    const tF = sim(NEW, far, 10), tF0 = sim(NEW, stripR(far), 10);
+    ok(tF.rings === 0 && eq(tF, tF0) && tF.volleys > 0, `远射距离（只放弹道、不前冲）：环弹 0 次，10s 逐帧 = 无环弹头子（齐射 ${tF.volleys} 次）`);
+    const t0c = sim(NEW, [Object.assign({}, near[0], { ringCd: 0 })], 10);
+    ok(t0c.rings >= t0c.windups - 1 && t0c.rings > tR.rings, `ringCd=0：每次前冲收招都接环弹（环弹 ${t0c.rings} / 起手 ${t0c.windups}，最后一次 10s 时还没收招）`);
+    RB.start(clone(near), { timeLimit: 99, hp: 360, atk: 28 }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; S.rand = () => 0;
+    guard = 0; while (!S.foeRings && guard++ < 600) RB.update(1 / 60);
+    ok(S.enemyProjectiles.filter(q => q.ring).every(q => q.dmg === Math.round(RG.dmg * 2)), '主角血 360（缩放 ×2）→ 环形弹伤害 ×2 = 20，与其他敌人伤害同比缩放');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 5) 头子预警中被打死 → 不出弹
+    RB.start(clone(near), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; S.rand = () => 0;
+    guard = 0; while (S.enemies[0].state !== 'ring' && guard++ < 600) RB.update(1 / 60);
+    S.enemies[0].hp = 0; for (let i = 0; i < 40; i++) RB.update(1 / 60);
+    ok(S.foeRings === 0 && RB.ringTelegraphs().length === 0, '环弹预警中头子被打倒 → 不出弹、预警圈消失');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+  }
+
   // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因
   {
     let d8 = RB.start(null, { timeLimit: 99 }); S.player.hp = 0; RB.update(0.016);
