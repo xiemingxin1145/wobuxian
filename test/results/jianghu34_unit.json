@@ -6,17 +6,17 @@
   "steps": 480,
   "badMap": 0,
   "movers": 6,
-  "mapsSeen": 13,
+  "mapsSeen": 14,
   "grew": 6,
   "kinds": {
-   "war": 6,
-   "fail": 5,
-   "brk": 4,
-   "move": 25
+   "move": 31,
+   "fail": 7,
+   "brk": 1,
+   "war": 1
   },
   "feedLen": 40,
   "sectMoved": true,
-  "wars": 7,
+  "wars": 2,
   "idem": true,
   "bigJump": 24,
   "onMap": true,
