@@ -1,0 +1,61 @@
+{
+ "res": {
+  "cost3": {
+   "stone": 3194,
+   "ore": 3,
+   "yd": 0,
+   "rate": 0.76
+  },
+  "cost5": {
+   "stone": 15461,
+   "ore": 5,
+   "yd": 1,
+   "rate": 0.6
+  },
+  "cost8": {
+   "stone": 164628,
+   "ore": 8,
+   "yd": 4,
+   "rate": 0.4
+  },
+  "rollLen": true,
+  "excl": true,
+  "mgNull": true,
+  "tieshen": 1.1,
+  "changshou": 1.08,
+  "nitian": 0.08,
+  "nitianOnce": 0.08,
+  "fbAtk": 1.2,
+  "fbSkill": true,
+  "spawn": true,
+  "wbHp": 52000,
+  "wbExpect": 52000,
+  "tier16": "乙",
+  "tier4": null,
+  "boardRepro": true,
+  "noSpawn5": true,
+  "tj": "0,0.01,0.02,0.03,0.05",
+  "tjBack": true,
+  "dailyNoBack": true,
+  "signKeep": true,
+  "hsLock": true,
+  "hsMax4": true,
+  "hsCostExp": true,
+  "hsCostLz": true,
+  "hsCraft1": true,
+  "hsMaxBlock": true,
+  "hsMax5": true,
+  "hsCraft2": true,
+  "hsClosed": true,
+  "hsFat": true,
+  "hsFatExp": true,
+  "sets": "longgong,tianbing,cuizhai,taohua,market,xianjie",
+  "cuizhaiRw": 0,
+  "wb_kills": 1,
+  "wb_lit": true,
+  "mg_flag_saved": false,
+  "mg_shown": false
+ },
+ "fails": [],
+ "errors": []
+}

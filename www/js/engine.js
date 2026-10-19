@@ -98,7 +98,7 @@ function findPath(si, sj, ti, tj, occupied) {
   const open = [[si, sj, 0, 0]]; const came = new Map(); const g = new Map([[key(si, sj), 0]]); const closed = new Set();
   const h = (i, j) => { const dx = Math.abs(i - ti), dy = Math.abs(j - tj); return Math.max(dx, dy) + 0.414 * Math.min(dx, dy); };
   let guard = 0;
-  while (open.length && guard++ < 4000) {
+  while (open.length && guard++ < Math.max(4000, R.n * R.n * 3)) { // §E.3：上限随地图尺寸
     let bi = 0; for (let k = 1; k < open.length; k++) if (open[k][3] < open[bi][3]) bi = k;
     const [ci, cj] = open.splice(bi, 1)[0]; const ck = key(ci, cj);
     if (ci === ti && cj === tj) { const path = [[ti, tj]]; let k = ck; while (came.has(k)) { k = came.get(k); path.unshift([k % n, (k / n) | 0]); } path.shift(); return path; }
@@ -241,9 +241,12 @@ function render() {
   }
   // 头顶标签
   ctx.textAlign = 'center';
+  // 3.4：名牌与任务栏（#qt，DOM 半透明）重叠时淡出，避免压字（如「精英·讨债史莱姆」）
+  if (!R._qtR || R.t - R._qtT > 0.25) { R._qtT = R.t; const q = document.getElementById('qt'); const r = q && q.offsetParent && q.getBoundingClientRect(); R._qtR = r && r.width ? [r.left * R.dpr, r.top * R.dpr, r.right * R.dpr, r.bottom * R.dpr] : [0, 0, 0, 0]; }
   for (const e of R.ents) {
     if (e.hidden || !e.label) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s);
     const ty = y - b.h - 6 - (e.lift || 0);
+    { const Q = R._qtR; const [sx0, sy0] = w2s(x - 90, ty - 34), [sx1, sy1] = w2s(x + 90, ty + 12); ctx.globalAlpha = (Q[2] > Q[0] && sx1 > Q[0] && sx0 < Q[2] && sy1 > Q[1] && sy0 < Q[3]) ? 0.12 : 1; }
     const big = e.kind === 'npc' || e.kind === 'boss'; const fs = big ? 30 : 22; // v2.3：NPC 名字更大、带底牌，可点
     ctx.font = `bold ${fs}px WBXKai,sans-serif`;
     if (big) { const tw = ctx.measureText(e.label).width + 22; ctx.fillStyle = e.kind === 'boss' ? 'rgba(90,20,10,0.72)' : 'rgba(20,14,8,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - tw / 2, ty - fs - 2, tw, fs + 12, 12) : ctx.rect(x - tw / 2, ty - fs - 2, tw, fs + 12); ctx.fill(); }
@@ -256,6 +259,7 @@ function render() {
       ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, by, rr, 0, 7); ctx.fill(); ctx.lineWidth = sm ? 2 : 4; ctx.strokeStyle = '#fff'; ctx.stroke();
       ctx.font = `bold ${sm ? 22 : 40}px WBXKai,sans-serif`; ctx.fillStyle = '#3a1a00'; ctx.fillText({ '!': '！', '?': '？' }[e.mark] || e.mark, x, by + (sm ? 8 : 14)); }
   }
+  ctx.globalAlpha = 1;
   // 交互点
   for (const m of R.marks) {
     if (m.hidden) continue; const [x, y] = t2p(m.i + 0.5, m.j + 0.5); const by = y - (m.h || 110) + Math.sin(R.t * 3 + m.i) * 6;

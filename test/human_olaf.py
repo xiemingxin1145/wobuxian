@@ -400,8 +400,10 @@ async def main():
         # ---- T4 NPC 闲逛：5–6 格外点身体 ----
         if want('T4'):
             rows = []; st = await npcs(c); ids = [x['id'] for x in st['npcs'] if x['kind'] == 'npc']; t4 = time.time()
+            # 3.4 地图变大（桃花村 22→36）后 NPC 分布更散，走到 5–6 格外站位的路程按边长线性变长：总预算按 R.n/22 线性放大（每次点按的判定不变）
+            mapn = await c.pg.evaluate('()=>R.n'); budget = T4_BUDGET * max(1.0, mapn / 22)
             for k in range(T4_N):
-                if time.time() - t4 > T4_BUDGET: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
+                if time.time() - t4 > budget: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
                 if not t:   # 先像真人一样关掉弹窗/打完遭遇战，再找一次
                     await clear_popups(c, 6); await ensure_map(c); st = await npcs(c); t = find(st, nid)
@@ -414,8 +416,12 @@ async def main():
                     a, b = int(t['i']) + di, int(t['j']) + dj
                     if not await c.pg.evaluate(JS_WALK, [a, b]): continue
                     tries += 1
-                    if await walk_to(c, a, b): placed = True; break
-                    if tries >= 10: break
+                    if await walk_to(c, a, b):
+                        # 3.4 大地图：站位后若 NPC 身体在屏幕外/被 UI 挡住，像真人一样换个站位再点（最多再换 3 次）
+                        await c.pg.wait_for_timeout(600); st_ = await npcs(c); t_ = find(st_, nid)
+                        if t_ and await free_point(c, *t_['pts']['body']): placed = True; break
+                        if tries >= 13: placed = True; break
+                    if tries >= 13: break
                 if not placed:   # 5–6 格环上没找到可走到的格子（房屋/水边），放宽到 4–7 格再试
                     for di, dj in sorted([(di, dj) for di in range(-7, 8) for dj in range(-7, 8) if 4 <= math.hypot(di, dj) <= 7 and not 5 <= math.hypot(di, dj) <= 6.2], key=lambda d: (-d[1], abs(d[0]))):
                         a, b = int(t['i']) + di, int(t['j']) + dj
@@ -433,7 +439,7 @@ async def main():
                 else: await clear_popups(c, 8)
                 rows.append(dict(npc=t['name'], dist=round(d0, 1), result=o['result'], pick_at_tap=pk, tap=[round(x), round(y)]))
             okn = sum(r['result'] == 'npc' for r in rows)
-            case('T4_wandering_npc_far_tap', okn == len(rows) == T4_N, passed=f'{okn}/{T4_N}',
+            case('T4_wandering_npc_far_tap', okn == len(rows) == T4_N, passed=f'{okn}/{T4_N}', budget_s=round(budget), used_s=round(time.time() - t4),
                  fails=[r for r in rows if r['result'] != 'npc'])
         # ---- T5 空路径（需要开发者传送） ----
         if want('T5'):

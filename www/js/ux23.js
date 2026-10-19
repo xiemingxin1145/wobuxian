@@ -403,7 +403,7 @@ UI.p_dev = function (b, re, close, tab) {
   if (tab === 'story') body = `<div class="devg">${MAIN.map((m, k) => `<button class="opt" data-a="mq" data-v="${k}">${esc(m.n)}</button>`).join('')}</div>`+`<div class="devr">章节 ${sel('d_main', MAIN.map((m, k) => [k, m.n]))}${btn('main', '跳到此章')}</div><div class="devr">Boss ${sel('d_boss', Object.keys(MONS).filter(k => MONS[k].boss).map(k => [k, MONS[k].n]))}${btn('boss', '开打')}</div><div class="devr">事件 ${sel('d_ev', EVENTS.map((e, k) => [k, e[0] + ' ' + e[1]]))}${btn('ev', '触发')}</div>`;
   if (tab === 'tp') body = `<div class="devg">${MAP_ORDER.map(id => `<button class="opt" data-a="tpm" data-v="${id}">${MAPINFO[id].n}</button>`).join('')}<button class="opt" data-a="t5">站到最近NPC旁 1.7 格</button></div>`+`<div class="devr">地图 ${sel('d_map', MAP_ORDER.map(id => [id, MAPINFO[id].n]))}${btn('tp', '传送')}</div><div class="devr">NPC ${sel('d_npc', Object.keys(NPCS).filter(k => Track.mapOf(k)).map(k => [k, `${NPCS[k].n}（${(MAPINFO[Track.mapOf(k)] || {}).n || ''}）`]))}${btn('tpnpc', '传送到他身边')}</div>`;
   if (tab === 'show') body = `<div class="devr">CG ${sel('d_cg', MAIN.map((m, k) => [k, m.n]))}${btn('showcg', '播放章节过场')}</div><div class="devg">${btn('g2', '抽卡演出·宝')}${btn('g3', '抽卡演出·仙')}${btn('g4', '抽卡演出·神')}${btn('g10', '十连演出')}${btn('brk', '突破演出·成功')}${btn('brkf', '突破演出·失败')}</div><p class="hint">演出只播放，不发任何奖励。</p>`;
-  if (tab === 'dbg') body = `<div class="devg">${btn('god', '无敌 ' + (DEV.god ? '开' : '关'), DEV.god)}${btn('ohk', '一击必杀 ' + (DEV.ohk ? '开' : '关'), DEV.ohk)}${btn('noenc', '不遇敌 ' + (DEV.noEnc ? '开' : '关'), DEV.noEnc)}${btn('off13', '离线模拟 +13 小时')}${btn('off1', '离线模拟 +1 小时')}${btn('offm', '离线模拟 -1 小时')}</div><div class="devr">速度 ${[1, 2, 5, 10].map(v => `<button class="opt spd${DEV.ts === v ? ' on' : ''}" data-a="ts" data-v="${v}">×${v}</button>`).join('')}</div>
+  if (tab === 'dbg') body = `<div class="devg">${btn('god', '无敌 ' + (DEV.god ? '开' : '关'), DEV.god)}${btn('ohk', '一击必杀 ' + (DEV.ohk ? '开' : '关'), DEV.ohk)}${btn('noenc', '不遇敌 ' + (DEV.noEnc ? '开' : '关'), DEV.noEnc)}${typeof Life34 !== 'undefined' ? btn('rel50', '最近NPC恩怨−50') + btn('rel50p', '最近NPC恩怨+50') : ''}${btn('off13', '离线模拟 +13 小时')}${btn('off1', '离线模拟 +1 小时')}${btn('offm', '离线模拟 -1 小时')}</div><div class="devr">速度 ${[1, 2, 5, 10].map(v => `<button class="opt spd${DEV.ts === v ? ' on' : ''}" data-a="ts" data-v="${v}">×${v}</button>`).join('')}</div>
     <details><summary>flags（${Object.keys(G.flags).length}）</summary><div class="devflags">${Object.entries(G.flags).map(([k, v]) => `${esc(k)}=${esc(String(v))}`).join('<br>')}</div></details>
     <details><summary>缺素材被隐藏的内容（${(window.ASSET_DROPPED || []).length}）</summary><div class="devflags">${(window.ASSET_DROPPED || []).map(esc).join('<br>') || '无'}</div></details>
     <div class="devg">${btn('reset', '重置存档')}${btn('devoff', '关闭开发者模式')}</div>`;
@@ -441,7 +441,7 @@ UI.p_dev = function (b, re, close, tab) {
       case 'g10': close(); await UI.gachaShow(fake(10)); return;
       case 'brk': close(); await VFX.breakthrough(REALMS[Math.min(7, G.realm + 1)].n, false); return;
       case 'brkf': close(); await VFX.breakthrough(REALMS[Math.min(7, G.realm + 1)].n, true); return;
-      case 'god': DEV.god = !DEV.god; break; case 'ohk': DEV.ohk = !DEV.ohk; break; case 'noenc': DEV.noEnc = !DEV.noEnc; break;
+      case 'god': DEV.god = !DEV.god; break; case 'ohk': DEV.ohk = !DEV.ohk; break; case 'noenc': DEV.noEnc = !DEV.noEnc; break; case 'rel50': case 'rel50p': { const P = R.player, e = R.ents.filter(x => x.kind === 'npc' && x.id && !x.id.startsWith('l34_')).sort((a, b) => Math.hypot(a.i - P.i, a.j - P.j) - Math.hypot(b.i - P.i, b.j - P.j))[0]; if (e) { const L = Life34.st(); L.rel[e.id] = a === 'rel50' ? -50 : 50; UI.toast(`${e.label} 恩怨=${L.rel[e.id]}`); } break; }
       case 'off13': case 'off1': case 'offm': close(); G.offAt = Date.now() - ({ off13: 13, off1: 1, offm: -1 })[a] * 3600e3; hookApp23(); window.onAppResume(); return;
       case 'ts': DEV.ts = +t.dataset.v; R.ts = DEV.ts; B.speed = DEV.ts; break;
       case 'reset': if (await UI.card('重置存档', '确定删除当前存档并回到标题吗？（轮回殿进度保留）', null, ['确定重置', '取消']) === 0) { localStorage.removeItem('wbx2_save'); location.reload(); } return;
@@ -463,6 +463,9 @@ hitTargets = function (u, S, targets) { // 无敌 / 一击必杀（只在开发�
   return r;
 };
 setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')) UI.hud(); }, 1500);
+// 屏幕空间距离（等距：横向∝i-j，纵向∝(i+j)/2，立绘高约 2 格）
+UX.sd = (ai, aj, bi, bj) => Math.max(Math.abs((ai - aj) - (bi - bj)), Math.abs((ai + aj) - (bi + bj)) / 3);
+UX.ovl = (ai, aj, bi, bj) => UX.sd(ai, aj, bi, bj) < 1.2;
 // ---------- 3.3 #5 游走 NPC 点按加固：①0.6 秒宽限窗口（点到 NPC 刚刚站过的位置也算点中）②主角朝 NPC 走来时 NPC 暂停闲逛 ----------
 (function () {
   const TRAIL_MS = 600;
@@ -485,16 +488,16 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
       if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
     // 两个 NPC 站得太近（<0.9 格）时，后者让开一格
     if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
-      const o = R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - e.i, o.j - e.j) < (o.kind === 'boss' ? 1.4 : 0.9));
+      const o = R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && UX.ovl(o.i, o.j, e.i, e.j));
       if (o) { const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = -1;
         for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) { const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
-          const dmin = Math.min(...R.ents.filter(x => x !== e && (x.kind === 'npc' || x.kind === 'boss' || x === P) && !x.hidden).map(x => Math.hypot(x.i - ti - 0.5, x.j - tj - 0.5)));
+          const dmin = Math.min(9, ...R.ents.filter(x => x !== e && (x.kind === 'npc' || x.kind === 'boss' || x === P) && !x.hidden).map(x => UX.sd(x.i, x.j, ti + 0.5, tj + 0.5)));
           if (dmin > bd) { bd = dmin; best = [ti, tj]; } }
-        if (best && bd > 1) moveTo(e, best[0], best[1]); } }
+        if (best && bd > 1.2) moveTo(e, best[0], best[1]); } }
     const had = e.path && e.path.length; const r = _ai(e, dt);
     // 闲逛终点不贴着别的 NPC（避免两人重叠时点到错的人，olaf：点落魄剑仙却点中翠花）
     if (!had && e.path && e.path.length) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
-      if (ei !== undefined && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && Math.hypot(o.i - ei - 0.5, o.j - ej - 0.5) < 1.6)) e.path = []; }
+      if (ei !== undefined && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && UX.ovl(o.i, o.j, ei + 0.5, ej + 0.5))) e.path = []; }
     return r;
   };
 })();

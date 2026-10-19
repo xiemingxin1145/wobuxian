@@ -1,6 +1,5 @@
 {
  "dpr": 2.0,
- "www": "/workspace/game/www",
  "cases": [
   {
    "case": "T0a_new_life_enter_map",
@@ -11,6 +10,7 @@
    "popups": [
     "chapter",
     "哇哇大哭",
+    "随缘补齐",
     "继续",
     "明白了"
    ],
@@ -19,10 +19,10 @@
      "翠花",
      "cuihua",
      "💬",
-     2.8,
+     5,
      [
-      52,
-      80
+      51,
+      89
      ]
     ],
     [
@@ -39,7 +39,7 @@
      "讨债史莱姆",
      "debt_slime",
      "★",
-     8.2,
+     7.6,
      [
       50,
       77
@@ -49,10 +49,10 @@
      "娘",
      "mom",
      "💬",
-     8.5,
+     8.2,
      [
-      52,
-      80
+      51,
+      89
      ]
     ],
     [
@@ -61,25 +61,45 @@
      "💬",
      9.2,
      [
-      52,
-      80
+      51,
+      89
      ]
     ],
     [
      "王大爷",
      "farmer",
      "💬",
-     9.2,
+     11.7,
      [
-      52,
-      80
+      51,
+      89
+     ]
+    ],
+    [
+     "渡口船夫",
+     "b34_boatman",
+     "💬",
+     22.6,
+     [
+      51,
+      89
+     ]
+    ],
+    [
+     "集市货郎",
+     "b34_peddler",
+     "💬",
+     24.2,
+     [
+      51,
+      89
      ]
     ]
    ],
    "hitbox_css_wxh": {
     "翠花": [
-     52,
-     80
+     51,
+     89
     ],
     "路人甲": [
      52,
@@ -90,160 +110,165 @@
      77
     ],
     "娘": [
-     52,
-     80
+     51,
+     89
     ],
     "说书先生": [
-     52,
-     80
+     51,
+     89
     ],
     "王大爷": [
-     52,
-     80
+     51,
+     89
+    ],
+    "渡口船夫": [
+     51,
+     89
+    ],
+    "集市货郎": [
+     51,
+     89
     ]
    },
    "shot": "001_T0_enter_map.png"
   },
   {
+   "case": "N1_taps_still_work_after_battle",
+   "ok": true,
+   "ontap_before": true,
+   "npc_tap_before_battle": "npc",
+   "battle_shot": "002_N1_battle.png",
+   "fought": true,
+   "ontap_after_battle": true,
+   "ground_tap_moved_tiles": 5.32,
+   "npc": "翠花",
+   "npc_tap_after_battle": "npc",
+   "shot": "003_N1_after_battle_tap_dead.png"
+  },
+  {
+   "case": "N2_mark_does_not_steal_npc_tap",
+   "ok": true,
+   "checked": 8,
+   "rows": [
+    {
+     "npc": "cuihua",
+     "near": "洞府",
+     "css_dist": 10,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "cuihua",
+     "near": "洞府",
+     "css_dist": 10,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "mom",
+     "near": "告示栏",
+     "css_dist": 63,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "mom",
+     "near": "告示栏",
+     "css_dist": 63,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "luren",
+     "near": "洞府",
+     "css_dist": 77,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "luren",
+     "near": "洞府",
+     "css_dist": 77,
+     "part": "body",
+     "result": "npc"
+    },
+    {
+     "npc": "farmer",
+     "near": "采药",
+     "css_dist": 97,
+     "part": "name",
+     "result": "npc"
+    },
+    {
+     "npc": "farmer",
+     "near": "采药",
+     "css_dist": 97,
+     "part": "body",
+     "result": "npc"
+    }
+   ],
+   "note": null
+  },
+  {
+   "case": "T0_quest_giver_flow",
+   "ok": true,
+   "npc": "路人甲",
+   "accepted": "路人甲的名字",
+   "steps": {
+    "tap_mark": "npc",
+    "tap_name": "npc",
+    "tap_body": "npc",
+    "quest_option": "！路人甲的名字",
+    "detail": "路人甲想要一个名字。据说说书先生会起名——先去乱葬岗看看找灵感。需要：完成指定目标",
+    "tracker": "任务 | 自动 | 主·序章·上门讨债 | 打跑讨债史莱姆 | 前往▶ | 支·路人甲的名字 | 乱葬岗需要筑基 | 修炼",
+    "quest_panel_lists_it": true,
+    "tracker_go_button": true
+   },
+   "shots": [
+    "004_T0_dialog.png",
+    "005_T0_quest_panel.png"
+   ],
+   "battles_on_way": 0
+  },
+  {
+   "case": "T1_hitbox_5_points",
+   "ok": true,
+   "map": "village",
+   "hit": "35/35",
+   "wrong_target": 0,
+   "by_part": {
+    "feet": "7/7",
+    "body": "7/7",
+    "head": "7/7",
+    "name": "7/7",
+    "mark": "7/7"
+   },
+   "misses": [],
+   "note": ""
+  },
+  {
    "case": "T2_tap_npc_in_joystick_zone",
    "ok": true,
-   "npc": "翠花",
+   "npc": "集市货郎",
    "tap": [
-    137,
-    580
+    181,
+    644
    ],
    "result": "npc",
    "joy_activated_sampled": false,
-   "shot": "002_T2_npc_in_joystick_zone.png"
+   "shot": "006_T2_npc_in_joystick_zone.png"
   },
   {
    "case": "T3_near_interact_button",
    "ok": true,
-   "npc": "翠花",
-   "dist": 1.41,
-   "button": "对话翠花",
+   "npc": "集市货郎",
+   "dist": 1,
+   "button": "对话集市货郎",
    "result": "npc",
-   "shot": "003_T3_near_npc.png",
+   "shot": "007_T3_near_npc.png",
    "note": null
-  },
-  {
-   "case": "T4_wandering_npc_far_tap",
-   "ok": false,
-   "passed": "9/20",
-   "fails": [
-    {
-     "npc": "farmer",
-     "result": "npc missing"
-    },
-    {
-     "npc": "cuihua",
-     "result": "npc missing"
-    },
-    {
-     "npc": "luren",
-     "result": "npc missing"
-    },
-    {
-     "npc": "mom",
-     "result": "npc missing"
-    },
-    {
-     "npc": "villager",
-     "result": "npc missing"
-    },
-    {
-     "npc": "farmer",
-     "result": "npc missing"
-    },
-    {
-     "npc": "cuihua",
-     "result": "npc missing"
-    },
-    {
-     "npc": "luren",
-     "result": "npc missing"
-    },
-    {
-     "npc": "mom",
-     "result": "npc missing"
-    },
-    {
-     "npc": "villager",
-     "result": "npc missing"
-    },
-    {
-     "npc": "farmer",
-     "result": "npc missing"
-    }
-   ]
-  },
-  {
-   "case": "info_recoveries_used",
-   "ok": true,
-   "recoveries": 0,
-   "battles": 8,
-   "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
-  },
-  {
-   "case": "T9_auto_quest_loop",
-   "ok": true,
-   "main": [
-    4,
-    5
-   ],
-   "teleport_jumps": 0,
-   "secs": 13,
-   "shot": "005_T9_end.png",
-   "cheats": [
-    "dev:境界>练气圆满",
-    "dev:剧情>坊市查账"
-   ]
-  },
-  {
-   "case": "T13_regression",
-   "ok": true,
-   "runs": {
-    "python3 test/controls.py": {
-     "rc": 0,
-     "secs": 47,
-     "tail": [
-      "EDGE {'case': '关闭面板后摇杆', 'dir': 'W', 'moved_left': True, 'ok': True}",
-      "JS errors 0 []",
-      "FAILS 0"
-     ]
-    },
-    "python3 test/panels21.py": {
-     "rc": 0,
-     "secs": 113,
-     "tail": [
-      "l quests [395, 760, 412, 915, 'opt qgo']",
-      "l comps [395, 760, 412, 915, '']",
-      "l ERRORS 0"
-     ]
-    },
-    "python3 test/multilife.py 1 120": {
-     "rc": 0,
-     "secs": 134,
-     "tail": [
-      "L0 END meta {\"lives\":1,\"endings\":{\"sit\":1},\"pts\":93,\"cg\":{\"cg_debt\":1,\"cg_mentor\":1,\"cg_sect\":1,\"cg_rival\":1,\"cg_market\":1,\"cg_sit\":1},\"gacha\":{\"n\":10,\"pity\":10,\"ssr\":0,\"total\":10}}",
-      "ISSUES 0",
-      "ERRORS 0"
-     ]
-    },
-    "node test/validate22.js": {
-     "rc": 0,
-     "secs": 0,
-     "tail": [
-      " ],",
-      " \"errors\": []",
-      "}"
-     ]
-    }
-   }
   }
  ],
- "fails": [
-  "T4_wandering_npc_far_tap"
- ],
- "js_errors": []
+ "js_errors": [],
+ "partial": true
 }

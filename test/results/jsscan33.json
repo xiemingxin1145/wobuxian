@@ -1,0 +1,26 @@
+{
+ "maps": [
+  "village",
+  "sect",
+  "market",
+  "secret",
+  "graveyard",
+  "island",
+  "rift",
+  "heaven",
+  "longgong",
+  "guishi",
+  "cuizhai",
+  "wanbao",
+  "juluyuan",
+  "yaowang",
+  "jianzhong",
+  "luanxing",
+  "wendao",
+  "jiuct",
+  "xianfang",
+  "yaochi",
+  "lingxiao"
+ ],
+ "errors": []
+}

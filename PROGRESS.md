@@ -2,6 +2,51 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
+## 3.4 自由度（Grok Bot，2026-10-19 起，分支 `v34-world`，worktree `/workspace/game-ow34`）
+> 主人要求：3.4 主打鬼谷八荒式自由度。第 1 步：无缝相邻地图（优先）→ 大地图。
+- [x] **无缝相邻地图** `www/js/seam34.js`（index.html 在 audio32 前加载）：按 world28 九州大地图节点坐标（MAPINFO.wx/wy 或 World28.DEFAULT_LAYOUT）给每张图四条等距边各连最近邻图（≤1500 世界格，贪心保证双向一致，共 50 条边向）。每条边在「与出生点连通、该方向最外侧且靠中线」的可走格放出口（发光光圈+箭头+「→ 邻图名」，未解锁显示 🔒 并 toast 境界不足）。停在出口（点按到达或摇杆走上去）即调 `Game.travel(id, true)`：免费、无菜单、跳过 UI.fade/UI.loading（无黑屏），进图时预加载所有邻图底板/道具图集；到达邻图反向出口内侧一格。寻路途经出口（自动任务/追踪）不切图。
+- [x] `test/seam34.py`（真实触摸；作弊：开发者面板「解锁全部地图」「不遇敌」）：桃花村→青云宗→桃花村，0 黑屏帧、行动力不变、落点正确、无 pageerror：通过。
+- [ ] 门禁（seam34 版，v34-world `HEAD`）：validate22 0 错、stage3_chain ALL PASS、jsscan33/sys33_unit/content33 errors []、panels21 ERRORS 0、controls FAILS 0、human23 13/13、seam34 通过；human_olaf 全量 11:35（UTC+8）开跑，输出 `/tmp/g_olaf.txt`（末行 `exit N`）。全绿后 `--no-ff` 合 main 推送。
+  - 12:05 human_olaf 进行到 T13：除 N1、T4 外全 PASS（含 T7 跨图导航、T9 自动任务、S1–S3）。N1/T4 是已知偶发（3.3.1 基线 g331full4 也挂 T3/T4，y_N1/g331v4n1 挂 N1，见 #12），接着单独重跑 ONLY=N1,T4 确认。
+  - 全量 human_olaf：21/23（N1、T4 19/20 点剑仙命中翠花），T13 回归 PASS，JS 错误 0。重跑 `ONLY=N1,T4` ×2：4/4 全过（T4 20/20）。判定为已知偶发（#12），合 main。
+- [x] 合并 `df295fc`（--no-ff）推 main → CI run 117 build 成功，预发布 **build-217**（12:40 UTC+8）：https://github.com/xiemingxin1145/wobuxian/releases/tag/build-217 （wobuxian.apk 371,475,061 B；wobuxian-lite.apk 83,318,613 B；versionName 仍 3.3.0，未打标签）。
+- [x] 分支 `v34-big`（worktree `/workspace/game-ow34b`，基于 v34-world）：名牌与 #qt 任务栏重叠时淡到 12%；findPath 上限 max(4000, n²·3)。尚未跑门禁，随地图扩大一起合。
+- [x] `v34-big` 上：`www/js/bigmap34.js`（index 在 seam34 前）原型——village 36、sect/heaven 32、market/secret 28；旧 22×22 坐标不变，向 +i/+j 扩展；主路延伸+新区环路+池塘；本图道具图集放建筑/交互点/树；连通兜底（从出生点洪泛删堵路道具）；新区地块按 1024px 分块离屏缓存、只画视口内块。probe（412×915 DPR2 无头软件渲染）：村新区帧中位 33ms/p95 66ms（基线未测）。validate22 0 错。已应用 #12 补丁（ux23.js 部分）。
+- [x] (12:45–12:55) 新区地块改为底板真实纹理：`tools/big34_src.py` 离线挑源格（3×3 同类、无道具、颜色近中位）→ `Big34.SRC`；缺纹理类型用配色+噪点；崖面抠旧图崖。新增 6 个新区 NPC（渡口船夫、集市货郎、守山弟子、收费仙吏、吆喝的小贩、迷路的寻宝人，闲聊台词）；乱葬岗/东海仙岛/魔道裂谷也扩到 28。截图 `/workspace/shots34/*_v5.png`。
+- [x] seam34 出口外侧画邻图对边地块预览（截图 `/workspace/shots34/edge_*.png`）。
+- [ ] 13:00 起 v34-big 全门禁：`nohup bash /tmp/gate_big.sh`，汇总 `/tmp/gate_big.txt`，各项 `/tmp/gb_*.txt`。绿了合 main。
+  - 13:20：validate22 0 错、stage3 ALL PASS、jsscan33/sys33/content33 errors []、panels21 0、controls 0、seam34 通过、human23 13/13；human_olaf 进行中（N1 首轮挂，待重跑）。
+  - 13:40 T4 13/20 诊断：2 次 #12（点剑仙命中翠花）；5 次是 `timeout(budget)`——T4 总预算 900 s 在第 15 次点按时耗尽（不是点按/寻路失败；桃花村 36 格后 NPC 更分散，走位路程变长）。修：T4 总预算按 R.n/22 线性放大（村 36 → 1473 s），单次判定不变，结果里记录 budget_s/used_s。
+  - 13:50 首轮全量 olaf 结束：21/23（N1、T4），其余全过含 T7/T9/T13，JS 0。重跑 `ONLY=N1,T4` → `/tmp/gb_r1.txt`。
+  - 14:00–14:40 重跑：r1 N1 PASS、T4 19/20（1 次「NPC 身体被 UI 挡住」harness 跳过）；r2 T4 **20/20**（预算 1473 s，用 971 s），N1 fought=false。诊断 N1：扩图后怪物密度下降 → 改为怪物数按面积放大（村 4→11，保持原密度；probe：开局屏内怪 2–3 只，基线 0–1）。之后 N1 ×3：1 PASS，2 FAIL（点 NPC 进了战斗 / 一次没打上怪），属 #12 同类偶发。
+  - 全量 olaf #2（14:10–15:00）：20/23，FAIL N1、T1 34/35（点王大爷头部时撞怪进战斗）、T4 16/20（3 次 harness「NPC 身体在屏外/被 UI 挡」x>412 + 1 次 #12 剑仙→翠花）；其余全过，JS 0。修 harness：T4 站位后 NPC 不可点则换站位（最多 13 次）。已合 main（#14 seam34 改动保留，无冲突），seam34.py 重跑通过。下一步：ONLY=N1,T1,T4 重跑 + human23 → `/tmp/gb_r3.txt`、`/tmp/gb_h23b.txt`。
+  - r3（合 main 后）：N1 PASS、T1 34/34、T4 18/20（2 次均为 #12 剑仙→翠花，同一坐标），human23 13/13。再跑 ONLY=T4 → `/tmp/gb_r4.txt`。
+  - r4：T4 19/20（1 次点路人甲时被怪近身进战斗，#12 同类）。按负责人决定接受 #12 类偶发，合 main。
+- [x] 合并 `166361b` 推 main → CI run 119 build 成功，预发布 **build-219**：wobuxian.apk 371,495,896 B、wobuxian-lite.apk 83,339,448 B（未打标签）。
+- [x] build-219 补记（15:50 UTC+8 核实）：CI run 39216688382 build + emulator-smoke(30/34) 全部 success；build-219 target `166361b`，prerelease。
+- [x] #13 已关闭（15:40）：核实 main 上 `24303ed`（经 #14 合入）——无头 `Seam34.build()` 20 张图无任何边向连 wendao；go() finally 复位 busy；tick 走 UX.inMap。
+- [ ] **心魔幻境合 main**（15:38 起，分支 `v34-xinmo`，worktree `/workspace/game-xm34`）：`xinmo34` `--no-ff` 合入 origin/main（`8bce075`）。冲突：index.html（xinmo34.js 放 seam34 后）、ux23.js（**保留 main 的 #12 v1 版**；xinmo34 分支底下带的 #12 v2 属 fix331 线，不随心魔合入）。门禁 `/tmp/gate_xm.sh` → 汇总 `/tmp/gate_xm.txt`、各项 `/tmp/gx_*.txt`：validate22 0 错、stage3 ALL PASS、xinmo34_unit fails []、xinmo34_ui ok（贪→嗔→痴→评级）、jsscan33/sys33_unit/content33 errors []、panels21 ERRORS 0、controls FAILS 0、seam34 FAILS []、human23 13/13；human_olaf 全量（含 X1）15:47 开跑 → `/tmp/gx_olaf.txt`。
+  - 16:48 旧门禁 olaf 9/12 未过（N1 #12 类偶发；X1：「触发心魔幻境」按钮在调试页底部被面板滚动区裁掉，点空；S2：失败卡后 clear_popups 误点洞府「升阶」再升一次）。旧分支 `v34-xinmo` 停用。
+  - **17:35 起（自动开发例行）重做于分支 `v34-xinmo2`（worktree `/workspace/game-xm34b`，已推送）**：基于最新 main（含 v34-life/build-221）重新合 xinmo34；human_olaf 的 tap_el 先滑动最近的可滚动容器再点（X1 单跑 PASS：贪→嗔→痴→评级小成，基础 56% + 5% = 61%）；S2 失败卡只点「好」；seam34.draw 无存档时跳过（multilife 换人生瞬间 canEnter null.flags 报错）。全门禁 `/tmp/gate_xm2.sh` → `/tmp/gx2.txt`（结束标志 GATE_DONE，olaf → `/tmp/gx2_olaf.txt`）。绿了 `--no-ff` 合 main。**请其他会话勿重复做心魔合并。**
+- [x] **江湖自转第一片**（分支 `v34-jianghu`，worktree `/workspace/game-jh34`，`c3ae528`，未合 main）：`www/js/jianghu34.js`（seam34 后加载）+ `test/jianghu34_unit.py`（fails []，跑 3 次稳定）。存档字段 `G.jh34`（缺省惰性初始化，不改 G.v）。详见下条「交接注意」。
+- ⚠ **交接注意（并行冲突，15:47）**：本轮在 `/workspace/game-life34`（分支 `v34-life`）写的江湖代码一度覆盖了开放世界线同名文件 `www/js/life34.js`（56ed5e2 #12 根治 + 660cbb2 设计文档），已用 `0dd0029` revert 恢复原样（与 660cbb2 内容一致），并已推送；开放世界线 15:41 起在该 worktree 跑的 `ONLY=N1,T1,T4`（`/tmp/lf_r1.txt`）中途约 15:46:52–15:48 期间读到的是被覆盖的文件，**结果需重跑**。本线代码已改名搬到 `v34-jianghu`（对象 JH34/CH34/Chain34、NPC id `jh_*`、面板 `jh34`），与 life34.js（G.life34、流动 luren/b34_*、恩怨、找上门、qc34_ 任务式奇遇链）不冲突、可同时加载；两条线的世界模拟/奇遇链有概念重叠，合并前需要协调（建议：life34 管已有 NPC 流动/恩怨/找上门，jianghu34 管新江湖人物 + 宗门势力 + CH34 多 NPC 链）。
+- 下一步（3.4 自由度）：新区外观再打磨（路边装饰、缺纹理类型改借邻图纹理）、天外天收费站位置、其余 22 格图视需要扩、#12 根治（剑仙/翠花重叠、点 NPC 撞怪）。
+- 旧下一步（v34-big）：①美化新区（地块有棋盘感，可加草纹/路边石）②在新区放 2–3 个已有 NPC/交互点 ③测基线帧时 ④把 seam34.py/全门禁在 v34-big 跑一遍 ⑤旧边缘 x 打通处与底板崖壁衔接检查截图。
+- [ ] 未做：邻图边缘地块预渲染（现在只有出口标识，没画邻图边条）；地图扩大（桃花村 36、青云宗/天外天 32，计划：在 +i/+j 方向扩展，旧坐标不变免迁移，新区域用程序化地块+现有道具图集）；§E.3 分块绘制/寻路上限；名牌压任务栏；#12 补丁。
+- 下一步：门禁全绿 → `--no-ff` 合 main 推送 → 记录 build 号；再做地图扩大。
+
+### 3.4 第 3 步：v34-life（worktree `/workspace/game-life34`，2026-10-19 15:40 起）
+- [x] #12 根治（`www/js/life34.js` 第 1 部分）：翠花家 (12,16)→(14,15)，原来与剑仙 (9,13) 屏幕同一竖列；NPC 闲逛目标不与其他 NPC 屏幕叠列。复测 ONLY=N1,T1,T4：T1 35/35，T4 19/20（剑仙→翠花误中消失，剩 1 次 harness「NPC 在屏外」），N1 fought=false（probe 证实点屏内怪 3/3 能开战，属 harness 找不到屏内怪的偶发）。
+- [x] 设计：`docs/openworld_upgrade.md`「3.4 自由度层设计」。
+- [x] 年度世界模拟（life34 第 2 部分）：流动 NPC（非任务给予者，当前只有集市货郎）按 seam34 邻接换图；恩怨值 G.life34.rel（闲聊每年 +2、托付 +15、寻仇后 +）；宗门关系漂移；找上门事件（寻仇=精英战/报恩=灵石/宗门纠纷=贡献/托付=修为），进图 1.5 s 后在玩家旁生成带「！」的来客。存档 G.life34 惰性默认值。
+- [x] 奇遇链 15 个任务（5 图×3 步，`qc34_*`，pre 串联，复用任务栏/追踪）。validate22 0 错。probe 截图 `/workspace/shots34/life_visitor.png`。
+- [x] 地表打磨：缺纹理类型（如青云宗土路）借邻图真实源格（异步加载后重建分块）；`tools/big34_src.py` 加 BAD 表剔除 20 个带栅栏/建筑轮廓线/水面反光的源格；邻图预览椭圆 → 沿边 5×3.5 格平移对齐的真实地块边条、向外渐隐。截图 `/workspace/shots34/strip_*.png`、`*_v6.png`。
+- [x] **v34-life 为 3.4 自由度唯一主线分支**：已并入 v34-jianghu（`jianghu34.js`：6 位自主 NPC 月推进、三宗势力、更多→江湖风云面板、CH34 奇遇链 + 两个测试）。去重：life34 不再自己漂移宗门关系，统一读写 G.sectRel（JH34/war29）；life34 保留 #12、找上门来客、qc34 奇遇链。v34-jianghu 不再单独开发。
+- [x] 全门禁 /tmp/gl4.txt 全绿：validate/jsscan33/stage3_chain/sys33_unit/content33/panels21/controls/seam34/human23 13/13/jianghu34_unit/jianghu34_ui/human_olaf 23 PASS（T4、N1 一次过，#12 已根治）。
+- [x] `--no-ff` 合并 `c93ab6f` 推 main → CI build 成功，预发布 **build-221**：wobuxian.apk 371,542,381 B、wobuxian-lite.apk 83,385,933 B（未打标签）。
+- [x] v34-fix（Olaf 审 c93ab6f 来客问题）：赔礼价 need×0.15（练气 30/金丹 195/化神 1140）写在按钮上，不够灵石🔒+提示、toast 后回到选择，不再误开战；恩怨负面来源（奇遇链接 3 年未交 −20、征伐打赢敌宗弟子该宗 NPC −15、讨债司公示逾期（本年欠款上涨）正恩怨全体 −5/年、来客打发走 −10、打赢仇家 −10/打输 +5/赔礼 +25）；有仇家（≤−40）必在一年内上门；报恩按恩怨加权随机 + 同一人 3 年冷却（L.seen.vf_id）、礼金 need×(0.15~0.25)、第 2 次起减半、第 3 次起可能给灵草×3/玄铁晶×1；开发者面板「最近NPC恩怨∓50」。新测 `test/life34_unit.py` 全过；validate/jsscan/jianghu34×2/controls/seam34/human23 13/13 全过。
+- 下一步：江湖传闻面板与 life34 日志合并进江湖风云、其余 3 图奇遇链、NPC 之间恩怨。（olaf 输出 `/tmp/gl_olaf.txt`），结束标志 GATE_DONE。之后合 main。
+
 ## v3.3.0 线（Grok Bot，2026-10-18 起，UTC+8）
 > 基线：main `2134d8c`（v3.2.0 HD 包）。避开开放世界线认领的文件（stage3_encounter_draft.js、test/stage3_chain.js）。
 

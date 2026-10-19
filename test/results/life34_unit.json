@@ -1,0 +1,63 @@
+{
+ "res": {
+  "noFieldBefore": true,
+  "compat": true,
+  "validateMapFallback": true,
+  "steps": 480,
+  "badMap": 0,
+  "movers": 6,
+  "mapsSeen": 15,
+  "grew": 6,
+  "kinds": {
+   "move": 24,
+   "fail": 8,
+   "debt": 1,
+   "brk": 3,
+   "war": 3,
+   "rank": 1
+  },
+  "feedLen": 40,
+  "sectMoved": true,
+  "wars": 6,
+  "idem": true,
+  "bigJump": 24,
+  "onMap": true,
+  "walk": true,
+  "apart": true,
+  "leftMap": true,
+  "availStep0": true,
+  "extraHas": true,
+  "notSafe": true,
+  "c1": {
+   "id": "tieguo",
+   "step": 0,
+   "choice": "替他作保（你的欠款 +300）",
+   "debt": [
+    1000,
+    1300
+   ],
+   "aff": [
+    0,
+    20
+   ],
+   "done": false,
+   "next": 1
+  },
+  "c1ok": true,
+  "waitBlocks": true,
+  "persist": true,
+  "c2ok": true,
+  "c3ok": true,
+  "doneNoAvail": true,
+  "badBranch": true,
+  "needBlocks": true,
+  "cb1": true,
+  "cbWrongNpc": true,
+  "cbDanniang": true,
+  "cb2": true,
+  "cb3": true,
+  "panel": true
+ },
+ "fails": [],
+ "js_errors": []
+}
