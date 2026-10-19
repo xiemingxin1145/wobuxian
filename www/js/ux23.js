@@ -470,7 +470,7 @@ UX.ovl = (ai, aj, bi, bj) => UX.sd(ai, aj, bi, bj) < 1.2;
 UX.hrAt = (e, i, j) => { const ci = e.i, cj = e.j; e.i = i; e.j = j; try { return entHitRect(e); } finally { e.i = ci; e.j = cj; } };
 UX.ovlR = (r, q) => (Math.min(r.x1, q.x1) - Math.max(r.x0, q.x0)) > 0.3 * Math.min(r.x1 - r.x0, q.x1 - q.x0) && (Math.min(r.y1, q.y1) - Math.max(r.y0, q.y0)) > 0.3 * Math.min(r.y1 - r.y0, q.y1 - q.y0);
 UX.crowd = (e, i, j, withP) => { let r, n = 0; try { r = UX.hrAt(e, i, j); } catch (er) { return 0; }
-  for (const x of R.ents) { if (x === e || x.hidden || x.gone || !(x.kind === 'npc' || x.kind === 'boss' || (withP && x === R.player))) continue;
+  for (const x of R.ents) { if (x === e || x.hidden || x.gone || !(x.kind === 'npc' || x.kind === 'boss' || x.kind === 'mon' || (withP && x === R.player))) continue;
     try { if (UX.ovlR(r, entHitRect(x))) n++; } catch (er) { } }
   return n; };
 // ---------- 3.3 #5 游走 NPC 点按加固：①0.6 秒宽限窗口（点到 NPC 刚刚站过的位置也算点中）②主角朝 NPC 走来时 NPC 暂停闲逛 ----------
@@ -493,12 +493,12 @@ UX.crowd = (e, i, j, withP) => { let r, n = 0; try { r = UX.hrAt(e, i, j); } cat
     const P = R.player;
     if (P && P.path && P.path.length && !(e.talking > 0)) { const end = P.path[P.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
       if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
-    // 两个 NPC 在画面上判定框重叠时，后者（或重叠超过 1.5 秒的前者）让到 2 格内不与任何人重叠的最近空地（#12）
+    // NPC 与别的 NPC/BOSS/闲逛怪在画面上判定框重叠时，让到 2 格内不与任何人重叠的最近空地（NPC 之间后者先让，重叠超过 1.5 秒前者也让）（#12，olaf N1/N2：点怪却开了娘的对话）
     if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
       const idx = R.ents.indexOf(e); let er; try { er = entHitRect(e); } catch (x) { er = null; }
-      const o = er && R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && !o.gone && UX.ovlR(er, entHitRect(o)));
-      e._ovlN = o ? (e._ovlN || 0) + 1 : 0;
-      if (o && (o.kind === 'boss' || o.talking > 0 || (o.path && o.path.length) || R.ents.indexOf(o) < idx || e._ovlN >= 3)) {
+      const ov = er ? R.ents.filter(o => o !== e && (o.kind === 'npc' || o.kind === 'boss' || o.kind === 'mon') && !o.hidden && !o.gone && UX.ovlR(er, entHitRect(o))) : [];
+      e._ovlN = ov.length ? (e._ovlN || 0) + 1 : 0;
+      if (ov.some(o => o.kind === 'boss' || (o.kind === 'mon' && !(o.path && o.path.length)) || o.talking > 0 || (o.kind === 'npc' && o.path && o.path.length) || (o.kind === 'npc' && R.ents.indexOf(o) < idx)) || e._ovlN >= 3) {
         const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = 1e9;
         for (let di = -2; di <= 2; di++) for (let dj = -2; dj <= 2; dj++) { if (!di && !dj) continue; const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
           if (UX.crowd(e, ti + 0.5, tj + 0.5, true)) continue; const d = Math.hypot(di, dj) + (e.home ? 0.05 * Math.hypot(ti - e.home[0], tj - e.home[1]) : 0); if (d < bd) { bd = d; best = [ti, tj]; } }
@@ -509,6 +509,15 @@ UX.crowd = (e, i, j, withP) => { let r, n = 0; try { r = UX.hrAt(e, i, j); } cat
       if (ei !== undefined && UX.crowd(e, ei + 0.5, ej + 0.5, false)) e.path = []; }
     return r;
   };
+})();
+// #12：闲逛怪新选的游荡终点若与 NPC/BOSS 在画面上重叠就取消（不站到 NPC 身上，避免点怪开对话/点 NPC 开战）
+(function () {
+  if (typeof monAI !== 'function') return; const _m = monAI;
+  monAI = function (e, dt) { const had = e.path && e.path.length; const r = _m(e, dt);
+    if (!had && e.path && e.path.length && !e.gone) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
+      if (ei !== undefined) { let rr; try { rr = UX.hrAt(e, ei + 0.5, ej + 0.5); } catch (er) { rr = null; }
+        if (rr && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && !o.gone && UX.ovlR(rr, entHitRect(o)))) e.path = []; } }
+    return r; };
 })();
 // 3.3：点了 NPC 正走过去/刚到达的 1.5 秒内，闲逛怪不贴脸开战（human_olaf T1 偶发“点名字牌却进了战斗”）
 (function () {
