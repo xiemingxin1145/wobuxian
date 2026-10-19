@@ -466,6 +466,13 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
 // 屏幕空间距离（等距：横向∝i-j，纵向∝(i+j)/2，立绘高约 2 格）
 UX.sd = (ai, aj, bi, bj) => Math.max(Math.abs((ai - aj) - (bi - bj)), Math.abs((ai + aj) - (bi + bj)) / 3);
 UX.ovl = (ai, aj, bi, bj) => UX.sd(ai, aj, bi, bj) < 1.2;
+// #12 v2：直接用真实判定框（entHitRect，世界坐标）判断两人在画面上是否重叠（横、纵都重叠超过 30% 才算）
+UX.hrAt = (e, i, j) => { const ci = e.i, cj = e.j; e.i = i; e.j = j; try { return entHitRect(e); } finally { e.i = ci; e.j = cj; } };
+UX.ovlR = (r, q) => (Math.min(r.x1, q.x1) - Math.max(r.x0, q.x0)) > 0.3 * Math.min(r.x1 - r.x0, q.x1 - q.x0) && (Math.min(r.y1, q.y1) - Math.max(r.y0, q.y0)) > 0.3 * Math.min(r.y1 - r.y0, q.y1 - q.y0);
+UX.crowd = (e, i, j, withP) => { let r, n = 0; try { r = UX.hrAt(e, i, j); } catch (er) { return 0; }
+  for (const x of R.ents) { if (x === e || x.hidden || x.gone || !(x.kind === 'npc' || x.kind === 'boss' || (withP && x === R.player))) continue;
+    try { if (UX.ovlR(r, entHitRect(x))) n++; } catch (er) { } }
+  return n; };
 // ---------- 3.3 #5 游走 NPC 点按加固：①0.6 秒宽限窗口（点到 NPC 刚刚站过的位置也算点中）②主角朝 NPC 走来时 NPC 暂停闲逛 ----------
 (function () {
   const TRAIL_MS = 600;
@@ -486,18 +493,20 @@ UX.ovl = (ai, aj, bi, bj) => UX.sd(ai, aj, bi, bj) < 1.2;
     const P = R.player;
     if (P && P.path && P.path.length && !(e.talking > 0)) { const end = P.path[P.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
       if (ei !== undefined && Math.hypot(ei + 0.5 - e.i, ej + 0.5 - e.j) < 2.5) { if (e.path && e.path.length) e.path = []; return; } }
-    // 两个 NPC 站得太近（<0.9 格）时，后者让开一格
+    // 两个 NPC 在画面上判定框重叠时，后者（或重叠超过 1.5 秒的前者）让到 2 格内不与任何人重叠的最近空地（#12）
     if (!(e.talking > 0) && !(e.path && e.path.length) && (e._sepT = (e._sepT || 0) - dt) <= 0) { e._sepT = 0.5;
-      const o = R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && UX.ovl(o.i, o.j, e.i, e.j));
-      if (o) { const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = -1;
-        for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) { const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
-          const dmin = Math.min(9, ...R.ents.filter(x => x !== e && (x.kind === 'npc' || x.kind === 'boss' || x === P) && !x.hidden).map(x => UX.sd(x.i, x.j, ti + 0.5, tj + 0.5)));
-          if (dmin > bd) { bd = dmin; best = [ti, tj]; } }
-        if (best && bd > 1.2) moveTo(e, best[0], best[1]); } }
+      const idx = R.ents.indexOf(e); let er; try { er = entHitRect(e); } catch (x) { er = null; }
+      const o = er && R.ents.find(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && !o.gone && UX.ovlR(er, entHitRect(o)));
+      e._ovlN = o ? (e._ovlN || 0) + 1 : 0;
+      if (o && (o.kind === 'boss' || o.talking > 0 || (o.path && o.path.length) || R.ents.indexOf(o) < idx || e._ovlN >= 3)) {
+        const bi = Math.floor(e.i), bj = Math.floor(e.j); let best = null, bd = 1e9;
+        for (let di = -2; di <= 2; di++) for (let dj = -2; dj <= 2; dj++) { if (!di && !dj) continue; const ti = bi + di, tj = bj + dj; if (!walkable(ti, tj)) continue;
+          if (UX.crowd(e, ti + 0.5, tj + 0.5, true)) continue; const d = Math.hypot(di, dj) + (e.home ? 0.05 * Math.hypot(ti - e.home[0], tj - e.home[1]) : 0); if (d < bd) { bd = d; best = [ti, tj]; } }
+        if (best) { e.speed = 1.2; moveTo(e, best[0], best[1]); e._ovlN = 0; } } }
     const had = e.path && e.path.length; const r = _ai(e, dt);
     // 闲逛终点不贴着别的 NPC（避免两人重叠时点到错的人，olaf：点落魄剑仙却点中翠花）
     if (!had && e.path && e.path.length) { const end = e.path[e.path.length - 1]; const ei = Array.isArray(end) ? end[0] : end && end.i, ej = Array.isArray(end) ? end[1] : end && end.j;
-      if (ei !== undefined && R.ents.some(o => o !== e && (o.kind === 'npc' || o.kind === 'boss') && !o.hidden && UX.ovl(o.i, o.j, ei + 0.5, ej + 0.5))) e.path = []; }
+      if (ei !== undefined && UX.crowd(e, ei + 0.5, ej + 0.5, false)) e.path = []; }
     return r;
   };
 })();
