@@ -466,9 +466,9 @@ setInterval(() => { if (UX.inMap() && document.body.classList.contains('ingame')
 // 屏幕空间距离（等距：横向∝i-j，纵向∝(i+j)/2，立绘高约 2 格）
 UX.sd = (ai, aj, bi, bj) => Math.max(Math.abs((ai - aj) - (bi - bj)), Math.abs((ai + aj) - (bi + bj)) / 3);
 UX.ovl = (ai, aj, bi, bj) => UX.sd(ai, aj, bi, bj) < 1.2;
-// #12 v2：直接用真实判定框（entHitRect，世界坐标）判断两人在画面上是否重叠（横、纵都重叠超过 30% 才算）
+// #12：直接用真实判定框（entHitRect，世界坐标）判断两人在画面上是否重叠（横向几乎不许重叠——名字牌比判定框还宽；纵向重叠超过 30%）
 UX.hrAt = (e, i, j) => { const ci = e.i, cj = e.j; e.i = i; e.j = j; try { return entHitRect(e); } finally { e.i = ci; e.j = cj; } };
-UX.ovlR = (r, q) => (Math.min(r.x1, q.x1) - Math.max(r.x0, q.x0)) > 0.3 * Math.min(r.x1 - r.x0, q.x1 - q.x0) && (Math.min(r.y1, q.y1) - Math.max(r.y0, q.y0)) > 0.3 * Math.min(r.y1 - r.y0, q.y1 - q.y0);
+UX.ovlR = (r, q) => (Math.min(r.x1, q.x1) - Math.max(r.x0, q.x0)) > 0.05 * Math.min(r.x1 - r.x0, q.x1 - q.x0) && (Math.min(r.y1, q.y1) - Math.max(r.y0, q.y0)) > 0.3 * Math.min(r.y1 - r.y0, q.y1 - q.y0);
 UX.crowd = (e, i, j, withP) => { let r, n = 0; try { r = UX.hrAt(e, i, j); } catch (er) { return 0; }
   for (const x of R.ents) { if (x === e || x.hidden || x.gone || !(x.kind === 'npc' || x.kind === 'boss' || x.kind === 'mon' || (withP && x === R.player))) continue;
     try { if (UX.ovlR(r, entHitRect(x))) n++; } catch (er) { } }
