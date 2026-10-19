@@ -64,12 +64,30 @@ const Big34 = {
     for (let cy = y0; cy < y1; cy += S) for (let cx = x0; cx < x1; cx += S) { const cv = document.createElement('canvas'); cv.width = Math.min(S, Math.ceil(x1 - cx)); cv.height = Math.min(S, Math.ceil(y1 - cy)); chunks.push({ x: cx, y: cy, cv, g: cv.getContext('2d'), used: false }); }
     const isVoid = (i, j) => i < 0 || j < 0 || i >= n || j >= n || M.tiles[j][i] === 'x';
     const shade = (hex, k) => { const v = parseInt(hex.slice(1), 16); const r = Math.min(255, ((v >> 16) & 255) * k) | 0, g = Math.min(255, ((v >> 8) & 255) * k) | 0, b = Math.min(255, (v & 255) * k) | 0; return `rgb(${r},${g},${b})`; };
+    // 真实地块纹理：从本图底板里同类型「内部格」（四邻同类）抠菱形贴过来，随机源格 → 自然变化；崖壁同样抠旧图边缘的崖面
+    const plate = img('assets/maps/' + R.mapId + '.webp'); const pk = P.k || 1; const O = M.tiles; const src = {}, cliffI = [], cliffJ = [];
+    const ot = (i, j) => (i < 0 || j < 0 || i >= B.n0 || j >= B.n0) ? 'x' : O[j][i];
+    const busy = new Set(); for (const [pt, pi, pj] of M.props) { if (pi >= B.n0 || pj >= B.n0) continue; const f = M.foot[pt] || [1, 1]; for (let a = -2; a <= f[0]; a++) for (let b = -2; b <= f[1]; b++) busy.add((pi + a) + ',' + (pj + b)); }
+    for (let j = 1; j < B.n0 - 3; j++) for (let i = 1; i < B.n0 - 3; i++) { const t = ot(i, j); if (t === 'x' || busy.has(i + ',' + j)) continue; if (ot(i + 1, j) === t && ot(i - 1, j) === t && ot(i, j + 1) === t && ot(i, j - 1) === t) (src[t] = src[t] || []).push([i, j]); }
+    for (let j = 1; j < B.n0 - 1; j++) for (let i = 1; i < B.n0 - 1; i++) { if (ot(i, j) === 'x') continue; if (ot(i + 1, j) === 'x' && ot(i + 1, j + 1) === 'x' && i < B.n0 - 3) cliffI.push([i, j]); if (ot(i, j + 1) === 'x' && ot(i + 1, j + 1) === 'x' && j < B.n0 - 3) cliffJ.push([i, j]); }
+    const hash = (i, j, k) => { let h = (i * 73856093) ^ (j * 19349663) ^ (k * 83492791); h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+    const poly = (g, pts) => { g.beginPath(); g.moveTo(...pts[0]); for (let q = 1; q < pts.length; q++) g.lineTo(...pts[q]); g.closePath(); };
+    const blit = (g, si, sj, di, dj, clipPts, pad) => { // 平移拷贝：源格 (si,sj) → 目标格 (di,dj)
+      const [sx, sy] = t2p(si, sj), [dx, dy] = t2p(di, dj); g.save(); poly(g, clipPts); g.clip();
+      const bx = Math.min(...clipPts.map(p => p[0])) - 2, by = Math.min(...clipPts.map(p => p[1])) - 2, bw = Math.max(...clipPts.map(p => p[0])) - bx + 4, bh = Math.max(...clipPts.map(p => p[1])) - by + 4;
+      const ox = bx - dx + sx, oy = by - dy + sy; g.drawImage(plate, ox * pk, oy * pk, bw * pk, bh * pk, bx, by, bw, bh); g.restore(); };
     for (const ch of chunks) {
       const g = ch.g; g.translate(-ch.x, -ch.y);
-      // 崖壁（先画，在地面之下）
-      for (const [i, j, , c] of cells) { const dz = 60; if (isVoid(i + 1, j)) { g.fillStyle = shade(C.cliff, 0.85); g.beginPath(); g.moveTo(...c[1]); g.lineTo(...c[2]); g.lineTo(c[2][0], c[2][1] + dz); g.lineTo(c[1][0], c[1][1] + dz); g.fill(); ch.used = true; } if (isVoid(i, j + 1)) { g.fillStyle = shade(C.cliff, 1.05); g.beginPath(); g.moveTo(...c[3]); g.lineTo(...c[2]); g.lineTo(c[2][0], c[2][1] + dz); g.lineTo(c[3][0], c[3][1] + dz); g.fill(); ch.used = true; } }
-      for (const [i, j, t, c] of cells) { const col = C.pal[t] || C.pal[C.base]; const k = 0.94 + ((i * 7 + j * 13) % 5) * 0.03; g.fillStyle = shade(col, k); g.beginPath(); g.moveTo(...c[0]); for (let q = 1; q < 4; q++) g.lineTo(...c[q]); g.closePath(); g.fill(); g.strokeStyle = shade(col, k * 0.97); g.lineWidth = 1; g.stroke(); ch.used = true;
-        if (t === 'f') { g.fillStyle = 'rgba(255,200,220,0.8)'; const [cx, cy] = t2p(i + 0.5, j + 0.5); for (let q = 0; q < 3; q++) { g.beginPath(); g.arc(cx - 12 + q * 12, cy - 3 + (q % 2) * 6, 3, 0, 7); g.fill(); } } }
+      for (const [i, j, , c] of cells) { const dz = 64;
+        if (isVoid(i + 1, j)) { const pts = [c[1], c[2], [c[2][0], c[2][1] + dz], [c[1][0], c[1][1] + dz]]; if (plate && cliffI.length) { const s = cliffI[Math.floor(hash(i, j, 1) * cliffI.length)]; blit(g, s[0], s[1], i, j, pts); } else { g.fillStyle = shade(C.cliff, 0.85); poly(g, pts); g.fill(); } ch.used = true; }
+        if (isVoid(i, j + 1)) { const pts = [c[3], c[2], [c[2][0], c[2][1] + dz], [c[3][0], c[3][1] + dz]]; if (plate && cliffJ.length) { const s = cliffJ[Math.floor(hash(i, j, 2) * cliffJ.length)]; blit(g, s[0], s[1], i, j, pts); } else { g.fillStyle = shade(C.cliff, 1.05); poly(g, pts); g.fill(); } ch.used = true; } }
+      for (const [i, j, t, c] of cells) {
+        const pool = src[t] || src[C.base] || src[C.alt]; ch.used = true;
+        // 稍放大一圈避免缝
+        const cx = (c[0][0] + c[2][0]) / 2, cy = (c[0][1] + c[2][1]) / 2; const pts = c.map(([x, y]) => [cx + (x - cx) * 1.1, cy + (y - cy) * 1.1]);
+        if (plate && pool && pool.length) { const s = pool[Math.floor(hash(i, j, 3) * pool.length)]; blit(g, s[0], s[1], i, j, pts); }
+        else { g.fillStyle = shade(C.pal[t] || C.pal[C.base], 0.94 + hash(i, j, 4) * 0.1); poly(g, pts); g.fill(); }
+      }
     }
     this.chunks = chunks.filter(c => c.used);
   },
