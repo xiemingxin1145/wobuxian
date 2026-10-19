@@ -60,9 +60,13 @@ const Seam34 = {
   strip(ctx, x) {
     const N = ASSETS.maps[x.to]; if (!N) return; const im = img('assets/maps/' + x.to + '.webp'); if (!im) return;
     const g = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[x.side]; const nb = this.OPP[x.side]; const nn = N.n, c = (nn - 1) / 2;
-    // 邻图反向边的出口近似：该边最外侧非 x 格中最靠中线者（只在原 22 格底板范围内）
-    const gn = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[nb]; let best = null, bs = -1e9;
-    for (let j = 0; j < 22; j++) for (let i = 0; i < 22; i++) { if ('xwl'.includes(N.tiles[j][i])) continue; const out = (i - 10.5) * gn[0] + (j - 10.5) * gn[1], perp = Math.abs((i - 10.5) * gn[1] - (j - 10.5) * gn[0]); const sc = out * 4 - perp; if (sc > bs) { bs = sc; best = [i, j]; } }
+    // 邻图反向边的出口近似：按邻图真实尺寸 nn 和中线 c（与 exitTile 同一打分），该边最外侧非 x 格中最靠中线者。
+    // 3.4 大地图（nn>22）的 +i/+j 边出口落在程序化新区，底板 webp 里没有 → 不画预览（以免预览与实际落点差 5–11 格）
+    const gn = { ip: [1, 0], jp: [0, 1], im: [-1, 0], jm: [0, -1] }[nb]; const ck = x.to + '|' + nb + '|' + nn; this._pv = this._pv || {};
+    let best = this._pv[ck];
+    if (best === undefined) { let bs = -1e9; best = null;
+      for (let j = 0; j < nn; j++) for (let i = 0; i < nn; i++) { if ('xwl'.includes(N.tiles[j][i])) continue; const out = (i - c) * gn[0] + (j - c) * gn[1], perp = Math.abs((i - c) * gn[1] - (j - c) * gn[0]); const sc = out * 4 - perp; if (sc > bs) { bs = sc; best = [i, j]; } }
+      if (best && (best[0] >= 22 || best[1] >= 22)) best = null; this._pv[ck] = best; }
     if (!best) return; const NP = N.plate, k = NP.k || 1; const tp = (P, i, j) => [P.ox + i * P.ex[0] + j * P.ej[0], P.oy + i * P.ex[1] + j * P.ej[1]];
     // 本图目标锚点：出口外 2 格；邻图源锚点：其出口格（再往其图内 1 格）
     const [dx, dy] = t2p(x.i + 0.5 + g[0] * 2.2, x.j + 0.5 + g[1] * 2.2); const [sx, sy] = tp(NP, best[0] + 0.5 - gn[0] * 0.5, best[1] + 0.5 - gn[1] * 0.5);
