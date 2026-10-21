@@ -2,12 +2,11 @@
 
 > 工作分支：openworld-wip
 
-## 本轮小步（2026-10-20）
-- [x] 增加低模 Cube 角色样例：主角男（www/js/lowpoly_extra_chars.js，从 Cube 拼出，隔离预览；已有路人甲）。
-- [x] 扩充随机奇遇链草稿（docs/random_adventure_chain_draft.md）：加入「渡口船夫·过河欠条」具体 3 步示例。
-- [x] 预览页接入扩展角色：www/prototypes/lowpoly_box/index.html 加载 lowpoly_extra_chars.js，合并到 LowpolyBox，select 可选路人甲/主角男。
-- 现有：battle_realtime_prototype.js 已是详细即时遭遇战原型；lowpoly_box_chars.js 已有青衫剑修/讨债鬼差/主角女/剑仙。
+## 本轮小步（2026-10-21）
+- [x] 新增渡口船夫·过河欠条奇遇链可交互小闭环原型：`www/prototypes/adventure_chain/index.html`（隔离页面，遇见→三选择→后果描述 + 模拟 rel/debt 变化，不接入正式运行链）。
+- [x] 更新 docs/random_adventure_chain_draft.md 标记已有可测原型。
+- 现有：lowpoly_extra_chars.js 路人甲+主角男；lowpoly_box_chars.js 含主角女/剑仙等；battle_realtime_prototype.js 详细即时遭遇战原型（支持 box 皮肤）。
 
-下一步：把奇遇链做成开发者可触发的小闭环测试；同步 openworld-wip 到最新 main 后再合。
+下一步：同步 openworld-wip 到最新 main；把奇遇链挂到开发者面板按钮做真实状态闭环测试（复用 G.life34.rel / G.flags）。
 
 （以下为历史记录，本轮不修改）
