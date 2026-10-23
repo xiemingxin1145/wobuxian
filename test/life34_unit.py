@@ -53,6 +53,12 @@ JS = r"""async () => {
   const syncd = Math.trunc((G.aff.mentor - aff0) * 0.5) ; ok('talk_gift', L.rel.mentor - 66 <= 15 && L.rel.mentor >= syncd, { rel: L.rel.mentor, aff: G.aff.mentor, synced_max: syncd + 6 });
   // Game.apply 的 aff 效果同步，负数向零取整
   L.rel = {}; await Game.apply('aff:sister:9'); await Game.apply('aff:sister:-5'); ok('apply_sync', L.rel.sister === 2, L.rel.sister);
+  // 重入标记 Life34._inApply：包装内为 true，结束后（含异常）复位 false
+  { const seen = []; const gv0 = Game.give; Game.give = function () { seen.push(Life34._inApply); return gv0.apply(this, arguments); };
+    const pre = Life34._inApply; await Game.apply('item:herb:1'); Game.give = gv0; const post = Life34._inApply;
+    const sy0 = UI.say; let inG = null; G.inv.wine = 1; UI.say = async () => { inG = Life34._inApply; return 0; }; await Talk.gift('mentor'); UI.say = sy0; const postG = Life34._inApply;
+    const ap0 = Game.apply; let thrown = false; const giveT = Game.give; Game.give = () => { throw new Error('x'); }; try { await Game.apply('item:herb:1'); } catch (e) { thrown = true; } Game.give = giveT; const postT = Life34._inApply;
+    ok('in_apply_flag', pre === false && seen.length > 0 && seen.every(x => x === true) && post === false && inG === true && postG === false && postT === false, { pre, seen, post, inG, postG, thrown, postT }); }
   // 奇遇链：给予者从 0 → ≥40
   L.rel = {}; for (const q of ['qc34_v1', 'qc34_v2', 'qc34_v3']) { G.quests[q] = { k0: {} }; if (QUESTS[q].need.i) for (const [i, c] of Object.entries(QUESTS[q].need.i)) Game.give(i, c); await Game.finishQuest(q); }
   ok('chain_giver_40', L.rel.b34_boatman >= 40 && L.rel.farmer >= 20, L.rel);

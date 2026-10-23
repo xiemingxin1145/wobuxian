@@ -223,8 +223,9 @@ async def main():
         dev = await wait_vis('#devbtn', 3000); ok = False
         if dev:
             await tap(dev, 700); ok = await vis('.devwarn') is not None; await shot('15_dev_panel')
-            for tb_ in ['境界', '解锁', '演出', '调试']:
+            for tb_ in ['境界', '解锁', '演出', '功法', '装备', '天赋', '金手指', '道具', '调试']:  # 3.4.1 新增 5 个作弊 Tab
                 await tap(pg.locator('.devtabs .dt', has_text=tb_), 400)
+            ok = ok and await pg.locator('.devtabs .dt').count() >= 12
             await shot('16_dev_debug_tab')
         if await vis('.devtabs'): await tap('#modals .mwrap:last-child .ph .x', 500)  # 用右上角 ✕ 关面板（settle 会点到“关闭开发者模式”）
         step('9 开发者面板', nodev and ok, f'开启前无🛠={nodev}', OUT + '15_dev_panel.png' if ok else await shot('15_dev_panel'))
