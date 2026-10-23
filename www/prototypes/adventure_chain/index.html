@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>渡口船夫·过河欠条 · 奇遇链小闭环原型</title>
+  <style>
+    body { margin: 20px; background: #101b25; color: #f1e1c8; font: 15px/1.6 sans-serif; max-width: 640px; }
+    h1 { font-size: 18px; }
+    .card { background: #1d2a22; padding: 14px; border-radius: 8px; margin: 12px 0; }
+    button { margin: 4px 6px 4px 0; padding: 8px 14px; background: #2a5a3a; color: #b0ffb0; border: 1px solid #b0ffb0; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .4; cursor: default; }
+    .log { font-size: 13px; opacity: .85; white-space: pre-wrap; }
+    .stat { color: #ffe680; }
+  </style>
+</head>
+<body>
+  <h1>渡口船夫·过河欠条（随机奇遇链小闭环原型）</h1>
+  <div class="tip">隔离演示，不接入正式任务栏 / 存档。选择影响模拟恩怨值与债务。</div>
+
+  <div class="card" id="encounter">
+    <b>遇见</b>：渡口船夫走过来，拱手说：「少侠，能帮我把这封信送到邻图吗？或者先付过河费？」
+    <div style="margin-top:10px;">
+      <button onclick="choose('help')">帮忙送信</button>
+      <button onclick="choose('refuse')">拒绝</button>
+      <button onclick="choose('debt')">赖账（欠条不还）</button>
+    </div>
+  </div>
+
+  <div class="card" id="result" style="display:none;"></div>
+
+  <div class="card">
+    <div class="stat" id="stats">恩怨值 rel: 0（船夫） | 债务上涨: 0%</div>
+    <div class="log" id="log"></div>
+    <button onclick="reset()">重置再演</button>
+  </div>
+
+  <script>
+    'use strict';
+    let rel = 0, debtUp = 0;
+    const logEl = document.getElementById('log');
+    const statsEl = document.getElementById('stats');
+    const resultEl = document.getElementById('result');
+    const encEl = document.getElementById('encounter');
+
+    function log(msg) {
+      logEl.textContent += msg + '\n';
+    }
+    function updateStats() {
+      statsEl.textContent = `恩怨值 rel: ${rel}（船夫） | 债务上涨: ${debtUp}%`;
+    }
+    function choose(act) {
+      encEl.style.display = 'none';
+      let msg = '', cons = '';
+      if (act === 'help') {
+        rel += 20;
+        msg = '你帮忙送信到邻图。船夫感激：「下次过河免费一次！」';
+        cons = '后果：船夫 rel +20；触发报恩小事件（可得灵石）。';
+      } else if (act === 'refuse') {
+        rel -= 15;
+        msg = '你拒绝了。船夫冷唾：「行吧，下次贵点。」';
+        cons = '后果：rel -15；船夫记仇，年度模拟可能刷寻仇来客。';
+      } else {
+        debtUp += 8;
+        msg = '你拿了欠条却赖账不还。船夫怒目而视。';
+        cons = '后果：债务 +8%；下一世可能被追债司找上门。';
+      }
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<b>选择结果</b><br>${msg}<br><br>${cons}`;
+      log(`选择：${act} → ${msg}`);
+      updateStats();
+    }
+    function reset() {
+      rel = 0; debtUp = 0;
+      logEl.textContent = '';
+      resultEl.style.display = 'none';
+      encEl.style.display = 'block';
+      updateStats();
+      log('重置完成，可再次触发奇遇。');
+    }
+    updateStats();
+    log('原型就绪。点击选择看后果。');
+  </script>
+</body>
+</html>

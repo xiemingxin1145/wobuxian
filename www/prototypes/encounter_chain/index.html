@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>奇遇链草稿原型</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #1a1e1c; color: #e8e0d0; padding: 2rem; max-width: 720px; margin: auto; }
+h1 { color: #f0c070; }
+.card { background: #2a302c; border-radius: 12px; padding: 1.2rem; margin: 1rem 0; }
+.choice { display: block; width: 100%; margin: .5rem 0; padding: .8rem; background: #3a4540; border: none; border-radius: 8px; color: #fff; cursor: pointer; text-align: left; }
+.choice:hover { background: #4a5a50; }
+.status { font-size: .9rem; color: #a0c0a0; margin-top: 1rem; }
+.switch { margin: 0 0 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+.switch button { padding: .5rem .9rem; border-radius: 8px; border: 1px solid #5a6a60; background: #2a302c; color: #e8e0d0; cursor: pointer; }
+.switch button.active { background: #3a5540; border-color: #f0c070; color: #f0c070; }
+</style>
+</head>
+<body>
+<h1>随机奇遇链草稿</h1>
+<p>独立原型，不接入正式游戏。选择会记录债务与好感变化。</p>
+<div class="switch" id="chain-switch"></div>
+<div id="app"></div>
+<script>
+const CHAINS = [
+  {
+    id: 'debt_merchant_1',
+    title: '贩子催债',
+    text: '一个熟识的贩子挡住你：“上回账还没清呢，这回带了点货，帮个忙？”',
+    choices: [
+      { text: '帮他摆摊（减少债务）', effects: { debt: -30, aff: { merchant: 15 } }, next: 'debt_merchant_2_help' },
+      { text: '推说下回定', effects: { debt: 0, aff: { merchant: -10 } }, next: 'debt_merchant_2_delay' },
+      { text: '直接赖账', effects: { debt: +40, aff: { merchant: -25 } }, next: 'debt_chase_warning' }
+    ]
+  },
+  {
+    id: 'debt_merchant_2_help',
+    title: '贩子感恩',
+    text: '贩子笑道：“够义气！下回账可以再宽宽。”',
+    choices: [
+      { text: '谢谢接受', effects: { debt: -10 }, next: null }
+    ]
+  },
+  {
+    id: 'debt_merchant_2_delay',
+    title: '贩子不满',
+    text: '贩子皱眉：“又是下回？这账越拖越大，你得有个交代。”',
+    choices: [
+      { text: '承诺下月还', effects: { debt: +10, aff: { merchant: -5 } }, next: null },
+      { text: '再拖一段', effects: { debt: +20, aff: { merchant: -15 } }, next: 'debt_chase_warning' }
+    ]
+  },
+  {
+    id: 'debt_chase_warning',
+    title: '追兵风声',
+    text: '村口传来话：外面有人在打听你的下落，好像是为了债务。',
+    choices: [
+      { text: '赶紧还一部分', effects: { debt: -50, aff: { merchant: +5 } }, next: null },
+      { text: '先藏起来', effects: { debt: +15, aff: { merchant: -10 } }, next: null }
+    ]
+  },
+  {
+    id: 'wander_cultivator_1',
+    title: '云游散修',
+    text: '路边坐着个衣衫襟褥的散修，抬眼道：“道友可借我十两灵石？来日必有厚报。”',
+    choices: [
+      { text: '借给他', effects: { debt: +10, aff: { wanderer: 20 } }, next: 'wander_cultivator_2_lend' },
+      { text: '婉拒', effects: { aff: { wanderer: -5 } }, next: null },
+      { text: '提出切磋换消息', effects: { aff: { wanderer: 10 } }, next: 'wander_cultivator_2_spar' }
+    ]
+  },
+  {
+    id: 'wander_cultivator_2_lend',
+    title: '散修离开',
+    text: '散修拱手：“承情了。若日后路过青崖镇，可寻‘残灯’。”',
+    choices: [
+      { text: '记下', effects: { aff: { wanderer: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'wander_cultivator_2_spar',
+    title: '路边切磋',
+    text: '散修起身比了几招，点头：“你根基尚可。附近有个破洞，夜里别靠近。”',
+    choices: [
+      { text: '道谢离开', effects: { aff: { wanderer: 5 } }, next: null },
+      { text: '追问破洞', effects: { debt: +5, aff: { wanderer: -5 } }, next: null }
+    ]
+  },
+  {
+    id: 'herb_farmer_1',
+    title: '药农求助',
+    text: '山脚药农抬头：“少侠，那丛毒虫把我的灵草地占了，能帮忙驱一驱吗？”',
+    choices: [
+      { text: '帮他驱虫', effects: { debt: -5, aff: { farmer: 20 } }, next: 'herb_farmer_2_help' },
+      { text: '自己采一些', effects: { debt: +5, aff: { farmer: -10 } }, next: null },
+      { text: '无视走开', effects: { aff: { farmer: -5 } }, next: null }
+    ]
+  },
+  {
+    id: 'herb_farmer_2_help',
+    title: '药农感谢',
+    text: '药农拱手道谢：“今后过路随便拿点草药，账也可以宽宽。”',
+    choices: [
+      { text: '接受情义', effects: { debt: -10, aff: { farmer: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'black_market_1',
+    title: '黑市灵石',
+    text: '巷口有人压低声音：“有一批来路干净的灵石，半价出手。要不要？”',
+    choices: [
+      { text: '成交（欠人情）', effects: { debt: +25, aff: { blackmarket: 15 } }, next: 'black_market_2_deal' },
+      { text: '压价再谈', effects: { debt: +10, aff: { blackmarket: 5 } }, next: 'black_market_2_bargain' },
+      { text: '拒绝离开', effects: { aff: { blackmarket: -10 } }, next: null }
+    ]
+  },
+  {
+    id: 'black_market_2_deal',
+    title: '黑市成交',
+    text: '对方点头：“货给你。记住，这账以后要还人情。”',
+    choices: [
+      { text: '收下离开', effects: { debt: +5, aff: { blackmarket: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'black_market_2_bargain',
+    title: '黑市压价',
+    text: '对方冷笑：“再压就别做了。这价已经够低。”',
+    choices: [
+      { text: '还是买', effects: { debt: +20, aff: { blackmarket: 0 } }, next: null },
+      { text: '算了不买', effects: { aff: { blackmarket: -15 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_collector_1',
+    title: '催债使者',
+    text: '村口站着个衣衫整齐的使者，抬手一拱：“天道催债司来人。你账上还有穴，这回带了部分还债单。”',
+    choices: [
+      { text: '部分还债', effects: { debt: -40, aff: { collector: 10 } }, next: 'debt_collector_2_pay' },
+      { text: '推说下回再说', effects: { debt: +15, aff: { collector: -10 } }, next: 'debt_collector_2_delay' },
+      { text: '拒绝支付', effects: { debt: +50, aff: { collector: -30 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_collector_2_pay',
+    title: '使者记账',
+    text: '使者点头：“还了一部分就好。剩下的穴下回再来结。”',
+    choices: [
+      { text: '送走使者', effects: { aff: { collector: 5 } }, next: null }
+    ]
+  },
+  {
+    id: 'debt_collector_2_delay',
+    title: '使者不满',
+    text: '使者皱眉：“又推？再拖就上追兵了。你自己盼着吧。”',
+    choices: [
+      { text: '先还一点说情', effects: { debt: -20, aff: { collector: 5 } }, next: null },
+      { text: '硬拖', effects: { debt: +25, aff: { collector: -15 } }, next: null }
+    ]
+  },
+  {
+    id: 'night_temple_1',
+    title: '夜雨破庙',
+    text: '破庙里一个受伤的散修靠着墙，抬眼道：“道友，借我点灵石养伤，来日必还。”',
+    choices: [
+      { text: '借灵石帮他', effects: { debt: +15, aff: { wounded: 25 } }, next: 'night_temple_2_help' },
+      { text: '只给药草', effects: { debt: +5, aff: { wounded: 10 } }, next: null },
+      { text: '无视离开', effects: { aff: { wounded: -10 } }, next: null }
+    ]
+  },
+  {
+    id: 'night_temple_2_help',
+    title: '散修感激',
+    text: '散修道谢：“承情。若日后遇到天道追兵，可报我名号。”',
+    choices: [
+      { text: '记下名号', effects: { aff: { wounded: 5 } }, next: null }
+    ]
+  }
+];
+
+const STARTS = [
+  { id: 'debt_merchant_1', label: '贩子催债' },
+  { id: 'wander_cultivator_1', label: '云游散修' },
+  { id: 'herb_farmer_1', label: '药农求助' },
+  { id: 'black_market_1', label: '黑市灵石' },
+  { id: 'debt_collector_1', label: '催债使者' },
+  { id: 'night_temple_1', label: '夜雨破庙' }
+];
+
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0 }, current: 'debt_merchant_1' };
+
+function startChain(id) {
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0 }, current: id };
+  renderSwitch();
+  render();
+}
+
+function renderSwitch() {
+  const el = document.getElementById('chain-switch');
+  el.innerHTML = STARTS.map(s =>
+    `<button class="${state.current === s.id || (state.current && state.current.startsWith(s.id.split('_').slice(0,2).join('_'))) ? 'active' : ''}" data-id="${s.id}">${s.label}</button>`
+  ).join('');
+  el.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => startChain(btn.dataset.id);
+  });
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const chain = CHAINS.find(c => c.id === state.current);
+  if (!chain) {
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button></div>`;
+    return;
+  }
+  const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';
+  app.innerHTML = `
+    <div class="card">
+      <h2>${chain.title}</h2>
+      <p>${chain.text}</p>
+      ${chain.choices.map((ch, i) => `<button class="choice" data-i="${i}">${ch.text}</button>`).join('')}
+    </div>
+    <div class="status">当前债务：${state.debt} 　好感：${affLines}</div>
+  `;
+  app.querySelectorAll('.choice').forEach(btn => {
+    btn.onclick = () => {
+      const i = +btn.dataset.i;
+      const ch = chain.choices[i];
+      if (ch.effects.debt) state.debt += ch.effects.debt;
+      if (ch.effects.aff) {
+        for (const [k, v] of Object.entries(ch.effects.aff)) {
+          state.aff[k] = (state.aff[k] || 0) + v;
+        }
+      }
+      state.current = ch.next || null;
+      render();
+    };
+  });
+}
+renderSwitch();
+render();
+</script>
+</body>
+</html>

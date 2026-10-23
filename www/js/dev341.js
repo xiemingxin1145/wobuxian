@@ -167,7 +167,7 @@ const DEV341 = {
     e.base = bs[0]; e.ic = bs[1]; e.name = (this.rar ? RARITY[this.rar].n + '·' : '') + bs[0]; G.eqs.push(e); if (this.rar === 4) Game.ach('legend'); return e;
   },
   tick() {
-    const G = Game.G; if (!G || !G.cheat || G.dead) return; const c = G.cheat; let ch = false;
+    const G = Game.G; const c = Game.cheatOn(); if (!G || !c || G.dead) return; let ch = false;
     if (c.stone && G.stone < 1e8) { G.stone = 1e8; ch = true; }
     if (c.xyf && (G.inv.xyf || 0) < 999) { G.inv.xyf = 999; ch = true; }
     if (c.ap && G.ap < Game.apMax()) { G.ap = Game.apMax(); ch = true; }
@@ -238,4 +238,4 @@ const DevPanel = window.DevPanel = {
   setInterval(() => { try { DEV341.tick(); } catch (e) { } if (DevPanel._box && !document.contains(DevPanel._box)) DevPanel.cleanup(); }, 300); // 面板关闭（✕）后卸载扩展 Tab
 })();
 // 必定突破：天劫期间 jieRes=1（雷劫照常演出，不掉血）
-{ const _t = Game.tribulation; Game.tribulation = async function () { const G = this.G; if (!(G && G.cheat && G.cheat.brk)) return _t.apply(this, arguments); const j0 = G.jieRes; G.jieRes = 1; try { return await _t.apply(this, arguments); } finally { G.jieRes = j0; } }; }
+{ const _t = Game.tribulation; Game.tribulation = async function () { const G = this.G; const c = this.cheatOn(); if (!(G && c && c.brk)) return _t.apply(this, arguments); const j0 = G.jieRes; G.jieRes = 1; try { return await _t.apply(this, arguments); } finally { G.jieRes = j0; } }; }
