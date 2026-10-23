@@ -179,11 +179,16 @@ window.DEV341 = DEV341;
 // 用法（任意加载顺序，dev341.js 之前 push 到 window.DevTabs 也行）：
 //   DevPanel.registerTab('ow', '开放世界', (box, ctx) => { box.innerHTML = '<button class="opt" data-ow="x">…</button>'; box.onclick = e => { …; ctx.save(); ctx.toast('…'); }; });
 //   ctx = { G: Game.G, close(), rerender(), save(), toast(msg) }；render 抛错只在该 Tab 里显示错误，不影响其他 Tab。
+//   render 可返回一个函数 = 清理（切走 Tab / 关闭面板时调用）。
 // 同 key 重复注册 = 覆盖。没有注册任何 Tab 时面板与原来一样。
 window.DevTabs = window.DevTabs || [];
 const DevPanel = window.DevPanel = {
   registerTab(key, name, render) { if (!key || typeof render !== 'function') return false; const L = window.DevTabs; const i = L.findIndex(t => t.key === key); const t = { key: String(key), name: String(name || key), render }; if (i >= 0) L[i] = t; else L.push(t); return true; },
-  tabs() { return (window.DevTabs || []).filter(t => t && t.key && typeof t.render === 'function' && !DEV341.TABS.some(x => x[0] === t.key) && !['res', 'realm', 'unlock', 'story', 'tp', 'show', 'dbg'].includes(t.key)); },
+  _cleanup: null, _box: null,
+  cleanup() { const f = this._cleanup; this._cleanup = null; this._box = null; if (typeof f === 'function') { try { f(); } catch (e) { console.error('DevTab cleanup', e); } } },
+  // 开放世界线（PR #23 的 www/js/dev_openworld.js）：window.DevOpenWorld = { id, title, mount(el) → unmount, buttons[], ready() }；有就自动加 Tab，没有不报错
+  owTab() { const O = window.DevOpenWorld; if (!O || typeof O.mount !== 'function') return null; if (typeof O.ready === 'function') { try { if (O.ready() === false) return null; } catch (e) { return null; } } return { key: String(O.id || 'openworld'), name: String(O.title || '开放世界'), render: box => O.mount(box) }; },
+  tabs() { const ow = this.owTab(); const L = (window.DevTabs || []).slice(); if (ow && !L.some(t => t && t.key === ow.key)) L.push(ow); const seen = new Set(); return L.reverse().filter(t => t && t.key && !seen.has(t.key) && seen.add(t.key)).reverse().filter(t => typeof t.render === 'function' && !DEV341.TABS.some(x => x[0] === t.key) && !['res', 'realm', 'unlock', 'story', 'tp', 'show', 'dbg'].includes(t.key)); },
 };
 (function () {
   const css = document.createElement('style');
@@ -198,16 +203,17 @@ const DevPanel = window.DevPanel = {
   document.head.appendChild(css);
   const _pd = UI.p_dev; UI.p_dev = function (b, re, close, tab) {
     tab = tab || DEV.tab || 'res';
+    DevPanel.cleanup(); // 切 Tab/重绘：先卸载上一个扩展 Tab
     const mine = DEV341.TABS.some(t => t[0] === tab);
     // 3.4.1 修：原面板每点一个按钮就整页重绘、滚动条跳回顶部（剧情/传送等长列表点一下就找不到位置）→ 同一 Tab 内重绘保留滚动位置
     const re2 = t => { const same = (t || DEV.tab) === tab; const sc = b.scrollTop; re(t); if (same) { const nb = document.querySelector('#modals .mwrap:last-child .pb'); if (nb) nb.scrollTop = sc; } };
     const r = _pd.call(this, b, re2, close, tab);
     if (tab === 'dbg' && window.DevEntry25) { // v2.5 浮动入口同样放进面板（浮动按钮在弹窗层之下）
-      const d = document.createElement('div'); d.className = 'devg'; d.innerHTML = '<button class="opt" data-v25="trial">试炼场 / 阶段3债务奇遇</button><button class="opt" data-v25="rt">即时战（原型）</button><button class="opt" data-v25="eq">全套神装（神品）</button>';
+      const d = document.createElement('div'); d.className = 'devg'; d.innerHTML = '<button class="opt" data-v25="trial">试炼场 / 阶段3债务奇遇</button><button class="opt" data-v25="rt">即时战（本图野怪·RT27）</button><button class="opt" data-v25="eq">全套神装（神品）</button>';
       const flags = b.querySelector('details'); b.insertBefore(d, flags || null);
       d.addEventListener('click', async e => { const t = e.target.closest('[data-v25]'); if (!t) return; e.stopPropagation(); const k = t.dataset.v25;
         if (k === 'eq') { DevEntry25.giveFullGodGear(); UI.toast('已执行：全套神装（已穿上）'); UI.hud(); return; }
-        close(); if (k === 'trial') await DevEntry25.trial(); if (k === 'rt' && window.RealtimeBattle) await RealtimeBattle.start(); });
+        close(); if (k === 'trial') await DevEntry25.trial(); if (k === 'rt') await DevEntry25.rtFight(); });
     }
     const bar = b.querySelector('.devtabs'); if (!bar) return r;
     const ext = DevPanel.tabs();
@@ -215,7 +221,7 @@ const DevPanel = window.DevPanel = {
     const xt = ext.find(t => t.key === tab);
     if (xt) { const box = document.createElement('div'); box.className = 'dvext'; b.appendChild(box);
       const ctx = { G: Game.G, close, rerender: () => re2(tab), save: () => { if (Game.G) { Game.G.dev = 1; Game.save(); } UI.hud(); }, toast: m => UI.toast(m) };
-      try { xt.render(box, ctx); } catch (er) { console.error('DevTab ' + tab, er); box.innerHTML = `<p class="hint">「${DEV341.esc(xt.name)}」渲染出错：${DEV341.esc(er.message)}</p>`; }
+      try { const cl = xt.render(box, ctx); DevPanel._cleanup = typeof cl === 'function' ? cl : null; DevPanel._box = box; } catch (er) { console.error('DevTab ' + tab, er); box.innerHTML = `<p class="hint">「${DEV341.esc(xt.name)}」渲染出错：${DEV341.esc(er.message)}</p>`; }
       box.addEventListener('click', e => e.stopPropagation()); return r; }
     if (!mine) return r;
     const box = document.createElement('div'); box.className = 'dv341'; box.innerHTML = DEV341.body(tab); b.appendChild(box);
@@ -229,7 +235,7 @@ const DevPanel = window.DevPanel = {
     });
     return r;
   };
-  setInterval(() => { try { DEV341.tick(); } catch (e) { } }, 500);
+  setInterval(() => { try { DEV341.tick(); } catch (e) { } if (DevPanel._box && !document.contains(DevPanel._box)) DevPanel.cleanup(); }, 300); // 面板关闭（✕）后卸载扩展 Tab
 })();
 // 必定突破：天劫期间 jieRes=1（雷劫照常演出，不掉血）
 { const _t = Game.tribulation; Game.tribulation = async function () { const G = this.G; if (!(G && G.cheat && G.cheat.brk)) return _t.apply(this, arguments); const j0 = G.jieRes; G.jieRes = 1; try { return await _t.apply(this, arguments); } finally { G.jieRes = j0; } }; }
