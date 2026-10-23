@@ -2,7 +2,7 @@
  {
   "step": "1 新开一局",
   "ok": true,
-  "note": "毛小满 凡人·锻体一层 6岁 / 寿79 140/150 0/80",
+  "note": "卢清风 凡人·锻体一层 6岁 / 寿88 230/240 0/80",
   "shot": "/workspace/game-dev341/test/human23/01_new_game.png"
  },
  {
@@ -44,7 +44,7 @@
  {
   "step": "8 挂机",
   "ok": true,
-  "note": "'挂机中\\n\\n1:38 · 7岁 凡人·锻体二层 · 击败 1 · 灵石 +6' | ['毛小满', '凡人·锻体一层', '7岁 / 寿79'] → ['毛小满', '凡人·锻体二层', '8岁 / 寿79'] | 总结='挂机总结'",
+  "note": "'' | ['卢清风', '凡人·锻体二层', '7岁 / 寿89'] → ['卢清风', '凡人·锻体圆满', '9岁 / 寿90'] | 总结='挂机总结'",
   "shot": "/workspace/game-dev341/test/human23/12_afk_progress.png"
  },
  {
@@ -62,7 +62,7 @@
  {
   "step": "11 点身体中心=打开这个 NPC（重叠/摇杆区回归）",
   "ok": true,
-  "note": "xiaoyi:ok l34_visitor:ok elder:ok sister:ok danlao:ok",
+  "note": "sister:ok xiaoyi:ok danlao:ok",
   "shot": "/workspace/game-dev341/test/human23/19_tap_body_regression.png"
  },
  {
