@@ -105,7 +105,9 @@ const Game = {
     const s = this.stats(); this.G.hp = s.mhp; this.G.mp = s.mmp;
   },
   // 3.4.1 金手指：G.cheat.brk 必定突破；G.cheat.luck 掉落/奇遇 100%（开发者面板「金手指」）
-  roll(p, kind) { const c = this.G && this.G.cheat; if (c && ((kind === 'brk' && c.brk) || ((kind === 'drop' || kind === 'qiyu') && c.luck))) return true; return Math.random() < p; },
+  // 金手指只在开发者模式开着时生效：关掉开发者模式后存档里的 G.cheat 保留，但不再起作用（与 3.4.1 关模式即清 DEV 开关一致）
+  cheatOn() { let dev = false; try { dev = localStorage.getItem('wbx2_dev') === '1'; } catch (e) { } return dev && this.G && this.G.cheat ? this.G.cheat : null; },
+  roll(p, kind) { const c = this.cheatOn(); if (c && ((kind === 'brk' && c.brk) || ((kind === 'drop' || kind === 'qiyu') && c.luck))) return true; return Math.random() < p; },
   async tryBreak() {
     if (this._breaking || this._busy) return; this._breaking = true; this._busy = true;
     try { await this._tryBreak(); } finally { this._breaking = false; this._busy = false; }
@@ -326,7 +328,7 @@ const Game = {
       if (G.age > this.lifeMax()) { await this.die(G.realm === 0 ? 'mortal' : 'sit'); return; }
       const ev = this.pickEvent(); if (ev) await this.runEvent(ev);
       if (G.dead) return;
-      if ((G.flags.vip || (G.cheat && G.cheat.luck)) && this.roll(0.3, 'qiyu')) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
+      if ((G.flags.vip || (this.cheatOn() && this.cheatOn().luck)) && this.roll(0.3, 'qiyu')) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
       if (G.stone >= 10000) this.ach('rich'); if (G.stone >= 200000) this.ach('richer');
       if (G.stone >= 500000 && !G.flags.tycoonAsk) { G.flags.tycoonAsk = 1; const c = await UI.card('富甲三界', '你的灵石已经多到可以收购天道的全部债权了。要这么做吗？', 'i:bag', ['收购！（结局）', '低调']); if (c === 0) { await this.die('tycoon'); return; } }
       this.checkMain(); this.spawnMonsters(); this.refreshNpcs(); UI.hud(); this.save();
