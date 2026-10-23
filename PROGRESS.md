@@ -352,6 +352,14 @@
 - 注意：origin/main 已到 354a2c8（#37 神器 sq36），openworld-wip 还没合这次 main，留到下一轮。
 - 下一步：fight:1 接正式遭遇战入口；神器觉醒Ⅲ发光壳、预览页冠/佩下拉切换。
 
+### 2026-10-24 第二十八轮（UTC+8，openworld-wip，04:00 起）——路遇 fight:1 真正开战（修 Game.apply 延后战斗没执行）+ 合 main（3.6.1 神器）
+- 普通 merge 合入 origin/main d1cefb7（#37 神器 sq36 + 3.6.1），无冲突。
+- 发现并修：真实 `Game.apply` 返回 `{ txt, later }`，fight 等效果放在 `later` 里延后执行；NPC37.resolve 之前把返回值当数组用，**later 从没执行，「拔剑应战 / 出手相助 / 打一架 / 硬闯」等 fight:1 选项在真游戏里不开战，效果提示也没弹**（单测桩返回数组，所以没测出来）。现在 resolve 先弹效果提示，再逐个跑 later（角色已死则停），拿到战斗胜负后提示「路遇一战：击退来敌 / 落了下风」，并发 Story37 `fight` 事件；怪取场景所在地图的 mons，tier 照 Game.apply 现成规则。只改 www/js/npc37.js，不碰 game.js。
+- 测试：`test/npc37_unit.js` 60/60 PASS（新增 6 条：真实 apply 形状下 fight 调一次 Game.fight、先提示后开战、胜/负提示与 fight 事件、怪按场景地图、已死不开战、无 fight 选项 fight 为 null）；`test/npc37_page.py` 12/12 PASS（新增：真页面仇档「拔剑应战」进入真实回合制战斗、打完回地图带回胜负）。dev_openworld_page 64 PASS、dev_openworld_gate_page 39/39、battle_rt_proto_page 全过、tap342 FAILS []、dev341 第一次 3_state 失败（已知随机天赋 flake），重跑 FAILS []；validate22 / jsscan33 errors []、encounter_chain_verify 14/14、stage3_life34 / stage3_chain / battle_rt_proto / lowpoly_attach / lowpoly_box ALL PASS、good_rel_cap 31/31。results 不提交。
+- 同一修复已同步到 PR #39 分支 `npc37-luyu`。
+- 本轮改动文件：www/js/npc37.js、test/npc37_unit.js、test/npc37_page.py、PROGRESS.md。
+- 下一步：神器觉醒Ⅲ发光壳（低模，预览页）、预览页冠/佩下拉切换；讨债令第二个只读用途（误工费抵扣预览）。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

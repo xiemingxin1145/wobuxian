@@ -50,16 +50,22 @@ const NPC37 = {
     if (fx.fight) { const mi = typeof MAPINFO !== 'undefined' && MAPINFO[mapId]; const mons = (mi && mi.mons) || []; if (mons.length) p.push('fight:' + this.rnd(mons)); }
     return p.join(';'); },
   // 结算队首（或给定）场景的第 c 个选项；返回 { ok, eff, out } ；置灰选项返回 ok:false
-  async resolve(scene, c) { const S = this.st(); if (!S || !scene) return { ok: false }; const o = scene.ch[c]; if (!o) return { ok: false, why: 'bad' };
+  // 真实 Game.apply 返回 { txt, later }：fight 等放在 later 里延后执行，这里在提示之后逐个跑（第二十八轮修：之前没跑 later，fight:1 不开战）
+  async resolve(scene, c, onOut) { const S = this.st(); if (!S || !scene) return { ok: false }; const o = scene.ch[c]; if (!o) return { ok: false, why: 'bad' };
     if (!this.can(o.fx)) return { ok: false, why: 'grey' };
     const i = S.q.indexOf(scene); if (i >= 0) S.q.splice(i, 1);
-    const eff = this.effStr(scene.id, o.fx, scene.map); const out = eff ? await Game.apply(eff) : [];
-    this.bus.fire('resolve', { scene, c, eff }); return { ok: true, eff, out }; },
+    const eff = this.effStr(scene.id, o.fx, scene.map); const raw = eff ? await Game.apply(eff) : null;
+    let out = [], later = []; if (Array.isArray(raw)) out = raw; else if (raw) { out = String(raw.txt || '').split('，').filter(Boolean); later = Array.isArray(raw.later) ? raw.later : []; }
+    this.bus.fire('resolve', { scene, c, eff }); if (typeof onOut === 'function') { try { onOut(out); } catch (x) { } }
+    let fight = null; for (const f of later) { const G = this.G(); if (!G || G.dead) break; const r = await f(); if (r && r.res) fight = r.res; }
+    if (fight) this.bus.fire('fight', { scene, c, res: fight });
+    return { ok: true, eff, out, fight }; },
   // 弹卡：标题以「⚑」开头，置灰选项加（缺）并重弹
   async play(scene) { if (typeof UI === 'undefined' || !UI.card || !scene) return null;
     for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => '⚑ ' + o.x + (this.can(o.fx) ? '' : '（缺）'));
       const c = await UI.card(scene.title, (scene.line ? `${scene.name || this.name(scene.id)}：“${scene.line}”\n` : '') + scene.t, 'i:bill', opts);
-      const r = await this.resolve(scene, c); if (r.ok) { if (typeof UI.toast === 'function' && r.out && r.out.length) UI.toast(r.out.join('，')); if (Game.save) Game.save(); return r; }
+      const r = await this.resolve(scene, c, out => { if (typeof UI.toast === 'function' && out && out.length) UI.toast(out.join('，')); });
+      if (r.ok) { if (r.fight && typeof UI.toast === 'function') UI.toast(r.fight === 'win' ? `路遇一战：击退来敌` : `路遇一战：落了下风`); if (Game.save) Game.save(); return r; }
       if (typeof UI.toast === 'function') UI.toast('条件不足'); } return null; },
   // 新闻：kind ∈ news 六类；a/b NPC id；每 NPC 年 ≤2、全年 ≤6、toast ≤2
   emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = TEXT37.news[kind]; if (!pool) return null; const c = S.yc;
