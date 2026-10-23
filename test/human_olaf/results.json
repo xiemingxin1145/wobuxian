@@ -1,5 +1,6 @@
 {
  "dpr": 2.0,
+ "www": "/workspace/game-dev341/www",
  "cases": [
   {
    "case": "T0a_new_life_enter_map",
@@ -19,7 +20,7 @@
      "翠花",
      "cuihua",
      "💬",
-     4.2,
+     4.3,
      [
       51,
       89
@@ -46,6 +47,16 @@
      ]
     ],
     [
+     "说书先生",
+     "villager",
+     "💬",
+     10.4,
+     [
+      51,
+      89
+     ]
+    ],
+    [
      "娘",
      "mom",
      "💬",
@@ -59,17 +70,7 @@
      "王大爷",
      "farmer",
      "💬",
-     10.4,
-     [
-      51,
-      89
-     ]
-    ],
-    [
-     "说书先生",
-     "villager",
-     "💬",
-     12.0,
+     13.2,
      [
       51,
       89
@@ -89,7 +90,7 @@
      "集市货郎",
      "b34_peddler",
      "💬",
-     23.2,
+     24.2,
      [
       51,
       89
@@ -109,15 +110,15 @@
      50,
      77
     ],
+    "说书先生": [
+     51,
+     89
+    ],
     "娘": [
      51,
      89
     ],
     "王大爷": [
-     51,
-     89
-    ],
-    "说书先生": [
      51,
      89
     ],
@@ -131,8 +132,29 @@
     ]
    },
    "shot": "001_T0_enter_map.png"
+  },
+  {
+   "case": "N1_taps_still_work_after_battle",
+   "ok": false,
+   "ontap_before": true,
+   "npc_tap_before_battle": "npc",
+   "fought": false,
+   "ontap_after_battle": true,
+   "ground_tap_moved_tiles": 4.36,
+   "npc": "翠花",
+   "npc_tap_after_battle": "npc",
+   "shot": "002_N1_after_battle_tap_dead.png"
+  },
+  {
+   "case": "info_recoveries_used",
+   "ok": true,
+   "recoveries": 0,
+   "battles": 0,
+   "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
   }
  ],
- "js_errors": [],
- "partial": true
+ "fails": [
+  "N1_taps_still_work_after_battle"
+ ],
+ "js_errors": []
 }
