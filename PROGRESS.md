@@ -2,6 +2,17 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
+## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
+> 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
+- [x] 元素亲和：包 `calcDmg`（回合制 battle.js 与即时战 rt27 共用），玩家本人非普攻技能按 `SKILLS[k].el`（data.js 原有字段）吃 24%/元素数，雷/冰再 +6%；灵兽/伙伴/普攻不吃。
+- [x] 突破修正：Δ 写进 G.tmpBrk（none +5 / shuang −2 / tian −4 / lei,bing −5 个百分点，brk' 夹 [0.1,0.95]），「冲击瓶颈」卡片成功率自动包含；取消/提前返回时还原 tmpBrk。雷/冰突破 toast「天劫：老乡…」。
+- [x] 纯度：`cultMult × (0.9 + pur/500)`；打坐（Acts.mat，消耗行动力）每游戏月 +1、此来源上限 70；新道具 灵根丹 `lgd`（600 灵石，药铺/魔女小店/天庭福利社）+5；心魔幻境（xinmo34 若合入）小成及以上 +3（运行时探测 XM34.run）。
+- [x] 洗灵根：洗髓丹原效果 + 纯度 −20；角色面板「灵根」栏新增 逆脉洗根（5000 灵石 + 寿元上限 10%，按 LINGGEN 权重重随，纯度不变）、定向淬根（新道具 天材地宝 `tcdb` 1500 灵石 ×3 + 8000 灵石，增/删 1 个五行元素，档位按元素数重算；异灵根不可淬）。均二次确认。淬根后的元素存 G.lg36.el（elFor≠G.lg 即失效）。
+- [x] 开发者面板 Tab「灵根36」：纯度 0/50/70/100、8 种灵根、天材地宝×3、灵根丹×5、灵石+20000。
+- [x] `test/lg36_unit.py`：A3.1 比值 1.00、A3.2 tian 金 ×1.24 / lei 雷 ×1.30、A3.3 lei 元婴→化神 37%、A3.4 1000 次（固定种子）最大偏差 1.8pp；老档（无 lg36）真实触摸「继续人生」纯度 50；412×915 真实触摸洗根按钮不溢出、确认卡、「算了」不扣费、淬入水→双灵根 金水。
+- [x] 门禁（19:54–20:20 UTC+8，串行）：validate22 0 错、lg36_unit ALL PASS、sys33_unit fails/errors []、jsscan33 errors []、controls FAILS 0、human23 首轮 11/13（4/5 步追踪栏寻路到剑仙后未开对话，偶发）→ 单独重跑 13/13。human_olaf 未跑（交奥拉夫）。PR「3.6 灵根深化（lg36）」，不合并。
+- [ ] 未做/待议：打坐 +1 只有代码、单测未覆盖（Acts.mat 需地图上的 R.player）；天材地宝暂只在商店买（可考虑秘境/BOSS 掉落）；外观光球资产（§6）交 open-world bot。
+
 ## 3.5 灵宠派遣（Grok Bot，2026-10-23 13:40 起，分支 `pet35`，worktree `/workspace/game-dev341`）
 > ROADMAP P2 #16「灵宠派遣」。新文件 `www/js/pet35.js`（index 在 dev341 后），单测 `test/pet35_unit.py`。
 - [x] 不出战的灵兽在灵兽面板下方「灵宠派遣」选差事：采药（木）/寻矿（土）/狩猎（火）/帮人看摊（金）/探秘境（水·冰），五行相合 ★ 收获 ×1.5；名额 1+floor(大境界/2)，最多 4。
