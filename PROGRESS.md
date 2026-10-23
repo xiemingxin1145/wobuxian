@@ -2,6 +2,21 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。
 
+## 3.4.1 作弊菜单（Grok Bot，2026-10-19 19:20 起，分支 `dev341`，worktree `/workspace/game-dev341`）
+> 主人反馈：开发者面板很多按钮无效，缺功法/金手指/装备，天赋无效。目标：逐个点按审计+修复，新增 功法/装备/天赋/金手指 浏览选择器，test/dev341.py，门禁后开 PR「3.4.1 作弊菜单重做」（不合并）。
+- [x] 审计脚本 `test/dev341_audit.py`（真实触摸逐个按钮，记录状态差异；`TABS=res,realm` 只跑部分，结果 `test/results/dev341_audit.json`）。已跑 资源/境界/解锁/剧情/传送：按钮均生效（见 /tmp/dev341_audit_story_tp.txt）；演出页：抽卡演出后游戏长时间不回到可操作状态（UX.inMap 假）→ 🛠 点了没反应，待查 g2。
+- [x] `www/js/dev341.js`（index 在 jianghu34 后）：新 Tab 功法/装备/天赋/金手指/道具（搜索+分组列表，点按即发，行内刷新）；`Game.roll(p, kind)` 金手指钩子（必定突破/100% 掉落奇遇），G.cheat 开关存档内。
+- [x] g2「卡死」是审计脚本没点抽卡演出的「收下」，非游戏 bug（已改脚本）。审计结论（真实点按）：旧面板 7 个 Tab 的按钮单看状态都生效；「不好用」的根因：①v2.5 浮动按钮（试炼场/全套神装/即时战，z-index 9999，右下角）盖住底部菜单（灵兽/伙伴/御剑/更多）和开发者面板底部按钮；②dev_entry_v25 自己数「标题页任意位置」点击，与开发者开关不同步，关了开发者模式按钮还在；③「全套神装」写不存在的槽位 acc1/acc2、装备缺 base；④每点一个按钮整页重绘、滚动跳回顶部；⑤🛠 在对话/演出中点了无反应；⑥无敌/一击必杀/不遇敌刷新即丢；⑦没有功法等级/神通/装备/天赋/灵根/命格/道具选择器。已全部修。
+- [x] `test/dev341.py` 全过（FAILS []，约 2 分钟）：布局/滚动保留/关闭、5 个新 Tab 各发放一项 → 正常界面可见 → 刷新读档仍在、必定突破（筑基→金丹含天劫）、全套神装 6 槽。human23 的开发者面板步骤加点 5 个新 Tab。
+- [x] 门禁（20:00–20:15，dev341 `6a89e81`）：validate22 0 错、jsscan33 errors []、panels21 ERRORS 0/0、controls FAILS 0、human23 13/13、life34_unit/sys33_unit/seam34 通过；dev341.py FAILS []（20:15 复跑）。
+- [x] 10-19 全量 olaf 20/23（N2、T1 均为游走 NPC「集市货郎」点按偏差；S2 失败卡后误点二次升阶）——与 3.4.0 门禁修过的同类问题一致。10-23 合入 origin/main（v3.4.0，`c3d0ba1`）后 `ONLY=N2,T1,S2` 5/5 PASS，判定非 dev341 引起。
+- [x] 扩展接口：`DevPanel.registerTab(key,name,render)` / `window.DevTabs`（按 key 去重，后注册覆盖）/ `window.DevOpenWorld={id,title,mount(el)→unmount,ready()}` 自动成 Tab；render 可返回清理函数。v25 入口：修 `window.Game` 恒假（Game 是顶层 const）、试炼场改游戏内 iframe 覆盖层、即时战改本图野怪 RT27 实战。
+- [x] 10-23 全门禁（合 main 后）：validate22 0 错、dev341.py FAILS []、life34_unit 过、jsscan33 errors []、panels21 0/0、controls 0、human23 13/13；human_olaf 全量 22/23（只挂 N1：harness 没点中怪 fought=false）。对照 origin/main（v3.4.0 `ea4926e`）`ONLY=N1` ×2 = 1 过 1 挂，dev341 `ONLY=N1` ×2 = 1 过 1 挂 → 主线已有偶发，非本分支引起。N2/T1/S2 全量中均 PASS。
+- [x] 开 PR「3.4.1 作弊菜单重做」（不合并）。
+- [ ] （旧）human_olaf 全量 20:17 开跑 → `/tmp/gd341_olaf.txt`（末行 exit N）。之后开 PR「3.4.1 作弊菜单重做」，不合并。
+- 旧下一步（已完成）：查 g2 卡死；修 dev_entry_v25 全套神装（槽位 acc1/acc2 不存在、缺 base）；🛠 在不可开时给提示；写 test/dev341.py；门禁；PR。
+- [x] life34：`Life34._inApply` 重入标记（Game.apply / Talk.gift 包装期间为 true，计数防嵌套，finally 复位）；life34_unit `in_apply_flag` 通过。
+
 ## 3.4 自由度（Grok Bot，2026-10-19 起，分支 `v34-world`，worktree `/workspace/game-ow34`）
 > 主人要求：3.4 主打鬼谷八荒式自由度。第 1 步：无缝相邻地图（优先）→ 大地图。
 - [x] **无缝相邻地图** `www/js/seam34.js`（index.html 在 audio32 前加载）：按 world28 九州大地图节点坐标（MAPINFO.wx/wy 或 World28.DEFAULT_LAYOUT）给每张图四条等距边各连最近邻图（≤1500 世界格，贪心保证双向一致，共 50 条边向）。每条边在「与出生点连通、该方向最外侧且靠中线」的可走格放出口（发光光圈+箭头+「→ 邻图名」，未解锁显示 🔒 并 toast 境界不足）。停在出口（点按到达或摇杆走上去）即调 `Game.travel(id, true)`：免费、无菜单、跳过 UI.fade/UI.loading（无黑屏），进图时预加载所有邻图底板/道具图集；到达邻图反向出口内侧一格。寻路途经出口（自动任务/追踪）不切图。

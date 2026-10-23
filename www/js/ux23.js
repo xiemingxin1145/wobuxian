@@ -376,18 +376,21 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { Off
 setInterval(() => { if (!Offline._first && UX.inMap()) { Offline._first = 1; Offline.check(); } }, 1000);
 // ---------- D 开发者模式（标题/设置里的版本号连点 7 次（每下间隔 ≤1.5 秒），或 URL #dev） ----------
 const DEV = { ts: 1, god: false, ohk: false, noEnc: false, taps: 0, t0: 0 };
+// 3.4.1：无敌/一击必杀/不遇敌 开关记在 localStorage wbx2_devopt，刷新/读档后保持（原来刷新即失效）
+try { Object.assign(DEV, JSON.parse(localStorage.getItem('wbx2_devopt') || '{}')); } catch (e) { }
+const devOptSave = () => { try { localStorage.setItem('wbx2_devopt', JSON.stringify({ god: DEV.god, ohk: DEV.ohk, noEnc: DEV.noEnc })); } catch (e) { } };
 window.DEV = DEV;
 const devOn = () => localStorage.getItem('wbx2_dev') === '1';
 if (location.hash.includes('dev')) localStorage.setItem('wbx2_dev', '1');
 function devTap() {
   const now = Date.now(); if (now - DEV.t0 > 1500) DEV.taps = 0; DEV.t0 = now; DEV.taps++;  // 两次点按间隔 ≤1.5 秒就算连点（手慢/机器卡也能开）
-  if (DEV.taps >= 7) { DEV.taps = 0; if (devOn()) localStorage.removeItem('wbx2_dev'); else localStorage.setItem('wbx2_dev', '1'); UI.toast(devOn() ? '开发者模式已开启 🛠' : '已关闭开发者模式'); devBtn(); }
+  if (DEV.taps >= 7) { DEV.taps = 0; if (devOn()) { localStorage.removeItem('wbx2_dev'); localStorage.removeItem('wbx2_devopt'); DEV.god = DEV.ohk = DEV.noEnc = false; } else localStorage.setItem('wbx2_dev', '1'); UI.toast(devOn() ? '开发者模式已开启 🛠' : '已关闭开发者模式'); devBtn(); }
   else if (DEV.taps >= 4) UI.toast(`再点 ${7 - DEV.taps} 次${devOn() ? '关闭' : '进入'}开发者模式`);
 }
 document.addEventListener('click', e => { if (e.target.closest('#title .logo span, #title .ver, .verrow')) devTap(); }, true);
 function devBtn() {
   let b = $('#devbtn'); if (!devOn()) { if (b) b.remove(); return; }
-  if (!b) { b = mk('button', 'devbtn', '🛠'); b.onclick = () => { if (!UI.modal && Game.G && UX.inMap()) UI.panel('dev'); }; }
+  if (!b) { b = mk('button', 'devbtn', '🛠'); b.onclick = () => { if (!UI.modal && Game.G && UX.inMap()) UI.panel('dev'); else if (Game.G) UI.toast('现在打不开开发者面板（对话/战斗/演出进行中），结束后再点 🛠'); }; } // 3.4.1：打不开时给提示，不再无反应
 }
 setTimeout(devBtn, 300);
 const _set = UI.p_settings.bind(UI);
@@ -441,11 +444,11 @@ UI.p_dev = function (b, re, close, tab) {
       case 'g10': close(); await UI.gachaShow(fake(10)); return;
       case 'brk': close(); await VFX.breakthrough(REALMS[Math.min(7, G.realm + 1)].n, false); return;
       case 'brkf': close(); await VFX.breakthrough(REALMS[Math.min(7, G.realm + 1)].n, true); return;
-      case 'god': DEV.god = !DEV.god; break; case 'ohk': DEV.ohk = !DEV.ohk; break; case 'noenc': DEV.noEnc = !DEV.noEnc; break; case 'rel50': case 'rel50p': { const P = R.player, e = R.ents.filter(x => x.kind === 'npc' && x.id && !x.id.startsWith('l34_')).sort((a, b) => Math.hypot(a.i - P.i, a.j - P.j) - Math.hypot(b.i - P.i, b.j - P.j))[0]; if (e) { const L = Life34.st(); L.rel[e.id] = a === 'rel50' ? -50 : 50; UI.toast(`${e.label} 恩怨=${L.rel[e.id]}`); } break; }
+      case 'god': DEV.god = !DEV.god; devOptSave(); break; case 'ohk': DEV.ohk = !DEV.ohk; devOptSave(); break; case 'noenc': DEV.noEnc = !DEV.noEnc; devOptSave(); break; case 'rel50': case 'rel50p': { const P = R.player, e = R.ents.filter(x => x.kind === 'npc' && x.id && !x.id.startsWith('l34_')).sort((a, b) => Math.hypot(a.i - P.i, a.j - P.j) - Math.hypot(b.i - P.i, b.j - P.j))[0]; if (e) { const L = Life34.st(); L.rel[e.id] = a === 'rel50' ? -50 : 50; UI.toast(`${e.label} 恩怨=${L.rel[e.id]}`); } break; }
       case 'off13': case 'off1': case 'offm': close(); G.offAt = Date.now() - ({ off13: 13, off1: 1, offm: -1 })[a] * 3600e3; hookApp23(); window.onAppResume(); return;
       case 'ts': DEV.ts = +t.dataset.v; R.ts = DEV.ts; B.speed = DEV.ts; break;
       case 'reset': if (await UI.card('重置存档', '确定删除当前存档并回到标题吗？（轮回殿进度保留）', null, ['确定重置', '取消']) === 0) { localStorage.removeItem('wbx2_save'); location.reload(); } return;
-      case 'devoff': localStorage.removeItem('wbx2_dev'); devBtn(); close(); UI.toast('已关闭开发者模式'); return;
+      case 'devoff': localStorage.removeItem('wbx2_dev'); localStorage.removeItem('wbx2_devopt'); DEV.god = DEV.ohk = DEV.noEnc = false; devBtn(); close(); UI.toast('已关闭开发者模式'); return;
     }
     UI.toast('已执行：' + t.textContent); UI.hud(); Game.save(); re(tab);
   };

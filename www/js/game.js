@@ -104,6 +104,8 @@ const Game = {
     if (R.player && R.mode === 'map') { const [x, y] = t2p(R.player.i, R.player.j); for (let k = 0; k < 40; k++) part({ x: x + rnd(-40, 40), y: y - rnd(0, 20), vx: 0, vy: -rnd(100, 300), r: rnd(3, 7), c: pick(['#fff2a0', '#ffd25e', '#fff']), life: rnd(0.8, 1.5), star: k % 3 === 0 }); }
     const s = this.stats(); this.G.hp = s.mhp; this.G.mp = s.mmp;
   },
+  // 3.4.1 金手指：G.cheat.brk 必定突破；G.cheat.luck 掉落/奇遇 100%（开发者面板「金手指」）
+  roll(p, kind) { const c = this.G && this.G.cheat; if (c && ((kind === 'brk' && c.brk) || ((kind === 'drop' || kind === 'qiyu') && c.luck))) return true; return Math.random() < p; },
   async tryBreak() {
     if (this._breaking || this._busy) return; this._breaking = true; this._busy = true;
     try { await this._tryBreak(); } finally { this._breaking = false; this._busy = false; }
@@ -119,7 +121,7 @@ const Game = {
     ch = Math.min(0.97, ch); G.tmpBrk = 0;
     const ok = await UI.card('冲击瓶颈', `你准备从【${this.realmName()}】冲击【${REALMS[r + 1].n}】。${used.length ? '\n已服用：' + used.join('、') : ''}\n成功率约 ${Math.round(ch * 100)}%${REALMS[r + 1].jie ? `\n⚡ 成功后需渡过 ${REALMS[r + 1].jie} 道天劫！` : ''}`, 'i:sk_meditate', ['冲！', '再等等']);
     if (ok !== 0) { if (used.length) used.forEach(n => this.give(n === '筑基丹' ? 'zjd' : 'pjd')); return; }
-    if (Math.random() < ch) {
+    if (this.roll(ch, 'brk')) {
       if (REALMS[r + 1].jie) { const alive = await this.tribulation(REALMS[r + 1].jie, r); if (!alive) return; }
       G.realm++; G.stage = 0; G.exp = 0; G.pts += 2;
       this.log(`突破至${REALMS[G.realm].n}期。`); this.ach('r' + G.realm);
@@ -193,11 +195,11 @@ const Game = {
       for (const u of r.killed) {
         exp += this.yearExp() * 0.1 * Math.max(0.15, Math.min(2, 1 + (u.tier - this.power()) * 0.6)) * (u.boss ? 8 : u.elite ? 2.5 : 1); stone += 6 * POW(u.tier) * (u.boss ? 15 : u.elite ? 3 : 1) * rnd(0.7, 1.3);
         G.kills[u.mon] = (G.kills[u.mon] || 0) + 1; G.killsTotal++;
-        const M = MONS[u.mon]; for (const d of M.drop) if (Math.random() < (u.boss ? 1 : 0.35)) drops[d] = (drops[d] || 0) + 1;
+        const M = MONS[u.mon]; for (const d of M.drop) if (this.roll(u.boss ? 1 : 0.35, 'drop')) drops[d] = (drops[d] || 0) + 1;
       }
       stone *= (1 + this.treeVal('gold') + (this.eqFx('天道算盘') ? 0.5 : 0));
       const eqd = []; const eqCh = r.killed.some(u => u.boss) ? 1 : r.killed.some(u => u.elite) ? 0.6 : 0.1 + G.st.luck * 0.005;
-      if (Math.random() < eqCh) eqd.push(this.randEq(tier, r.killed.some(u => u.boss) ? 3 : r.killed.some(u => u.elite) ? 1 : 0));
+      if (this.roll(eqCh, 'drop')) eqd.push(this.randEq(tier, r.killed.some(u => u.boss) ? 3 : r.killed.some(u => u.elite) ? 1 : 0));
       if (r.killed.some(u => u.boss)) eqd.push(this.randEq(tier, 2));
       const ge = this.addExp(exp, true); G.stone += Math.round(stone); for (const d in drops) this.give(d, drops[d]);
       this.petGain(exp * 0.5);
@@ -324,7 +326,7 @@ const Game = {
       if (G.age > this.lifeMax()) { await this.die(G.realm === 0 ? 'mortal' : 'sit'); return; }
       const ev = this.pickEvent(); if (ev) await this.runEvent(ev);
       if (G.dead) return;
-      if (G.flags.vip && Math.random() < 0.3) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
+      if ((G.flags.vip || (G.cheat && G.cheat.luck)) && this.roll(0.3, 'qiyu')) { const ev2 = this.pickEvent(); if (ev2) await this.runEvent(ev2); }
       if (G.stone >= 10000) this.ach('rich'); if (G.stone >= 200000) this.ach('richer');
       if (G.stone >= 500000 && !G.flags.tycoonAsk) { G.flags.tycoonAsk = 1; const c = await UI.card('富甲三界', '你的灵石已经多到可以收购天道的全部债权了。要这么做吗？', 'i:bag', ['收购！（结局）', '低调']); if (c === 0) { await this.die('tycoon'); return; } }
       this.checkMain(); this.spawnMonsters(); this.refreshNpcs(); UI.hud(); this.save();

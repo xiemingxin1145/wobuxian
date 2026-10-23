@@ -144,9 +144,13 @@ Life34.yc = function () { const L = Life34.st(), y = Life34.yr(); if (!L.yc || L
 Life34.onChat = function (id) { const c = Life34.yc(); const n = c.chat[id] = (c.chat[id] || 0) + 1; const d = n === 1 ? 4 : n <= 3 ? 1 : 0; if (d) Life34.rel(id, d); };
 Life34.onGift = function (id, item) { const c = Life34.yc(); const want = item === ((typeof Talk !== 'undefined' && Talk.prefs) || Life34.LIKE)[id] ? 10 : Life34.RARE.includes(item) ? 6 : 3; const d = Math.max(0, Math.min(want, 15 - (c.gift[id] || 0))); c.gift[id] = (c.gift[id] || 0) + d; if (d) Life34.rel(id, d); };
 Life34.syncAff = function (before) { const G = Game.G; if (!G || !G.aff) return; Life34.yc(); for (const id in G.aff) { const d = (G.aff[id] || 0) - (before[id] || 0); const r = Math.trunc(d * 0.5); if (r) Life34.rel(id, r); } };
-{ const _ap = Game.apply; Game.apply = async function () { const G = this.G; const b = G && G.aff ? Object.assign({}, G.aff) : null; const r = await _ap.apply(this, arguments); try { if (b) Life34.syncAff(b); } catch (e) { } return r; }; }
-if (typeof Talk !== 'undefined' && Talk.gift) { const _g = Talk.gift; Talk.gift = async function (id) { const G = Game.G; const b = Object.assign({}, G.aff), inv = Object.assign({}, G.inv); const r = await _g.apply(this, arguments);
-    try { Life34.syncAff(b); const it = Object.keys(inv).find(k => (G.inv[k] || 0) < inv[k]); if (it) Life34.onGift(id, it); } catch (e) { } return r; }; }
+// 重入标记：Game.apply / Talk.gift 包装运行期间 Life34._inApply=true（计数防嵌套提前复位），外部（如 Stage3.affRel）可据此跳过自己的 syncAff，避免重复同步
+Life34._inApply = false; Life34._applyDepth = 0;
+Life34._enter = function () { Life34._applyDepth++; Life34._inApply = true; };
+Life34._leave = function () { Life34._applyDepth = Math.max(0, Life34._applyDepth - 1); Life34._inApply = Life34._applyDepth > 0; };
+{ const _ap = Game.apply; Game.apply = async function () { const G = this.G; const b = G && G.aff ? Object.assign({}, G.aff) : null; Life34._enter(); try { const r = await _ap.apply(this, arguments); try { if (b) Life34.syncAff(b); } catch (e) { } return r; } finally { Life34._leave(); } }; }
+if (typeof Talk !== 'undefined' && Talk.gift) { const _g = Talk.gift; Talk.gift = async function (id) { const G = Game.G; const b = Object.assign({}, G.aff), inv = Object.assign({}, G.inv); Life34._enter(); try { const r = await _g.apply(this, arguments);
+    try { Life34.syncAff(b); const it = Object.keys(inv).find(k => (G.inv[k] || 0) < inv[k]); if (it) Life34.onGift(id, it); } catch (e) { } return r; } finally { Life34._leave(); } }; }
 { const _fq = Game.finishQuest; Game.finishQuest = async function (q) { const r = await _fq.apply(this, arguments); try { if (q.startsWith('qc34_') && QUESTS[q]) { const L = Life34.st(); if (L.qt) delete L.qt[q]; Life34.rel(QUESTS[q].giver, 15 + (q.endsWith('3') ? 10 : 0));
       if (q.endsWith('3')) { // 整条链完成：链主=末步给予者，至少 40；前几步的其他给予者各 +5
         const own = QUESTS[q].giver; L.rel[own] = Math.max(L.rel[own] || 0, 40);
