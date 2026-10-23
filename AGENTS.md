@@ -1,7 +1,8 @@
 # AGENTS.md —《我不仙》接手入口
 
 > 写给任何接手的 AI 编程工具或开发者（不需要任何之前的对话上下文）。
-> **2026-10-18 更新**：当前版本 3.3.0（见 `PROGRESS.md`「v3.3.0 线」与 `docs/ROADMAP.md` §2）。3.3 新文件：`content23.js`（第十七章～终章下）、`mingge33.js`、`fabao33.js`、`worldboss33.js`、`daily33.js`、`tujian33.js`、`huashen33.js`，均在 `xiancontent31.js` 之后加载。新门禁用例：`human_olaf.py` 的 T9b、S1–S3；诊断脚本 `test/sys33_unit.py`、`test/content33.py`、`test/jsscan33.py`。Issue #5 已在 3.3 修复。注意：本机是多个 AI 共用的同一台机器、同一个 `/workspace/game` 克隆，**未提交的改动可能被别人的 checkout 覆盖，改完立即提交**。以下旧内容保留作历史。
+> **2026-10-19 更新**：当前版本 3.4.0（3.4 新文件：`seam34.js` 无缝相邻地图、`bigmap34.js` 地图扩大、`life34.js` 来客/恩怨/奇遇链 qc34/好感节奏、`jianghu34.js` 江湖自转/江湖风云/CH34；测试 `seam34.py`、`life34_unit.py`、`life34_visitor_nomons.py`、`jianghu34_unit.py`、`jianghu34_ui.py`）。
+> **2026-10-18 更新**：当时版本 3.3.0（见 `PROGRESS.md`「v3.3.0 线」与 `docs/ROADMAP.md` §2）。3.3 新文件：`content23.js`（第十七章～终章下）、`mingge33.js`、`fabao33.js`、`worldboss33.js`、`daily33.js`、`tujian33.js`、`huashen33.js`，均在 `xiancontent31.js` 之后加载。新门禁用例：`human_olaf.py` 的 T9b、S1–S3；诊断脚本 `test/sys33_unit.py`、`test/content33.py`、`test/jsscan33.py`。Issue #5 已在 3.3 修复。注意：本机是多个 AI 共用的同一台机器、同一个 `/workspace/game` 克隆，**未提交的改动可能被别人的 checkout 覆盖，改完立即提交**。以下旧内容保留作历史。
 > 更新：2026-10-10（UTC+8）。稳定正式版仍为 v2.3.0（tag `v2.3.0` = `362172f`）。v2.5 阶段 1/2 的合并提交为 `61d2eba`；CI `build-153` 成功并作为预发布发布，稳定版 `latest` 仍指向 v2.3.0。HD APK 为 278,378,225 B，lite APK 为 47,716,509 B。详细包体、模拟器和原型边界见 `PROGRESS.md`、`docs/ROADMAP.md`。Issue #5 仍开放：公开历史 T4=9/20；本轮独立复测 T4=1/20，T9 为 1 次失败后连续 4 次成功且每次使用开发者辅助；未达到连续 5 次，也不是无辅助验收。历史与本轮时间、路径、辅助状态见 `PROGRESS.md`，不覆盖原结果。只写在文件/git/GitHub 里核实过的内容，不确定的地方标了「⚠待核实」。
 > **从这里开始：先读 `docs/ROADMAP.md`（全局：故事、现状、待办），再读 `PROGRESS.md`（最近一次干到哪了）。**
 

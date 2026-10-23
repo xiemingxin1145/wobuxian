@@ -155,3 +155,12 @@ if (typeof Talk !== 'undefined' && Talk.gift) { const _g = Talk.gift; Talk.gift 
       if (q.endsWith('3')) { // 整条链完成：链主=末步给予者，至少 40；前几步的其他给予者各 +5
         const own = QUESTS[q].giver; L.rel[own] = Math.max(L.rel[own] || 0, 40);
         const others = new Set([1, 2].map(k => QUESTS[q.slice(0, -1) + k]).filter(Q => Q && Q.giver !== own).map(Q => Q.giver)); others.forEach(id => Life34.rel(id, 5)); } } } catch (e) { } return r; }; }
+
+// ======================= 3.4.0 发版前：点标记/NPC 不被怪截胡（S3 催收令、N1）=======================
+// ①刷怪离 NPC/交互标记 ≥2 格（挪到附近空格，挪不动就移除这只）；②走向标记（如「催收令」）期间同 NPC 一样怪物暂停靠近；
+// ③点在标记名牌上却命中了怪 → 以标记为准。
+Life34.tooClose = function (i, j) { for (const e of R.ents) if ((e.kind === 'npc' || e.kind === 'boss') && !e.hidden && Math.hypot(e.i - i, e.j - j) < 2) return true; for (const m of R.marks || []) if (!m.hidden && Math.hypot(m.i + 0.5 - i, m.j + 0.5 - j) < 2) return true; return false; };
+Life34.spaceMons = function () { for (const e of R.ents.slice()) { if (e.kind !== 'mon' || e.gone || !Life34.tooClose(e.i, e.j)) continue; let ok = null; for (let r = 2; r <= 6 && !ok; r++) for (let a = 0; a < 16 && !ok; a++) { const i = Math.floor(e.i + Math.cos(a * 0.39) * r), j = Math.floor(e.j + Math.sin(a * 0.39) * r); if (walkable(i, j) && !Life34.tooClose(i + 0.5, j + 0.5)) ok = [i, j]; } if (ok) { e.i = ok[0] + 0.5; e.j = ok[1] + 0.5; e.path = []; if (e.home) e.home = ok.slice(); } else removeEnt(e); } };
+{ const _sm = Game.spawnMonsters; Game.spawnMonsters = function () { const r = _sm.apply(this, arguments); try { Life34.spaceMons(); } catch (e) { } return r; }; }
+if (typeof UX !== 'undefined' && UX.goMark) { const _gm = UX.goMark; UX.goMark = function (m, quiet) { if (R.player) R.player._npcGrace = performance.now() + 8000; return _gm.apply(this, arguments); }; }
+{ const _pk = pickAt; pickAt = function (sx, sy) { const h = _pk(sx, sy); try { if (h && h.ent && h.ent.kind === 'mon') { const [wx, wy] = s2w(sx, sy); for (const m of R.marks || []) { if (m.hidden || !m.key) continue; const [x, y] = t2p(m.i + 0.5, m.j + 0.5); const by = y - (m.h || 110); if (Math.abs(wx - x) < 56 && wy > by - 30 && wy < by + 18) return { mark: m }; } } } catch (e) { } return h; }; }
