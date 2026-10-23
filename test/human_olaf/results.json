@@ -1,6 +1,5 @@
 {
  "dpr": 2.0,
- "www": "/workspace/game-dev341/www",
  "cases": [
   {
    "case": "T0a_new_life_enter_map",
@@ -20,7 +19,7 @@
      "翠花",
      "cuihua",
      "💬",
-     5,
+     4.2,
      [
       51,
       89
@@ -47,16 +46,6 @@
      ]
     ],
     [
-     "说书先生",
-     "villager",
-     "💬",
-     9.2,
-     [
-      51,
-      89
-     ]
-    ],
-    [
      "娘",
      "mom",
      "💬",
@@ -70,7 +59,17 @@
      "王大爷",
      "farmer",
      "💬",
-     11.7,
+     10.4,
+     [
+      51,
+      89
+     ]
+    ],
+    [
+     "说书先生",
+     "villager",
+     "💬",
+     12.0,
      [
       51,
       89
@@ -90,7 +89,7 @@
      "集市货郎",
      "b34_peddler",
      "💬",
-     24.2,
+     23.2,
      [
       51,
       89
@@ -110,15 +109,15 @@
      50,
      77
     ],
-    "说书先生": [
-     51,
-     89
-    ],
     "娘": [
      51,
      89
     ],
     "王大爷": [
+     51,
+     89
+    ],
+    "说书先生": [
      51,
      89
     ],
@@ -132,112 +131,8 @@
     ]
    },
    "shot": "001_T0_enter_map.png"
-  },
-  {
-   "case": "N2_mark_does_not_steal_npc_tap",
-   "ok": true,
-   "checked": 8,
-   "rows": [
-    {
-     "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 13,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 13,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "mom",
-     "near": "打坐",
-     "css_dist": 43,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "mom",
-     "near": "打坐",
-     "css_dist": 43,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "luren",
-     "near": "洞府",
-     "css_dist": 51,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "luren",
-     "near": "洞府",
-     "css_dist": 51,
-     "part": "body",
-     "result": "npc"
-    },
-    {
-     "npc": "villager",
-     "near": "古井",
-     "css_dist": 104,
-     "part": "name",
-     "result": "npc"
-    },
-    {
-     "npc": "villager",
-     "near": "古井",
-     "css_dist": 104,
-     "part": "body",
-     "result": "npc"
-    }
-   ],
-   "note": null
-  },
-  {
-   "case": "T1_hitbox_5_points",
-   "ok": true,
-   "map": "village",
-   "hit": "35/35",
-   "wrong_target": 0,
-   "by_part": {
-    "feet": "7/7",
-    "body": "7/7",
-    "head": "7/7",
-    "name": "7/7",
-    "mark": "7/7"
-   },
-   "misses": [],
-   "note": ""
-  },
-  {
-   "case": "info_recoveries_used",
-   "ok": true,
-   "recoveries": 0,
-   "battles": 6,
-   "note": "T1–T4 期间因 N1（战斗后点按失效）回标题“继续人生”的次数"
-  },
-  {
-   "case": "S2_fabao_pick_upgrade",
-   "ok": true,
-   "hint": "升到 2 阶：灵石 660、玄铁晶 1；成功率 92%（失败不掉阶，返还 50% 灵石）",
-   "tier": [
-    1,
-    2
-   ],
-   "stone_spent": 660,
-   "fail_card": false,
-   "shot": "003_S2_fabao.png",
-   "cheats": [
-    "dev:境界>金丹初期",
-    "dev:资源>灵石 +100万",
-    "dev:资源>全部物品 ×5"
-   ]
   }
  ],
- "fails": [],
- "js_errors": []
+ "js_errors": [],
+ "partial": true
 }

@@ -8,7 +8,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 125.9,
+   "moved_px": 109.8,
    "ok": true
   },
   {
@@ -19,7 +19,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 162.5,
+   "moved_px": 141.3,
    "ok": true
   },
   {
@@ -30,7 +30,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 246.6,
+   "moved_px": 211.9,
    "ok": true
   },
   {
@@ -52,7 +52,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 120.1,
+   "moved_px": 107.9,
    "ok": true
   },
   {
@@ -63,7 +63,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 146.2,
+   "moved_px": 138.9,
    "ok": true
   },
   {
@@ -74,7 +74,7 @@
    "facing_vs_motion_err": 0,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 219.6,
+   "moved_px": 215.8,
    "ok": true
   },
   {
@@ -85,7 +85,7 @@
    "facing_vs_motion_err": 18.4,
    "walk_while_drag": true,
    "idle_after_release": true,
-   "moved_px": 139.7,
+   "moved_px": 131.6,
    "ok": true
   }
  ],
@@ -109,12 +109,12 @@
     137,
     516
    ],
-   "end_dist_tiles": 2.24,
+   "end_dist_tiles": 0.0,
    "first_facing": "SW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 15,
+   "path_tiles": 8,
    "idle_on_arrival": true,
-   "ok": false
+   "ok": true
   },
   {
    "target": "(-3,-2)",
@@ -122,12 +122,12 @@
     183,
     424
    ],
-   "end_dist_tiles": 3.61,
-   "first_facing": null,
+   "end_dist_tiles": 0.0,
+   "first_facing": "NW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 4,
+   "path_tiles": 10,
    "idle_on_arrival": true,
-   "ok": false
+   "ok": true
   },
   {
    "target": "(+2,-3)",
@@ -135,12 +135,12 @@
     321,
     470
    ],
-   "end_dist_tiles": 3.61,
-   "first_facing": null,
+   "end_dist_tiles": 0.0,
+   "first_facing": "NE",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 4,
+   "path_tiles": 10,
    "idle_on_arrival": true,
-   "ok": false
+   "ok": true
   },
   {
    "target": "(-3,+2)",
@@ -148,28 +148,28 @@
     91,
     470
    ],
-   "end_dist_tiles": 3.61,
-   "first_facing": null,
+   "end_dist_tiles": 0.0,
+   "first_facing": "NW",
    "mismatch_frames_pct": 0.0,
-   "path_tiles": 4,
+   "path_tiles": 10,
    "idle_on_arrival": true,
-   "ok": false
+   "ok": true
   }
  ],
  "edge": [
   {
    "case": "拖出摇杆区域后松开",
-   "during_walk": false,
+   "during_walk": true,
    "after_idle": true,
    "joy_released": true,
-   "ok": false
+   "ok": true
   },
   {
    "case": "摇杆按住+另一指点按",
-   "joy_still_active": false,
-   "still_facing_E": false,
+   "joy_still_active": true,
+   "still_facing_E": true,
    "released_ok": true,
-   "ok": false
+   "ok": true
   },
   {
    "case": "点按UI按钮(背包)",
