@@ -35,6 +35,7 @@ async def main():
         await pg.reload(); await pg.wait_for_timeout(3500)
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
+        await pg.evaluate("document.body.classList.add('ingame');const t=document.getElementById('title');if(t)t.style.display='none'")  # main.js 离开标题页时加 ingame；本测试绕过标题直接 newLife。兜底入口与 main 的 v25 按钮一样只在游戏内显示
         await pg.wait_for_timeout(600)
         await pg.evaluate("localStorage.removeItem('wbx_dev_bounty_tuning')")
         await pg.click('#dow-open'); await pg.wait_for_timeout(300)

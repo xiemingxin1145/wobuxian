@@ -22,7 +22,7 @@
 // 3.4.1 作弊菜单页签（Grok Bot 定的接口）：开发者模式下登记
 //   DevPanel.registerTab('openworld', '开放世界', render)（dev341 已加载时），否则 (window.DevTabs = window.DevTabs || []).push({ key: 'openworld', id: 'openworld', name: '开放世界', render(el) })
 //   dev341 的 DevPanel.tabs() 按 key 过滤；菜单遍历 DevTabs，一项一个页签，调用 render(页签容器)；render 返回 unmount。只登记一次（文件执行两次也不重复）；非开发者模式不登记。
-// 兜底入口（3.4.1 页签落地前给测试用）：开发者模式下右侧一个「开放世界」浮动按钮（bottom:270px，在 main 的 试炼场/全套神装/即时战 之上，不重叠），
+// 兜底入口：开发者模式下左侧一个「开放世界」浮动按钮（main 3.4.1 的 试炼场/全套神装/即时战 下方 top:342px，z-index 7 在弹窗层之下、只在游戏内显示，不盖底部菜单/开发者面板），
 //   点开一个按钮面板（#dow-open 打开 #dow-panel，按钮 id = dow-<key>）。非开发者模式不出现；宿主 mount() 过就隐藏。
 
 (function () {
@@ -287,12 +287,14 @@
     if (!document.body || document.getElementById('dow-open')) { syncFallback(); return; }
     const fb = document.createElement('button');
     fb.id = 'dow-open'; fb.textContent = '开放世界';
-    fb.style.cssText = 'position:fixed;right:12px;bottom:270px;z-index:9999;' + BTN_CSS + 'background:#3a4a2a;color:#d8ffa0;border:1px solid #d8ffa0;';
+    fb.style.cssText = 'position:fixed;left:8px;top:calc(342px + env(safe-area-inset-top));z-index:7;' + BTN_CSS + 'padding:6px 10px;font-size:12px;' + 'background:#3a4a2a;color:#d8ffa0;border:1px solid #d8ffa0;';
     const pn = document.createElement('div');
     pn.id = 'dow-panel';
-    pn.style.cssText = 'position:fixed;right:12px;bottom:320px;z-index:9999;display:none;flex-direction:column;align-items:flex-end;gap:8px;max-height:calc(100vh - 340px);overflow:auto;';
+    pn.style.cssText = 'position:fixed;left:8px;top:calc(382px + env(safe-area-inset-top));z-index:7;display:none;flex-direction:column;align-items:flex-start;gap:8px;max-height:calc(100vh - 460px);overflow:auto;';
     BUTTONS.forEach(b => { const e = makeButton(b); e.id = 'dow-' + b.key; pn.appendChild(e); });
     fb.onclick = () => { pn.style.display = pn.style.display === 'none' ? 'flex' : 'none'; };
+    // 兜底入口在弹窗层（#modals z=20）之下、只在游戏内显示（与 main 3.4.1 dev_entry_v25.js 同法）：不盖开发者面板/对话卡，点不穿
+    if (!document.getElementById('dow-css')) { const st = document.createElement('style'); st.id = 'dow-css'; st.textContent = 'body:not(.ingame) #dow-open,body:not(.ingame) #dow-panel{display:none!important}'; document.head.appendChild(st); }
     document.body.appendChild(pn); document.body.appendChild(fb);
     syncFallback();
   }

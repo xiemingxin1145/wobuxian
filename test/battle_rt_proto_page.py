@@ -15,7 +15,9 @@ async def main():
         pg=await b.new_page(viewport={'width':412,'height':915})
         pg.on('pageerror',lambda e: errs.append(str(e)[:300]))
         pg.on('console',lambda m: m.type=='error' and '404' not in m.text and errs.append(m.text[:300]))
-        await pg.goto(f'http://127.0.0.1:{PORT}/index.html#dev'); await pg.wait_for_timeout(4000)
+        # 开发者模式 = main 持久开关 wbx2_dev='1'（无 hash 重载 = APK 重启）；兜底入口只在游戏内显示（main.js 离开标题页加 body.ingame，这里直接加）
+        await pg.goto(f'http://127.0.0.1:{PORT}/index.html'); await pg.evaluate("localStorage.setItem('wbx2_dev','1')")
+        await pg.reload(); await pg.wait_for_timeout(4000); await pg.evaluate("document.body.classList.add('ingame');const t=document.getElementById('title');if(t)t.style.display='none'")
         await pg.click('#dow-open'); await pg.wait_for_timeout(200)  # 「即时战」按钮已挪到 dev_openworld.js 的「开放世界」面板
         n=await pg.evaluate("document.querySelectorAll('#dow-rt').length")
         await pg.click('#dow-rt'); await pg.wait_for_timeout(1200)
@@ -48,7 +50,7 @@ async def main():
         await pg.screenshot(path=os.environ.get('SHOT2','/tmp/battle_rt_skill.png'))
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(200)
         await b.close()
-    checks=[('#dev 出现「即时战」按钮',n==1),('点按钮打开覆盖层并开战',st['ov'] and st['on']),('主角用游戏现有精灵且图已加载',st['spr'].startswith('player_') and st['img']),
+    checks=[('wbx2_dev=1 出现「即时战」按钮',n==1),('点按钮打开覆盖层并开战',st['ov'] and st['on']),('主角用游戏现有精灵且图已加载',st['spr'].startswith('player_') and st['img']),
             ('普攻命中扣血并出伤害飘字',st2['hp']<80 and str(80-st2['hp']) in st2['nums']),('Escape 关闭覆盖层并结束原型',not st3['ov'] and not st3['on']),('有存档时血/攻只读取自 Game.stats()',st4['src']=='game' and st4['max']==st4['mhp'] and st4['atk']==st4['sa'] and st4['spr'].startswith('player_f')),('战斗前后存档 G 不变',st4['same']),('天灵根+剑 → 技能「庚金剑气·剑」，单灵根无「换」按钮',st5['key']=='metal' and st5['n']=='庚金剑气·剑' and not st5['swap']),
             ('Q 键剑气贯穿：前后两只都掉血',all(h<m for h,m in st6)),
             ('双灵根+扇：默认木、有「换」按钮',st7['k0']=='wood' and st7['has']),
