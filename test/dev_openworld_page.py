@@ -39,9 +39,9 @@ async def main():
         await pg.wait_for_timeout(600)
         await pg.evaluate("localStorage.removeItem('wbx_dev_bounty_tuning')")
         await pg.click('#dow-open'); await pg.wait_for_timeout(300)
-        ck('「开放世界」兜底入口打开面板，面板里有八个按钮', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===8"))
+        ck('「开放世界」兜底入口打开面板，面板里有九个按钮（第二十一轮加「讨债令」）', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===9"))
         boxes = await pg.evaluate("""()=>{const q=[...document.querySelectorAll('#v25-entry,#v25-eq,#v25-rt,#dow-open')].concat([...document.querySelectorAll('#dow-panel button')]);return q.map(e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})}""")
-        ck('main 三个开发者按钮 + 「开放世界」入口 + 面板八个按钮（含「突破预估」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 12 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(12) for j in range(i+1, 12)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
+        ck('main 三个开发者按钮 + 「开放世界」入口 + 面板九个按钮（含「突破预估」「讨债令」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 13 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(13) for j in range(i+1, 13)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
         ck('wbx2_dev=1 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['dow-entry','dow-eq','dow-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
@@ -208,6 +208,22 @@ async def main():
             t2 = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token})")
             ck('次年再打赢一次天道通缉 → 「共 2 枚」，s3b_token 累加到 2 并存档', '缴获讨债令×1（共 2 枚）' in w2txt and t2['n'] == 2 and t2['sv'] == 2)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            # 第二十一轮：讨债令第一个只读用途——「讨债令」按钮出卡显示 2/9、今年已领；点前点后 G 与存档逐字节不变
+            async def lt_card():
+                before = await pg.evaluate("({g:JSON.stringify(Game.G),sv:localStorage.getItem('wbx2_save')})")
+                await pg.click('#dow-lt')
+                c = pg.locator('.card:has(.ct:text("讨债令"))').last; await c.wait_for(timeout=3000)
+                tx = await c.inner_text(); nopt = await c.locator('.opt').count()
+                await c.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+                after = await pg.evaluate("({g:JSON.stringify(Game.G),sv:localStorage.getItem('wbx2_save')})")
+                return tx, nopt, before == after
+            ltx, lno, lsame = await lt_card()
+            ck('「讨债令」按钮（只读）：卡片「讨债令 2/9」「今年（第 N 年）已领过，明年再来」「今年冷却中」、只有「知道了」，G 与存档不变',
+               '讨债令 2/9' in ltx and '已领过，明年再来' in ltx and '今年冷却中' in ltx and '天道通缉·讨债鬼头子' in ltx and lno == 1 and lsame)
+            await pg.evaluate("()=>{Game.G.year=(Game.G.year||0)+1;}")
+            ltx2, _, lsame2 = await lt_card()
+            ck('次年再看「讨债令」：「还没领」「可缴获 1 枚」，G 与存档不变', '讨债令 2/9' in ltx2 and '还没领' in ltx2 and '可缴获 1 枚' in ltx2 and lsame2)
+            await pg.evaluate("()=>{Game.G.year=Game.G.year-1;}")
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
             await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>{RealtimeBattle.state.player.hp=0;}")

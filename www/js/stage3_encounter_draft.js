@@ -501,6 +501,30 @@ const Stage3 = {
     const v = Number(G && G.flags && typeof G.flags === 'object' ? G.flags.s3b_token : 0);
     return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
   },
+  // ======== 讨债令第一个只读用途（2026-10-23 第二十一轮）：持有情况说明 ========
+  // tokenInfo(G)：纯函数，只读 G.flags.s3b_token / s3b_token_src / s3b_token_year 与 G.year，不写任何字段、不调存档；
+  //   给开发者「开放世界」页签的「讨债令」按钮显示「讨债令 x/9，今年是否已领」。没接入正常游戏流程。
+  //   返回 { count, max, full, year, lastYear, takenThisYear, src, block, lines, text }：
+  //     count = tokenCount(G)（旧存档异常大数照实显示，不钳）；full = count ≥ TOKEN_MAX；
+  //     year = 当前游戏年（G.year 非数字为 null）；lastYear = 最近一次缴获的年份（非数字为 null）；
+  //     takenThisYear：year 为 null 时 null（旧存档不做冷却），否则 lastYear === year；block = tokenBlock(G)（下一场打赢会不会被挡）。
+  tokenInfo(G) {
+    const F = G && G.flags && typeof G.flags === 'object' ? G.flags : null;
+    const count = this.tokenCount(G), max = this.TOKEN_MAX, full = count >= max;
+    const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    const year = G && typeof G === 'object' ? num(G.year) : null;
+    const lastYear = F ? num(F.s3b_token_year) : null;
+    const takenThisYear = year === null ? null : lastYear === year;
+    const src = F && typeof F.s3b_token_src === 'string' && F.s3b_token_src ? F.s3b_token_src : null;
+    const block = this.tokenBlock(G);
+    const N = this.TOKEN_NAME, lines = [];
+    lines.push(`${N} ${count}/${max}${full ? '（已满）' : ''}`);
+    lines.push(year === null ? '今年是否已领：无年份（旧存档），不做每年冷却' : takenThisYear ? `今年（第 ${year} 年）已领过，明年再来` : `今年（第 ${year} 年）还没领`);
+    if (count > 0) lines.push(`最近一次：${src || '来源未记'}${lastYear !== null ? `（第 ${lastYear} 年）` : ''}`);
+    lines.push(block === 'cap' ? `下一场天道通缉打赢头子：已满 ${max} 枚，不会再缴获` : block === 'cooldown' ? '下一场天道通缉打赢头子：今年冷却中，不会再缴获' : '下一场天道通缉打赢头子：可缴获 1 枚');
+    lines.push('只是凭证，暂无用途；本页只读，不改存档');
+    return { count, max, full, year, lastYear, takenThisYear, src, block, lines, text: lines.join('\n') };
+  },
   bountyTokenEarned(out, tier) {
     return !!out && out.result === 'win' && (out.reason == null || out.reason === 'cleared') && tier === 3 &&
       Array.isArray(out.defeated) && out.defeated.includes(this.BOSS_NAME);

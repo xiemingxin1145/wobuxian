@@ -279,6 +279,14 @@
 - 测试：battle_rt_proto 147 PASS / battle_rt_proto_page 12 / dev_openworld_gate_page 39/39 / dev_openworld_page 全过 / stage3_chain / stage3_life34 / good_rel_cap 31/31 / lowpoly_box ALL PASS / validate22 / life34_unit / life34_visitor_nomons / jianghu34_unit / jianghu34_ui / seam34 / sys33_unit / jsscan33 / content33 / wb33_mark_regress / dev341_audit 全过；dev341.py 仅 3_state 失败（main 已知）。results 不提交。
 - 本轮改动文件：www/js/battle_realtime_prototype.js、test/battle_rt_proto.js、PROGRESS.md。
 
+### 2026-10-23 第二十一轮（UTC+8，openworld-wip，16:00 起、18:00 收尾）——讨债令第一个只读用途 + 合 main v3.4.2
+- 普通 merge 合入 origin/main 1561e5f（v3.4.2，PR #33 名字牌点按修复），无冲突。
+- `www/js/stage3_encounter_draft.js`：纯函数 `Stage3.tokenInfo(G)`，只读 `flags.s3b_token` / `s3b_token_src` / `s3b_token_year` 与 `G.year`，返回 `{ count, max, full, year, lastYear, takenThisYear, src, block, lines, text }`；`block` 与 `tokenBlock(G)` 一致（下一场打赢会不会被上限/冷却挡）；旧存档异常大数照实显示不钳，`G.year` 非数字时 `takenThisYear` 为 null、不做冷却。
+- `www/js/dev_openworld.js`：开放世界页签第 9 个按钮「讨债令」，出卡显示「讨债令 x/9（已满）」、今年是否已领、最近一次来源、下一场能否缴获，只有「知道了」，不改存档、不调 `Game.save`。讨债令仍暂无用途，没接入正常游戏流程。
+- 测试：`test/stage3_chain.js` 新增 15c（0 枚 / 2 枚今年已领（深冻结存档不抛错）/ 次年 / 9 枚已满 / 旧存档 50 枚无年份 / 6 种坏输入 / 与下一场 settleBounty 的 token、tokenBlocked 逐例一致 / 连调 20 次存档不变不 save / 按钮源码只读 / tokenInfo 源码无赋值），229 PASS；`test/dev_openworld_page.py` 真页面「讨债令」卡 2/9、今年已领、次年还没领、点前点后 G 与存档逐字节不变，62 PASS；`test/dev_openworld_gate_page.py` 按钮数 8→9，39/39。stage3_life34 / battle_rt_proto / lowpoly_box ALL PASS、good_rel_cap 31/31、validate22 errors []、battle_rt_proto_page / encounter_chain_verify 14/14 / tap342 / dev341 / dev341_audit 22 项 / jsscan33 / sys33_unit / life34_unit / jianghu34_unit 全过。results 不提交。
+- 本轮改动文件：www/js/stage3_encounter_draft.js、www/js/dev_openworld.js、test/stage3_chain.js、test/dev_openworld_page.py、test/dev_openworld_gate_page.py、docs/openworld_upgrade.md、PROGRESS.md。
+- 下一步：即时战原型一小步（如追兵战结算卡显示本场用时/受击次数），或讨债令第二个只读用途（如抵扣误工费预览）；讨债令真正抵扣/兑换前须另开 PR 给奥拉夫审。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

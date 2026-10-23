@@ -2,7 +2,7 @@
 // 开放世界线 · 开发者按钮（dev_openworld.js）——从 dev_entry_v25.js 挪出（dev_entry_v25.js 恢复为 main 原样）。
 //
 // 按钮：试炼场（覆盖层 iframe / 取消 = 阶段3 债务奇遇）· 全套神装 · 即时战（覆盖层原型）· 奇遇链（钱多多）· 查账链（记账童子）
-//       · 追兵战（债压档位）· 突破预估（只读）· 追兵调参（开发者覆盖 + 一键预设）。行为与 openworld-wip aa00519 时 dev_entry_v25.js 里的同名按钮一致。
+//       · 追兵战（债压档位）· 突破预估（只读）· 讨债令（只读：x/9、今年是否已领）· 追兵调参（开发者覆盖 + 一键预设）。行为与 openworld-wip aa00519 时 dev_entry_v25.js 里的同名按钮一致。
 //
 // 只在开发者模式生效：唯一判定 localStorage.wbx2_dev === '1'（main ux23.js 的持久开关，版本号 7 连点切换；APK 重启后仍保持），每秒轮询跟随开/关。
 //   非开发者模式：本文件只挂一个空壳 window.DevOpenWorld（active=false），不加载任何原型脚本、不建任何 DOM。
@@ -161,6 +161,13 @@
           `基础成功率：约 ${p.base}%${p.source === 'game' ? '（现行突破公式）' : '（默认值）'}${p.pills.length ? '，含' + p.pills.join('、') : ''}\n` +
           `债压惩罚：−${p.penalty} 个百分点\n预估成功率：约 ${p.estimate}%\n${p.note}`;
         await u.card('突破预估', body, 'i:sk_meditate', ['知道了']);
+    } },
+      // 讨债令按钮（第二十一轮）：讨债令第一个只读用途——显示「讨债令 x/9，今年是否已领」（Stage3.tokenInfo 纯函数），不改存档、不调 Game.save
+    { key: 'lt', label: '讨债令', bg: '#3a3a2a', fg: '#ffe0a0', run: async () => {
+        const g = gameObj(); const u = uiObj();
+        if (!window.Stage3 || !Stage3.tokenInfo || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+        if (!u || !u.card) return;
+        await u.card(Stage3.TOKEN_NAME, Stage3.tokenInfo(g.G).text, 'i:bill', ['知道了']);
     } },
       // 追兵调参按钮：债务强化 #7——显示当前生效的追兵档位参数表（默认表 + localStorage 开发者覆盖）、哪些字段被覆盖/钳制/回退；可一键清除覆盖。不改存档
       // 债务强化 #8：卡片选项固定为「知道了」+ 三个预设（好躲 / 原样（清除覆盖）/ 地狱），点预设 = 把预设 JSON 写进 TUNING_KEY（原样 = 删键）

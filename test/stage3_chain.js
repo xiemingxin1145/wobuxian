@@ -371,6 +371,42 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     ok(/s\.tokenBlocked === 'cap'/.test(de9) && /已满 \$\{Stage3\.TOKEN_MAX\} 枚/.test(de9) && /今年已缴获过\$\{Stage3\.TOKEN_NAME\}，明年再来/.test(de9), '开发者「追兵战」结算卡：被上限/冷却挡下时说明原因');
   }
 
+  // 15c. 第二十一轮：讨债令第一个只读用途——Stage3.tokenInfo(G) 纯函数（讨债令 x/9、今年是否已领），不改存档
+  {
+    const deep = o => JSON.stringify(o);
+    const frz = o => { if (o && typeof o === 'object') { Object.values(o).forEach(frz); Object.freeze(o); } return o; };
+    ok(typeof S.tokenInfo === 'function', '有 Stage3.tokenInfo(G)');
+    const g0 = mk({ year: 20 }); const s0 = deep(g0); const i0 = S.tokenInfo(g0);
+    ok(i0.count === 0 && i0.max === 9 && !i0.full && i0.year === 20 && i0.lastYear === null && i0.takenThisYear === false && i0.block === null && i0.src === null
+      && i0.lines[0] === '讨债令 0/9' && i0.text.includes('今年（第 20 年）还没领') && i0.text.includes('可缴获 1 枚') && !i0.text.includes('最近一次') && deep(g0) === s0, '0 枚：讨债令 0/9、今年还没领、下一场可缴获，存档不变');
+    const g1 = frz(mk({ year: 20, flags: { s3b_token: 2, s3b_token_year: 20, s3b_token_src: '天道通缉·讨债鬼头子' } })); const s1 = deep(g1); let i1;
+    try { i1 = S.tokenInfo(g1); } catch (e) { i1 = null; }
+    ok(i1 && i1.count === 2 && i1.takenThisYear === true && i1.block === 'cooldown' && i1.lines[0] === '讨债令 2/9' && i1.text.includes('今年（第 20 年）已领过，明年再来')
+      && i1.text.includes('最近一次：天道通缉·讨债鬼头子（第 20 年）') && i1.text.includes('今年冷却中') && deep(g1) === s1, '2 枚且今年已领：深冻结存档上调用不抛错（不写任何字段）、显示已领过 + 冷却中');
+    const g2 = mk({ year: 21, flags: { s3b_token: 2, s3b_token_year: 20, s3b_token_src: '天道通缉·讨债鬼头子' } }); const i2 = S.tokenInfo(g2);
+    ok(i2.takenThisYear === false && i2.block === null && i2.text.includes('今年（第 21 年）还没领'), '次年：今年还没领，block 为 null');
+    const g3 = mk({ year: 40, flags: { s3b_token: 9, s3b_token_year: 38 } }); const i3 = S.tokenInfo(g3);
+    ok(i3.full && i3.block === 'cap' && i3.lines[0] === '讨债令 9/9（已满）' && i3.text.includes('已满 9 枚，不会再缴获') && i3.text.includes('最近一次：来源未记（第 38 年）'), '9 枚：9/9（已满）、上限挡下说明、来源缺失写「来源未记」');
+    const g4 = mk({ flags: { s3b_token: 50 } }); const i4 = S.tokenInfo(g4);
+    ok(i4.count === 50 && i4.full && i4.year === null && i4.takenThisYear === null && i4.lines[0] === '讨债令 50/9（已满）' && i4.text.includes('无年份（旧存档）') && g4.flags.s3b_token === 50, '旧存档异常大数 50 / 无年份：照实显示 50/9、不钳、takenThisYear 为 null、不做冷却');
+    ok([null, undefined, {}, { flags: null }, { year: '3', flags: { s3b_token: 'x', s3b_token_year: '3' } }, 5].every(x => { try { const r = S.tokenInfo(x); return r.count === 0 && r.year === null && typeof r.text === 'string'; } catch (e) { return false; } }), '无存档 / 缺字段 / 字符串年份：不崩，按 0 枚、无年份');
+    // 与 tokenBlock / settleBounty 一致：tokenInfo 说「可缴获」时下一场确实得令，说被挡时下一场确实被同样原因挡下
+    let agree = true;
+    for (const [n, y, ly] of [[0, 5, null], [1, 5, 5], [1, 6, 5], [8, 6, 5], [9, 6, 5], [3, undefined, 2]]) {
+      const g = mk({ debt: 30000, year: y, flags: Object.assign({ s3b_token: n }, ly === null ? {} : { s3b_token_year: ly }) });
+      const inf = S.tokenInfo(g), r = SB(g, W6());
+      if (inf.block !== r.tokenBlocked || (inf.block === null) !== r.token) agree = false;
+    }
+    ok(agree, 'tokenInfo.block 与下一场 settleBounty 的 token / tokenBlocked 逐例一致（6 例）');
+    const g5 = mk({ year: 9, flags: { s3b_token: 1, s3b_token_year: 9 } }); const s5 = deep(g5), sv5 = saves; for (let k = 0; k < 20; k++) S.tokenInfo(g5);
+    ok(deep(g5) === s5 && saves === sv5, '连调 20 次：存档逐字段不变、没调 Game.save');
+    const deL = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
+    const btn = (deL.match(/\{ key: 'lt'[\s\S]*?\} \},/) || [''])[0];
+    ok(/label: '讨债令'/.test(btn) && /Stage3\.tokenInfo\(g\.G\)\.text/.test(btn) && !/save\(|s3b_token|localStorage|G\.\w+\s*=[^=]/.test(btn), '开发者「讨债令」按钮：只读 tokenInfo 文案出卡，不存档、不写 flag/localStorage');
+    const infoSrc = S.tokenInfo.toString();
+    ok(!/\b(F|G|flags)(\.[\w$]+|\[[^\]]+\])\s*=[^=]|delete |save\(|localStorage/.test(infoSrc), 'tokenInfo 源码里没有给 G / flags 赋值、delete、save、localStorage');
+  }
+
   // 16. 债务强化 #7：追兵档位参数可调表（BOUNTY_TUNING_DEFAULT 深冻结）+ bountyTuning 合并/校验/钳制 + 只有开发者入口读覆盖键
   {
     const fs7 = require('fs'), vm7 = require('vm');
