@@ -125,3 +125,4 @@
 
 ## 下一步（继续自动推进）
 优先把试炼场改成不跳页（iframe/覆盖层），然后推进 Issue #5 与低模接入。
+- [x] 10-23 v3.4.1 已发布（PR #24 squash eabd12e，tag CI 全绿，versionCode 230）。
