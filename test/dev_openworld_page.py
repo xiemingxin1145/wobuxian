@@ -5,6 +5,7 @@
 #      追兵战按档位分化敌人（债务强化 #4）：重债/通缉档讨债鬼带快攻/散射参数、顶栏与结算卡标注特性，真页面齐射 2/3 发 vs 小账 1 发；
 #      天道通缉头子专属招式（债务强化 #5）：只有头子带环弹参数，真页面前冲收招后放一圈 8 发环形弹，小账前冲不放；结算卡「头子：…」。
 #      头子掉「讨债令」（债务强化 #6）：天道通缉打赢 → 结算卡「缴获讨债令×1（共 N 枚）」且 flags.s3b_token 已存档；重债打输/打赢都不含、计数不变。
+#      讨债令冷却（债务强化 #9）：同一年再打赢被挡，卡片说明「今年已缴获过讨债令，明年再来」；次年才得第 2 枚。
 #      追兵调参（债务强化 #7）：localStorage wbx_dev_bounty_tuning 写覆盖 → 追兵战敌人参数按合并表变化（越界被钳制）、「追兵调参」卡显示生效表与被覆盖字段；
 #      坏 JSON / 非对象 → 回退默认并在卡片提示；清除覆盖后与默认逐字段一致；覆盖键不进存档。
 #      追兵调参一键预设（债务强化 #8）：卡片点「预设·好躲/原样/地狱」→ 只写/删 wbx_dev_bounty_tuning，追兵战按预设变化，卡片标出当前预设；存档不变。
@@ -185,14 +186,24 @@ async def main():
                '缴获讨债令×1（共 1 枚）：只是凭证，暂无用途' in wtxt and t['n'] == 1 and t['src'] == '天道通缉·讨债鬼头子' and t['y'] == t['gy']
                and t['sv'].get('s3b_token') == 1 and t['sv'].get('s3b_token_src') == '天道通缉·讨债鬼头子' and t['sv'].get('s3b_token_year') == t['gy'])
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
-            # 再打赢一次天道通缉：计数累加到 2（卡片显示共 2 枚）
+            # 第十八轮（债务强化 #9）：同一年再打赢天道通缉 → 冷却挡下，卡片说明「今年已缴获过讨债令，明年再来」，计数仍 1
             await pg.evaluate("()=>{const G=Game.G;G.debt=30000;Game.save();}")
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            wctxt = await card.inner_text()
+            tc = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token,win:Game.G.flags.s3b_win})")
+            ck('同一年再打赢天道通缉 → 冷却挡下：卡片含「今年已缴获过讨债令，明年再来」、不含「缴获讨债令×1」，s3b_token 仍 1（存档同），胜场照记 2',
+               '今年已缴获过讨债令，明年再来' in wctxt and '缴获讨债令×1' not in wctxt and tc['n'] == 1 and tc['sv'] == 1 and tc['win'] == 2)
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            # 次年再打赢一次天道通缉：计数累加到 2（卡片显示共 2 枚）
+            await pg.evaluate("()=>{const G=Game.G;G.debt=30000;G.year=(G.year||0)+1;Game.save();}")
             await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             w2txt = await card.inner_text()
             t2 = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token})")
-            ck('再打赢一次天道通缉 → 「共 2 枚」，s3b_token 累加到 2 并存档', '缴获讨债令×1（共 2 枚）' in w2txt and t2['n'] == 2 and t2['sv'] == 2)
+            ck('次年再打赢一次天道通缉 → 「共 2 枚」，s3b_token 累加到 2 并存档', '缴获讨债令×1（共 2 枚）' in w2txt and t2['n'] == 2 and t2['sv'] == 2)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
             await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
@@ -208,7 +219,7 @@ async def main():
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             htxt = await card.inner_text()
             h = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token,win:Game.G.flags.s3b_win})")
-            ck('重债打赢（没有头子）→ 结算卡不含「讨债令」、s3b_token 仍为 2（存档同）；重债打输卡也不含', '胜·重债' in htxt and '讨债令' not in htxt and '讨债令' not in ltxt and h['n'] == 2 and h['sv'] == 2 and h['win'] == 3)
+            ck('重债打赢（没有头子）→ 结算卡不含「讨债令」、s3b_token 仍为 2（存档同）；重债打输卡也不含', '胜·重债' in htxt and '讨债令' not in htxt and '讨债令' not in ltxt and h['n'] == 2 and h['sv'] == 2 and h['win'] == 4)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
         except Exception as e:
             ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)
@@ -343,7 +354,8 @@ async def main():
             sgE, _ = await zb_sig(); tE, _ = await zt_card()
             ck(f'改点「预设·好躲」→ 覆盖键换成好躲 JSON；天道通缉 {len(sgE)} 个、2 发、冷却×0.85、头子环弹 6 发/0.6s/5s；卡片「当前预设：好躲」',
                rawE == P[0]['json'] and len(sgE) == 3 and sgE[0][0] == '讨债鬼头子' and all(e[5] == 2 and e[3] == 0.85 for e in sgE) and sgE[0][7:10] == [6, 0.6, 5] and '当前预设：好躲' in tE)
-            # 带好躲预设打赢：结算照常（欠款不变、讨债令照记），存档不含任何调参内容
+            # 带好躲预设打赢：结算照常（欠款不变、讨债令照记），存档不含任何调参内容（第十八轮：先过一年，避开讨债令每年一枚的冷却）
+            await pg.evaluate("()=>{const G=Game.G;G.year=(G.year||0)+1;Game.save();}")
             await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>RealtimeBattle.state.enemies.forEach(e=>{e.hp=0;})")
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)

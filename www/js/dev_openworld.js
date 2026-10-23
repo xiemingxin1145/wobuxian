@@ -122,7 +122,7 @@
       // 债务强化 #4：重债/天道通缉档追兵出手更快、前摇更短、弹道散射（参数由 bountyEnemies 带上），顶栏与结算卡标注档位特性。
       // 债务强化 #5：天道通缉档「讨债鬼头子」前冲收招后放一圈环形弹（ringShots/ringWarn/ringCd 由 bountyEnemies 只给头子），toast 与结算卡加「头子：…」。
       // 第十二轮：当年已有仇家上门 → 不开追兵战（Stage3.canHunt）；打完结算时 settleBounty 记 flags.s3b_hunt_year（给 life34 侧读，挡同年仇家上门）。
-      // 债务强化 #6：天道通缉档打赢且头子被打倒（原型结束带 defeated 名单）→ settleBounty 记一枚「讨债令」凭证（flags.s3b_token），结算卡加一行说明；不发正式物品。
+      // 债务强化 #6：天道通缉档打赢且头子被打倒（原型结束带 defeated 名单）→ settleBounty 记一枚「讨债令」凭证（flags.s3b_token），结算卡加一行说明；不发正式物品。第十八轮：上限 9 枚 + 每年一枚冷却，被挡时结算卡说明原因。
     { key: 'zb', label: '追兵战', bg: '#5a2a2a', fg: '#ffb0a0', run: async () => {
         const g = gameObj();
         if (!window.Stage3 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
@@ -145,7 +145,7 @@
         const u = uiObj();
         if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
         if (u && u.card) {
-          await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}${tu.error ? '\n调参表无效，本场用默认表' : tu.changed.length ? `\n开发者调参：${tu.changed.length} 项生效（见「追兵调参」）` : ''}`, 'i:bill', ['好']);
+          await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}${s.tokenBlocked === 'cap' ? `\n${Stage3.TOKEN_NAME}已满 ${Stage3.TOKEN_MAX} 枚，这次没再缴获` : s.tokenBlocked === 'cooldown' ? `\n今年已缴获过${Stage3.TOKEN_NAME}，明年再来` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}${tu.error ? '\n调参表无效，本场用默认表' : tu.changed.length ? `\n开发者调参：${tu.changed.length} 项生效（见「追兵调参」）` : ''}`, 'i:bill', ['好']);
           if (u.hud) u.hud();
         }
     } },

@@ -338,6 +338,39 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
   ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
 
+  // 15b. 债务强化 #9（第十八轮）：讨债令上限 TOKEN_MAX=9 + 同一游戏年只缴获一枚的冷却
+  {
+    const snap9 = g => JSON.stringify([g.flags.s3b_token, g.flags.s3b_token_src, g.flags.s3b_token_year]);
+    ok(S.TOKEN_MAX === 9 && typeof S.tokenBlock === 'function', 'TOKEN_MAX = 9，有 tokenBlock(G)');
+    let g = mk({ debt: 30000, year: 20, flags: { bounty: 1 } });
+    let r = SB(g, W6());
+    ok(r.token && r.tokens === 1 && r.tokenBlocked === null, '当年第一次：得令，tokenBlocked 为 null');
+    g.flags.bounty = 1; const s1 = snap9(g); r = SB(g, W6());
+    ok(!r.token && r.tokenBlocked === 'cooldown' && r.tokens === 1 && snap9(g) === s1 && r.settled && r.result === 'win' && !g.flags.bounty && r.bountyCleared && g.flags.s3b_win === 2 && g.debt === 30000, '同一年再打赢：冷却挡下（tokenBlocked:cooldown），三个讨债令 flag 不动，撤通缉/胜场+1/欠款不变照旧');
+    for (let i = 0; i < 3; i++) r = SB(g, W6());
+    ok(g.flags.s3b_token === 1 && r.tokenBlocked === 'cooldown', '同一年连刷 5 场仍只有 1 枚');
+    g.year = 21; r = SB(g, W6());
+    ok(r.token && r.tokens === 2 && g.flags.s3b_token_year === 21 && r.tokenBlocked === null, '次年冷却解除：得第 2 枚，年份更新为 21');
+    let gy = mk({ debt: 30000, year: 30 });
+    for (let y = 30; y < 45; y++) { gy.year = y; r = SB(gy, W6()); }
+    ok(gy.flags.s3b_token === 9 && r.tokenBlocked === 'cap' && !r.token && r.tokens === 9 && gy.flags.s3b_token_year === 38, '逐年打 15 年：封顶 9 枚，第 10 枚起 tokenBlocked:cap，年份停在第 9 枚那年（38）');
+    const gc = mk({ debt: 30000, year: 3, flags: { s3b_token: 9, s3b_token_src: '旧', s3b_token_year: 1 } }); const sc = snap9(gc); r = SB(gc, W6());
+    ok(!r.token && r.tokenBlocked === 'cap' && snap9(gc) === sc, '已有 9 枚：上限挡下，flag 不动');
+    const gb = mk({ debt: 30000, year: 3, flags: { s3b_token: 50 } }); r = SB(gb, W6());
+    ok(!r.token && r.tokenBlocked === 'cap' && gb.flags.s3b_token === 50 && r.tokens === 50, '旧存档异常大数 50：不得令、不改成 9');
+    const gn = mk({ debt: 30000 }); for (let i = 0; i < 12; i++) r = SB(gn, W6());
+    ok(gn.flags.s3b_token === 9 && r.tokenBlocked === 'cap' && !('s3b_token_year' in gn.flags), 'G.year 非数字（旧存档）：不做冷却，只受上限 9 约束');
+    const gl = mk({ debt: 30000, year: 3, flags: { s3b_token: 9 } });
+    ok([W6({ defeated: ['讨债鬼'] }), W6({ tier: 2 }), W6({ result: 'lose', reason: 'dead' })].every(o => { const x = SB(gl, o); return x.tokenBlocked === null && !x.token; }), '本来就不够格（没头子/非天道/败）：tokenBlocked 为 null，不报上限/冷却');
+    ok(S.tokenBlock(null) === null && S.tokenBlock({}) === null && S.tokenBlock({ year: 2, flags: { s3b_token_year: 2 } }) === 'cooldown' && S.tokenBlock({ year: 2, flags: { s3b_token_year: '2' } }) === null, 'tokenBlock 对无存档/缺字段不崩；年份须严格相等');
+    const ga = mk({ debt: 30000, year: 7, flags: { s3b_token: 2, s3b_token_year: 7 } }), gb2 = mk({ debt: 30000, year: 7, flags: { s3b_token: 2, s3b_token_year: 6 } });
+    const ra9 = SB(ga, W6()), rb9 = SB(gb2, W6());
+    const strip9 = g => { const o = JSON.parse(JSON.stringify(g)); TK.forEach(k => delete o.flags[k]); return JSON.stringify(o); };
+    ok(!ra9.token && rb9.token && strip9(ga) === strip9(gb2), '被冷却挡下与正常得令：除三个讨债令 flag 外存档逐字段一致');
+    const de9 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
+    ok(/s\.tokenBlocked === 'cap'/.test(de9) && /已满 \$\{Stage3\.TOKEN_MAX\} 枚/.test(de9) && /今年已缴获过\$\{Stage3\.TOKEN_NAME\}，明年再来/.test(de9), '开发者「追兵战」结算卡：被上限/冷却挡下时说明原因');
+  }
+
   // 16. 债务强化 #7：追兵档位参数可调表（BOUNTY_TUNING_DEFAULT 深冻结）+ bountyTuning 合并/校验/钳制 + 只有开发者入口读覆盖键
   {
     const fs7 = require('fs'), vm7 = require('vm');
@@ -408,8 +441,8 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
         { result: 'draw' }, null, { result: 'win', reason: 'timeout', tier: 3, defeated: team46 }, { result: 'win', tier: 9, defeated: team46 }];
       // 第十二轮：结算（胜/败）时多写一个同年互斥标记 flags.s3b_hunt_year，对照旧版时剥掉它；其余字段仍须逐字段一致。标记本身另有断言（见第十二轮用例）。
       const stripHunt = g => { const o = cl(g); if (o && o.flags && typeof o.flags === 'object') delete o.flags.s3b_hunt_year; return o; };
-      let sbN = 0, huntOk = true; const sbSame = saves7.every(g => outs7.every(o => { const gn = cl(g), go = cl(g); sbN++; const rn = S.settleBounty(gn, cl(o)); const hk = !!(gn && gn.flags && typeof gn.flags === 'object' && 's3b_hunt_year' in gn.flags); if (hk !== !!rn.settled) huntOk = false; return J(rn) === J(O.settleBounty(go, cl(o))) && J(stripHunt(gn)) === J(go); }));
-      ok(sbSame && huntOk && J(S.settleBounty(null, outs7[0])) === J(O.settleBounty(null, outs7[0])), `settleBounty 与 c46c1ef 逐字段一致（${sbN} 组 存档×结果：返回值 + 结算后整份存档，除新增的 s3b_hunt_year；该标记当且仅当结算时写）`);
+      let sbN = 0, sbBlk = 0, huntOk = true; /* 第十八轮：返回值多了 tokenBlocked（未被挡为 null，对照时剥掉）；被上限/冷却挡下的组是有意改行为，跳过对照（另有 15b 断言） */ const sbSame = saves7.every(g => outs7.every(o => { const gn = cl(g), go = cl(g); sbN++; const rn = S.settleBounty(gn, cl(o)); const hk = !!(gn && gn.flags && typeof gn.flags === 'object' && 's3b_hunt_year' in gn.flags); if (hk !== !!rn.settled) huntOk = false; if (rn.tokenBlocked) { sbBlk++; return true; } const rn0 = cl(rn); if (rn0 && rn0.settled) { if (rn0.tokenBlocked !== null) return false; delete rn0.tokenBlocked; } return J(rn0) === J(O.settleBounty(go, cl(o))) && J(stripHunt(gn)) === J(go); }));
+      ok(sbSame && huntOk && J(S.settleBounty(null, outs7[0])) === J(O.settleBounty(null, outs7[0])), `settleBounty 与 c46c1ef 逐字段一致（${sbN} 组 存档×结果，其中 ${sbBlk} 组被讨债令上限/冷却挡下跳过：返回值 + 结算后整份存档，除新增的 s3b_hunt_year；该标记当且仅当结算时写）`);
       const bpSaves = saves7.map((g, i) => Object.assign(cl(g), { realm: [0, 1, 2, 3, 4, 5, 6, 99, 'x'][i % 9], st: i % 4 ? { int: i, luck: 3 } : {}, inv: i % 3 ? { zjd: 1, pjd: 1 } : {}, brkBonus: 0.01 * (i % 5), tmpBrk: i % 2 ? 0.05 : 0 }));
       const bpSame0 = bpSaves.every(g => J(S.breakthroughPreview(cl(g), null)) === J(O.breakthroughPreview(cl(g), null)));
       const newG = mkCx(fs7.readFileSync(path.join(jsDir, 'stage3_encounter_draft.js'), 'utf8'), true), oldG = mkCx(src46, true);

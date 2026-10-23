@@ -241,6 +241,13 @@
 - 涉及文件：`www/js/dev_openworld.js`、`test/dev_openworld_gate_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`。
 - 下一步：债务系统强化——讨债令加上限 / 冷却防反复刷；仍等奥拉夫审 PR #23、3.4.1 合 main 后合 main 重跑 C2。
 
+### 2026-10-23 第十八轮（UTC+8，openworld-wip，12:07 起）——债务强化 #9：讨债令上限 + 冷却
+- [x] `www/js/stage3_encounter_draft.js`：`TOKEN_MAX = 9` 与 `tokenBlock(G)`；`settleBounty` 胜利且够格得令时先查上限（≥ 9 枚 → `tokenBlocked:'cap'`）和冷却（`s3b_token_year === G.year` → `tokenBlocked:'cooldown'`），被挡不动三个讨债令 flag，其余结算照旧；返回值新增 `tokenBlocked`（不被挡为 null）。`G.year` 非数字的旧存档不做冷却、只受上限约束。
+- [x] `www/js/dev_openworld.js`：「追兵战」结算卡被挡时加一行说明（已满 9 枚 / 今年已缴获过，明年再来）。
+- 测试：`test/stage3_chain.js` 新增 15b 共 14 条（同年连刷只 1 枚、次年解除、逐年封顶 9、异常大数不改、无年份只受上限、不够格时 tokenBlocked 为 null、被挡与得令存档除讨债令 flag 外一致、结算卡文案）；c46c1ef 对照剥掉新字段 tokenBlocked 后 286 组仍逐字段一致；`test/dev_openworld_page.py` 真页面加「同年再打赢被冷却挡下」一条，次年才得第 2 枚，60 条全过。stage3_chain / stage3_life34 / battle_rt_proto / lowpoly_box ALL PASS、good_rel_cap 31/31、validate22 errors []、dev_openworld_gate_page 19/19、battle_rt_proto_page 全过、无 JS 错误。
+- 涉及文件：`www/js/stage3_encounter_draft.js`、`www/js/dev_openworld.js`、`test/stage3_chain.js`、`test/dev_openworld_page.py`、`docs/openworld_upgrade.md`、`PROGRESS.md`。
+- 下一步：即时战原型一小步（例如追兵战结算卡显示本场用时/受击次数），或给讨债令设计第一个只读用途（如抵扣误工费预览）；仍等奥拉夫审 PR #23、3.4.1 合 main 后合 main 重跑 C2。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

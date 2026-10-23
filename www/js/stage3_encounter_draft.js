@@ -483,8 +483,20 @@ const Stage3 = {
   //   → 缴获一枚「讨债令」凭证：只记 flags.s3b_token（累计枚数）、s3b_token_src（最近一次来源）、s3b_token_year（最近一次获得的游戏年份，G.year 非数字则不记）。
   //   不发正式物品/灵石，暂无用途。没有头子 / 败 / 超时 / 中途关掉 / 非法输入 一律不得令，也不碰这三个 flag；旧存档没有 s3b_token 按 0 算。
   //   注意：打赢不还钱、欠款不降，天道通缉档可以反复刷令——若以后给讨债令加用途，须先加上限或冷却。
+  // 债务强化 #9（2026-10-23 第十八轮）「讨债令上限 + 冷却」防反复刷：
+  //   上限：最多持有 TOKEN_MAX = 9 枚，已有 ≥ 9 枚再打赢不再得令（tokenBlocked:'cap'），已存的异常大数不改。
+  //   冷却：同一游戏年（G.year 为数字时）只能缴获一枚——flags.s3b_token_year === 当年 → 不得令（tokenBlocked:'cooldown'）。
+  //     G.year 非数字（旧存档）不记年份，也就不做冷却，只受上限约束。
+  //   被挡时三个讨债令 flag 都不动，胜利结算（撤通缉、胜场 +1、欠款不变）照旧；tokenBlocked 只在「本来够格得令却被挡」时非空，其余情况为 null。
   BOSS_NAME: '讨债鬼头子',
   TOKEN_NAME: '讨债令',
+  TOKEN_MAX: 9,
+  tokenBlock(G) {
+    if (this.tokenCount(G) >= this.TOKEN_MAX) return 'cap';
+    const F = G && G.flags && typeof G.flags === 'object' ? G.flags : null;
+    if (F && typeof G.year === 'number' && Number.isFinite(G.year) && F.s3b_token_year === G.year) return 'cooldown';
+    return null;
+  },
   tokenCount(G) {
     const v = Number(G && G.flags && typeof G.flags === 'object' ? G.flags.s3b_token : 0);
     return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
@@ -540,20 +552,22 @@ const Stage3 = {
       const hadBounty = !!F.bounty;
       delete F.bounty; delete F.stage3_bountyDebt;
       F.s3b_win = (Number(F.s3b_win) || 0) + 1;
-      const token = this.bountyTokenEarned(out, tier);
+      const earned = this.bountyTokenEarned(out, tier);
+      const tokenBlocked = earned ? this.tokenBlock(G) : null;
+      const token = earned && !tokenBlocked;
       let tokens = this.tokenCount(G);
       if (token) {
         tokens += 1; F.s3b_token = tokens; F.s3b_token_src = n + '·' + this.BOSS_NAME;
         if (typeof G.year === 'number' && Number.isFinite(G.year)) F.s3b_token_year = G.year; else delete F.s3b_token_year;
       }
       const note = hadBounty ? '追兵被打退，讨债司撤了你的通缉。' : '追兵被打退了，不过账还挂在天道账本上。';
-      return { settled: true, result: 'win', tier, n, debtBefore: before, debtAfter: G.debt, fee: 0, bountyCleared: hadBounty, note, token, tokens };
+      return { settled: true, result: 'win', tier, n, debtBefore: before, debtAfter: G.debt, fee: 0, bountyCleared: hadBounty, note, token, tokens, tokenBlocked };
     }
     const fee = Math.max(this.BOUNTY_FEE_MIN, Math.round(before * this.BOUNTY_FEE[tier]));
     G.debt = before + fee;
     F.s3b_lose = (Number(F.s3b_lose) || 0) + 1;
     const note = (out.reason === 'timeout' ? '拖太久没打完，' : '被讨债鬼按在地上，') + `讨债司记了一笔误工费 ${fee}。`;
-    return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note, token: false, tokens: this.tokenCount(G) };
+    return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note, token: false, tokens: this.tokenCount(G), tokenBlocked: null };
   },
 
   // ======== 债务系统强化 #3：债压档位 → 突破难度预览（只读，只由开发者入口「突破预估」按钮调用） ========
