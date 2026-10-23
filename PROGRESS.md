@@ -312,3 +312,4 @@
 ## 下一步（继续自动推进）
 推进 Issue #5（T4 点游走 NPC、T9 自动任务），或正式债务系统对接奇遇链，或低模接入图集评估。可把完整即时原型（含敌人弹道）同步到覆盖层试炼场做对比测试。
 - [x] 10-23 v3.4.1 已发布（PR #24 squash eabd12e，tag CI 全绿，versionCode 230）。
+- [x] 10-23 3.4.2：#28 3_state（随机天赋带 tough，测试问题）、#32 #27 名字牌、#26 N1（关闭中弹窗挡点按，style.css .mwrap.outm pointer-events:none）+ test/tap342.py；PR「fix: 3.4.2」。

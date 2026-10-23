@@ -106,6 +106,51 @@ async def main():
             await pg.wait_for_timeout(400); r = await pg.evaluate("()=>{const q=document.querySelector('#qt');const r=q.getBoundingClientRect();return [r.x+r.width/2,r.y+12]}")
             await tap(*r); await pg.wait_for_timeout(800); s = await scr()
             ok('N2c_qt_still_opens_quests', s['title'] == '任务', s)
+        PLACE_MON = """()=>{const P=R.player;P.path=[];if(Life34.tooClose(P.i,P.j)){const [si,sj]=nearestWalk(MAPINFO[R.mapId].start[0],MAPINFO[R.mapId].start[1]);P.i=si+.5;P.j=sj+.5;}const mons=R.ents.filter(e=>e.kind==='mon'&&!e.gone&&!e.hidden);if(!mons.length)return null;
+                  for(const e of R.ents)if(e.kind==='npc'&&Math.hypot(e.i-P.i,e.j-P.j)<5){e.i=-40;e.j=-40;e.path=[];e.wt=1e9;}
+                  const e=mons[0];for(const o of mons)if(o!==e){o.wt=1e9;o.path=[];if(Math.hypot(o.i-P.i,o.j-P.j)<6){o.i=-60;o.j=-60;}}
+                  let placed=false;for(const [a,c] of [[2,0],[0,2],[-2,0],[0,-2],[2,2],[-2,-2],[2,-2],[-2,2],[3,0],[0,3],[-3,0],[0,-3]]){const i=Math.floor(P.i)+a,j=Math.floor(P.j)+c;if(walkable(i,j)&&!Life34.tooClose(i+.5,j+.5)){e.i=i+.5;e.j=j+.5;e.path=[];e.wt=1e9;e.cool=0;placed=true;break}}if(!placed){const [si,sj]=nearestWalk(MAPINFO[R.mapId].start[0],MAPINFO[R.mapId].start[1]);P.i=si+.5;P.j=sj+.5;return 'retry'}
+                  return true}"""
+        if want('N1'):
+            runs = []
+            for rep in range(REPS):
+                await settle()
+                m = await pg.evaluate(PLACE_MON)
+                if m == 'retry': await pg.wait_for_timeout(600); m = await pg.evaluate(PLACE_MON)
+                if not m or m == 'retry': runs.append({'rep': rep, 'err': 'no monster'}); continue
+                await pg.wait_for_timeout(700)
+                ms = await pg.evaluate("()=>{const e=R.ents.filter(e=>e.kind==='mon'&&!e.gone&&!e.hidden).sort((a,b)=>Math.hypot(a.i-R.player.i,a.j-R.player.j)-Math.hypot(b.i-R.player.i,b.j-R.player.j))[0];const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return [a/R.dpr,c/R.dpr]}")
+                fought = False
+                for att in range(3):   # 点怪没开战（点成对话/被别的东西接住）就收拾一下再点
+                    await tap(*ms)
+                    for k in range(24):
+                        await pg.wait_for_timeout(250)
+                        if (await scr())['battle']: fought = True; break
+                    if fought: break
+                    print('   nofight', await scr(), await pg.evaluate("([x,y])=>{const h=pickAt(x*R.dpr,y*R.dpr);return {h:h.ent?[h.ent.kind,h.ent.id||h.ent.label,h.ent.i,h.ent.j]:h,P:[R.player.i,R.player.j,R.player.path.length],busy:Game._busy,onTap:typeof R.onTap,g:R.player._npcGrace-performance.now()}}", ms), flush=True)
+                    await settle(); ms = await pg.evaluate("()=>{const P=R.player;const e=R.ents.filter(e=>e.kind==='mon'&&!e.gone&&!e.hidden).sort((a,b)=>Math.hypot(a.i-P.i,a.j-P.j)-Math.hypot(b.i-P.i,b.j-P.j))[0];e.wt=1e9;e.cool=0;const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return [a/R.dpr,c/R.dpr]}")
+                await settle(60); await pg.wait_for_timeout(300)
+                moves = []
+                pts = await pg.evaluate("""()=>{const P=R.player;const out=[];const S=(i,j)=>{const [x,y]=t2p(i,j);const [a,c]=w2s(x,y);return [a/R.dpr,c/R.dpr]};
+                  const free=([x,y])=>x>20&&x<392&&y>140&&y<760&&!(x<165&&y>567)&&document.elementFromPoint(x,y)&&document.elementFromPoint(x,y).id==='cv';
+                  for(const [a,c] of [[3,0],[0,3],[-3,0],[0,-3]]){const i=Math.floor(P.i)+a,j=Math.floor(P.j)+c;if(walkable(i,j)){const p=S(i+.5,j+.5);if(free(p))out.push({p,blocked:false})}}
+                  for(let r=1;r<=4&&out.filter(o=>o.blocked).length<2;r++)for(const [a,c] of [[r,0],[0,r],[-r,0],[0,-r],[r,r],[-r,-r]]){const i=Math.floor(P.i)+a,j=Math.floor(P.j)+c;if(!walkable(i,j)&&R.M&&i>=0&&j>=0){const p=S(i+.5,j+.5);if(free(p)&&!out.some(o=>o.blocked&&Math.abs(o.p[0]-p[0])<5)){out.push({p,blocked:true});}}}
+                  return out}""")
+                for pt in pts:
+                    p0 = await pg.evaluate("()=>[R.player.i,R.player.j]"); await tap(*pt['p']); await pg.wait_for_timeout(1500)
+                    s_ = await scr()
+                    if s_['modal'] or s_['battle']: moves.append({'blocked': pt['blocked'], 'res': 'opened', 'moved': 1}); await settle(); continue
+                    p1 = await pg.evaluate("()=>[R.player.i,R.player.j]"); moves.append({'blocked': pt['blocked'], 'moved': round(math.hypot(p1[0]-p0[0], p1[1]-p0[1]), 2)})
+                # 关掉弹窗后立刻点地面（#26 根因：关闭中的 .mwrap 透明但仍挡点按 180ms）
+                await settle(); await tap_sel('#menu .mb[data-p="bag"]', 700); xr = await pg.evaluate("()=>{const x=document.querySelector('#modals .mwrap:last-child .ph .x');if(!x)return null;const r=x.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
+                gp = await pg.evaluate("""()=>{const P=R.player;for(const [a,c] of [[3,0],[0,3],[-3,0],[0,-3],[2,2]]){const i=Math.floor(P.i)+a,j=Math.floor(P.j)+c;if(walkable(i,j)){const [x,y]=t2p(i+.5,j+.5);const [u,v]=w2s(x,y);const X=u/R.dpr,Y=v/R.dpr;if(X>20&&X<392&&Y>140&&Y<760&&!(X<165&&Y>567))return [X,Y]}}return null}""")
+                if xr and gp:
+                    p0 = await pg.evaluate("()=>[R.player.i,R.player.j]"); await tap(*xr); await pg.wait_for_timeout(40); await tap(*gp); await pg.wait_for_timeout(1500)
+                    p1 = await pg.evaluate("()=>[R.player.i,R.player.j]"); moves.append({'after_close': True, 'moved': round(math.hypot(p1[0]-p0[0], p1[1]-p0[1]), 2)})
+                else: moves.append({'after_close': True, 'err': [xr, gp], 'moved': 0})
+                runs.append({'rep': rep, 'fought': fought, 'moves': moves}); print('  ', runs[-1], flush=True)
+            good = [r for r in runs if r.get('fought') and r['moves'] and all(m.get('moved', 1) > 0.5 for m in r['moves']) and any(m.get('moved', 0) > 0.5 for m in r['moves'])]
+            ok('N1_ground_tap_after_battle', len(good) == REPS and all(any(m.get('after_close') for m in r.get('moves', [])) for r in runs), dict(reps=REPS, good=len(good), bad=[r for r in runs if r not in good]))
         ok('no_js_errors', not errs, errs[:5])
         os.makedirs(os.path.join(os.path.dirname(__file__), 'results'), exist_ok=True)
         json.dump({'res': res, 'fails': fails}, open(os.path.join(os.path.dirname(__file__), 'results', 'tap342.json'), 'w'), ensure_ascii=False, indent=1)
