@@ -123,15 +123,16 @@ window.LG36 = LG36;
   };
   const css = document.createElement('style');
   css.textContent = `.lg36row{margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,0,0,.2);overflow:hidden}.lg36row>b{display:block;margin-bottom:4px}.lg36row small{display:block;font-size:12px;opacity:.9;line-height:1.35;margin-top:3px}
-.lg36aff span{display:inline-block;margin-right:6px;font-weight:bold}.lg36bar{position:relative;height:16px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden}.lg36bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7ad8ff,#c8ffe0)}.lg36bar em{position:relative;display:block;text-align:center;font-size:11px;font-style:normal;line-height:16px;color:#fff;text-shadow:0 0 2px #000}
+.lg36aff span{display:inline-block;margin-right:6px;font-weight:bold;text-shadow:0 0 2px #000,0 0 1px #000}.lg36bar{position:relative;height:16px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden}.lg36bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2a7ab8,#3aa88a)}.lg36bar em{position:relative;display:block;text-align:center;font-size:11px;font-style:normal;line-height:16px;color:#fff;text-shadow:0 0 2px #000}
 .lg36btns{display:flex;gap:6px;margin-top:6px}.lg36btns button{flex:1 1 0;min-width:0;min-height:44px;line-height:1.2;white-space:normal}.lg36btns button small{display:block;font-size:10px;margin:0;opacity:.85}`;
   document.head.appendChild(css);
   // 开发者面板 Tab
   if (window.DevPanel && DevPanel.registerTab) DevPanel.registerTab('lg36', '灵根36', (box, ctx) => {
     const G = Game.G; if (!G) { box.innerHTML = '<p>先开始一局</p>'; return; }
-    box.innerHTML = `<p>纯度 ${LG36.pur(G)}｜灵根 ${Game.linggen().n}（${LG36.els(G).join('') || '无'}）</p><div class="dvb" style="justify-content:flex-start">${[0, 50, 70, 100].map(v => `<button class="sm dvx" data-p="${v}">纯度${v}</button>`).join('')}<button class="sm dvx" data-i="tcdb">天材地宝×3</button><button class="sm dvx" data-i="lgd">灵根丹×5</button></div><div class="dvb" style="justify-content:flex-start;margin-top:6px">${LINGGEN.map(l => `<button class="sm dvx${G.lg === l.id ? ' on' : ''}" data-l="${l.id}">${l.n}</button>`).join('')}</div>`;
+    box.innerHTML = `<p>纯度 ${LG36.pur(G)}｜灵根 ${Game.linggen().n}（${LG36.els(G).join('') || '无'}）</p><div class="dvb" style="justify-content:flex-start">${[0, 50, 70, 100].map(v => `<button class="sm dvx" data-p="${v}">纯度${v}</button>`).join('')}<button class="sm dvx" data-i="tcdb">天材地宝×3</button><button class="sm dvx" data-i="lgd">灵根丹×5</button><button class="sm dvx" data-s="1">灵石+20000</button></div><div class="dvb" style="justify-content:flex-start;margin-top:6px">${LINGGEN.map(l => `<button class="sm dvx${G.lg === l.id ? ' on' : ''}" data-l="${l.id}">${l.n}</button>`).join('')}</div>`;
     box.onclick = e => { const t = e.target.closest('button'); if (!t) return; const s = LG36.st(G);
       if (t.dataset.p) { s.pur = +t.dataset.p; ctx.toast('纯度 ' + s.pur); }
+      else if (t.dataset.s) { G.stone += 20000; ctx.toast('灵石 +20000'); }
       else if (t.dataset.i) { Game.give(t.dataset.i, t.dataset.i === 'tcdb' ? 3 : 5); ctx.toast(ITEMS[t.dataset.i].n + ' 已发放'); }
       else if (t.dataset.l) { LG36.setLg(G, t.dataset.l, null); G.flags.awakened = 1; ctx.toast('灵根：' + LG36.base(G).n); }
       ctx.save(); ctx.rerender(); };
