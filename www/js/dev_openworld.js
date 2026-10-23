@@ -171,6 +171,15 @@
     } },
       // 追兵调参按钮：债务强化 #7——显示当前生效的追兵档位参数表（默认表 + localStorage 开发者覆盖）、哪些字段被覆盖/钳制/回退；可一键清除覆盖。不改存档
       // 债务强化 #8：卡片选项固定为「知道了」+ 三个预设（好躲 / 原样（清除覆盖）/ 地狱），点预设 = 把预设 JSON 写进 TUNING_KEY（原样 = 删键）
+      // 路遇按钮（第二十四轮）：NPC37 强制触发一次路遇（force 跳过冷却/额度，仍记入），弹「⚑ 路遇」卡并结算到真实存档；NPC 取当前地图上的熟人，没有就随机
+    { key: 'ly', label: '路遇', bg: '#2a3a4a', fg: '#c0e0ff', run: async () => {
+        const g = gameObj();
+        if (!window.NPC37 || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+        const R0 = (typeof R !== 'undefined') ? R : null; const mapId = (R0 && R0.mapId) || 'market';
+        const ids = NPC37.ids(); const here = ids.filter(id => NPC37.schedule(id) === mapId);
+        const id = (here.length ? here : ids)[Math.floor(Math.random() * (here.length ? here.length : ids.length))];
+        const sc = NPC37.onMeet(id, mapId, { force: true }); if (sc) await NPC37.play(sc);
+    } },
     { key: 'zt', label: '追兵调参', bg: '#4a2a3a', fg: '#ffc0d8', run: async () => {
         const u = uiObj();
         if (!window.Stage3 || !Stage3.bountyTuning) return;

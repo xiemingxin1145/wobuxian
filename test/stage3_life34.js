@@ -301,8 +301,8 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   ok(zb.indexOf('Stage3.canHunt(G)') > 0 && zb.indexOf('Stage3.canHunt(G)') < zb.indexOf('RealtimeBattle.open(') && /if \(!gate\.ok\) \{[^}]*return; \}/.test(zb), 'dev_entry「追兵战」：先 Stage3.canHunt，拒绝时 toast 后 return，不开即时战');
   const users = re => fs.readdirSync(JS).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && re.test(fs.readFileSync(path.join(JS, f), 'utf8').split('\n').filter(l => !l.trim().startsWith('//')).join('\n'))).join(','); // 只看代码行（main 3.4.1 life34.js 注释里提到 Stage3.affRel）
   ok(users(/canHunt|affRel/) === 'dev_openworld.js', '只有 dev_openworld.js 调 canHunt（正式流程不接）：' + users(/canHunt|affRel/));
-  ok(users(/huntBlocksFoe/) === 'life34.js' && /Stage3\.huntBlocksFoe\(G\)/.test(LIFE34) && /L\.seen\['foe_' \+ Life34\.yr\(\)\] = 1/.test(LIFE34) && !/s3b_hunt_year/.test(LIFE34),
-    'main 的 life34.js 读 Stage3.huntBlocksFoe(G)、写 L.seen[\'foe_\' + Life34.yr()]；不直接读 s3b_hunt_year（本分支未改 life34.js）');
+  ok(['life34.js', 'life34.js,npc37.js'].includes(users(/huntBlocksFoe/)) && /Stage3\.huntBlocksFoe\(G\)/.test(LIFE34) && /L\.seen\['foe_' \+ Life34\.yr\(\)\] = 1/.test(LIFE34) && !/s3b_hunt_year/.test(LIFE34),
+    'main 的 life34.js 读 Stage3.huntBlocksFoe(G)、写 L.seen[\'foe_\' + Life34.yr()]；不直接读 s3b_hunt_year（本分支未改 life34.js；第二十四轮 npc37.js 只读它来拦仇档路遇）');
 
   // ---------- C. 第十四轮：Game.apply 包装内部调链（3.4.1 的 Life34._inApply）不重复计 ----------
   // C1 当前 main 的 life34（没有 _inApply）：手动模拟 3.4.1 的外层包装（置 _inApply → 跑链 → 复位 → syncAff(整次快照)），每选择总额与第十三轮一致

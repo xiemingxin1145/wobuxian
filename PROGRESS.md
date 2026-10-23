@@ -312,6 +312,14 @@
 - 本轮改动文件：www/js/lowpoly_box_chars.js、www/prototypes/lowpoly_box/index.html、test/lowpoly_attach.js、docs/openworld_upgrade.md、PROGRESS.md。
 - 下一步：挂点第二块（剩下 3 款冠 金冠/龙角/兜帽、3 款佩 玉佩/羽扇/算盘，各 ≤150 tri；或神器「觉醒Ⅲ」发光壳），等 Grok Bot 在群里定下 cos36 / shenqi36 字段后把占位名对齐；之后再做讨债令第二个只读用途（误工费抵扣预览）。
 
+### 2026-10-24 第二十四轮（UTC+8，openworld-wip，00:05 起）——3.7.0 路遇系统 NPC37 第一块（核心模块 + 冷却/上限 + 分档 + 单场景结算 + 新闻）+ 合 main
+- 普通 merge 合入 origin/main 49ae071（docs/research_story37.md、research_story37_text.md 等研究稿），无冲突。
+- 新增 `www/js/npc37.js`（index.html 在 jianghu34.js 之后加载）：`TEXT37` 逐字取自 docs/research_story37_text.md 的 JSON；`NPC37.onMeet(id,map)` 按 `Life34.rel` 分 仇(≤−40)/生/友(≥40)，年份 `Life34.yr()`、月份 `G.jh34.t`；同图 ≥6 月、全图每年 ≤4 次、每 NPC 每年 ≤2 条（路遇+新闻合计）；本年 life34 仇家上门对象或 `Stage3.huntBlocksFoe` 为真不出仇档。场景进自有队列 `G.npc37.q`（不碰 L.pending），标题「⚑ 路遇·」开头，填 {n}{map}。`resolve` 把选项拼成效果串交给 `Game.apply`（aff 只改 G.aff、life34 包装 ×0.5 同步 L.rel 不双加；stone；item 负数消耗、不足/灵石不足置灰；karma 叠加 G.karma；fight:1 → 当前图的怪）。`NPC37.emit` 新闻每年 ≤6、toast ≤2，经 `JH34.say` 写 `G.jh34.feed`（FEED_MAX 40），`topUp` 补到 ≥3；`schedule(id)` 取 JH34 游历图 > roam > NPCS.map；`Story37.on/fire` 事件总线（meet/resolve/news）。
+- `www/js/dev_openworld.js`：开放世界页签加「路遇」按钮（wbx2_dev==='1' 才有面板），强制触发一次当前图熟人路遇、弹卡结算到真实存档。**本轮还没挂进正常地图移动。**
+- 测试：新增 `test/npc37_unit.js` 37/37 PASS（分档边界、冷却/年上限/每人上限、跨年、仇档拦截、置灰、aff×0.5 只同步一次、karma/stone/fight、物品 id 在 data.js、新闻上限/toast/feed 裁剪、100 年模拟、总线、schedule、源码约束）。dev_openworld_page 64 PASS、dev_openworld_gate_page 39/39（按钮数 9→10 已同步）、stage3_life34 ALL PASS（huntBlocksFoe 读者白名单加 npc37.js）、battle_rt_proto 149、stage3_chain 235、good_rel_cap 31/31、lowpoly_attach 83、lowpoly_box 55、validate22 errors []、encounter_chain_verify 14/14、battle_rt_proto_page 12、tap342 / dev341 / jsscan33 / sys33_unit / life34_unit / jianghu34_unit / lian35_unit 全过；真页面冒烟：「⚑ 路遇·落魄剑仙」卡选「拱手见礼」→ G.aff +3、L.rel +1。results 不提交。
+- 本轮改动文件：www/js/npc37.js（新）、www/index.html、www/js/dev_openworld.js、test/npc37_unit.js（新）、test/dev_openworld_page.py、test/dev_openworld_gate_page.py、test/stage3_life34.js、PROGRESS.md。
+- 下一步：把 onMeet 挂进正常地图移动（包裹 npcAI/玩家移动，同图且距离≤2 格时触发，⚑ 卡不进挂机代选），年末钩子调用 topUp/emit；之后从专用分支开 PR 给奥拉夫审。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
