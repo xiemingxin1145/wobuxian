@@ -360,6 +360,14 @@
 - 本轮改动文件：www/js/npc37.js、test/npc37_unit.js、test/npc37_page.py、PROGRESS.md。
 - 下一步：神器觉醒Ⅲ发光壳（低模，预览页）、预览页冠/佩下拉切换；讨债令第二个只读用途（误工费抵扣预览）。
 
+### 2026-10-24 第二十九轮（UTC+8，openworld-wip，06:09 起）——低模神器觉醒Ⅲ发光壳 + 预览页冠/佩/觉醒下拉
+- origin/main 仍是 d1cefb7，无新提交，本轮不合并。PR #39（npc37-luyu）仍 OPEN，没有 review / 评论，本轮未动该分支。
+- `www/js/lowpoly_box_chars.js`：`ATTACH.sq_xuanyuan.glow='#ffd860'`；`wear.aw`（调用方传，对齐 Grok Bot 数据层 `sq36.own[id].aw`，1..3，坏值当 1、>3 钳到 3；本文件仍不读 G）≥3 时，每块神器部件外套一层同中心、各向外扩 3 的发光壳（部件名 `att:glow:*`，同挥砍组 sword）；build 给壳面标 `glow`、不做明暗；draw 用 `lighter` + 半透明 0.45 叠加、不描边。轩辕残剑Ⅲ 含壳 72 tri ≤ 300（research_v36 §6）。新导出 `hasGlow / GLOW_AW / GLOW_PAD`；`triCount(id, aw)`。不传 aw 的旧调用外观不变。
+- 预览页 `www/prototypes/lowpoly_box/index.html`：「试穿 3.6 挂点」旁加 冠 / 佩 下拉（从 ATTACH 按槽位生成 4+4 款）+ 神器觉醒Ⅰ/Ⅱ/Ⅲ 下拉。低模脚本仍不进 www/index.html，主页面只在 wbx2_dev==='1' 时懒加载原型（gate 测试照旧）。
+- 测试：`test/lowpoly_attach.js` 102 → 145 PASS（新增：只有 aw≥3 出壳、冠佩不出壳、tri 预算、每个角色壳与本体同中心外扩 + 挥砍同步、壳面排在本体后、draw 叠加不描边 save/restore 成对、旧调用不变、预览页下拉）；lowpoly_box 55、battle_rt_proto 149、npc37_unit 60/60、stage3_chain 235、stage3_life34 114、good_rel_cap 31/31 ALL PASS；validate22 errors []、encounter_chain_verify 14/14。页面（本机无他人 Chrome，串行）：dev_openworld_page 全过无 JS 错、dev_openworld_gate_page 39/39、battle_rt_proto_page 全过、npc37_page 12/12、tap342 FAILS []、dev341 FAILS []；另手动无头打开预览页：冠/佩下拉各 4 项、选 龙角+算盘+觉醒Ⅲ 后无 JS 错误、发光壳可见（截图未提交）。
+- 本轮改动文件：www/js/lowpoly_box_chars.js、www/prototypes/lowpoly_box/index.html、test/lowpoly_attach.js、PROGRESS.md。
+- 下一步：其余 4 把神器（昆仑镜/神农鼎/昊天塔/伏羲琴）低模 + 发光壳；或讨债令第二个只读用途（误工费抵扣预览）。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

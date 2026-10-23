@@ -23,7 +23,12 @@
       <option value="nanzhu">主角：主角男</option>
       <option value="luren">路人甲</option>
     </select>
-    <label style="margin-left:8px;"><input type="checkbox" id="wear"> 试穿 3.6 挂点（斗笠 · 酒葫芦 · 轩辕残剑 · 衣染青，占位命名，只画外观）</label>
+    <label style="margin-left:8px;"><input type="checkbox" id="wear"> 试穿 3.6 挂点（冠 · 佩 · 轩辕残剑 · 衣染青，只画外观）</label>
+    <span id="wearOpts" style="margin-left:6px;">
+      冠 <select id="guan"></select>
+      佩 <select id="pei"></select>
+      神器 <select id="aw"><option value="1">轩辕残剑·觉醒Ⅰ</option><option value="2">轩辕残剑·觉醒Ⅱ</option><option value="3">轩辕残剑·觉醒Ⅲ（发光壳）</option></select>
+    </span>
     <button id="try" style="margin-top:6px;padding:6px 12px;background:#2a5a3a;color:#b0ffb0;border:1px solid #b0ffb0;border-radius:12px;">用方块角色试打即时战原型</button>
   </header>
   <canvas id="cv" width="820" height="640"></canvas>
@@ -41,6 +46,13 @@
     // 每行一个角色；列：四向待机 + 面向右的 行走 / 挥砍 / 受击 + 面向下挥砍
     const COLS = [['idle', 0, 1, '待机·下'], ['idle', 1, 0, '待机·右'], ['idle', 0, -1, '待机·上'], ['idle', -1, 0, '待机·左'],
       ['walk', 1, 0, '行走·右'], ['attack', 1, 0, '挥砍·右'], ['hurt', 1, 0, '受击·右'], ['attack', 0, 1, '挥砍·下']];
+    // 第 29 轮：冠 4 款 / 佩 4 款下拉（选项从 LowpolyBox.ATTACH 按槽位生成）+ 神器觉醒等级（Ⅲ 出发光壳）
+    for (const slot of ['guan', 'pei']) {
+      const sel = document.getElementById(slot);
+      for (const [k, it] of Object.entries(LowpolyBox.ATTACH)) if (it.slot === slot) sel.add(new Option(it.name + '（' + k + '）', k));
+    }
+    const curWear = () => ({ guan: document.getElementById('guan').value, pei: document.getElementById('pei').value, shenqi: 'sq_xuanyuan', aw: +document.getElementById('aw').value });
+    window.LowpolyPreview = { curWear };
     let scale = 1.0, t0 = performance.now();
     document.getElementById('try').onclick = () => RealtimeBattle.open([{ name: '讨债鬼差', hp: 80, x: 420, y: 200, speed: 70 }, { name: '讨债鬼差', hp: 80, x: 160, y: 160, speed: 60 }],
       { force: true, skin: 'box', boxPlayer: document.getElementById('who').value });
@@ -57,7 +69,7 @@
           const x = 96 + ci * 92;
           ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x, y, 20 * scale, 8 * scale, 0, 0, 7); ctx.fill();
           const tt = anim === 'attack' || anim === 'hurt' ? (t % 1) : t;
-          const dress = document.getElementById('wear').checked ? { wear: { guan: 'douli', pei: 'hulu', shenqi: 'sq_xuanyuan' }, dye: { yi: '#3f7f9f' } } : {};
+          const dress = document.getElementById('wear').checked ? { wear: curWear(), dye: { yi: '#3f7f9f' } } : {};
           LowpolyBox.draw(ctx, id, x, y, Object.assign({ scale: scale * 0.9, angle: LowpolyBox.angleFromFace(fx, fy), anim, t: tt }, dress));
         });
       });

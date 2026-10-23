@@ -97,6 +97,56 @@ for (const id of L.ids) {
   ok(all, `${id}：16 种冠×佩组合都能穿、冠在头部、佩在左侧、多出可见面`);
 }
 
+// 7. 第 29 轮：神器觉醒Ⅲ发光壳（aw 由调用方传，对齐数据层 sq36.own[id].aw）
+const SQ = 'sq_xuanyuan', nSq = L.ATTACH[SQ].parts.length;
+ok(/^#[0-9a-f]{6}$/i.test(L.ATTACH[SQ].glow) && L.GLOW_AW === 3, '轩辕残剑带觉醒Ⅲ发光壳颜色，门槛 aw=3');
+ok(!L.hasGlow(SQ) && !L.hasGlow(SQ, 1) && !L.hasGlow(SQ, 2) && L.hasGlow(SQ, 3) && L.hasGlow(SQ, 9) && !L.hasGlow(SQ, 'x'), '只有 aw≥3 出壳（缺省/Ⅰ/Ⅱ/坏值 不出，>3 钳到 Ⅲ）');
+ok(!L.hasGlow('douli', 3) && !L.hasGlow('nope', 3), '冠/佩/未知物件不出发光壳');
+ok(L.triCount(SQ, 3) === nSq * 24 && L.triCount(SQ, 3) <= L.SLOT_BUDGET.shenqi && L.triCount(SQ) === nSq * 12, `觉醒Ⅲ 含壳 ${L.triCount(SQ, 3)} tri ≤ 300（Ⅰ/Ⅱ ${L.triCount(SQ)}）`);
+for (const id of ALL) {
+  const S = L.sockets(id);
+  for (const aw of [1, 2]) ok(!L.dressParts(id, { shenqi: SQ, aw }).some(p => p[0].startsWith('att:glow:')), `${id}：觉醒${aw} 无发光壳`);
+  const D = L.dressParts(id, { shenqi: SQ, aw: 3 }), G3 = D.filter(p => p[0].startsWith('att:glow:'));
+  const body = D.filter(p => p[0].startsWith('att:shenqi:'));
+  let fit = G3.length === nSq;
+  for (const g of G3) {
+    const b = body.find(p => p[0] === 'att:shenqi:' + g[0].slice(9));
+    if (!b || g[1] !== b[1] || g[2] !== b[2] || g[3] !== b[3] || g[4] !== b[4] + 2 * L.GLOW_PAD || g[5] !== b[5] + 2 * L.GLOW_PAD || g[6] !== b[6] + 2 * L.GLOW_PAD || g[8] !== 'sword' || g[7] !== L.ATTACH[SQ].glow) fit = false;
+  }
+  ok(fit && S.hand, `${id}：觉醒Ⅲ 每块神器外套同中心、外扩 ${L.GLOW_PAD} 的发光壳，跟随挥砍组`);
+  const a = fcen(L.build(id, { angle: ang(1, 0), anim: 'attack', t: 0, wear: { shenqi: SQ, aw: 3 } }), 'att:glow');
+  const b = fcen(L.build(id, { angle: ang(1, 0), anim: 'attack', t: 0.5, wear: { shenqi: SQ, aw: 3 } }), 'att:glow');
+  const c = fcen(L.build(id, { angle: ang(1, 0), anim: 'attack', t: 0.5, wear: { shenqi: SQ, aw: 3 } }), 'att:shenqi');
+  ok(b[0] - a[0] > 10 && Math.abs(b[0] - c[0]) < 2, `${id}：挥砍时发光壳与神器一起推出 ${(b[0] - a[0]).toFixed(1)}px`);
+}
+{
+  const F = L.build('jianxiu', { wear: { shenqi: SQ, aw: 3 } }); // 与下面 draw 同参数（angle 0）
+  const gl = F.filter(f => f.glow), last = {};
+  F.forEach((f, i) => { last[f.part] = i; });
+  ok(gl.length > 0 && gl.every(f => f.part.startsWith('att:glow:') && f.fill === L.ATTACH[SQ].glow), `发光壳 ${gl.length} 面标 glow、不做明暗（统一 ${L.ATTACH[SQ].glow}）`);
+  ok(gl.every(f => F.indexOf(f) > last['att:shenqi:' + f.part.slice(9)]), '发光壳面排在对应神器本体面之后（盖在本体上）');
+  ok(F.filter(f => !f.glow).every(f => !f.part.startsWith('att:glow:')), '普通面不带 glow 标记');
+  const ops = [], stk = []; let alpha = [];
+  const ctx = new Proxy({ _a: 1, _op: 'source-over' }, {
+    get: (t, k) => (k === 'save' ? () => { ops.push('save'); stk.push([t.globalAlpha, t.globalCompositeOperation]); } : k === 'restore' ? () => { ops.push('restore'); [t.globalAlpha, t.globalCompositeOperation] = stk.pop(); } : k === 'fill' ? () => { ops.push('fill'); alpha.push([t.globalAlpha === undefined ? 1 : t.globalAlpha, t.globalCompositeOperation || 'source-over']); } : k === 'stroke' ? () => ops.push('stroke') : (k in t ? t[k] : () => {})),
+    set: (t, k, v) => { t[k] = v; return true; } });
+  const r3 = L.draw(ctx, 'jianxiu', 0, 0, { wear: { shenqi: SQ, aw: 3 } });
+  const nFill = ops.filter(o => o === 'fill').length, nStroke = ops.filter(o => o === 'stroke').length;
+  ok(r3.faces === F.length, `觉醒Ⅲ draw ${r3.faces} 面 = build 面数`);
+  ok(nFill - nStroke === gl.length && ops.filter(o => o === 'save').length === gl.length && ops.filter(o => o === 'restore').length === gl.length, `发光壳 ${gl.length} 面：叠加画、不描边、save/restore 成对`);
+  ok(alpha.filter(([a, op]) => op === 'lighter' && a < 1).length === gl.length, '发光壳用 lighter 叠加 + 半透明');
+  const r1 = L.draw(fakeCtx(), 'jianxiu', 0, 0, { wear: { shenqi: SQ, aw: 1 } });
+  ok(r3.faces - r1.faces === gl.length, `觉醒Ⅲ 比Ⅰ多画 ${r3.faces - r1.faces} 面发光壳`);
+  ok(JSON.stringify(L.dressParts('jianxiu', WEAR)) === JSON.stringify(L.dressParts('jianxiu', Object.assign({ aw: 1 }, WEAR))), '旧调用（不传 aw）= 觉醒Ⅰ，外观不变');
+}
+// 8. 第 29 轮：预览页冠/佩下拉 + 觉醒等级
+{
+  const pv = fs.readFileSync(path.join(ROOT, 'www', 'prototypes', 'lowpoly_box', 'index.html'), 'utf8');
+  ok(/id="guan"/.test(pv) && /id="pei"/.test(pv) && /id="aw"/.test(pv), '预览页有 冠 / 佩 / 神器觉醒 下拉');
+  ok(/it\.slot === slot/.test(pv) && /LowpolyBox\.ATTACH/.test(pv), '冠/佩下拉选项从 ATTACH 按槽位生成（4+4 款）');
+  ok(/value="3"[^<]*觉醒Ⅲ/.test(pv) && /aw: \+document\.getElementById\('aw'\)\.value/.test(pv), '觉醒下拉含 Ⅲ，并把 aw 传给 wear');
+}
+
 const src = fs.readFileSync(path.join(ROOT, 'www', 'js', 'lowpoly_box_chars.js'), 'utf8');
 ok(!/\bG\.|\bG\[|localStorage|Game\./.test(src), '挂点代码不读写 G / Game / localStorage');
 const prev = fs.readFileSync(path.join(ROOT, 'www', 'prototypes', 'lowpoly_box', 'index.html'), 'utf8');

@@ -111,6 +111,7 @@
   // 不读不写 G、不带任何属性，也不进正式加载链（仍只由预览页 / 即时战原型加载）。
   // 面数预算（research_v36 §6）：冠/佩 每件 ≤150 tri，神器 每把 ≤300 tri；一个长方体按 12 tri 计。
   const SLOT_BUDGET = { guan: 150, pei: 150, shenqi: 300 };
+  const HEXC = /^#[0-9a-f]{6}$/i;
   // item part: [名称, 相对挂点 dx,dy,dz, 尺寸 w,d,h, 颜色]
   const ATTACH = {
     douli: { name: '斗笠', slot: 'guan', parts: [
@@ -158,13 +159,20 @@
       ['beadsB', 0, -1, -1.5, 10, 2, 3, '#d8a040'],
       ['bar', 0, -1, 0.5, 11, 1, 1, '#3a2a1a'],
     ] },
-    sq_xuanyuan: { name: '轩辕残剑', slot: 'shenqi', parts: [
+    // glow：觉醒Ⅲ发光壳颜色（第 29 轮）。aw≥3 时每块外套一层略大的半透明叠加发光壳（emissive 近似），tri 翻倍仍 ≤300
+    sq_xuanyuan: { name: '轩辕残剑', slot: 'shenqi', glow: '#ffd860', parts: [
       ['blade', 0, 6, 0, 3, 22, 3, '#c8b070'],
       ['guard', 0, -6, 0, 10, 3, 3, '#8a6a2a'],
       ['grip', 0, -10, 0, 3, 6, 3, '#5a3a1a'],
     ] },
   };
-  const triCount = itemId => (ATTACH[itemId] ? ATTACH[itemId].parts.length * 12 : 0);
+  // 觉醒Ⅲ发光壳（第 29 轮）：觉醒等级 aw 由调用方传入（对齐 Grok Bot 数据层 sq36.own[id].aw，1..3；本文件不读 G），
+  //   wear={shenqi:'sq_xuanyuan', aw:3}。壳 = 每块神器部件各方向外扩 GLOW_PAD、同中心、同挥砍组，部件名 'att:glow:*'，
+  //   draw 时用 globalCompositeOperation='lighter' + 半透明画、不描边。只有带 glow 色的神器、且 aw≥3 才出壳。
+  const GLOW_AW = 3, GLOW_PAD = 3, GLOW_ALPHA = 0.45;
+  const awOf = v => Math.max(1, Math.min(3, Math.floor(Number(v)) || 1));
+  const hasGlow = (itemId, aw) => !!(ATTACH[itemId] && ATTACH[itemId].slot === 'shenqi' && HEXC.test(ATTACH[itemId].glow || '') && awOf(aw) >= GLOW_AW);
+  const triCount = (itemId, aw) => (ATTACH[itemId] ? ATTACH[itemId].parts.length * 12 * (hasGlow(itemId, aw) ? 2 : 1) : 0);
   const HEADISH = ['head', 'hair', 'bun', 'hat', 'hatTop', 'crown', 'flower'];
   const GARMENT = ['robe', 'skirt', 'body'];
   const WAIST = ['belt', 'sash'];
@@ -207,6 +215,10 @@
     if (ATTACH[wear.shenqi] && ATTACH[wear.shenqi].slot === 'shenqi' && S.hand) {
       P = P.filter(p => p[8] !== 'sword');
       put('shenqi', S.hand, 'sword');
+      if (hasGlow(wear.shenqi, wear.aw)) {
+        const it = ATTACH[wear.shenqi], a = S.hand, k = GLOW_PAD * 2;
+        for (const [n, dx, dy, dz, w, d, h] of it.parts) P.push(['att:glow:' + n, a[0] + dx, a[1] + dy, a[2] + dz, w + k, d + k, h + k, it.glow.toLowerCase(), 'sword']);
+      }
     }
     return P;
   }
@@ -239,7 +251,8 @@
         let area = 0;
         for (let i = 0; i < 4; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % 4]; area += x1 * y2 - x2 * y1; }
         if (area <= 1e-6) continue; // 背面剔除
-        faces.push({ part: n, side, pts: q, fill: shade(col, k), depth: wx + wy + pz }); // 朝镜头方向 = (1,1,1)（由投影基推出），按部件中心深度排序
+        const glow = n.startsWith('att:glow:');
+        faces.push({ part: n, side, pts: q, fill: glow ? col : shade(col, k), depth: wx + wy + pz, glow }); // 发光壳不做明暗（自发光） // 朝镜头方向 = (1,1,1)（由投影基推出），按部件中心深度排序
       }
     }
     faces.sort((A, B) => A.depth - B.depth); // 远→近（画家算法）
@@ -265,13 +278,18 @@
         x0 = Math.min(x0, x + px); x1 = Math.max(x1, x + px); y0 = Math.min(y0, y + py); y1 = Math.max(y1, y + py);
       });
       ctx.closePath();
+      if (f.glow) { // 觉醒Ⅲ发光壳：叠加半透明，不描边（同深度时排在本体面之后，稳定排序保证盖在本体上）
+        ctx.save(); ctx.globalAlpha = GLOW_ALPHA; ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = f.fill; ctx.fill(); ctx.restore();
+        continue;
+      }
       ctx.fillStyle = f.fill; ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke();
     }
     return { faces: faces.length, bbox: { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 } };
   }
 
-  const API = { CHARS, build, draw, angleFromFace, poseOffset, ids: Object.keys(CHARS), ATTACH, SLOT_BUDGET, triCount, sockets, dressParts };
+  const API = { CHARS, build, draw, angleFromFace, poseOffset, ids: Object.keys(CHARS), ATTACH, SLOT_BUDGET, triCount, sockets, dressParts, hasGlow, GLOW_AW, GLOW_PAD };
   if (typeof window !== 'undefined') window.LowpolyBox = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })();
