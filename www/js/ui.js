@@ -141,7 +141,7 @@ const UI = {
   p_pets(b, re) {
     const G = Game.G;
     b.innerHTML = G.pets.length ? G.pets.map((p, k) => { const u = Game.petUnit(p); return `<div class="it ${k === G.petA ? 'act' : ''}"><i style="${porCss(MONS[p.mon].spr, 56)}"></i><div><b>${esc(p.name)} Lv${p.lv}</b><small>血${u.mhp} 攻${Math.round(u.atk)} 防${Math.round(u.def)}｜技能：${u.skills.map(s => SKILLS[s].n).join('、')}</small></div>${k === G.petA ? '<span class="tag">出战中</span>' : `<button class="sm" data-k="${k}">出战</button>`}<button class="sm rel" data-k="${k}">放生</button></div>`; }).join('') : '<p class="empty">还没有灵兽。\n战斗中用【御兽符】捕捉残血妖兽，或孵化灵兽蛋。</p>';
-    b.onclick = e => { const k = e.target.dataset.k; if (k === undefined) return; if (e.target.classList.contains('rel')) { G.pets.splice(+k, 1); if (G.petA >= G.pets.length) G.petA = G.pets.length - 1; } else G.petA = +k; Game.spawnPetEnt(); re(); };
+    b.onclick = e => { const k = e.target.dataset.k; if (k === undefined) return; if (e.target.classList.contains('rel')) { Game.releasePet(+k); } else G.petA = +k; Game.spawnPetEnt(); re(); };
   },
   p_comps(b) {
     const G = Game.G; const list = Object.keys(NPCS).filter(k => NPCS[k].comp);

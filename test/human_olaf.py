@@ -66,8 +66,9 @@ return {modal:UI.stack.length,top:top?top.className:null,dlg:!!(top&&top.querySe
  path:R.player?(R.player.path||[]).length:0,busy:!!(GM&&GM._busy),battle:!!(typeof B!=='undefined'&&B.on),mode:R.mode,
  joy:!!(R.joy&&R.joy.active),age:G?G.age:null,main:G&&typeof MAIN!=='undefined'&&MAIN[G.main]?MAIN[G.main].id:null,awakened:!!(G&&G.flags&&G.flags.awakened),
  ap:G?G.ap:null,mapId:R.mapId,ingame:document.body.classList.contains('ingame')}}"""
+# 像真人一样先把滚动列表里的按钮滚进视口再点（3.4.1 开发者面板「传送」页按钮多到出屏，T5 点空）
 JS_RECT = """([sel,txt])=>{const e=[...document.querySelectorAll(sel)].filter(e=>{const r=e.getBoundingClientRect();const cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none'&&!e.closest('.outm')&&(!txt||e.textContent.includes(txt))}).pop();
-if(!e)return null;const r=e.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,e.textContent.trim().slice(0,30)]}"""
+if(!e)return null;e.scrollIntoView({block:'nearest',inline:'nearest'});const r=e.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,e.textContent.trim().slice(0,30)]}"""
 JS_HIT = "([x,y])=>{const e=document.elementFromPoint(x,y);return e?(e.id?'#'+e.id:e.tagName.toLowerCase()+(e.className&&e.className.baseVal===undefined?'.'+e.className:'')):null}"
 JS_WALK = "([i,j])=>walkable(i,j)"   # 只读：网格可走
 JS_TILE_S = "([i,j])=>{const [x,y]=t2p(i,j);const [a,b]=w2s(x,y);return [a/R.dpr,b/R.dpr]}"
