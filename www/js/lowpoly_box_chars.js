@@ -105,17 +105,90 @@
     return [dx, dy, dz];
   }
 
+  // ======================= 3.6 外观挂点（开放世界线第 23 轮 · 只画外观） =======================
+  // 命名占位沿用 docs/research_v36.md：时装部位 guan 冠 / yi 衣 / pei 佩 / lv 履，神器 id 用 sq_*；
+  // Grok Bot 的数据层（cos36.js / shenqi36.js）字段定了再对齐。这里只算挂点位置、只画方块，
+  // 不读不写 G、不带任何属性，也不进正式加载链（仍只由预览页 / 即时战原型加载）。
+  // 面数预算（research_v36 §6）：冠/佩 每件 ≤150 tri，神器 每把 ≤300 tri；一个长方体按 12 tri 计。
+  const SLOT_BUDGET = { guan: 150, pei: 150, shenqi: 300 };
+  // item part: [名称, 相对挂点 dx,dy,dz, 尺寸 w,d,h, 颜色]
+  const ATTACH = {
+    douli: { name: '斗笠', slot: 'guan', parts: [
+      ['brim', 0, 0, 2, 40, 38, 3, '#c8a860'],
+      ['cone', 0, 0, 6.5, 22, 22, 6, '#b8984f'],
+      ['tip', 0, 0, 11, 8, 8, 3, '#a8883f'],
+    ] },
+    hulu: { name: '酒葫芦', slot: 'pei', parts: [
+      ['belly', 0, 0, -4, 8, 8, 8, '#d8a040'],
+      ['neck', 0, 0, 2, 5, 5, 5, '#d8a040'],
+      ['cord', 0, 0, 0, 9, 9, 1, '#c04a3a'],
+      ['cork', 0, 0, 5.5, 2, 2, 2, '#7a4a2a'],
+    ] },
+    sq_xuanyuan: { name: '轩辕残剑', slot: 'shenqi', parts: [
+      ['blade', 0, 6, 0, 3, 22, 3, '#c8b070'],
+      ['guard', 0, -6, 0, 10, 3, 3, '#8a6a2a'],
+      ['grip', 0, -10, 0, 3, 6, 3, '#5a3a1a'],
+    ] },
+  };
+  const triCount = itemId => (ATTACH[itemId] ? ATTACH[itemId].parts.length * 12 : 0);
+  const HEADISH = ['head', 'hair', 'bun', 'hat', 'hatTop', 'crown', 'flower'];
+  const GARMENT = ['robe', 'skirt', 'body'];
+  const WAIST = ['belt', 'sash'];
+  const pick = (P, names) => { for (const n of names) { const p = P.find(q => q[0] === n); if (p) return p; } return null; };
+  // 挂点（模型坐标）：guan 头顶最高处、pei 左腰外侧（右手持兵器，佩挂左边免穿插）、hand 右手持位（原武器中心）
+  function sockets(id) {
+    const ch = CHARS[id]; if (!ch) return null;
+    const P = ch.parts;
+    const head = pick(P, ['head']);
+    let top = -Infinity;
+    for (const p of P) if (HEADISH.includes(p[0])) top = Math.max(top, p[3] + p[6] / 2);
+    const g = pick(P, GARMENT), w = pick(P, WAIST) || g;
+    const wpn = P.find(p => p[8] === 'sword'), arm = pick(P, ['armR']);
+    return {
+      guan: head ? [0, head[2], top] : null,
+      pei: g ? [-(g[4] / 2 + 3), 0, w === g ? g[3] : w[3] - 5] : null,
+      hand: wpn ? [wpn[1], wpn[2], wpn[3]] : (arm ? [arm[1], arm[2] + 6, arm[3] - arm[6] / 2] : null),
+    };
+  }
+  const HEX = /^#[0-9a-f]{6}$/i;
+  // 穿戴后的部件表：不改 CHARS 原表（返回新数组）。wear={guan,pei,shenqi} 认不得的 id / 槽位不符就忽略；
+  // dye={yi:'#rrggbb'} 把与主衣同色的部件（袍/裙 + 同色袖子）换色。神器挂手上时替换原手持武器，跟随挥砍。
+  function dressParts(id, wear, dye) {
+    const ch = CHARS[id]; if (!ch) return [];
+    let P = ch.parts.slice();
+    const g = pick(P, GARMENT);
+    if (dye && g && typeof dye.yi === 'string' && HEX.test(dye.yi)) {
+      const base = g[7];
+      P = P.map(p => (p[7] === base ? p.slice(0, 7).concat([dye.yi.toLowerCase(), p[8]]) : p));
+    }
+    if (!wear) return P;
+    const S = sockets(id);
+    const put = (slot, anchor, grp) => {
+      const it = ATTACH[wear[slot]];
+      if (!it || it.slot !== slot || !anchor) return;
+      for (const [n, dx, dy, dz, w, d, h, col] of it.parts) P.push(['att:' + slot + ':' + n, anchor[0] + dx, anchor[1] + dy, anchor[2] + dz, w, d, h, col, grp]);
+    };
+    put('guan', S.guan, '');
+    put('pei', S.pei, '');
+    if (ATTACH[wear.shenqi] && ATTACH[wear.shenqi].slot === 'shenqi' && S.hand) {
+      P = P.filter(p => p[8] !== 'sword');
+      put('shenqi', S.hand, 'sword');
+    }
+    return P;
+  }
+
   // 把一个角色展开为可绘制的面（已投影、已剔除、已排序）
   function build(id, opts) {
     const ch = CHARS[id]; if (!ch) return [];
     opts = opts || {};
+    const plist = (opts.wear || opts.dye) ? dressParts(id, opts.wear, opts.dye) : ch.parts;
     const s = opts.scale || 1, ang = opts.angle || 0, anim = opts.anim || 'idle', t = opts.t || 0;
     // 面向角 ang：0 = 朝屏幕右下（模型 +y 对齐世界 +x+y 方向的等距“南”）；用屏幕面向 atan2(fy,fx) 转换见 angleFromFace
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const rot = (x, y) => [x * ca - y * sa, x * sa + y * ca];
     const proj = (x, y, z) => [(x - y) * C30 * s, ((x + y) * S30 - z) * s];
     const faces = [];
-    for (const [n, cx, cy, cz, w, d, h, col, grp] of ch.parts) {
+    for (const [n, cx, cy, cz, w, d, h, col, grp] of plist) {
       const [ox, oy, oz] = poseOffset(grp, anim, t);
       const px = cx + ox, py = cy + oy, pz = cz + oz;
       const hw = w / 2, hd = d / 2, hh = h / 2;
@@ -164,7 +237,7 @@
     return { faces: faces.length, bbox: { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 } };
   }
 
-  const API = { CHARS, build, draw, angleFromFace, poseOffset, ids: Object.keys(CHARS) };
+  const API = { CHARS, build, draw, angleFromFace, poseOffset, ids: Object.keys(CHARS), ATTACH, SLOT_BUDGET, triCount, sockets, dressParts };
   if (typeof window !== 'undefined') window.LowpolyBox = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })();

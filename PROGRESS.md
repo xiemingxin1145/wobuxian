@@ -304,6 +304,14 @@
 - 本轮改动文件：www/js/battle_realtime_prototype.js、www/js/stage3_encounter_draft.js、www/js/dev_openworld.js、test/battle_rt_proto.js、test/stage3_chain.js、test/dev_openworld_page.py、docs/openworld_upgrade.md、PROGRESS.md。
 - 下一步：讨债令第二个只读用途（如抵扣误工费预览，仍只读、只走开发者入口），或即时战原型再一小步（如结算卡显示本场最大连击 / 技能命中数）；讨债令真正抵扣/兑换前须另开 PR 给奥拉夫审。
 
+### 2026-10-23 第二十三轮（UTC+8，openworld-wip，22:02 起）——3.6 低模角色外观挂点第一块（冠 / 佩 / 神器手持位 + 衣服换色）+ 合 main
+- 普通 merge 合入 origin/main d38fa6c（3.5 灵宠派遣 pet35 #25、一键连炼 lian35 #34），无冲突。
+- `www/js/lowpoly_box_chars.js`：按 docs/research_v36.md 命名做占位（部位 guan/yi/pei/lv、神器 sq_*；Grok Bot 数据层字段定了再对齐）。新增 `sockets(id)` 算三个挂点：冠 = 头顶最高处（压在发髻/帽子/冠之上）、佩 = 左腰外侧（右手拿兵器，避免穿插）、手持位 = 原武器中心（没武器的角色取右手下端前方）；`ATTACH` 首批三件方块物件：斗笠（冠，36 tri）、酒葫芦（佩，48 tri）、轩辕残剑（神器，36 tri），`SLOT_BUDGET` 冠/佩 ≤150、神器 ≤300 tri（一块长方体按 12 tri 计）；`dressParts(id, wear, dye)` 返回新部件表、不改 CHARS 原表，神器替换原手持武器并跟随挥砍，`dye.yi` 把与主衣同色的部件（袍/裙 + 同色袖子）换色；`build`/`draw` 认 `opts.wear` / `opts.dye`，不传时输出与之前逐字一致。只画外观：不读写 G / Game / localStorage、无属性。
+- `www/prototypes/lowpoly_box/index.html`：预览页加「试穿 3.6 挂点」开关（斗笠 · 酒葫芦 · 轩辕残剑 · 衣染青）。仍不进 www/index.html、不进正常游戏流程。
+- 测试：新增 `test/lowpoly_attach.js` 83 条 ALL PASS（预算 / 命名 / 7 个角色挂点位置 / 穿戴加块且原表不变 / 槽位不符与未知 id 忽略 / 斗笠随受击后仰与头同步 / 神器随挥砍推出 / 换色只换主衣同色件、5 种坏颜色忽略 / 源码只读 / 预览页开关 / 正式页不加载）；无头 Chrome 打开预览页勾开关无报错、截图核对挂件位置正确。lowpoly_box / battle_rt_proto / stage3_chain / stage3_life34 ALL PASS、good_rel_cap 31/31、validate22 errors []、encounter_chain_verify 14/14、dev_openworld_page 64 PASS、dev_openworld_gate_page 39/39、battle_rt_proto_page / tap342 / dev341 全过（其余见提交信息）。results 不提交。
+- 本轮改动文件：www/js/lowpoly_box_chars.js、www/prototypes/lowpoly_box/index.html、test/lowpoly_attach.js、docs/openworld_upgrade.md、PROGRESS.md。
+- 下一步：挂点第二块（剩下 3 款冠 金冠/龙角/兜帽、3 款佩 玉佩/羽扇/算盘，各 ≤150 tri；或神器「觉醒Ⅲ」发光壳），等 Grok Bot 在群里定下 cos36 / shenqi36 字段后把占位名对齐；之后再做讨债令第二个只读用途（误工费抵扣预览）。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
