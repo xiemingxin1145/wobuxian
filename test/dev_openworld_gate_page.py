@@ -34,6 +34,7 @@ async def main():
         ck('非开发者模式：没有请求任何原型脚本', not [u for u in reqs if any(x in u for x in PROTO)])
         ck(f'非开发者模式：DevOpenWorld 是空壳（active=false），无开发者按钮 / 覆盖层 {st["ids"]}、无原型 script 标签', st['dow'] == 'object' and not st['active'] and not st['ids'] and not st['tags'])
         ck('非开发者模式：无 JS 错误 ' + str(errs[:2]), not errs)
+        ck('非开发者模式：window.DevTabs 里没有 openworld 页签', await pg.evaluate("!(window.DevTabs||[]).some(t=>t&&t.key==='openworld')"))
         # 7 连点标题 → 开发者模式
         n = await pg.evaluate("(()=>{const t=document.querySelector('#title, .ver, #ver');if(!t)return 0;for(let i=0;i<7;i++)t.dispatchEvent(new MouseEvent('click',{bubbles:true}));return 1})()")
         await pg.wait_for_timeout(1500); st = await pg.evaluate(STATE)
@@ -50,6 +51,22 @@ async def main():
                   un();a.after=box.querySelectorAll('button').length;a.fbBack=document.getElementById('dow-open').style.display!=='none';return a})()""")
                 ck(f'mount API：id=openworld / title=开放世界 / 8 个按钮 {m["labels"]}', m['id'] == 'openworld' and m['title'] == '开放世界' and m['n'] == 8 and m['inBox'] == 8)
                 ck('mount() 后兜底入口隐藏，卸载后按钮移除、兜底入口恢复', m['fbHidden'] and m['after'] == 0 and m['fbBack'])
+                # 3.4.1 作弊菜单接口 DevTabs：再执行一次 dev_openworld.js 也只登记一次
+                await pg.add_script_tag(url='js/dev_openworld.js'); await pg.wait_for_timeout(800)
+                t = await pg.evaluate("""(()=>{const L=(window.DevTabs||[]).filter(t=>t&&t.key==='openworld');const T=L[0]||{};
+                  const box=document.createElement('div');document.body.appendChild(box);const un=T.render?T.render(box):null;
+                  const a={n:L.length,name:T.name,inBox:box.querySelectorAll('button.dow-btn').length,fbHidden:document.getElementById('dow-open').style.display==='none'};
+                  if(typeof un==='function')un();a.fbBack=document.getElementById('dow-open').style.display!=='none';return a})()""")
+                ck(f'#dev：DevTabs 里恰好 1 个 openworld 页签（文件执行两次后仍 1 个）name=开放世界 {t}', t['n'] == 1 and t['name'] == '开放世界')
+                # 载入 origin/dev341 真实 dev341.js 的 DevPanel.tabs() 过滤（按 key），确认能被 3.4.1 菜单识别
+                import subprocess
+                src = subprocess.run(['git','show','origin/dev341:www/js/dev341.js'],capture_output=True,text=True,cwd=ROOT).stdout
+                k = src.find('window.DevTabs = window.DevTabs || [];'); e = src.find('(function () {', k)
+                if k > 0 and e > k:
+                    seg = src[k:e].replace('const DevPanel = window.DevPanel =', 'const _DP =').replace('DEV341.TABS', '[]')
+                    n341 = await pg.evaluate("(()=>{" + seg + " return _DP.tabs().filter(t=>t.key==='openworld').length})()")
+                    ck(f'dev341 真实 DevPanel.tabs() 识别到 openworld 页签 1 个（{n341}）', n341 == 1)
+                ck('DevTabs render(el)：8 个按钮进 el、隐藏 #dow-open；返回的卸载函数调用后兜底入口恢复', t['inBox'] == 8 and t['fbHidden'] and t['fbBack'])
             await pg.close()
         await b.close()
     for m, c in checks: print(('PASS ' if c else 'FAIL ') + m)

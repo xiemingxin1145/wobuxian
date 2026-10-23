@@ -19,6 +19,9 @@
 //     mount(containerEl): () => void,  // 把按钮渲染进宿主容器（每个 <button class="dow-btn" data-key=…>），返回卸载函数；
 //                                      //   任何一次 mount 后，下面的浮动兜底入口自动隐藏（卸载全部后恢复）
 //   }
+// 3.4.1 作弊菜单页签（Grok Bot 定的接口）：开发者模式下登记
+//   DevPanel.registerTab('openworld', '开放世界', render)（dev341 已加载时），否则 (window.DevTabs = window.DevTabs || []).push({ key: 'openworld', id: 'openworld', name: '开放世界', render(el) })
+//   dev341 的 DevPanel.tabs() 按 key 过滤；菜单遍历 DevTabs，一项一个页签，调用 render(页签容器)；render 返回 unmount。只登记一次（文件执行两次也不重复）；非开发者模式不登记。
 // 兜底入口（3.4.1 页签落地前给测试用）：开发者模式下右侧一个「开放世界」浮动按钮（bottom:270px，在 main 的 试炼场/全套神装/即时战 之上，不重叠），
 //   点开一个按钮面板（#dow-open 打开 #dow-panel，按钮 id = dow-<key>）。非开发者模式不出现；宿主 mount() 过就隐藏。
 
@@ -238,10 +241,12 @@
   // ---- 懒加载原型脚本（只在开发者模式）----
   let loading = null;
   function loadScript(src) {
+    const old = document.querySelector('script[data-dev-openworld="1"][src="' + src + '"]'); // 本文件被执行两次时不重复注入
+    if (old) return old.dataset.loaded ? Promise.resolve(true) : new Promise(res => { old.addEventListener('load', () => res(true)); old.addEventListener('error', () => res(false)); });
     return new Promise(res => {
       const s = document.createElement('script');
       s.src = src; s.async = false; s.dataset.devOpenworld = '1';
-      s.onload = () => res(true); s.onerror = () => res(false);
+      s.onload = () => { s.dataset.loaded = '1'; res(true); }; s.onerror = () => res(false);
       document.head.appendChild(s);
     });
   }
@@ -288,7 +293,16 @@
     document.body.appendChild(pn); document.body.appendChild(fb);
     syncFallback();
   }
-  function enable() { ready(); if (!mounts) addFallback(); }
+  // 3.4.1 作弊菜单接口：开发者模式下往 window.DevTabs 登记一个页签；菜单 render(el) 时复用 DevOpenWorld.mount(el)（会隐藏兜底入口）。
+  //   已有 id='openworld' 的登记就不再 push（本文件被执行两次也只登记一次）；render 调用时取当前的 window.DevOpenWorld。
+  function registerTab() {
+    const render = function (el) { return (window.DevOpenWorld || API).mount(el); };
+    if (window.DevPanel && typeof window.DevPanel.registerTab === 'function') { window.DevPanel.registerTab('openworld', '开放世界', render); return; } // dev341 已加载：同 key 覆盖
+    const tabs = (window.DevTabs = window.DevTabs || []);
+    if (tabs.some(t => t && (t.key === 'openworld' || t.id === 'openworld'))) return;
+    tabs.push({ key: 'openworld', id: 'openworld', name: '开放世界', render: render }); // dev341 按 key 识别；id 兼容旧写法
+  }
+  function enable() { ready(); registerTab(); if (!mounts) addFallback(); }
 
   const API = {
     id: 'openworld', title: '开放世界', active: false,
@@ -309,7 +323,7 @@
     if (++clicks >= 7) { clicks = 0; enable(); }
   });
   if (location.hash === '#dev' || location.search.includes('dev=1')) {
-    ready(); // 尽早加载原型脚本（main 的 dev_entry 按钮 500ms 后出现，也要用到 RealtimeBattle / Stage3）
+    ready(); registerTab(); // 尽早登记页签、加载原型脚本（main 的 dev_entry 按钮 500ms 后出现，也要用到 RealtimeBattle / Stage3）
     setTimeout(enable, 500);
   }
 })();
