@@ -246,7 +246,7 @@ function render() {
   for (const e of R.ents) {
     if (e.hidden || !e.label) continue; const [x, y] = t2p(e.i, e.j); const b = spriteBox(e.spr, e.s);
     const ty = y - b.h - 6 - (e.lift || 0);
-    { const Q = R._qtR; const [sx0, sy0] = w2s(x - 90, ty - 34), [sx1, sy1] = w2s(x + 90, ty + 12); ctx.globalAlpha = (Q[2] > Q[0] && sx1 > Q[0] && sx0 < Q[2] && sy1 > Q[1] && sy0 < Q[3]) ? 0.12 : 1; }
+    { const Q = R._qtR; const [sx0, sy0] = w2s(x - 90, ty - 34), [sx1, sy1] = w2s(x + 90, ty + 12); ctx.globalAlpha = (e.kind !== 'npc' && e.kind !== 'boss' && Q[2] > Q[0] && sx1 > Q[0] && sx0 < Q[2] && sy1 > Q[1] && sy0 < Q[3]) ? 0.12 : 1; }
     const big = e.kind === 'npc' || e.kind === 'boss'; const fs = big ? 30 : 22; // v2.3：NPC 名字更大、带底牌，可点
     ctx.font = `bold ${fs}px WBXKai,sans-serif`;
     if (big) { const tw = ctx.measureText(e.label).width + 22; ctx.fillStyle = e.kind === 'boss' ? 'rgba(90,20,10,0.72)' : 'rgba(20,14,8,0.62)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - tw / 2, ty - fs - 2, tw, fs + 12, 12) : ctx.rect(x - tw / 2, ty - fs - 2, tw, fs + 12); ctx.fill(); }
