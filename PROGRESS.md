@@ -2,6 +2,25 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
+## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
+> 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
+- [x] 元素亲和：包 `calcDmg`（回合制 battle.js 与即时战 rt27 共用），玩家本人非普攻技能按 `SKILLS[k].el`（data.js 原有字段）吃 24%/元素数，雷/冰再 +6%；灵兽/伙伴/普攻不吃。
+- [x] 突破修正：Δ 写进 G.tmpBrk（none +5 / shuang −2 / tian −4 / lei,bing −5 个百分点，brk' 夹 [0.1,0.95]），「冲击瓶颈」卡片成功率自动包含；取消/提前返回时还原 tmpBrk。雷/冰突破 toast「天劫：老乡…」。
+- [x] 纯度：`cultMult × (0.9 + pur/500)`；打坐（Acts.mat，消耗行动力）每游戏月 +1、此来源上限 70；新道具 灵根丹 `lgd`（600 灵石，药铺/魔女小店/天庭福利社）+5；心魔幻境（xinmo34 若合入）小成及以上 +3（运行时探测 XM34.run）。
+- [x] 洗灵根：洗髓丹原效果 + 纯度 −20；角色面板「灵根」栏新增 逆脉洗根（5000 灵石 + 寿元上限 10%，按 LINGGEN 权重重随，纯度不变）、定向淬根（新道具 天材地宝 `tcdb` 1500 灵石 ×3 + 8000 灵石，增/删 1 个五行元素，档位按元素数重算；异灵根不可淬）。均二次确认。淬根后的元素存 G.lg36.el（elFor≠G.lg 即失效）。
+- [x] 开发者面板 Tab「灵根36」：纯度 0/50/70/100、8 种灵根、天材地宝×3、灵根丹×5、灵石+20000。
+- [x] `test/lg36_unit.py`：A3.1 比值 1.00、A3.2 tian 金 ×1.24 / lei 雷 ×1.30、A3.3 lei 元婴→化神 37%、A3.4 1000 次（固定种子）最大偏差 1.8pp；老档（无 lg36）真实触摸「继续人生」纯度 50；412×915 真实触摸洗根按钮不溢出、确认卡、「算了」不扣费、淬入水→双灵根 金水。
+- [x] 门禁（19:54–20:20 UTC+8，串行）：validate22 0 错、lg36_unit ALL PASS、sys33_unit fails/errors []、jsscan33 errors []、controls FAILS 0、human23 首轮 11/13（4/5 步追踪栏寻路到剑仙后未开对话，偶发）→ 单独重跑 13/13。human_olaf 未跑（交奥拉夫）。PR「3.6 灵根深化（lg36）」，不合并。
+- [ ] 未做/待议：打坐 +1 只有代码、单测未覆盖（Acts.mat 需地图上的 R.player）；天材地宝暂只在商店买（可考虑秘境/BOSS 掉落）；外观光球资产（§6）交 open-world bot。
+
+## 3.5 灵宠派遣（Grok Bot，2026-10-23 13:40 起，分支 `pet35`，worktree `/workspace/game-dev341`）
+> ROADMAP P2 #16「灵宠派遣」。新文件 `www/js/pet35.js`（index 在 dev341 后），单测 `test/pet35_unit.py`。
+- [x] 不出战的灵兽在灵兽面板下方「灵宠派遣」选差事：采药（木）/寻矿（土）/狩猎（火）/帮人看摊（金）/探秘境（水·冰），五行相合 ★ 收获 ×1.5；名额 1+floor(大境界/2)，最多 4。
+- [x] 过年结算（包 `Game.yearEnd`）：材料/灵石 + 灵兽经验；探秘境 20%（相合 10%）负伤空手；改出战自动召回；最近 6 条记录 `G.pd35log`；差事存在灵兽对象 `p.pd35`，老档无字段即空闲。
+- [x] 开发者面板新增「派遣」页（立即结算 / 送 3 只灵兽）。
+- [x] `test/pet35_unit.py` 全过（逻辑 + 真实面板选差事 + 读档仍在）。
+- [ ] 全门禁 `/tmp/gate_pet35.sh` → 汇总 `/tmp/gp35.txt`（各项 `/tmp/gp35_*.txt`）。全绿后 `--no-ff` 合 main，下个小版本带上。
+
 ## 3.4.1 作弊菜单（Grok Bot，2026-10-19 19:20 起，分支 `dev341`，worktree `/workspace/game-dev341`）
 > 主人反馈：开发者面板很多按钮无效，缺功法/金手指/装备，天赋无效。目标：逐个点按审计+修复，新增 功法/装备/天赋/金手指 浏览选择器，test/dev341.py，门禁后开 PR「3.4.1 作弊菜单重做」（不合并）。
 - [x] 审计脚本 `test/dev341_audit.py`（真实触摸逐个按钮，记录状态差异；`TABS=res,realm` 只跑部分，结果 `test/results/dev341_audit.json`）。已跑 资源/境界/解锁/剧情/传送：按钮均生效（见 /tmp/dev341_audit_story_tp.txt）；演出页：抽卡演出后游戏长时间不回到可操作状态（UX.inMap 假）→ 🛠 点了没反应，待查 g2。
@@ -326,3 +345,14 @@
 - [x] 门禁（21:58–22:08 UTC+8，串行）：validate22 errors []、jsscan33 errors []、sys33_unit fails/errors []、content33 errors []、controls FAILS 0、panels21 ERRORS 0、dev341 FAILS []、human23 13/13。human_olaf 未跑（交奥拉夫）。PR「3.6 神器（sq36）」，不合并。
 - 规格出入（已按验收实现，待研究员确认）：A2.2 写「金丹→元婴 42%」，按 REALMS 实为元婴→化神 42%（金丹→元婴 50→55）；伏羲琴法则列在觉醒Ⅲ，但 A2.2 要求觉醒Ⅰ就 +5，故伏羲 +5 为固定常驻。
 - [ ] 未做/待议：神器低模/发光壳/台座资产（§6，交 open-world bot），目前用现有图标；线索点每环只点按不打架（心试只在觉醒Ⅲ）；昆仑回溯不拦截中毒等持续伤害；与 lg36（同包 calcDmg/_tryBreak/useItem）合并后需再跑两者单测。
+
+### 3.5 一键连炼（lian35，2026-10-23 17:55 UTC+8，PR 待奥拉夫审）
+- [x] ROADMAP P2 #16「炼丹炼器一键连炼」：新增 `www/js/lian35.js`（LIAN35）；炼丹面板每个丹方加「连炼×N」（N = 行动力/材料/上限 10 取小，≥2 才显示），洞府炼器加「连炼×N」（上限 5，受玄铁晶/妖丹/灵石约束）。
+- 规则：连炼跳过火候小游戏，按中等火候 q=0.4 算成功率（手动完美火候仍更高、且只有手动能多出一颗）；每炉照扣 1 行动力 + 材料，成丹计 alchCount 与 alch10 成就；结果一条 toast 汇总。
+- 改动：`www/js/lian35.js`（新）、`www/js/ui.js`（炼丹面板按钮 + 提示）、`www/js/ui21.js`（炼器按钮）、`www/index.html`（fix342.js 之后加载）、`test/lian35_unit.py`（新，15 项）。
+- 测试：lian35_unit ALL PASS、validate22 0 错、jsscan33 0 错、sys33_unit 通过、dev341_audit 通过、controls 0 失败；412×915 炼丹面板截图按钮不溢出。
+- 未 bump VERSION；与 PR #25（pet35）无文件冲突（pet35 只改 ui.js 放生段，若 index.html 脚本行冲突按 fix342 → pet35 → lian35 顺序保留）。
+- [x] 10-23 3.5.0：灵宠派遣（PR #25 224c9a7）、一键连炼（PR #34 d38fa6c）；VERSION 3.5.0 + CHANGELOG，发布门禁全跑。
+- [x] 10-23 v3.5.0 已发布（tag 08930f2，灵宠派遣 + 一键连炼）。
+- [x] 10-24 3.6.0：灵根深化（PR #36 squash）；VERSION 3.6.0 + CHANGELOG，发布门禁全跑。
+- [ ] 已知问题（10-24）：human_olaf N1（战后点按：怪离 NPC 太近，点怪打开了 NPC 对话没开战）/ T1（点身体部位偶发 34/35，怪走进点位）在完整门禁和单独重跑中都会失败，且在已发布的 v3.5.0 上同样复现（非 3.6 引入），按已知 flake 放行 v3.6.0；human23 第 4 项（追踪栏寻路→剑仙对话为空）只在门禁后段偶发，单跑通过。待测试侧修站位。
