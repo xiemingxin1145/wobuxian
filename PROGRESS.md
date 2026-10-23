@@ -340,3 +340,5 @@
 - 测试：lian35_unit ALL PASS、validate22 0 错、jsscan33 0 错、sys33_unit 通过、dev341_audit 通过、controls 0 失败；412×915 炼丹面板截图按钮不溢出。
 - 未 bump VERSION；与 PR #25（pet35）无文件冲突（pet35 只改 ui.js 放生段，若 index.html 脚本行冲突按 fix342 → pet35 → lian35 顺序保留）。
 - [x] 10-23 3.5.0：灵宠派遣（PR #25 224c9a7）、一键连炼（PR #34 d38fa6c）；VERSION 3.5.0 + CHANGELOG，发布门禁全跑。
+- [x] 10-23 v3.5.0 已发布（tag 08930f2，灵宠派遣 + 一键连炼）。
+- [x] 10-24 3.6.0：灵根深化（PR #36 squash）；VERSION 3.6.0 + CHANGELOG，发布门禁全跑。
