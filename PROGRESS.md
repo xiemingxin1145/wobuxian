@@ -9,7 +9,10 @@
 - [x] g2「卡死」是审计脚本没点抽卡演出的「收下」，非游戏 bug（已改脚本）。审计结论（真实点按）：旧面板 7 个 Tab 的按钮单看状态都生效；「不好用」的根因：①v2.5 浮动按钮（试炼场/全套神装/即时战，z-index 9999，右下角）盖住底部菜单（灵兽/伙伴/御剑/更多）和开发者面板底部按钮；②dev_entry_v25 自己数「标题页任意位置」点击，与开发者开关不同步，关了开发者模式按钮还在；③「全套神装」写不存在的槽位 acc1/acc2、装备缺 base；④每点一个按钮整页重绘、滚动跳回顶部；⑤🛠 在对话/演出中点了无反应；⑥无敌/一击必杀/不遇敌刷新即丢；⑦没有功法等级/神通/装备/天赋/灵根/命格/道具选择器。已全部修。
 - [x] `test/dev341.py` 全过（FAILS []，约 2 分钟）：布局/滚动保留/关闭、5 个新 Tab 各发放一项 → 正常界面可见 → 刷新读档仍在、必定突破（筑基→金丹含天劫）、全套神装 6 槽。human23 的开发者面板步骤加点 5 个新 Tab。
 - [x] 门禁（20:00–20:15，dev341 `6a89e81`）：validate22 0 错、jsscan33 errors []、panels21 ERRORS 0/0、controls FAILS 0、human23 13/13、life34_unit/sys33_unit/seam34 通过；dev341.py FAILS []（20:15 复跑）。
-- [ ] human_olaf 全量 20:17 开跑 → `/tmp/gd341_olaf.txt`（末行 exit N）。之后开 PR「3.4.1 作弊菜单重做」，不合并。
+- [x] 10-19 全量 olaf 20/23（N2、T1 均为游走 NPC「集市货郎」点按偏差；S2 失败卡后误点二次升阶）——与 3.4.0 门禁修过的同类问题一致。10-23 合入 origin/main（v3.4.0，`c3d0ba1`）后 `ONLY=N2,T1,S2` 5/5 PASS，判定非 dev341 引起。
+- [x] 扩展接口：`DevPanel.registerTab(key,name,render)` / `window.DevTabs`（按 key 去重，后注册覆盖）/ `window.DevOpenWorld={id,title,mount(el)→unmount,ready()}` 自动成 Tab；render 可返回清理函数。v25 入口：修 `window.Game` 恒假（Game 是顶层 const）、试炼场改游戏内 iframe 覆盖层、即时战改本图野怪 RT27 实战。
+- [ ] 10-23 11:40 起全门禁 `/tmp/gate_dev341b.sh` → `/tmp/gd341b.txt`（GATE_DONE 结束）。
+- [ ] （旧）human_olaf 全量 20:17 开跑 → `/tmp/gd341_olaf.txt`（末行 exit N）。之后开 PR「3.4.1 作弊菜单重做」，不合并。
 - 旧下一步（已完成）：查 g2 卡死；修 dev_entry_v25 全套神装（槽位 acc1/acc2 不存在、缺 base）；🛠 在不可开时给提示；写 test/dev341.py；门禁；PR。
 - [x] life34：`Life34._inApply` 重入标记（Game.apply / Talk.gift 包装期间为 true，计数防嵌套，finally 复位）；life34_unit `in_apply_flag` 通过。
 
