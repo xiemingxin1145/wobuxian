@@ -1,0 +1,545 @@
+// 即时遭遇战原型无头单测：node test/battle_rt_proto.js（退出码 = 失败数）
+// 只验证 www/js/battle_realtime_prototype.js 的状态逻辑（移动/普攻扇形命中/伤害飘字/胜负/精灵接入/隔离），不开浏览器。
+'use strict';
+const fs = require('fs');
+const path = require('path');
+let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
+const ROOT = path.join(__dirname, '..');
+global.window = global;
+require(path.join(ROOT, 'www', 'assets', 'assets.js')); // 真实精灵清单（window.ASSETS）
+const drawn = [];
+global.loadSprite = id => Promise.resolve(id);
+global.drawSprite = (ctx, id, anim, dir) => { drawn.push({ id, anim, dir }); return { top: 0, h: 100 }; };
+let fightWrapped = false;
+global.Game = { G: { sex: 'f', realm: 0 }, playerSpr() { return 'player_f0'; }, save() { throw new Error('原型不应存档'); } };
+Object.defineProperty(global.Game, 'fight', { set() { fightWrapped = true; }, get() { return undefined; }, configurable: true });
+const RB = require(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'));
+const S = RB.state;
+const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
+
+(async () => {
+  // 1. 隔离：只暴露 RealtimeBattle，不包 Game.fight，不留全局 RT / 函数名
+  ok(window.RealtimeBattle === RB && !fightWrapped, '只暴露 window.RealtimeBattle，不碰 Game.fight');
+  ok(typeof global.RT === 'undefined' && typeof global.playerAttack === 'undefined', '不污染全局（RT / playerAttack 未泄漏）');
+  ok(RB.open() === null, '无 document 时 open() 不做任何事');
+  ok(!RB.devEnabled(), '无 #dev / wbx2_dev 时开发者开关为关');
+  const refs = fs.readdirSync(path.join(ROOT, 'www', 'js')).filter(f => f.endsWith('.js') && f !== 'battle_realtime_prototype.js')
+    .filter(f => /RealtimeBattle/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', f), 'utf8')));
+  ok(refs.includes('dev_openworld.js') && refs.every(f => f === 'dev_entry_v25.js' || f === 'dev_openworld.js'), '只有开发者入口（开放世界 dev_openworld.js；main 3.4.1 的 dev_entry_v25.js 已改用 RT27、不再引用）引用 RealtimeBattle：' + refs.join(','));
+  ok(/RealtimeBattle\.open\(/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_openworld.js'), 'utf8')), '开放世界「即时战」按钮走自带循环的 open()');
+
+  // 2. 精灵：主角用 Game.playerSpr()，敌人默认 mon_slime，且都在真实图集里
+  let done = RB.start([{ name: '史莱姆', hp: 60, x: 300, y: 250, skillCd: 99 }, { name: '背后怪', hp: 60, x: 300, y: 390, skillCd: 99 }]);
+  ok(S.player.spr === 'player_f0' && S.enemies[0].spr === 'mon_slime', '主角精灵=Game.playerSpr()，敌人默认 mon_slime');
+  ok(!!window.ASSETS.sprites[S.player.spr] && !!window.ASSETS.sprites[S.enemies[0].spr], '两个精灵 id 都存在于 assets.js');
+  drawn.length = 0; RB.draw(fakeCtx());
+  ok(drawn.some(d => d.id === 'player_f0') && drawn.some(d => d.id === 'mon_slime'), 'draw() 用 drawSprite 画主角和敌人');
+  ok(drawn.find(d => d.id === 'player_f0').dir === 'N' && drawn.find(d => d.id === 'player_f0').anim === 'idle', '默认朝上 = N，站立 idle');
+  ok(RB.screenDir(1, 0) === 'E' && RB.screenDir(0, 1) === 'S' && RB.screenDir(-1, -1) === 'NW', '屏幕面向→八方向映射');
+
+  // 3. 普攻：面向扇形命中前方、不打背后；伤害飘字；冷却
+  ok(RB.inAttackArc(S.player, S.enemies[0]) && !RB.inAttackArc(S.player, S.enemies[1]), '扇形判定：前方 70 命中、背后 70 不中');
+  let hits = RB.attack();
+  ok(hits.length === 1 && S.enemies[0].hp === 60 - RB.ATK.dmg && S.enemies[1].hp === 60, '普攻只伤前方敌人 ' + RB.ATK.dmg);
+  ok(S.dmgNums.some(n => n.txt === String(RB.ATK.dmg)), '命中出伤害飘字');
+  ok(S.enemies[0].flash > 0 && S.enemies[0].y < 250, '受击闪白 + 击退');
+  ok(RB.attack().length === 0 && S.enemies[0].hp === 60 - RB.ATK.dmg, '冷却内再按不出伤害');
+  drawn.length = 0; RB.draw(fakeCtx());
+  ok(drawn.find(d => d.id === 'player_f0').anim === 'attack', '挥砍中画 attack 动画');
+  S.enemies[1].hp = 0; // 只留前方敌人
+  RB.update(0.5);
+  ok(S.player.attackCd === 0, '0.5s 后冷却结束');
+  const n0 = S.dmgNums.length;
+  // 4. 移动：按 D 向右走，面向变 E；飘字随时间消失
+  S.keys.add('d'); const x0 = S.player.x; RB.update(0.2); S.keys.delete('d');
+  ok(S.player.x > x0 + 30 && RB.screenDir(S.player.faceX, S.player.faceY) === 'E', 'D 键右移并面向 E');
+  RB.update(1.0);
+  ok(n0 > 0 && !S.dmgNums.some(n => n.txt === String(RB.ATK.dmg)), '伤害飘字 0.8s 后消失');
+  // 落空提示
+  S.player.faceX = 0; S.player.faceY = 1; S.enemies[0].x = 100; S.enemies[0].y = 100; S.player.attackCd = 0;
+  ok(RB.attack().length === 0 && S.dmgNums.some(n => n.txt === '落空'), '打空出「落空」提示');
+  // 5. 打死所有敌人 → win，Promise 结算
+  S.enemies[0].x = S.player.x; S.enemies[0].y = S.player.y + 20; S.enemies[0].hp = 10; S.player.attackCd = 0;
+  RB.attack(); RB.update(0.016);
+  const r = await done;
+  ok(r.result === 'win' && !S.on, '敌人全灭 → win，Promise 返回结果');
+  ok(r.reason === 'cleared' && S.endReason === 'cleared', '敌人全灭 → 结束原因 cleared');
+  let prevented = false; RB._key.down({ key: ' ', preventDefault() { prevented = true; } });
+  ok(!prevented && S.keys.size === 0, '原型关闭后键盘不拦截（不影响正式游戏）');
+
+  // 6. 超时 → lose；无图集时回退圆形不崩
+  done = RB.start(null, { timeLimit: 1 });
+  S.enemies[0].skillCd = 99;
+  for (let i = 0; i < 80; i++) RB.update(0.016);
+  const rTo = await done;
+  ok(rTo.result === 'lose', '超时保底 → lose');
+  ok(rTo.reason === 'timeout', '超时 → 结束原因 timeout（宿主据此结算误工费）');
+  ok(Array.isArray(r.defeated) && r.defeated.join() === '史莱姆,背后怪' && Array.isArray(rTo.defeated) && rTo.defeated.length === 0, '结束结果带 defeated（已倒下敌人名单）：全灭 = 两只都在、超时没打死 = 空');
+  // 债务强化 #6：真实追兵配置进原型 → 打倒全部 → defeated 含讨债鬼头子 → Stage3.settleBounty 记讨债令；只打倒小弟时超时 → 名单无头子、不得令
+  const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+  done = RB.start(S3.bountyEnemies({ debt: 30000 }), { timeLimit: 99 });
+  S.enemies.forEach(e => { e.hp = 0; }); RB.update(0.016);
+  const r6 = await done; const G6 = { debt: 30000, year: 4, flags: {} };
+  const s6 = S3.settleBounty(G6, Object.assign({}, r6, { tier: 3 }));
+  ok(r6.reason === 'cleared' && r6.defeated[0] === '讨债鬼头子' && r6.defeated.length === 4 && s6.token && G6.flags.s3b_token === 1, '天道通缉追兵全灭 → defeated 含讨债鬼头子 → settleBounty 记 1 枚讨债令');
+  done = RB.start(S3.bountyEnemies({ debt: 30000 }), { timeLimit: 0.2 });
+  S.enemies.slice(1).forEach(e => { e.hp = 0; }); for (let i = 0; i < 20; i++) RB.update(0.016);
+  const r6b = await done; const G6b = { debt: 30000, flags: {} };
+  ok(r6b.reason === 'timeout' && r6b.defeated.length === 3 && !r6b.defeated.includes('讨债鬼头子') && !S3.settleBounty(G6b, Object.assign({}, r6b, { tier: 3 })).token && !('s3b_token' in G6b.flags), '头子没倒、超时 → defeated 无头子、不得令');
+  const saveDS = global.drawSprite; global.drawSprite = undefined;
+  let threw = false; try { RB.draw(fakeCtx()); } catch (e) { threw = true; }
+  global.drawSprite = saveDS;
+  ok(!threw, '没有 drawSprite 时回退圆形绘制不报错');
+
+  // 6b. 方块低模皮肤：页面加载了 LowpolyBox 时 skin:'box' 改画长方体角色，不调 drawSprite
+  window.LowpolyBox = require(path.join(ROOT, 'www', 'js', 'lowpoly_box_chars.js'));
+  done = RB.start(null, { skin: 'box', timeLimit: 1 });
+  drawn.length = 0; let fills = 0;
+  const bctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fill') fills++; }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(bctx);
+  ok(S.skin === 'box' && drawn.length === 0 && fills >= 40, '方块皮肤：画长方体（' + fills + ' 次填充），不走 drawSprite');
+  S.player.flash = 0.15; RB.draw(bctx);
+  ok(S._lastBoxAnim && S._lastBoxAnim.player === 'hurt', '方块皮肤：主角受击闪白期间播 hurt 后仰');
+  S.player.flash = 0; RB.draw(bctx);
+  ok(S._lastBoxAnim.player === 'idle', '方块皮肤：闪白结束回到 idle');
+  RB.end('lose'); await done;
+  done = RB.start(null, { skin: 'box', boxPlayer: 'nvzhu', timeLimit: 1 });
+  const fillsSeen = new Set(); const nctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fill') fillsSeen.add(t.fillStyle); }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(nctx);
+  const skirtFills = window.LowpolyBox.build('nvzhu', { angle: window.LowpolyBox.angleFromFace(0, -1) }).filter(f => f.part === 'skirt').map(f => f.fill);
+  ok(S.boxPlayer === 'nvzhu' && skirtFills.length > 0 && skirtFills.every(c => fillsSeen.has(c)), 'boxPlayer:nvzhu → 主角画成主角女（画面里出现裙摆配色）');
+  RB.end('lose'); await done; delete window.LowpolyBox;
+
+  // 8. 敌人前摇预警 + 前冲 / 弹道；玩家闪避无敌可躲
+  S.rand = () => 0;
+  const F = RB.FOE, D = RB.DODGE;
+  const run = (sec, step = 1 / 60) => { for (let t = 0; t < sec - 1e-9; t += step) RB.update(step); };
+  const freshLunge = (atkCd = 0) => { const pr = RB.start([{ name: '冲锋怪', hp: 999, x: 300, y: 240, speed: 0, atkCd }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; return pr; };
+  // 8a. 近距：进入前摇、锁方向、出预警，前摇期间不扣血
+  done = freshLunge();
+  RB.update(1 / 60);
+  let e0 = S.enemies[0], tg = RB.telegraphs();
+  ok(e0.state === 'windup' && e0.windKind === 'lunge' && tg.length === 1 && tg[0].kind === 'lunge', '近距 → 前冲前摇 + 1 个预警区');
+  ok(Math.abs(e0.aimX) < 1e-6 && Math.abs(e0.aimY - 1) < 1e-6, '前摇开始锁定朝向玩家');
+  let hp0 = S.player.hp; run(F.windLunge * 0.8);
+  ok(S.player.hp === hp0 && RB.telegraphs()[0].k > 0.7, '前摇期间不扣血，预警逐渐填满');
+  let tFill = 0; const tctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { if (k === 'fillRect' && /255,60,40/.test(t.fillStyle || '')) tFill++; }), set: (t, k, v) => { t[k] = v; return true; } });
+  RB.draw(tctx);
+  ok(tFill >= 1, 'draw() 画出红色预警区');
+  // 8b. 不躲：前冲命中扣 lungeDmg
+  run(F.windLunge * 0.2 + F.lungeT + 0.05);
+  ok(S.player.hp === hp0 - F.lungeDmg && S.dmgNums.some(n => n.txt === '-' + F.lungeDmg), '不躲 → 前冲命中 -' + F.lungeDmg);
+  ok(S.enemies[0].state === 'chase' && S.enemies[0].atkCd > F.cdMin - 0.2, '出手后回到追击并进入冷却');
+  RB.end('lose'); await done;
+  // 8c. 前摇中横移出锁定线 → 前冲落空
+  done = freshLunge(); RB.update(1 / 60); hp0 = S.player.hp;
+  S.player.x += 80; // 侧移（模拟走位）
+  run(F.windLunge + F.lungeT + 0.05);
+  ok(S.player.hp === hp0, '前摇中走出预警区 → 前冲落空');
+  RB.end('lose'); await done;
+  // 8d. 前冲到达瞬间闪避（无敌）→ 免伤 + 「闪避!」
+  done = freshLunge(); RB.update(1 / 60); hp0 = S.player.hp;
+  run(F.windLunge - 0.02);
+  S.player.faceX = 0; S.player.faceY = 1; RB.dash(); // 朝敌人前冲方向闪（位置仍在路径上，靠无敌躲）
+  ok(S.player.invuln === D.inv, '闪避给 ' + D.inv + 's 无敌');
+  S.player.y = 320; // 位置拉回路径上，单纯检验无敌
+  run(F.lungeT);
+  ok(S.player.hp === hp0 && S.dmgNums.some(n => n.txt === '闪避!') && S.enemies[0].lungeHit, '无敌中被前冲穿过 → 不扣血，显示「闪避!」');
+  run(D.inv);
+  ok(S.player.invuln === 0, '无敌时间结束归零');
+  RB.end('lose'); await done;
+  // 8e. 远距：弹道前摇 → 沿锁定方向发弹；不躲扣血，无敌穿过
+  const freshShot = () => { const pr = RB.start([{ name: '远程怪', hp: 999, x: 300, y: 120, speed: 0, atkCd: 0 }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; return pr; };
+  done = freshShot(); RB.update(1 / 60);
+  ok(S.enemies[0].windKind === 'shot' && RB.telegraphs()[0].kind === 'shot', '远距 → 弹道前摇 + 预警线');
+  run(F.windShot + 0.02);
+  ok(S.enemyProjectiles.length === 1 && S.enemyProjectiles[0].vy > 0 && Math.abs(S.enemyProjectiles[0].vx) < 1e-6, '前摇结束沿锁定方向发弹');
+  hp0 = S.player.hp; run(1.2);
+  ok(S.player.hp === hp0 - F.shotDmg, '弹道命中 -' + F.shotDmg);
+  RB.end('lose'); await done;
+  done = freshShot(); RB.update(1 / 60); run(F.windShot + 0.02); hp0 = S.player.hp;
+  run(0.75); S.player.invuln = D.inv; run(0.3);
+  ok(S.player.hp === hp0 && S.enemyProjectiles.length === 1 && S.enemyProjectiles[0].dodged, '无敌中弹道穿身而过（不扣血、不消失）');
+  RB.end('lose'); await done;
+  // 8f. 不再有贴身接触伤害（冷却中贴脸站着不掉血）
+  done = RB.start([{ name: '贴脸怪', hp: 999, x: 300, y: 330, speed: 0, atkCd: 99 }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; hp0 = S.player.hp;
+  run(1.5);
+  ok(S.player.hp === hp0, '冷却中贴脸不扣血（只有预警后的出手才伤人）');
+  RB.end('lose'); await done;
+  S.rand = Math.random;
+
+  // 9. 只读接入 Game.stats()：血/攻来自存档，异常回退默认；不写回存档；敌人同比缩放
+  const G9 = global.Game.G;
+  const snap = () => JSON.stringify(global.Game.G);
+  ok(RB.readPlayerStats().src === 'default' && RB.readPlayerStats().max === 180 && RB.readPlayerStats().atk === RB.ATK.dmg, '没有 Game.stats → 默认 180 血 / 28 攻');
+  Object.assign(G9, { hp: 900, mp: 50, realm: 3 });
+  global.Game.stats = () => ({ mhp: 1200.4, atk: 140.6, def: 30 });
+  let before = snap();
+  let st9 = RB.readPlayerStats();
+  ok(st9.src === 'game' && st9.max === 1200 && st9.hp === 900 && st9.atk === 141, '读到存档：上限 1200 / 当前 900 / 攻 141（取整）');
+  done = RB.start([{ name: '史莱姆', hp: 60, x: 300, y: 250, atkCd: 0 }], { timeLimit: 99 });
+  S.rand = () => 0; S.player.x = 300; S.player.y = 320; S.player.faceX = 0; S.player.faceY = -1;
+  ok(S.player.hp === 900 && S.player.max === 1200 && S.player.atk === 141 && S.statSrc === 'game', '原型主角血/攻 = 存档数值');
+  const mul = 141 / RB.ATK.dmg;
+  ok(S.enemies[0].maxHp === Math.round(60 * mul), '敌人血量按 攻/28 同比放大（' + S.enemies[0].maxHp + '）');
+  S.enemies[0].atkCd = 99; S.enemies[0].state = 'chase';
+  RB.attack();
+  ok(S.enemies[0].hp === S.enemies[0].maxHp - 141 && S.dmgNums.some(n => n.txt === '141'), '普攻伤害 = 存档攻击 141，飘字 141');
+  ok(Math.ceil(S.enemies[0].maxHp / 141) === Math.ceil(60 / RB.ATK.dmg), '砍死所需刀数与默认一致（节奏不随境界变）');
+  S.enemies[0].atkCd = 0; S.enemies[0].x = 300; S.enemies[0].y = 260; S.player.attackCd = 9;
+  let hp9 = S.player.hp; for (let t = 0; t < 1.0; t += 1 / 60) RB.update(1 / 60);
+  ok(S.player.hp === hp9 - Math.round(RB.FOE.lungeDmg * 1200 / 180), '敌人前冲伤害按 上限/180 放大（-' + Math.round(RB.FOE.lungeDmg * 1200 / 180) + '）');
+  S.player.hp = 1; RB.end('lose'); await done;
+  ok(snap() === before && G9.hp === 900, '整场战斗不改存档（G 深比较不变，G.hp 仍 900）');
+  // 显式 opts 优先于存档
+  done = RB.start(null, { hp: 50, atk: 7, timeLimit: 99 });
+  ok(S.player.max === 50 && S.player.atk === 7 && S.statSrc === 'opts', 'opts.hp/atk 覆盖存档');
+  RB.end('lose'); await done;
+  // 异常回退：抛错 / NaN / 0 / 负数 / 缺字段；当前血非法 → 满血
+  for (const [nm, fn] of [['抛错', () => { throw new Error('x'); }], ['NaN', () => ({ mhp: NaN, atk: 10 })], ['0 攻', () => ({ mhp: 100, atk: 0 })],
+    ['负血', () => ({ mhp: -5, atk: 10 })], ['缺字段', () => ({})], ['返回 null', () => null], ['字符串', () => ({ mhp: 'abc', atk: '12' })]]) {
+    global.Game.stats = fn;
+    const r9 = RB.readPlayerStats();
+    ok(r9.src === 'default' && r9.max === 180 && r9.atk === RB.ATK.dmg, 'Game.stats ' + nm + ' → 回退默认');
+  }
+  global.Game.stats = () => ({ mhp: 300, atk: 40 });
+  const badHp = [undefined, NaN, 0, -3, 'x'].filter(bad => { G9.hp = bad; return RB.readPlayerStats().hp !== 300; });
+  ok(badHp.length === 0, '当前血非法（undefined/NaN/0/负/字符串）→ 满血');
+  G9.hp = 9999; ok(RB.readPlayerStats().hp === 300, '当前血超过上限 → 钳到上限');
+  const saveG = global.Game.G; global.Game.G = null; ok(RB.readPlayerStats().src === 'default', '没有存档 G → 默认'); global.Game.G = saveG;
+  delete global.Game.stats; delete G9.hp; delete G9.mp; G9.realm = 0;
+  S.rand = Math.random;
+
+  // 9b. 真实页面里 Game/UI 是顶层 const（不在 window 上）：用 vm 模拟浏览器的全局词法绑定，确认仍能读到存档
+  const vm = require('vm');
+  const ctx9 = vm.createContext({ console });
+  vm.runInContext("var window = globalThis; const Game = { G: { hp: 40 }, stats() { return { mhp: 100, atk: 10 }; }, playerSpr() { return 'player_f1'; } }; let toasts = 0; const UI = { toast() { toasts++; } };", ctx9);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8'), ctx9);
+  const r9b = vm.runInContext('const __r = window.RealtimeBattle.readPlayerStats(); window.RealtimeBattle.start(null, { timeLimit: 99 }); ({ r: __r, spr: window.RealtimeBattle.state.player.spr, toasts })', ctx9);
+  ok(r9b.r.src === 'game' && r9b.r.max === 100 && r9b.r.hp === 40 && r9b.r.atk === 10, 'Game 为顶层 const（不在 window 上）时仍读到存档属性');
+  ok(r9b.spr === 'player_f1' && r9b.toasts === 1, '同上：主角精灵取自 Game.playerSpr()，UI.toast 可用');
+  ok(!/window\.(Game|UI)\b/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8')), '原型不再用 window.Game / window.UI（真实页面里它们是 undefined）');
+
+  // 10. 灵根 × 武器技能（灵根表取自真实 data.js；存档只读）
+  const vmD = require('vm'); const dctx = vmD.createContext({ window: {}, console });
+  vmD.runInContext(fs.readFileSync(path.join(ROOT, 'www', 'js', 'data.js'), 'utf8'), dctx);
+  global.LINGGEN = vmD.runInContext('LINGGEN', dctx);
+  const G10 = global.Game.G;
+  const setSave = (lg, ic) => { G10.lg = lg; G10.eqs = ic ? [{ uid: 'w1', slot: 'weapon', ic }] : []; G10.eq = ic ? { weapon: 'w1' } : {}; };
+  const snap10 = () => JSON.stringify(G10);
+  setSave('tian', 'sword_b'); let before10 = snap10();
+  ok(RB.readSpiritRoot().els.join() === '金' && RB.readWeaponType() === 'sword', '读存档：天灵根=金、寒霜剑=剑');
+  for (const [lg, ic, key, wt] of [['bing', 'fan', 'water', 'fan'], ['shuang', 'umbrella', 'wood', 'umbrella'], ['lei', null, 'bolt', 'none'], ['none', 'sword_w', 'bolt', 'sword'], ['bogus', null, 'bolt', 'none']]) {
+    setSave(lg, ic); done = RB.start(null, { timeLimit: 99 });
+    ok(S.player.skill.key === key && S.player.weapon === wt, `灵根 ${lg} + ${ic || '空手'} → ${key}/${wt}`);
+    RB.end('lose'); await done;
+  }
+  const saveLG = global.LINGGEN; global.LINGGEN = undefined; ok(RB.readSpiritRoot().src === 'default' && RB.readSpiritRoot().els[0] === '无', '没有 LINGGEN → 回退无灵根'); global.LINGGEN = saveLG;
+  G10.eq = { weapon: 'missing' }; ok(RB.readWeaponType() === 'none', '武器 uid 找不到 → 空手');
+  G10.eqs = null; ok(RB.readWeaponType() === 'none', 'eqs 缺失 → 空手');
+  // 三种（以上）形态各自生效
+  const field = (els, weapon, foes) => { const pr = RB.start(foes, { els, weapon, timeLimit: 99, atk: 100, hp: 500, scale: false }); S.player.x = 300; S.player.y = 320; S.player.faceX = 0; S.player.faceY = -1; S.enemies.forEach(e => { e.atkCd = 99; }); return pr; };
+  // 金：贯穿剑气，一发打穿两只
+  done = field(['金'], 'none', [{ name: 'A', hp: 999, x: 300, y: 250, speed: 0 }, { name: 'B', hp: 999, x: 300, y: 180, speed: 0 }]);
+  let cast = RB.skill();
+  for (let t = 0; t < 0.6; t += 1 / 60) RB.update(1 / 60);
+  ok(cast.key === 'metal' && S.enemies[0].hp === 999 - 90 && S.enemies[1].hp === 999 - 90, '金·剑气贯穿：前后两只各 -90（0.9×攻）');
+  ok(S.player.skillCd > 0 && RB.skill() === null, '金：冷却中再按无效');
+  RB.end('lose'); await done;
+  // 火：锥形 + 灼烧；锥外不中
+  done = field(['火'], 'none', [{ name: 'A', hp: 999, x: 300, y: 230, speed: 0 }, { name: 'B', hp: 999, x: 300, y: 420, speed: 0 }, { name: 'C', hp: 999, x: 420, y: 320, speed: 0 }]);
+  cast = RB.skill();
+  ok(cast.key === 'fire' && cast.hits === 1 && S.enemies[0].hp === 999 - 60 && S.enemies[1].hp === 999 && S.enemies[2].hp === 999, '火·锥形：只烧面前一只 -60，背后/侧面不中');
+  ok(S.fx.some(f => f.kind === 'cone'), '火：画锥形火焰特效');
+  for (let t = 0; t < 2.2; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].hp === 999 - 60 - 30 && S.enemies[0].burnT <= 0, '火：灼烧 2s 共 -30（0.15×攻/s），之后停止');
+  RB.end('lose'); await done;
+  // 水：命中减速 50%，敌人追击变慢
+  done = field(['水'], 'none', [{ name: 'A', hp: 999, x: 300, y: 260, speed: 100 }]);
+  S.enemies[0].atkCd = 99; RB.skill();
+  for (let t = 0; t < 0.25; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].slowT > 0 && Math.abs(S.enemies[0].slowMul - 0.5) < 1e-9 && S.enemies[0].hp === 999 - 70, '水·灵珠命中：-70 + 减速 50%');
+  S.enemies[0].x = 300; S.enemies[0].y = 120; let y0 = S.enemies[0].y; RB.update(0.5);
+  ok(Math.abs((S.enemies[0].y - y0) - 100 * 0.5 * 0.5) < 1, '水：减速期间追击速度减半');
+  for (let t = 0; t < 2.6; t += 1 / 60) RB.update(1 / 60);
+  ok(S.enemies[0].slowMul === 1, '水：减速结束恢复');
+  RB.end('lose'); await done;
+  // 木：定身
+  done = field(['木'], 'none', [{ name: 'A', hp: 999, x: 300, y: 260, speed: 100 }]);
+  RB.skill(); for (let t = 0; t < 0.25; t += 1 / 60) RB.update(1 / 60);
+  const ex = [S.enemies[0].x, S.enemies[0].y]; RB.update(0.3);
+  ok(S.enemies[0].rootT > 0 && S.enemies[0].x === ex[0] && S.enemies[0].y === ex[1], '木·青藤：命中后定身不动');
+  RB.end('lose'); await done;
+  // 武器修正：剑伤害 ×1.15、扇范围 ×1.35、伞冷却 ×0.75
+  const base = RB.skillFor('火', 'none'), sw = RB.skillFor('金', 'sword'), fa = RB.skillFor('火', 'fan'), um = RB.skillFor('水', 'umbrella');
+  ok(Math.abs(sw.k - 0.9 * 1.15) < 1e-9 && Math.abs(sw.spd - 420 * 1.2) < 1e-9 && sw.n === '庚金剑气·剑', '剑：伤害 ×1.15、弹速 ×1.2，名「庚金剑气·剑」');
+  ok(Math.abs(fa.range - base.range * 1.35) < 1e-9 && fa.arc > base.arc, '扇：火焰锥更远更宽');
+  ok(Math.abs(um.cd - 1.8 * 0.75) < 1e-9, '伞：冷却 ×0.75');
+  // 多灵根切换：双灵根 木→火
+  done = field(['木', '火'], 'fan', [{ name: 'A', hp: 999, x: 300, y: 250, speed: 0 }]);
+  ok(S.player.skill.key === 'wood', '双灵根默认主灵根 木');
+  RB._key.down({ key: 'e', preventDefault() {} });
+  ok(S.player.skill.key === 'fire' && S.player.skill.n === '焚天扇火·扇', 'E 键切到 火（焚天扇火·扇）');
+  RB.cycleElement(); ok(S.player.skill.key === 'wood', '再切回 木');
+  RB.end('lose'); await done;
+  done = field(['金'], 'none', null); ok(RB.cycleElement() === S.player.skill && S.player.skill.key === 'metal', '单灵根切换无效');
+  RB.end('lose'); await done;
+  setSave('tian', 'sword_b'); before10 = snap10(); done = RB.start(null, { timeLimit: 99 }); RB.skill(); RB.update(0.1); RB.end('lose'); await done;
+  ok(snap10() === before10, '灵根/武器只读：整场不改存档');
+  delete G10.lg; delete G10.eqs; delete G10.eq; delete global.LINGGEN;
+
+  // 6d. 追兵战：Stage3.bountyEnemies 产出的讨债鬼原样进场（方块皮肤字段 box 保留），顶栏标题显示债压档位；整场不存档
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const foes = S3.bountyEnemies({ debt: 30000 });
+    const texts = []; const tctx = new Proxy({}, { get: (t, k) => (k === 'fillText' ? (s) => texts.push(String(s)) : (k in t ? t[k] : () => {})), set: (t, k, v) => { t[k] = v; return true; } });
+    done = RB.start(foes, { timeLimit: 99, atk: 28, hp: 180, label: '追兵·天道通缉' });
+    ok(S.enemies.length === 4 && S.enemies.every(e => e.spr === 'mon_collector' && e.box === 'taozhai'), '追兵战：4 个讨债鬼进场，精灵 mon_collector、box 字段保留');
+    ok(S.enemies[0].name === '讨债鬼头子' && S.enemies[0].maxHp === 116, '追兵战：头子血量 116（80×1.45，攻 28 不缩放）');
+    RB.draw(tctx);
+    ok(texts.some(t => t.startsWith('追兵·天道通缉 ')), '顶栏标题显示「追兵·天道通缉」');
+    RB.end('lose'); await done;
+    done = RB.start(null, { timeLimit: 99 }); RB.draw(tctx);
+    ok(S.label === '即时战(原型)' && S.enemies[0].box === null, '不传 label/box 时回退默认标题、box 为空');
+    RB.end('lose'); await done;
+    done = RB.start(null, { timeLimit: 99, label: 'x'.repeat(40) }); ok(S.label.length === 16, '标题截到 16 字，不撑破顶栏'); RB.end('lose'); await done;
+  }
+
+  // 6e. 债务强化 #4：追兵按档位分化（高档冷却/前摇更短、弹道散射更多；缺字段/中性值/非法值 = 旧行为，逐帧一致）
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const vmE = require('vm');
+    const F = RB.FOE;
+    const loadProto = src => { const c = vmE.createContext({ console, window: {} }); vmE.runInContext(src, c); return c.window.RealtimeBattle; };
+    const srcNow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    let srcOld = null; try { srcOld = require('child_process').execSync('git show c83f5cc:www/js/battle_realtime_prototype.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { srcOld = null; }
+    const NEW = loadProto(srcNow);
+    const lcg = seed => () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const clone = a => a && JSON.parse(JSON.stringify(a));
+    // 固定随机种子、主角站桩不还手（血量 1e6 不会倒），逐帧记录敌人/弹道/主角血，统计起手次数、弹丸数
+    const sim = (R, foes, sec) => {
+      const St = R.state; St.rand = lcg(7);
+      R.start(clone(foes), { timeLimit: 999, hp: 1e6, atk: 28, scale: false }); St.player.x = 300; St.player.y = 320;
+      const seen = new Set(), trace = []; let shots = 0, windups = 0; const prev = St.enemies.map(e => e.state);
+      for (let i = 0; i < Math.round(sec * 60); i++) {
+        R.update(1 / 60);
+        St.enemies.forEach((e, k) => { if (e.state === 'windup' && prev[k] !== 'windup') windups++; prev[k] = e.state; });
+        for (const pr of St.enemyProjectiles) if (!seen.has(pr)) { seen.add(pr); shots++; }
+        trace.push(JSON.stringify([St.enemies.map(e => [e.x, e.y, e.state, e.wind, e.atkCd, e.aimX, e.aimY]), St.enemyProjectiles.map(q => [q.x, q.y, q.vx, q.vy, q.dmg]), St.player.hp]));
+      }
+      const out = { trace, shots, windups, hp: St.player.hp, volleys: St.foeVolleys };
+      R.end('lose', 'closed'); return out;
+    };
+    const strip = a => a.map(e => { const o = Object.assign({}, e); ['atkCdMul', 'windMul', 'shotCount', 'shotSpread', 'tier'].forEach(k => delete o[k]); return o; });
+    const mixed = [{ name: '远', hp: 999, x: 300, y: 110, speed: 0, atkCd: 0.2 }, { name: '近', hp: 999, x: 380, y: 300, speed: 0, atkCd: 0.5 }, { name: '追', hp: 999, x: 100, y: 100, speed: 70 }];
+    const b0 = S3.bountyEnemies({ debt: 0 }), b1 = S3.bountyEnemies({ debt: 3000 }), b2 = S3.bountyEnemies({ debt: 8888 }), b3 = S3.bountyEnemies({ debt: 30000 });
+    // 1) 与上一轮提交 c83f5cc 的原型逐帧对照（旧文件不认识新字段 → 就是旧行为）
+    if (srcOld) {
+      const OLD = loadProto(srcOld);
+      const same = [mixed, b0, b1].map(f => { const a = sim(OLD, f, 12), b = sim(NEW, f, 12); return a.trace.length === b.trace.length && a.trace.every((t, i) => t === b.trace[i]) && a.shots === b.shots; });
+      ok(same.every(Boolean), '缺字段 / 小账 / 欠款：新原型与 c83f5cc 旧原型 12s（720 帧）逐帧数值完全一致（敌人位置/状态/前摇/冷却/弹道/主角血）：' + same.join(','));
+      const o3 = sim(OLD, b3, 12), n3 = sim(NEW, b3, 12);
+      ok(n3.windups > o3.windups && n3.hp < o3.hp, `天道通缉同一场 12s（4 只追到身边前冲）：新原型起手 ${n3.windups} > 旧 ${o3.windups}，主角挨打 -${1e6 - n3.hp} > 旧 -${1e6 - o3.hp}`);
+    } else ok(false, '读不到 c83f5cc 旧原型（git show 失败），无法做旧行为对照');
+    // 2) 显式中性值 / 非法值 = 缺字段（逐帧一致）
+    const neutral = mixed.map(e => Object.assign({}, e, { atkCdMul: 1, windMul: 1, shotCount: 1, shotSpread: 0 }));
+    const bad = mixed.map((e, i) => Object.assign({}, e, [{ atkCdMul: NaN, windMul: -1, shotCount: 0, shotSpread: -5 }, { atkCdMul: 'x', windMul: null, shotCount: '3', shotSpread: Infinity }, { atkCdMul: 0, windMul: {}, shotCount: -2, shotSpread: NaN }][i]));
+    const tA = sim(NEW, mixed, 10), tN = sim(NEW, neutral, 10), tB = sim(NEW, bad, 10), tS = sim(NEW, strip(b1), 10), tb1 = sim(NEW, b1, 10);
+    ok(tA.trace.every((t, i) => t === tN.trace[i]) && tA.trace.every((t, i) => t === tB.trace[i]), '显式中性值、非法值（NaN/负/0/字符串/null/Infinity/对象）→ 回退旧行为，10s 逐帧一致');
+    ok(tS.trace.every((t, i) => t === tb1.trace[i]) && tb1.shots === tb1.volleys, '欠款档：带中性参数 = 去掉参数，逐帧一致；每次齐射只 1 发');
+    ok(['atkCdMul', 'windMul'].every(k => RB.foeTrait({ [k]: 0.01 })[k] === 0.3 && RB.foeTrait({ [k]: 10 })[k] === 2) && RB.foeTrait({ shotCount: 99 }).shotCount === 5 && RB.foeTrait({ shotCount: 2.7 }).shotCount === 2 && RB.foeTrait({ shotSpread: 90 }).shotSpread === 30 && JSON.stringify(RB.foeTrait(null)) === '{"atkCdMul":1,"windMul":1,"shotCount":1,"shotSpread":0}', '参数钳制：倍率 0.3–2、弹道最多 5 发取整、夹角 ≤30°；null → 中性');
+    // 3) 固定步数内：高档远程齐射/弹丸更多、近战起手更多（单只站桩怪，四档同位置同种子）
+    const one = (b, x, y) => [Object.assign({}, b[0], { x, y, speed: 0, hp: 9999, maxHp: 9999 })];
+    const shoot = [b0, b1, b2, b3].map(b => sim(NEW, one(b, 300, 110), 10));
+    const lunge = [b0, b1, b2, b3].map(b => sim(NEW, one(b, 300, 240), 10));
+    ok(shoot[0].volleys === shoot[1].volleys && shoot[2].volleys > shoot[1].volleys && shoot[3].volleys > shoot[2].volleys, '远程 10s 齐射次数 小账=欠款 < 重债 < 天道通缉：' + shoot.map(r => r.volleys).join('/'));
+    ok(shoot.map((r, t) => r.shots === r.volleys * [1, 1, 2, 3][t]).every(Boolean) && shoot[3].shots >= 3 * shoot[0].shots, '弹丸数 = 齐射 × 1/1/2/3 发，通缉档 ≥ 小账 3 倍：' + shoot.map(r => r.shots).join('/'));
+    ok(lunge[0].windups === lunge[1].windups && lunge[2].windups > lunge[1].windups && lunge[3].windups > lunge[2].windups && lunge[3].hp < lunge[0].hp, '近战 10s 前冲起手次数 小账=欠款 < 重债 < 通缉，挨打更多：' + lunge.map(r => r.windups + '次/-' + (1e6 - r.hp)).join(' '));
+    // 4) 前摇更短：通缉档 0.45×0.7=0.315s 就出弹，小账同时刻还在前摇；散射几何
+    S.rand = () => 0;
+    const at = (b, sec) => { RB.start(one(b, 300, 120), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; RB.update(1 / 60); const tg = RB.telegraphs()[0]; for (let t = 1 / 60; t < sec - 1e-9; t += 1 / 60) RB.update(1 / 60); return tg; };
+    let tg3 = at(b3, 0.34); const shots3 = S.enemyProjectiles.slice(), cd3 = S.enemies[0].atkCd; RB.end('lose', 'closed');
+    let tg0 = at(b0, 0.34); const n0s = S.enemyProjectiles.length, st0 = S.enemies[0].state; RB.end('lose', 'closed');
+    ok(shots3.length === 3 && n0s === 0 && st0 === 'windup', `前摇：通缉档 ${(F.windShot * 0.7).toFixed(3)}s 出弹（0.34s 已 3 发），小账 ${F.windShot}s 还在前摇`);
+    const ang = shots3.map(q => Math.atan2(q.vy, q.vx) * 180 / Math.PI).sort((a, b) => a - b);
+    ok(Math.abs(ang[1] - 90) < 1e-6 && Math.abs(ang[0] - 74) < 1e-6 && Math.abs(ang[2] - 106) < 1e-6 && shots3.every(q => Math.abs(Math.hypot(q.vx, q.vy) - F.shotSpd) < 1e-6 && q.dmg === F.shotDmg), '散射：中间一发正对主角，两侧 ±16°，弹速/伤害与单发相同');
+    ok(Math.abs(cd3 - F.cdMin * 0.6) < 0.02 && tg3.count === 3 && tg3.spread === 16 && tg0.count === 1 && tg0.spread === 0, `出手后冷却 ×0.6（${cd3.toFixed(2)}s vs 旧 ${F.cdMin}s）；预警线 3 条/16° vs 1 条`);
+    RB.start(one(b3, 300, 120), { timeLimit: 99, hp: 1e6, scale: false }); S.enemies[0].atkCd = 0; RB.update(1 / 60); RB.update(0.2);
+    ok(Math.abs(RB.telegraphs()[0].k - 0.2 / (F.windShot * 0.7)) < 1e-6, '预警填充进度按缩短后的前摇计算（缩短也能填满）');
+    let rf = 0; const rctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => { if (k === 'fillRect' && /255,60,40/.test(t.fillStyle || '')) rf++; }), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.draw(rctx); ok(rf === 3, 'draw()：通缉档弹道前摇画 3 条红色预警线');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 5) 顶栏标注档位特性
+    const texts = []; const lctx = new Proxy({}, { get: (t, k) => (k === 'fillText' ? (s) => texts.push(String(s)) : (k in t ? t[k] : () => {})), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.start(b3, { timeLimit: 99, label: '追兵·天道通缉·疾攻三发' }); RB.draw(lctx);
+    ok(S.label === '追兵·天道通缉·疾攻三发' && texts.some(t => t.startsWith('追兵·天道通缉·疾攻三发 ')), '顶栏完整显示「追兵·天道通缉·疾攻三发」（12 字，不被截断）');
+    RB.end('lose', 'closed');
+  }
+
+  // 6f. 债务强化 #5：天道通缉头子专属招式「回身环弹」（前冲收招 → 预警圈 → 一圈等角环形弹）；没有环弹字段的敌人与 84f4bd0 逐帧一致
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const vmF = require('vm');
+    const RG = RB.RING;
+    const loadProto = src => { const c = vmF.createContext({ console, window: {} }); vmF.runInContext(src, c); return c.window.RealtimeBattle; };
+    const srcNow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    let src84 = null; try { src84 = require('child_process').execSync('git show 84f4bd0:www/js/battle_realtime_prototype.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { src84 = null; }
+    const NEW = loadProto(srcNow);
+    const lcg = seed => () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const clone = a => a && JSON.parse(JSON.stringify(a));
+    const sim = (R, foes, sec, pos) => {
+      const St = R.state; St.rand = lcg(11);
+      R.start(clone(foes), { timeLimit: 999, hp: 1e6, atk: 28, scale: false }); St.player.x = (pos || [300, 320])[0]; St.player.y = (pos || [300, 320])[1];
+      const seen = new Set(), trace = [], ringAt = []; let shots = 0, windups = 0, lastRings = 0; const prev = St.enemies.map(e => e.state);
+      for (let i = 0; i < Math.round(sec * 60); i++) {
+        R.update(1 / 60);
+        St.enemies.forEach((e, k) => { if (e.state === 'windup' && prev[k] !== 'windup') windups++; prev[k] = e.state; });
+        for (const pr of St.enemyProjectiles) if (!seen.has(pr)) { seen.add(pr); shots++; }
+        if ((St.foeRings || 0) > lastRings) { ringAt.push(St.time); lastRings = St.foeRings; }
+        trace.push(JSON.stringify([St.enemies.map(e => [e.x, e.y, e.state, e.wind, e.atkCd, e.aimX, e.aimY, e.hp]), St.enemyProjectiles.map(q => [q.x, q.y, q.vx, q.vy, q.dmg]), St.player.hp]));
+      }
+      const out = { trace, shots, windups, hp: St.player.hp, volleys: St.foeVolleys, vshots: St.foeShots, rings: St.foeRings || 0, ringShots: St.foeRingShots || 0, ringAt };
+      R.end('lose', 'closed'); return out;
+    };
+    const eq = (a, b) => a.trace.length === b.trace.length && a.trace.every((t, i) => t === b.trace[i]) && a.shots === b.shots && a.volleys === b.volleys && a.vshots === b.vshots;
+    const RK = ['ringShots', 'ringWarn', 'ringCd'];
+    const stripR = a => a.map(e => { const o = Object.assign({}, e); RK.forEach(k => delete o[k]); return o; });
+    const mixed = [{ name: '远', hp: 999, x: 300, y: 110, speed: 0, atkCd: 0.2 }, { name: '近', hp: 999, x: 380, y: 300, speed: 0, atkCd: 0.5 }, { name: '追', hp: 999, x: 100, y: 100, speed: 70 }];
+    const b = [0, 3000, 8888, 30000].map(d => S3.bountyEnemies({ debt: d }));
+    const boss = b[3][0];
+    // 1) 与上一提交 84f4bd0 的旧原型逐帧对照：缺字段 / 小账 / 欠款 / 重债 / 通缉档普通讨债鬼 / 去掉环弹字段的通缉全队 → 720 帧完全一致
+    if (src84) {
+      const OLD = loadProto(src84);
+      const groups = { 缺字段: mixed, 小账: b[0], 欠款: b[1], 重债: b[2], 通缉普通讨债鬼: b[3].slice(1), 通缉全队去环弹: stripR(b[3]) };
+      const res = Object.entries(groups).map(([k, f]) => k + ':' + eq(sim(OLD, f, 12), sim(NEW, f, 12)));
+      ok(res.every(r => r.endsWith('true')), '没有环弹字段的敌人：新原型与 84f4bd0 旧原型 12s（720 帧）逐帧一致（位置/状态/前摇/冷却/血/弹道/齐射计数）：' + res.join(' '));
+      const o3 = sim(OLD, b[3], 12), n3 = sim(NEW, b[3], 12);
+      ok(n3.rings >= 1 && n3.ringShots === 8 * n3.rings && n3.hp < o3.hp && n3.windups >= o3.windups,
+        `通缉全队（带头子）12s：新原型环弹 ${n3.rings} 次 / ${n3.ringShots} 发，主角挨打 -${1e6 - n3.hp} > 旧 -${1e6 - o3.hp}，起手 ${n3.windups} ≥ 旧 ${o3.windups}（环弹不拖慢原节奏）`);
+    } else ok(false, '读不到 84f4bd0 旧原型（git show 失败），无法做旧行为对照');
+    // 2) 非法值 → 不放环弹，逐帧 = 缺字段；钳制
+    const near = [Object.assign({}, boss, { x: 300, y: 240, speed: 0, hp: 9999, maxHp: 9999 })];
+    const tNo = sim(NEW, stripR(near), 10);
+    const bads = [{ ringShots: NaN }, { ringShots: '8' }, { ringShots: 2 }, { ringShots: -8 }, { ringShots: null }, { ringShots: Infinity }, { ringShots: {} }, { ringShots: 0, ringWarn: 0.4, ringCd: 3 }];
+    const badSame = bads.map(o => eq(sim(NEW, [Object.assign({}, stripR(near)[0], o)], 10), tNo));
+    ok(badSame.every(Boolean) && tNo.rings === 0, 'ringShots 非数字/字符串/<3/负/null/Infinity/对象/0 → 不放环弹，10s 逐帧 = 缺字段：' + badSame.join(','));
+    const fr = RB.foeRing;
+    ok(fr({ ringShots: 99 }).ringShots === 16 && fr({ ringShots: 8.7 }).ringShots === 8 && fr({ ringShots: 3 }).ringShots === 3 && fr({ ringWarn: 0.01 }).ringWarn === 0.15 && fr({ ringWarn: 5 }).ringWarn === 1 && fr({ ringWarn: -1 }).ringWarn === RG.warnDef
+      && fr({ ringCd: -1 }).ringCd === RG.cdDef && fr({ ringCd: 99 }).ringCd === 10 && fr({ ringCd: 0 }).ringCd === 0 && fr({ ringCd: 'x' }).ringCd === RG.cdDef && JSON.stringify(fr(null)) === '{"ringShots":0,"ringWarn":0.4,"ringCd":3}',
+      '环弹参数钳制：发数取整 3–16、预警 0.15–1s（非法 0.4）、间隔 0–10s（非法 3）；null → 不放');
+    ok(JSON.stringify(fr(boss)) === '{"ringShots":8,"ringWarn":0.4,"ringCd":3}' && b.slice(0, 3).every(a => a.every(e => fr(e).ringShots === 0)) && b[3].slice(1).every(e => fr(e).ringShots === 0), '原型读到的：通缉头子 8 发/0.4s/3s 原样，其余讨债鬼全 0（不放）');
+    // 3) 招式时序与几何：前冲收招 → 预警圈（原地不动）→ 0.4s 后 8 发等角环形弹，第一发沿前冲方向
+    S.rand = () => 0;
+    RB.start(clone(near), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320;
+    let guard = 0; while (S.enemies[0].state !== 'ring' && guard++ < 600) RB.update(1 / 60);
+    const e0 = S.enemies[0], rx = e0.x, ry = e0.y, tg = RB.ringTelegraphs();
+    const pre = S.enemyProjectiles.filter(q => q.ring).length;
+    ok(e0.state === 'ring' && e0.attacks === 1 && tg.length === 1 && tg[0].count === 8 && tg[0].k < 0.1 && Math.abs(tg[0].r - RG.r1) < 6 && pre === 0 && RB.telegraphs().length === 0, `第 1 次前冲收招即进入环弹预警：预警圈 8 刺、半径 ${tg[0] && tg[0].r.toFixed(1)} 由外向内收、还没出弹`);
+    let rf = 0, spokes = 0; const rctx = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (...a) => { if (/255,140,40/.test(t.strokeStyle || '')) { if (k === 'arc') rf++; if (k === 'lineTo') spokes++; } }), set: (t, k, v) => { t[k] = v; return true; } });
+    RB.draw(rctx); ok(rf === 1 && spokes === 8, `draw()：环弹预警画 1 个橙色圈 + 8 根方向刺（${rf}/${spokes}）`);
+    S.player.x = 560; S.player.y = 470; // 主角挪到角落（不在 8 条弹道上），免得贴身的几发当场命中被移除，方便数整圈
+    for (let t = 0; t < RG.warnDef - 1 / 60 - 1e-9; t += 1 / 60) RB.update(1 / 60);
+    const mid = S.enemyProjectiles.filter(q => q.ring).length, kMid = RB.ringTelegraphs()[0] ? RB.ringTelegraphs()[0].k : -1;
+    RB.update(1 / 60); RB.update(1 / 60);
+    const ring = S.enemyProjectiles.filter(q => q.ring);
+    const angs = ring.map(q => ((Math.atan2(q.vy, q.vx) * 180 / Math.PI) + 360) % 360).sort((a, c) => a - c);
+    ok(mid === 0 && kMid > 0.9 && ring.length === 8 && S.foeRings === 1 && S.foeRingShots === 8 && e0.rings === 1 && e0.state === 'chase' && Math.abs(e0.x - rx) < 1e-9 && Math.abs(e0.y - ry) < 1e-9,
+      `预警 ${RG.warnDef}s 满（k=${kMid.toFixed(2)}）才出弹：一圈 ${ring.length} 发、预警期间头子原地不动、出完回追击`);
+    const first = ring[0] ? ((Math.atan2(ring[0].vy, ring[0].vx) * 180 / Math.PI) + 360) % 360 : -1;
+    ok(angs.length === 8 && angs.every((a, i) => Math.abs(a - 45 * i) < 1e-6) && Math.abs(first - 90) < 1e-6 && ring.every(q => Math.abs(Math.hypot(q.vx, q.vy) - RG.spd) < 1e-6 && q.dmg === RG.dmg),
+      '环形弹 8 发等角 45°（第一发沿前冲方向 90°）、弹速 ' + RG.spd + '、伤害 ' + RG.dmg + '：' + angs.map(a => a.toFixed(0)).join('/'));
+    ok(S.foeVolleys === 0 && S.foeShots === 0, '环形弹单独计数（foeRings/foeRingShots），不混进齐射统计 foeVolleys/foeShots');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 4) 间隔：10s 里每次前冲都想接环弹，但两次环弹至少隔 ringCd=3s；远射（不前冲）不触发；环弹伤害随 dmgMul 缩放
+    const tR = sim(NEW, near, 10);
+    const gaps = tR.ringAt.slice(1).map((t, i) => t - tR.ringAt[i]);
+    ok(tR.rings >= 2 && tR.rings < tR.windups && gaps.every(g => g >= 3 - 1e-6) && tR.ringShots === 8 * tR.rings && tR.hp < tNo.hp && tR.windups === tNo.windups,
+      `近身 10s：起手 ${tR.windups} 次（= 无环弹 ${tNo.windups}），环弹 ${tR.rings} 次、间隔 ${gaps.map(g => g.toFixed(2)).join('/')}s ≥ 3s，挨打 -${1e6 - tR.hp} > -${1e6 - tNo.hp}`);
+    const far = [Object.assign({}, boss, { x: 300, y: 110, speed: 0, hp: 9999, maxHp: 9999 })];
+    const tF = sim(NEW, far, 10), tF0 = sim(NEW, stripR(far), 10);
+    ok(tF.rings === 0 && eq(tF, tF0) && tF.volleys > 0, `远射距离（只放弹道、不前冲）：环弹 0 次，10s 逐帧 = 无环弹头子（齐射 ${tF.volleys} 次）`);
+    const t0c = sim(NEW, [Object.assign({}, near[0], { ringCd: 0 })], 10);
+    ok(t0c.rings >= t0c.windups - 1 && t0c.rings > tR.rings, `ringCd=0：每次前冲收招都接环弹（环弹 ${t0c.rings} / 起手 ${t0c.windups}，最后一次 10s 时还没收招）`);
+    RB.start(clone(near), { timeLimit: 99, hp: 360, atk: 28 }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; S.rand = () => 0;
+    guard = 0; while (!S.foeRings && guard++ < 600) RB.update(1 / 60);
+    ok(S.enemyProjectiles.filter(q => q.ring).every(q => q.dmg === Math.round(RG.dmg * 2)), '主角血 360（缩放 ×2）→ 环形弹伤害 ×2 = 20，与其他敌人伤害同比缩放');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+    // 5) 头子预警中被打死 → 不出弹
+    RB.start(clone(near), { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); S.enemies[0].atkCd = 0; S.player.x = 300; S.player.y = 320; S.rand = () => 0;
+    guard = 0; while (S.enemies[0].state !== 'ring' && guard++ < 600) RB.update(1 / 60);
+    S.enemies[0].hp = 0; for (let i = 0; i < 40; i++) RB.update(1 / 60);
+    ok(S.foeRings === 0 && RB.ringTelegraphs().length === 0, '环弹预警中头子被打倒 → 不出弹、预警圈消失');
+    RB.end('lose', 'closed'); S.rand = Math.random;
+  }
+
+  // 6g. 债务强化 #7：追兵调参表（Stage3.bountyTuning）的钳制与原型 foeTrait/foeRing 一致；合并后的表进原型原样生效
+  {
+    const S3 = require(path.join(ROOT, 'www', 'js', 'stage3_encounter_draft.js'));
+    const base = { name: '讨债鬼', hp: 80, x: 300, y: 110, speed: 0, atkCd: 99 };
+    const viaProto = (f, v) => { const d = RB.start([Object.assign({}, base, { [f]: v })], { timeLimit: 99, hp: 1e6, atk: 28, scale: false }); const val = S.enemies[0][f]; RB.end('lose', 'closed'); return [d, val]; };
+    const cases = { atkCdMul: [0.1, 0.3, 0.55, 1, 1.7, 2, 5], windMul: [0.05, 0.3, 0.8, 2, 9], shotCount: [1, 2, 2.7, 5, 9], shotSpread: [0.5, 14, 30, 45], ringShots: [3, 7.9, 8, 16, 99], ringWarn: [0.01, 0.15, 0.4, 1, 3], ringCd: [0, 1.5, 10, 30] };
+    const mism = []; const dones = [];
+    for (const f of Object.keys(cases)) for (const v of cases[f]) {
+      const boss = /^ring/.test(f);
+      const t = S3.bountyTuning(boss ? { boss: { [f]: v } } : { tiers: { wanted: { [f]: v } } }).table;
+      const tv = boss ? t.boss[f] : t.tiers[3][f]; const [d, pv] = viaProto(f, v); dones.push(d);
+      if (tv !== pv) mism.push(`${f}=${v}: 表 ${tv} / 原型 ${pv}`);
+    }
+    await Promise.all(dones);
+    ok(!mism.length, '合法数值的钳制：调参表 = 原型 foeTrait/foeRing（倍率 0.3–2、≤5 发取整、≤30°、环弹 3–16 取整、预警 0.15–1s、间隔 0–10s）' + (mism.length ? '；不一致：' + mism.join(' ') : ''));
+    const TO = S3.bountyTuning({ tiers: { wanted: { shotCount: 5, shotSpread: 20, atkCdMul: 0.4, windMul: 0.5 }, light: { shotCount: 2, shotSpread: 9 } }, boss: { ringShots: 12, ringWarn: 0.25, ringCd: 1 } }).table;
+    const foes = S3.bountyEnemies({ debt: 30000 }, TO);
+    let d7 = RB.start(foes, { timeLimit: 99, hp: 1e6, atk: 28, scale: false });
+    const st7 = S.enemies.map(e => [e.atkCdMul, e.windMul, e.shotCount, e.shotSpread, e.ringShots, e.ringWarn, e.ringCd].join('/'));
+    ok(st7[0] === '0.4/0.5/5/20/12/0.25/1' && st7.slice(1).every(x => x === '0.4/0.5/5/20/0/0.4/3'), '合并表进原型原样生效（表内值已在原型范围内，原型不再改动）：' + st7.join(' '));
+    RB.end('lose', 'closed'); await d7;
+    // 站桩远射 6s：通缉档调成 5 发 → 每次齐射 5 发；默认表 3 发
+    const volley = async (enemies) => {
+      const d = RB.start(enemies.map((e, i) => Object.assign({}, e, { speed: 0, x: [300, 150, 450, 220][i], y: 110 })), { timeLimit: 99, hp: 1e7, atk: 28, scale: false });
+      S.player.x = 300; S.player.y = 320; S.rand = () => 0.5;
+      for (let i = 0; i < 360; i++) { S.player.x = 300; S.player.y = 320; RB.update(1 / 60); }
+      const out = { v: S.foeVolleys, s: S.foeShots }; RB.end('lose', 'closed'); await d; S.rand = Math.random; return out;
+    };
+    const vT = await volley(foes), vD = await volley(S3.bountyEnemies({ debt: 30000 }));
+    ok(vT.v >= 4 && vT.s === 5 * vT.v && vD.v >= 4 && vD.s === 3 * vD.v && vT.v > vD.v, `站桩远射 6s：调参（5 发、冷却×0.4）齐射 ${vT.v} 次/弹丸 ${vT.s}，默认（3 发、冷却×0.6）齐射 ${vD.v} 次/弹丸 ${vD.s}`);
+    // 6h. 债务强化 #8：三个一键预设（好躲/原样/地狱）进原型——四档 × 每只追兵的参数原样生效（预设值都在原型钳制范围内）；通缉档站桩远射 好躲 < 原样 < 地狱
+    const PR = S3.BOUNTY_TUNING_PRESETS, pMism = [];
+    for (const pr of PR) {
+      const tb = S3.bountyTuning(pr.override).table;
+      for (const debt of [10, 3000, 8888, 30000]) {
+        const fs8 = S3.bountyEnemies({ debt }, tb);
+        const d8 = RB.start(fs8, { timeLimit: 99, hp: 1e6, atk: 28, scale: false });
+        S.enemies.forEach((e, i) => { for (const f of ['atkCdMul', 'windMul', 'shotCount', 'shotSpread']) if (e[f] !== fs8[i][f]) pMism.push(`${pr.key}/${debt}/${i}/${f}`); for (const f of ['ringShots', 'ringWarn', 'ringCd']) if (f in fs8[i] && e[f] !== fs8[i][f]) pMism.push(`${pr.key}/${debt}/${i}/${f}`); });
+        if (S.enemies.length !== fs8.length) pMism.push(`${pr.key}/${debt}/count`);
+        RB.end('lose', 'closed'); await d8;
+      }
+    }
+    ok(PR.length === 3 && !pMism.length, '三个预设 × 四档追兵进原型：出手/弹道/环弹参数原样生效（原型不再钳制）' + (pMism.length ? '；不一致：' + pMism.join(' ') : ''));
+    const vE = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('easy').override).table));
+    const vP = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('plain').override).table));
+    const vH = await volley(S3.bountyEnemies({ debt: 30000 }, S3.bountyTuning(S3.bountyPreset('hell').override).table));
+    ok(vE.s === 2 * vE.v && vP.s === 3 * vP.v && vH.s === 5 * vH.v && vE.s < vP.s && vP.s < vH.s && vP.v === vD.v && vP.s === vD.s,
+      `通缉档站桩远射 6s：好躲（3 个、2 发、冷却×0.85）弹丸 ${vE.s}（齐射 ${vE.v}）< 原样 ${vP.s}（${vP.v}，= 默认）< 地狱（5 发、冷却×0.4）${vH.s}（${vH.v}）`);
+  }
+
+  // 8. 结束原因（追兵战结算用）：被打倒 = dead；外部 end 不带原因按结果回退；重开清空原因
+  {
+    let d8 = RB.start(null, { timeLimit: 99 }); S.player.hp = 0; RB.update(0.016);
+    const r8 = await d8; ok(r8.result === 'lose' && r8.reason === 'dead', '主角倒下 → lose / dead');
+    d8 = RB.start(null, { timeLimit: 99 }); ok(S.endReason === null, '重开一场清空上一场的结束原因');
+    RB.end('lose', 'closed'); ok((await d8).reason === 'closed', '中途关闭 → reason closed（宿主不结算）');
+    d8 = RB.start(null, { timeLimit: 99 }); RB.end('win'); ok((await d8).reason === 'cleared', 'end(win) 不带原因 → cleared');
+    d8 = RB.start(null, { timeLimit: 99 }); RB.end('lose'); ok((await d8).reason === 'dead', 'end(lose) 不带原因 → dead');
+    const srcP = fs.readFileSync(path.join(ROOT, 'www', 'js', 'battle_realtime_prototype.js'), 'utf8');
+    ok(/endRealtime\('lose', 'closed'\)/.test(srcP) && /closed: closedP/.test(srcP), '覆盖层关闭走 closed 原因，句柄带 closed Promise');
+  }
+
+  // 7. 加载：index.html 不再直接加载原型（release 包非开发者模式不执行），由 dev_openworld.js 在开发者模式懒加载（主页面此时 engine.js 早已执行，能用 drawSprite）
+  const html = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
+  const iE = html.indexOf('js/engine.js'), iP = html.indexOf('js/battle_realtime_prototype.js'), iO = html.indexOf('js/dev_openworld.js');
+  const dow = fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_openworld.js'), 'utf8');
+  ok(iE > 0 && iP < 0 && iO > iE && /SCRIPTS = \['js\/battle_realtime_prototype\.js'/.test(dow), 'index.html：engine → dev_openworld（原型由它在开发者模式懒加载，index.html 不直接加载）');
+
+  console.log(fails ? `FAILED ${fails}` : 'ALL PASS');
+  process.exit(fails);
+})().catch(e => { console.error(e); process.exit(99); });
