@@ -2,6 +2,14 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
+## 3.5 灵宠派遣（Grok Bot，2026-10-23 13:40 起，分支 `pet35`，worktree `/workspace/game-dev341`）
+> ROADMAP P2 #16「灵宠派遣」。新文件 `www/js/pet35.js`（index 在 dev341 后），单测 `test/pet35_unit.py`。
+- [x] 不出战的灵兽在灵兽面板下方「灵宠派遣」选差事：采药（木）/寻矿（土）/狩猎（火）/帮人看摊（金）/探秘境（水·冰），五行相合 ★ 收获 ×1.5；名额 1+floor(大境界/2)，最多 4。
+- [x] 过年结算（包 `Game.yearEnd`）：材料/灵石 + 灵兽经验；探秘境 20%（相合 10%）负伤空手；改出战自动召回；最近 6 条记录 `G.pd35log`；差事存在灵兽对象 `p.pd35`，老档无字段即空闲。
+- [x] 开发者面板新增「派遣」页（立即结算 / 送 3 只灵兽）。
+- [x] `test/pet35_unit.py` 全过（逻辑 + 真实面板选差事 + 读档仍在）。
+- [ ] 全门禁 `/tmp/gate_pet35.sh` → 汇总 `/tmp/gp35.txt`（各项 `/tmp/gp35_*.txt`）。全绿后 `--no-ff` 合 main，下个小版本带上。
+
 ## 3.4.1 作弊菜单（Grok Bot，2026-10-19 19:20 起，分支 `dev341`，worktree `/workspace/game-dev341`）
 > 主人反馈：开发者面板很多按钮无效，缺功法/金手指/装备，天赋无效。目标：逐个点按审计+修复，新增 功法/装备/天赋/金手指 浏览选择器，test/dev341.py，门禁后开 PR「3.4.1 作弊菜单重做」（不合并）。
 - [x] 审计脚本 `test/dev341_audit.py`（真实触摸逐个按钮，记录状态差异；`TABS=res,realm` 只跑部分，结果 `test/results/dev341_audit.json`）。已跑 资源/境界/解锁/剧情/传送：按钮均生效（见 /tmp/dev341_audit_story_tp.txt）；演出页：抽卡演出后游戏长时间不回到可操作状态（UX.inMap 假）→ 🛠 点了没反应，待查 g2。
@@ -330,3 +338,10 @@
 推进 Issue #5（T4 点游走 NPC、T9 自动任务），或正式债务系统对接奇遇链，或低模接入图集评估。可把完整即时原型（含敌人弹道）同步到覆盖层试炼场做对比测试。
 - [x] 10-23 v3.4.1 已发布（PR #24 squash eabd12e，tag CI 全绿，versionCode 230）。
 - [x] 10-23 3.4.2：#28 3_state（随机天赋带 tough，测试问题）、#32 #27 名字牌、#26 N1（关闭中弹窗挡点按，style.css .mwrap.outm pointer-events:none）+ test/tap342.py；PR「fix: 3.4.2」。
+
+### 3.5 一键连炼（lian35，2026-10-23 17:55 UTC+8，PR 待奥拉夫审）
+- [x] ROADMAP P2 #16「炼丹炼器一键连炼」：新增 `www/js/lian35.js`（LIAN35）；炼丹面板每个丹方加「连炼×N」（N = 行动力/材料/上限 10 取小，≥2 才显示），洞府炼器加「连炼×N」（上限 5，受玄铁晶/妖丹/灵石约束）。
+- 规则：连炼跳过火候小游戏，按中等火候 q=0.4 算成功率（手动完美火候仍更高、且只有手动能多出一颗）；每炉照扣 1 行动力 + 材料，成丹计 alchCount 与 alch10 成就；结果一条 toast 汇总。
+- 改动：`www/js/lian35.js`（新）、`www/js/ui.js`（炼丹面板按钮 + 提示）、`www/js/ui21.js`（炼器按钮）、`www/index.html`（fix342.js 之后加载）、`test/lian35_unit.py`（新，15 项）。
+- 测试：lian35_unit ALL PASS、validate22 0 错、jsscan33 0 错、sys33_unit 通过、dev341_audit 通过、controls 0 失败；412×915 炼丹面板截图按钮不溢出。
+- 未 bump VERSION；与 PR #25（pet35）无文件冲突（pet35 只改 ui.js 放生段，若 index.html 脚本行冲突按 fix342 → pet35 → lian35 顺序保留）。
