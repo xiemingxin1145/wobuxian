@@ -11,7 +11,8 @@
 - [x] 门禁（20:00–20:15，dev341 `6a89e81`）：validate22 0 错、jsscan33 errors []、panels21 ERRORS 0/0、controls FAILS 0、human23 13/13、life34_unit/sys33_unit/seam34 通过；dev341.py FAILS []（20:15 复跑）。
 - [x] 10-19 全量 olaf 20/23（N2、T1 均为游走 NPC「集市货郎」点按偏差；S2 失败卡后误点二次升阶）——与 3.4.0 门禁修过的同类问题一致。10-23 合入 origin/main（v3.4.0，`c3d0ba1`）后 `ONLY=N2,T1,S2` 5/5 PASS，判定非 dev341 引起。
 - [x] 扩展接口：`DevPanel.registerTab(key,name,render)` / `window.DevTabs`（按 key 去重，后注册覆盖）/ `window.DevOpenWorld={id,title,mount(el)→unmount,ready()}` 自动成 Tab；render 可返回清理函数。v25 入口：修 `window.Game` 恒假（Game 是顶层 const）、试炼场改游戏内 iframe 覆盖层、即时战改本图野怪 RT27 实战。
-- [ ] 10-23 11:40 起全门禁 `/tmp/gate_dev341b.sh` → `/tmp/gd341b.txt`（GATE_DONE 结束）。
+- [x] 10-23 全门禁（合 main 后）：validate22 0 错、dev341.py FAILS []、life34_unit 过、jsscan33 errors []、panels21 0/0、controls 0、human23 13/13；human_olaf 全量 22/23（只挂 N1：harness 没点中怪 fought=false）。对照 origin/main（v3.4.0 `ea4926e`）`ONLY=N1` ×2 = 1 过 1 挂，dev341 `ONLY=N1` ×2 = 1 过 1 挂 → 主线已有偶发，非本分支引起。N2/T1/S2 全量中均 PASS。
+- [x] 开 PR「3.4.1 作弊菜单重做」（不合并）。
 - [ ] （旧）human_olaf 全量 20:17 开跑 → `/tmp/gd341_olaf.txt`（末行 exit N）。之后开 PR「3.4.1 作弊菜单重做」，不合并。
 - 旧下一步（已完成）：查 g2 卡死；修 dev_entry_v25 全套神装（槽位 acc1/acc2 不存在、缺 base）；🛠 在不可开时给提示；写 test/dev341.py；门禁；PR。
 - [x] life34：`Life34._inApply` 重入标记（Game.apply / Talk.gift 包装期间为 true，计数防嵌套，finally 复位）；life34_unit `in_apply_flag` 通过。
