@@ -25,11 +25,12 @@ const PD35 = {
   // 单只结算，rnd 可注入便于测试
   settleOne(p, rnd) {
     const G = Game.G; rnd = rnd || Math.random; const job = p.pd35.job; const J = PD35_JOBS[job]; if (!J) { delete p.pd35; return null; }
-    const mul = this.match(p, job) ? 1.5 : 1; const lv = p.lv || 1; const parts = []; let exp = 30 * Math.pow(1.25, lv) * 0.6;
-    const give = (id, n) => { n = Math.max(0, Math.floor(n)); if (n > 0) { Game.give(id, n); parts.push(`${ITEMS[id].n}+${n}`); } };
-    if (job === 'herb') { give('herb', (2 + lv / 3) * mul); if (rnd() < 0.25 * mul) give('lz', 1); }
-    else if (job === 'ore') give('ore', (1 + lv / 4) * mul);
-    else if (job === 'hunt') { give('yd', (1 + lv / 4) * mul); exp *= 1.5; }
+    const mul = this.match(p, job) ? 1.5 : 1; const lv = p.lv || 1; const parts = []; let exp = 30 * Math.pow(1.25, lv) * 0.3; // 研究员：0.6→0.3
+    const CAP = { ore: 3, yd: 3, herb: 6 }; // 每只每年在五行 ×1.5 之前封顶：玄铁晶/妖丹 3、灵草 6
+    const give = (id, n, base) => { if (base !== undefined) n = Math.min(CAP[id] || 1e9, base) * mul; n = Math.max(0, Math.floor(n)); if (n > 0) { Game.give(id, n); parts.push(`${ITEMS[id].n}+${n}`); } };
+    if (job === 'herb') { give('herb', 0, 2 + lv / 3); if (rnd() < 0.25 * mul) give('lz', 1); }
+    else if (job === 'ore') give('ore', 0, 1 + lv / 4);
+    else if (job === 'hunt') { give('yd', 0, 1 + lv / 4); exp *= 1.5; }
     else if (job === 'stall') { const need = REALMS[Math.min(6, G.realm || 0)].need; const s = Math.round(need * 0.04 * mul * (1 + lv * 0.05)); G.stone += s; parts.push(`灵石+${fmt(s)}`); }
     else if (job === 'explore') {
       const hurt = this.match(p, job) ? 0.1 : 0.2;
@@ -37,7 +38,10 @@ const PD35 = {
       else { const r = rnd(); if (r < 0.03) give('egg', 1); else if (r < 0.33) give('scroll', 1); else give('key', 1 + (mul > 1 ? 1 : 0)); }
     }
     p.pd35.y = (p.pd35.y || 0) + 1;
-    const before = G.petA; G.petA = G.pets.indexOf(p); try { Game.petGain(Math.round(exp)); } finally { G.petA = before; }
+    // 每只每年经验上限：下一级所需的 50%，记在 G.pd35exp（与 G.pd35log 同级）= { y, g: { 灵兽键: 本年已得 } }
+    { const yr = G.year || G.age; const X = G.pd35exp = (G.pd35exp && G.pd35exp.y === yr) ? G.pd35exp : { y: yr, g: {} }; const key = p.k35 = p.k35 || ('p' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
+      const cap = 0.5 * 40 * Math.pow(1.25, p.lv || 1); exp = Math.max(0, Math.min(Math.round(exp), Math.floor(cap - (X.g[key] || 0)))); X.g[key] = (X.g[key] || 0) + exp; }
+    const before = G.petA; G.petA = G.pets.indexOf(p); try { Game.petGain(exp); } finally { G.petA = before; }
     return { name: p.name, n: J.n, parts, match: mul > 1 };
   },
   settle(rnd) {

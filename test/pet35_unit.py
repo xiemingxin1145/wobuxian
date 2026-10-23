@@ -27,7 +27,12 @@ JS = r"""async () => {
   ok('log', Array.isArray(G.pd35log) && G.pd35log.length >= 1);
   // 老档：无字段
   const p = { mon: 'fox', name: '旧狐', lv: 3, exp: 0, tier: 1 }; G.pets.push(p); ok('old_idle', PD35.away().indexOf(p) < 0);
-  G.pets.pop(); G.petA = 0; Game.save();
+  G.pets.pop();
+  // 研究员封顶：30 级五行相合寻矿每年玄铁晶 ≤4；同一只派 3 年最多涨 1.5 级
+  { const q = G.pets[2]; q.lv = 30; q.exp = 0; G.petA = 0; q.pd35 = { job: 'ore', y: 0 }; const lvf = x => x.lv + x.exp / (40 * Math.pow(1.25, x.lv)); const l0 = lvf(q); const ys = []; const y0 = G.year;
+    for (let k = 0; k < 3; k++) { G.year = (y0 || 0) + 100 + k; const o0 = G.inv.ore || 0; PD35.settleOne(q, () => 0.5); ys.push((G.inv.ore || 0) - o0); }
+    G.year = y0; ok('ore_cap_lv30_match', PD35.match(q, 'ore') && ys.every(n => n <= 4) && ys[0] === 4, ys); ok('exp_cap_3y', lvf(q) - l0 <= 1.5 && lvf(q) > l0, { gained: lvf(q) - l0, exp35: G.pd35exp }); delete q.pd35; }
+  G.petA = 0; Game.save();
   return { out, fails };
 }"""
 async def main():
