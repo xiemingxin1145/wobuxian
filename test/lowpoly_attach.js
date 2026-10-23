@@ -78,6 +78,25 @@ ok(L.dressParts('nvzhu', null, { yi: '#123456' }).find(p => p[0] === 'skirt')[7]
 for (const bad of ['red', '#12345', '#ggg000', 7, null]) ok(JSON.stringify(L.dressParts('jianxiu', null, { yi: bad })) === JSON.stringify(L.CHARS.jianxiu.parts), `坏颜色 ${JSON.stringify(bad)} 忽略`);
 
 // 6. 只读、隔离：源码不碰 G / localStorage；预览页有试穿开关；正式页面不加载
+// 第 26 轮：research_v36 §6 冠 4 款 / 佩 4 款全部到位，任意角色任意组合可穿
+const GUAN4 = ['douli', 'jinguan', 'longjiao', 'doumao'], PEI4 = ['hulu', 'yupei', 'yushan', 'suanpan'];
+ok(GUAN4.every(k => L.ATTACH[k] && L.ATTACH[k].slot === 'guan'), '冠 4 款：斗笠/金冠/龙角/兜帽');
+ok(PEI4.every(k => L.ATTACH[k] && L.ATTACH[k].slot === 'pei'), '佩 4 款：酒葫芦/玉佩/羽扇/算盘');
+ok([...GUAN4, ...PEI4].every(k => L.triCount(k) <= 150), '冠/佩 每件 ≤150 tri：' + [...GUAN4, ...PEI4].map(k => k + '=' + L.triCount(k)).join(' '));
+for (const id of L.ids) {
+  const S = L.sockets(id); if (!S || !S.guan || !S.pei) continue;
+  let all = true;
+  for (const g of GUAN4) for (const pe of PEI4) {
+    const D = L.dressParts(id, { guan: g, pei: pe });
+    const add = D.filter(p => p[0].startsWith('att:'));
+    if (add.length !== L.ATTACH[g].parts.length + L.ATTACH[pe].parts.length) all = false;
+    if (!add.filter(p => p[0].startsWith('att:guan:')).every(p => p[3] + p[6] / 2 > S.guan[2] - 13)) all = false; // 冠不掉到脸下
+    if (!add.filter(p => p[0].startsWith('att:pei:')).every(p => p[1] < 0)) all = false; // 佩都在左侧
+    if (L.build(id, { wear: { guan: g, pei: pe } }).length <= L.build(id).length) all = false;
+  }
+  ok(all, `${id}：16 种冠×佩组合都能穿、冠在头部、佩在左侧、多出可见面`);
+}
+
 const src = fs.readFileSync(path.join(ROOT, 'www', 'js', 'lowpoly_box_chars.js'), 'utf8');
 ok(!/\bG\.|\bG\[|localStorage|Game\./.test(src), '挂点代码不读写 G / Game / localStorage');
 const prev = fs.readFileSync(path.join(ROOT, 'www', 'prototypes', 'lowpoly_box', 'index.html'), 'utf8');

@@ -338,6 +338,12 @@
 - **未完成**：按 Grok Bot 要求 01:07–02:45 不跑 Chrome，本轮改动后的 dev_openworld_page / dev_openworld_gate_page / battle_rt_proto_page / tap342 / dev341 页面回归还没重跑，所以 PR 暂不开。
 - 下一步：02:45 后重跑全部页面测试，通过则从 origin/main 拉专用分支（npc37.js + index.html 脚本行 + npc37 测试 + stage3_life34 白名单）开 PR 给奥拉夫审；之后把 fight:1 接正式遭遇战入口。
 
+### 2026-10-24 第二十六轮（UTC+8，openworld-wip，02:05 起）——低模冠/佩补齐 4+4 款 + 合 main（lg36）
+- 普通 merge 合入 origin/main cbc086e（#36 灵根 lg36）；main 新跟踪的 test/results/pet35_panel.png、tap342.json 与本地未跟踪副本冲突，本地副本移到 /tmp 后合并。
+- `www/js/lowpoly_box_chars.js`：按 research_v36 §6 补齐冠 4 款（斗笠 + 金冠 jinguan / 龙角 longjiao / 兜帽 doumao）、佩 4 款（酒葫芦 + 玉佩 yupei / 羽扇 yushan / 算盘 suanpan），每件 36–48 tri（≤150）。仍只在预览页 / 即时原型里用，不进正式加载链，不读写 G。
+- 测试：`test/lowpoly_attach.js` 102 PASS（新增：4 冠 4 佩齐全、面数预算、4 个角色 × 16 种冠×佩组合都能穿、冠在头部、佩在左侧、多出可见面）；npc37_unit 54/54、good_rel_cap 31/31、stage3_chain / stage3_life34 / lowpoly_box / battle_rt_proto ALL PASS。本轮不跑 Chrome（留给 02:50 的页面回归 + 路遇 PR）。
+- 下一步：02:50 路遇页面回归并开 PR；之后神器觉醒Ⅲ发光壳、预览页冠/佩下拉切换，名字待 Grok Bot 的 cos36/shenqi36 字段定了对齐。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
