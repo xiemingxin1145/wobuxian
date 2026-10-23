@@ -56,6 +56,17 @@ async def main():
             await pg.evaluate("(()=>{if(B.on){B.speed=8;const ab=document.querySelector('#battlebar button[data-a=auto]');if(ab&&!B.auto)ab.click();}const t=UI.stack[UI.stack.length-1];if(!t)return;const o=t.querySelector('.opt');if(o)o.click();else{const x=t.querySelector('.ph .x');x&&x.click()}})()"); await pg.wait_for_timeout(400)
         y = await pg.evaluate("({done:window._ye37,yr:Game.G.npc37.yc.yr,gy:Life34.yr(),news:Game.G.npc37.yc.news,feed:Game.G.jh34.feed.filter(f=>f.k==='npc37').length,len:Game.G.jh34.feed.length})")
         ck(f'过年后本年 3–6 条 npc37 新闻写入 jh34.feed（≤40）{y}', y['done'] == 1 and y['yr'] == y['gy'] and 3 <= y['news'] <= 6 and y['feed'] >= 3 and y['len'] <= 40)
+        # 第二十八轮：仇档「拔剑应战」（fight:1）真的进回合制战斗，打完回来结算胜负
+        sc = await pg.evaluate("""()=>{const e=R.ents.find(o=>o.kind==='npc'&&TEXT37.lines[o.id]);if(!e)return null;Game.G.life34.rel[e.id]=-60;Game.G.hp=Game.stats().mhp;
+          const sc=NPC37.onMeet(e.id,R.mapId,{k:0,force:true});if(!sc)return null;window._f37=null;window._b37=0;NPC37._busy=true;NPC37.play(sc).then(r=>{window._f37=r?(r.fight||'none'):'null';NPC37._busy=false});return {tier:sc.tier,t:sc.t}}""")
+        ck(f'强制一次仇档路遇 {sc}', sc and sc['tier'] == 'chou')
+        await pg.wait_for_timeout(500)
+        await pg.evaluate("(()=>{const t=UI.stack[UI.stack.length-1];const o=t&&[...t.querySelectorAll('.opt')].find(b=>b.textContent.includes('拔剑应战'));o&&o.click()})()")
+        for _ in range(200):
+            if await pg.evaluate("window._f37"): break
+            await pg.evaluate("(()=>{if(B.on){window._b37=1;B.speed=8;const ab=document.querySelector('#battlebar button[data-a=auto]');if(ab&&!B.auto)ab.click();return}const t=UI.stack[UI.stack.length-1];if(!t)return;const o=t.querySelector('.opt');if(o)o.click();else{const x=t.querySelector('.ph .x');x&&x.click()}})()"); await pg.wait_for_timeout(300)
+        fr = await pg.evaluate("({f:window._f37,b:window._b37,on:B.on,mode:R.mode})")
+        ck(f'选「拔剑应战」后进入真实战斗并带回胜负 {fr}', fr['b'] == 1 and fr['f'] in ('win', 'lose', 'flee') and not fr['on'])
         ck(f'无页面报错 {errs[:3]}', not errs)
         await b.close()
     f = sum(1 for _, c in checks if not c); print(f'{len(checks) - f}/{len(checks)} PASS'); sys.exit(f)

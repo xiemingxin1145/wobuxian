@@ -138,5 +138,21 @@ function box() {
   { const dev = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8'); // PR 分支（main）不带开发者「路遇」按钮；openworld-wip 才有
     if (/NPC37/.test(dev)) ok(/label: '路遇'/.test(dev) && /NPC37\.onMeet\(id, mapId, \{ force: true \}\)/.test(dev), '开发者面板有「路遇」强制触发按钮');
     else ok(!/NPC37|npc37/.test(dev), 'main 的 dev_openworld.js 不引用 NPC37（路遇只走正常游玩入口）'); }
+  // 第二十八轮：真实 Game.apply 形状 { txt, later }，fight 延后到 later 里，路遇必须真的开战
+  { const d = box(); const DN = d.NPC37, DG = d.Game; const log = [];
+    DG.apply = async function (eff) { const later = []; const out = []; for (const tk of eff.split(';')) { const p = tk.split(':'); if (p[0] === 'aff') { this.G.aff[p[1]] = (this.G.aff[p[1]] || 0) + +p[2]; out.push('好感' + p[2]); } else if (p[0] === 'fight') later.push(() => this.fight(p[1], { tier: 1 })); } return { txt: out.join('，'), later }; };
+    DG.fight = async function (mon) { log.push('fight:' + mon); return { res: this._res || 'win' }; };
+    d.UI.toast = s => log.push('toast:' + s); d.UI.card = async () => 0; DG.G.life34.rel = { jh_mozi: -60 };
+    const fev = []; DN.bus.on('fight', e => fev.push(e.res));
+    const sa = DN.onMeet('jh_mozi', 'market', { k: 0, force: true }); const ra = await DN.play(sa);
+    ok(ra && ra.ok && ra.fight === 'win' && log.filter(x => x === 'fight:slime').length === 1, 'fight:1 在真实 apply 形状下真的调用 Game.fight（当前图怪）一次');
+    ok(log.indexOf('toast:好感-5') >= 0 && log.indexOf('toast:好感-5') < log.indexOf('fight:slime'), '先提示效果，再开战');
+    ok(log.some(x => x === 'toast:路遇一战：击退来敌') && fev.join() === 'win', '战后提示胜负并发 Story37 fight 事件');
+    DG._res = 'lose'; log.length = 0; DG.G.year++; const sb = DN.onMeet('jh_mozi', 'forest', { k: 0, force: true }); const rb = await DN.play(sb);
+    ok(rb && rb.fight === 'lose' && log.indexOf('fight:treant') >= 0 && log.some(x => x === 'toast:路遇一战：落了下风'), '输了也结算并提示，怪取场景所在图');
+    log.length = 0; DG.G.dead = true; DG.G.year++; const sc = DN.onMeet('jh_mozi', 'market', { k: 0, force: true }); const rc = sc ? await DN.resolve(sc, 0) : null; DG.G.dead = false;
+    ok(!sc || (rc && rc.ok && !log.some(x => /^fight:/.test(x))), '角色已死不再开延后的战斗');
+    const s3 = DN.onMeet('jh_mozi', 'market', { k: 0, force: true }); DG.G.year++; const sd = DN.onMeet('ali', 'market', { force: true }); if (sd) { const pick = sd.ch.findIndex(o => !o.fx.fight && DN.can(o.fx)); log.length = 0; const rd = await DN.resolve(sd, pick); ok(rd.ok && rd.fight === null && !log.some(x => /^fight:/.test(x)), '无 fight 选项不开战，fight 为 null'); } else ok(true, '无 fight 选项（本年额度已满，跳过）');
+    void s3; }
   console.log(`${n - fails}/${n} PASS`); process.exit(fails);
 })();
