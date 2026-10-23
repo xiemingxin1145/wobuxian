@@ -320,6 +320,13 @@
 - 本轮改动文件：www/js/npc37.js（新）、www/index.html、www/js/dev_openworld.js、test/npc37_unit.js（新）、test/dev_openworld_page.py、test/dev_openworld_gate_page.py、test/stage3_life34.js、PROGRESS.md。
 - 下一步：把 onMeet 挂进正常地图移动（包裹 npcAI/玩家移动，同图且距离≤2 格时触发，⚑ 卡不进挂机代选），年末钩子调用 topUp/emit；之后从专用分支开 PR 给奥拉夫审。
 
+### 2026-10-24 第二十五轮（UTC+8，openworld-wip，00:23 起）——NPC37 路遇挂进正常游玩（npcAI 包裹 + 年末新闻）+ 合 main
+- 普通 merge 合入 origin/main（无冲突）。
+- `www/js/npc37.js`：包裹 `npcAI`，普通玩家（不需开发者模式）在地图模式下与熟人 NPC 同图、距离 ≤2 格且冷却/上限允许时自动弹「⚑ 路遇·」卡（节流 800ms；自动任务/挂机开着、已有弹窗、战斗中、Game._busy、NPC 正在对话时不触发）；卡片选项全加「⚑ 」前缀，ux23 SAFE 白名单不匹配，AUTO.pick 不代选。包裹 `Game.yearEnd`：每年 1–3 条 NPC 之间的江湖事（结仇/夺宝/拜师/突破/结亲，与玩家 rel≥40 者才 toast）+ topUp 补到 ≥3。修：emit 的 a===b 会让同一人计 2 次、单人新闻不选含 {b} 的模板；topUp 改为只挑有额度的人。fight:1 仍走 Game.apply 的 fight 效果（当前图怪），正式遭遇战入口留下一轮。
+- 测试：`test/npc37_unit.js` 54/54 PASS（新增 17 条：贴脸触发/3 格不触发/⚑ 前缀/对 ux23 真实 SAFE 不匹配/冷却/自动任务/弹窗/战斗/对话/节流/正常游玩 100 年上限/年末包裹）；新增 `test/npc37_page.py` 真页面 10/10 PASS（非开发者模式贴近翠花弹卡、AUTO.pick quest/idle 均 null、结算计 1 次、冷却、过年写 3 条 npc37 新闻、无报错）。纯 JS：battle_rt_proto / stage3_chain / stage3_life34 / lowpoly_attach / lowpoly_box ALL PASS、good_rel_cap 31/31、validate22 errors []、encounter_chain_verify / jsscan33 / sys33_unit / life34_unit / jianghu34_unit / lian35_unit 全过。
+- **未完成**：按 Grok Bot 要求 01:07–02:45 不跑 Chrome，本轮改动后的 dev_openworld_page / dev_openworld_gate_page / battle_rt_proto_page / tap342 / dev341 页面回归还没重跑，所以 PR 暂不开。
+- 下一步：02:45 后重跑全部页面测试，通过则从 origin/main 拉专用分支（npc37.js + index.html 脚本行 + npc37 测试 + stage3_life34 白名单）开 PR 给奥拉夫审；之后把 fight:1 接正式遭遇战入口。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

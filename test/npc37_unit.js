@@ -82,7 +82,7 @@ function box() {
   ok([...used].every(k => new RegExp('\\b' + k + '\\s*:\\s*\\{').test(data)), '场景物品 id 都在 data.js：' + [...used].join(','));
   // 新闻：≤6、toast ≤2、写入 jh34.feed 且 ≤40
   c = box(); const M = c.NPC37; const GG = c.Game.G; GG.jh34.feed = Array.from({ length: 39 }, (_, i) => ({ t: 0, s: 'old' + i, k: '' }));
-  let got = 0; for (let i = 0; i < 30; i++) if (M.emit('jiechou', ['jh_mozi', 'ali', 'mentor', 'sumei', 'jh_jianke', 'jh_danniang'][i % 6], null, 'market', { notable: true })) got++;
+  const P6 = ['jh_mozi', 'ali', 'mentor', 'sumei', 'jh_jianke', 'jh_danniang']; let got = 0; for (let i = 0; i < 30; i++) if (M.emit('jiechou', P6[i % 6], P6[(i + 1) % 6], 'market', { notable: true })) got++;
   ok(got === 6 && GG.npc37.yc.news === 6, '全年新闻 ≤6');
   ok(c.toasts.length === 2, 'toast ≤2');
   ok(GG.jh34.feed.length === 40 && GG.jh34.feed[39].k === 'npc37' && GG.jh34.feed[39].s.startsWith('【江湖风云】') && !/\{[abmn]/.test(GG.jh34.feed[39].s), '走 JH34.say 写入 feed，裁到 FEED_MAX=40，占位符已填');
@@ -96,6 +96,42 @@ function box() {
   GG.jh34.npcs = { jh_mozi: { map: 'secret' } }; ok(M.schedule('jh_mozi') === 'secret' && M.schedule('ali') === 'forest' && M.schedule('nobody') === null, 'schedule：JH34 游历图 > NPCS.map');
   // 无存档
   c.Game.G = null; ok(M.onMeet('ali', 'x') === null && M.emit('tupo', 'ali') === null, '没有存档时安全返回 null');
+
+  // ---------- 第二十五轮：正常游玩挂接 ----------
+  c = box(); const H = c.NPC37, HG = c.Game.G; c.UI.stack = [];
+  let cards = []; c.UI.card = async (t, x, por, opts) => { cards.push({ t, opts }); return opts.findIndex(o => !o.endsWith('（缺）')); };
+  vm.runInContext("R.mode='map';R.mapId='market';R.player={i:10,j:10};", c);
+  const ent = { kind: 'npc', id: 'mentor', i: 11.5, j: 11.2 }; const far = { kind: 'npc', id: 'jh_danniang', i: 13, j: 10 };
+  c.npcAI(far, 0.016); ok(cards.length === 0 && HG.npc37 == null || (HG.npc37 && HG.npc37.yc.n === 0), '距离 3 格：不触发');
+  c.npcAI(ent, 0.016); await new Promise(r => setTimeout(r, 10));
+  ok(cards.length === 1 && cards[0].t === '⚑ 路遇·落魄剑仙', '正常游玩（无开发者模式）：同图距离≤2 走 npcAI 包裹自动弹「⚑ 路遇」卡');
+  ok(cards[0].opts.every(o => o.startsWith('⚑ ')), '选项都带「⚑ 」前缀');
+  const SAFE = /^(打坐（|★|✔|！|接受|继续|好|收下|交付|……|应战|带路|明白|谢|原来如此|伸手|去后巷|去看看|你说什么|撤|知道了|确定|抄起扫帚|开始|过年)/;
+  const allOpts = []; for (const t in H.TEXT.meet) for (const sc of H.TEXT.meet[t]) for (const o of sc.ch) allOpts.push('⚑ ' + o.x);
+  ok(allOpts.every(o => !SAFE.test(o)) && allOpts.some(o => SAFE.test(o.slice(2))), '全部 24 场景选项加前缀后都不匹配 ux23 SAFE（不加前缀时「收下」等会被自动选）');
+  const ux = fs.readFileSync(path.join(JS, 'ux23.js'), 'utf8'); const m = ux.match(/^const SAFE = (\/.*\/);$/m);
+  ok(m && allOpts.every(o => !eval(m[1]).test(o)), '对 ux23.js 里真实 SAFE 正则同样成立');
+  ok(HG.npc37.q.length === 0 && HG.npc37.yc.n === 1, '卡片结算后出队，计 1 次');
+  c.NPC37._t = 0; c.npcAI(ent, 0.016); ok(cards.length === 1, '同图冷却内再靠近不再触发');
+  vm.runInContext("R.mapId='forest';", c); c.NPC37._t = 0; c.AUTO = { on: 'quest' }; const e2 = { kind: 'npc', id: 'ali', i: 10, j: 11 };
+  c.npcAI(e2, 0.016); ok(cards.length === 1, '自动任务/挂机开着时不触发（不让挂机碰 ⚑）'); c.AUTO = { on: null };
+  c.UI.stack = [{}]; c.NPC37._t = 0; c.npcAI(e2, 0.016); ok(cards.length === 1, '已有弹窗时不触发'); c.UI.stack = [];
+  vm.runInContext("R.mode='battle';", c); c.NPC37._t = 0; c.npcAI(e2, 0.016); ok(cards.length === 1, '不在地图模式不触发'); vm.runInContext("R.mode='map';", c);
+  e2.talking = 1; c.NPC37._t = 0; c.npcAI(e2, 0.016); ok(cards.length === 1, '正在对话的 NPC 不触发'); e2.talking = 0;
+  c.NPC37._t = Date.now(); c.npcAI(e2, 0.016); ok(cards.length === 1, '节流 800ms 内不检查');
+  c.NPC37._t = 0; c.npcAI(e2, 0.016); await new Promise(r => setTimeout(r, 10)); ok(cards.length === 2, '条件满足后在另一张图正常触发');
+  // 正常游玩 100 年：每年都有人在身边，上限仍成立
+  let bad2 = 0; const maps = ['market', 'forest', 'secret'];
+  for (let y = 40; y < 140; y++) { HG.year = y; for (let mo = 0; mo < 12; mo++) { HG.jh34.t = y * 12 + mo; vm.runInContext(`R.mapId='${maps[mo % 3]}'`, c);
+      for (const id of H.ids()) { c.NPC37._t = 0; c.npcAI({ kind: 'npc', id, i: 10.5, j: 10.5 }, 0.016); await null; } }
+    await c.Game.yearEnd(); const Y = HG.npc37.yc; if (Y.n > 4 || Y.news > 6 || Y.news < 3 || Object.values(Y.per).some(v => v > 2)) bad2++;
+  }
+  ok(bad2 === 0, '正常游玩模拟 100 年（每月都贴脸）：每年路遇 ≤4、新闻 3–6、每人 ≤2');
+  ok(HG.jh34.feed.length <= 40 && HG.jh34.feed.every(f => !/\{[abn]|\{map/.test(f.s)), 'feed ≤40 且无残留占位符');
+  // 同图 6 月冷却在正常游玩下成立
+  const S2 = HG.npc37; ok(Object.keys(S2.yc.map).length >= 1, '记录了地图冷却');
+  // 年末包裹
+  const n0 = HG.npc37.yc.news; HG.year = 500; await c.Game.yearEnd(); ok(HG.npc37.yc.yr === 500 && HG.npc37.yc.news >= 3 && HG.npc37.yc.news <= 6, 'Game.yearEnd 包裹：新的一年发 3–6 条新闻');
   // 源码约束
   ok(!/L\.pending\s*=|pending\.push|Life34\.rel\(/.test(SRC), '不写 L.pending、不直接调 Life34.rel（只经 G.aff 同步）');
   const idx = fs.readFileSync(path.join(JS, '..', 'index.html'), 'utf8'); ok(idx.indexOf('js/jianghu34.js') < idx.indexOf('js/npc37.js'), 'index.html 在 jianghu34.js 之后加载 npc37.js');

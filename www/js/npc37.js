@@ -1,5 +1,5 @@
 // v3.7.0 路遇系统 NPC37 第一块（开放世界线第二十四轮）：核心模块 + 冷却/上限 + 按恩怨分档 + 单场景结算 + 新闻 + Story37 事件总线。
-// 独立文件，不改 game.js / main.js / jianghu34.js / life34.js；本轮还没有挂进正常地图移动（只有开发者「路遇」按钮能触发），下一轮再包裹挂接。
+// 独立文件，不改 game.js / main.js / jianghu34.js / life34.js。第二十五轮起挂进正常游玩：包裹 npcAI（同图、距离≤2 格自动路遇，自动任务/挂机期间不触发，选项带「⚑」前缀不进 SAFE 白名单），包裹 Game.yearEnd 发年度新闻并 topUp。
 // 规则（docs/research_story37.md §1）：
 //   分档按 Life34.rel：≤−40 仇(chou) / −40..40 生(sheng) / ≥40 友(you)；年份 Life34.yr()；月份取 G.jh34.t（绝对月），没有则 年×12。
 //   同一地图路遇 ≥6 个月一次；全图每年 ≤4 次路遇；每个 NPC 每年 ≤2 条事件（路遇 + 新闻合计）；新闻每年 ≤6 条、其中 toast ≤2，不足 3 条由 topUp 补。
@@ -57,14 +57,14 @@ const NPC37 = {
     this.bus.fire('resolve', { scene, c, eff }); return { ok: true, eff, out }; },
   // 弹卡：标题以「⚑」开头，置灰选项加（缺）并重弹
   async play(scene) { if (typeof UI === 'undefined' || !UI.card || !scene) return null;
-    for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => this.can(o.fx) ? o.x : o.x + '（缺）');
+    for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => '⚑ ' + o.x + (this.can(o.fx) ? '' : '（缺）'));
       const c = await UI.card(scene.title, (scene.line ? `${scene.name || this.name(scene.id)}：“${scene.line}”\n` : '') + scene.t, 'i:bill', opts);
       const r = await this.resolve(scene, c); if (r.ok) { if (typeof UI.toast === 'function' && r.out && r.out.length) UI.toast(r.out.join('，')); if (Game.save) Game.save(); return r; }
       if (typeof UI.toast === 'function') UI.toast('条件不足'); } return null; },
   // 新闻：kind ∈ news 六类；a/b NPC id；每 NPC 年 ≤2、全年 ≤6、toast ≤2
-  emit(kind, a, b, mapId, opt) { opt = opt || {}; const S = this.st(); if (!S) return null; const pool = TEXT37.news[kind]; if (!pool) return null; const c = S.yc;
+  emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = TEXT37.news[kind]; if (!pool) return null; const c = S.yc;
     if (c.news >= this.NEWS_MAX) return null; if ((c.per[a] || 0) >= this.PER_MAX || (b && (c.per[b] || 0) >= this.PER_MAX)) return null;
-    const s = '【江湖风云】' + this.fill(this.rnd(pool), { a: this.name(a), b: b ? this.name(b) : '', map: this.mapName(mapId) });
+    const pl = b ? pool : pool.filter(x => x.indexOf('{b}') < 0); if (!pl.length) return null; const s = '【江湖风云】' + this.fill(this.rnd(pl), { a: this.name(a), b: b ? this.name(b) : '', map: this.mapName(mapId) });
     c.news++; c.per[a] = (c.per[a] || 0) + 1; if (b) c.per[b] = (c.per[b] || 0) + 1;
     const toast = !!opt.notable && c.toast < this.TOAST_MAX; if (toast) c.toast++;
     this.feed(s, toast); this.bus.fire('news', { kind, a, b, s }); return s; },
@@ -74,11 +74,33 @@ const NPC37 = {
     if (toast && typeof UI !== 'undefined' && UI.toast) UI.toast(s); },
   ids() { const r = Object.keys(TEXT37.lines); return (typeof NPCS !== 'undefined') ? r.filter(k => NPCS[k]) : r; },
   // 年末补到 ≥3 条（突破闲话）
-  topUp() { const S = this.st(); if (!S) return 0; let k = 0; const ids = this.ids(); for (let g = 0; S.yc.news < this.NEWS_MIN && g < 40; g++) { if (this.emit('tupo', this.rnd(ids), this.rnd(ids))) k++; } return k; },
+  topUp() { const S = this.st(); if (!S) return 0; let k = 0; const free = () => this.ids().filter(id => (S.yc.per[id] || 0) < this.PER_MAX).sort(() => Math.random() - 0.5);
+    for (let g = 0; S.yc.news < this.NEWS_MIN && g < 20; g++) { const f = free(); if (!f.length) break; if (this.emit('tupo', f[0], f[1] || null)) k++; } return k; },
   // 日程：本月目标图（JH34 游历结果 > roam > 固定图）
   schedule(id) { const G = this.G(); const L = G && G.jh34; const s = L && L.npcs && L.npcs[id]; if (s && s.map) return s.map;
     const N = typeof NPCS !== 'undefined' && NPCS[id]; if (!N) return null; try { return N.roam ? N.roam(G) : N.map; } catch (e) { return N.map || null; } },
   bus: { h: {}, on(e, f) { (this.h[e] = this.h[e] || []).push(f); return () => { this.h[e] = this.h[e].filter(x => x !== f); }; }, fire(e, d) { (this.h[e] || []).slice().forEach(f => { try { f(d); } catch (x) { } }); } },
 };
+
+// ---------- 第二十五轮：挂进正常游玩 ----------
+NPC37.NEAR = 2; NPC37.CHECK_MS = 800; NPC37.KINDS = ['jiechou', 'duobao', 'baishi', 'tupo', 'jieqin'];
+NPC37.autoOn = function () { try { if (typeof AUTO !== 'undefined' && AUTO.on) return true; if (typeof AFK !== 'undefined' && AFK.on) return true; } catch (e) { } return false; };
+// 现在能不能弹路遇卡（不改状态）
+NPC37.idle = function () { const G = this.G(); if (!G || G.dead || this._busy) return false; if (typeof R === 'undefined' || R.mode !== 'map' || !R.player) return false;
+  if (typeof Game !== 'undefined' && Game._busy) return false; if (typeof UI !== 'undefined' && UI.stack && UI.stack.length) return false;
+  if (typeof B !== 'undefined' && B && B.on) return false; if (this.autoOn()) return false; return true; };
+// 每个 NPC 帧更新时调用：节流、距离、冷却全部通过才弹卡；返回场景或 null
+NPC37.check = function (e, now) { if (!e || e.kind !== 'npc' || !TEXT37.lines[e.id] || e.talking > 0 || e.hidden) return null;
+  now = now == null ? Date.now() : now; if (now - (this._t || 0) < this.CHECK_MS) return null; if (!this.idle()) return null;
+  const P = R.player; if (Math.hypot(P.i - e.i, P.j - e.j) > this.NEAR) return null; this._t = now;
+  const sc = this.onMeet(e.id, R.mapId); if (!sc) return null; this._busy = true; e.talking = 2;
+  Promise.resolve(this.play(sc)).catch(() => { }).then(() => { this._busy = false; }); return sc; };
+// 年末：本年 1–3 条 NPC 之间的江湖事 + 补到 3 条；与玩家 rel≥40 的人相关才 toast
+NPC37.yearNews = function () { const S = this.st(); if (!S) return 0; const ids = this.ids(); if (ids.length < 2) return 0; let k = 0; const want = 1 + Math.floor(Math.random() * 3);
+  for (let g = 0; g < want * 3 && k < want; g++) { const a = this.rnd(ids); let b = this.rnd(ids); if (b === a) continue;
+    if (this.emit(this.rnd(this.KINDS), a, b, this.schedule(a), { notable: this.rel(a) >= 40 || this.rel(b) >= 40 })) k++; }
+  return k + this.topUp(); };
+if (typeof npcAI === 'function') { const _ai = npcAI; npcAI = function (e, dt) { const r = _ai.apply(this, arguments); try { NPC37.check(e); } catch (x) { } return r; }; }
+if (typeof Game !== 'undefined' && Game.yearEnd) { const _ye = Game.yearEnd; Game.yearEnd = async function () { const r = await _ye.apply(this, arguments); try { NPC37.yearNews(); } catch (x) { } return r; }; }
 const Story37 = window.Story37 || { on: (e, f) => NPC37.bus.on(e, f), fire: (e, d) => NPC37.bus.fire(e, d) };
 window.NPC37 = NPC37; window.Story37 = Story37; window.TEXT37 = TEXT37;
