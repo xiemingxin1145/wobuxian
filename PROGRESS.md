@@ -272,6 +272,13 @@
 - [x] 修与 main 3.4.1 的遮挡：main 的 `test/dev341.py` 在本分支多挂 12 条——「开放世界」兜底入口 z-index 9999 盖住开发者面板（误点到「查账链」）和底部菜单（人物/背包）。兜底入口改到左侧 main 三个按钮下方（top:342px）、z-index 7（在 #modals 弹窗层之下）、只在游戏内（body.ingame）显示，与 main dev_entry_v25.js 同法。修后 dev341.py 只剩 `3_state` 1 条，与干净 main 一致（main 自身问题，未改）。`test/dev_openworld_page.py`、`test/battle_rt_proto_page.py` 绕过标题页直接开局，补上 main.js 离开标题页时做的 body.ingame + 隐藏 #title；后者也改用 wbx2_dev。
 - 下一步：等奥拉夫用真机点屏 + 重启 APK 复审 PR #23；之后即时战原型一小步或讨债令首个只读用途。
 
+### 2026-10-23 第二十轮（UTC+8，openworld-wip，14:00 起）——PR #23 已 squash 进 main（6a63012）；即时战原型 devEnabled 只认 wbx2_dev
+- 普通 merge 合入 origin/main 6a63012（squash 的是本分支 37f9334，合后与 main 树一致，只差 docs/research_v33.md 附录A 一处，无冲突）。
+- `www/js/battle_realtime_prototype.js`：`devEnabled()` 删掉 `location.hash` 判定，唯一依据 `localStorage.wbx2_dev === '1'`，与 dev_openworld.js 一致；stage3_encounter_draft.js / lowpoly_box_chars.js / dev_openworld.js 已核查，不看 hash/query。
+- `test/battle_rt_proto.js`：新增 3 条：仅 #dev / ?dev=1 → 关；wbx2_dev='1' → 开；wbx2_dev='true' → 关。page 测试早已用 wbx2_dev。
+- 测试：battle_rt_proto 147 PASS / battle_rt_proto_page 12 / dev_openworld_gate_page 39/39 / dev_openworld_page 全过 / stage3_chain / stage3_life34 / good_rel_cap 31/31 / lowpoly_box ALL PASS / validate22 / life34_unit / life34_visitor_nomons / jianghu34_unit / jianghu34_ui / seam34 / sys33_unit / jsscan33 / content33 / wb33_mark_regress / dev341_audit 全过；dev341.py 仅 3_state 失败（main 已知）。results 不提交。
+- 本轮改动文件：www/js/battle_realtime_prototype.js、test/battle_rt_proto.js、PROGRESS.md。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）

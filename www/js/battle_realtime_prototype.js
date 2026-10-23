@@ -630,7 +630,6 @@
   // ---------- 开发者覆盖层：自带画布 + rAF 循环 + 触屏摇杆/按钮（只由开发者入口调用） ----------
   function devEnabled() {
     try {
-      if (typeof location !== 'undefined' && /dev/.test(location.hash || '')) return true;
       return typeof localStorage !== 'undefined' && localStorage.getItem('wbx2_dev') === '1';
     } catch (e) { return false; }
   }

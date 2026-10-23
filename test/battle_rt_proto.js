@@ -22,7 +22,13 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(window.RealtimeBattle === RB && !fightWrapped, '只暴露 window.RealtimeBattle，不碰 Game.fight');
   ok(typeof global.RT === 'undefined' && typeof global.playerAttack === 'undefined', '不污染全局（RT / playerAttack 未泄漏）');
   ok(RB.open() === null, '无 document 时 open() 不做任何事');
-  ok(!RB.devEnabled(), '无 #dev / wbx2_dev 时开发者开关为关');
+  ok(!RB.devEnabled(), '无 wbx2_dev 时开发者开关为关');
+  { const store = {}; global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } };
+    global.location = { hash: '#dev', search: '?dev=1' };
+    ok(!RB.devEnabled(), '只有 #dev / ?dev=1、没有 wbx2_dev 时仍为关（不再看 hash/query）');
+    localStorage.setItem('wbx2_dev', '1'); ok(RB.devEnabled(), 'wbx2_dev === \'1\' 时为开');
+    localStorage.setItem('wbx2_dev', 'true'); ok(!RB.devEnabled(), 'wbx2_dev 非 \'1\' 时为关');
+    delete global.localStorage; delete global.location; }
   const refs = fs.readdirSync(path.join(ROOT, 'www', 'js')).filter(f => f.endsWith('.js') && f !== 'battle_realtime_prototype.js')
     .filter(f => /RealtimeBattle/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', f), 'utf8')));
   ok(refs.includes('dev_openworld.js') && refs.every(f => f === 'dev_entry_v25.js' || f === 'dev_openworld.js'), '只有开发者入口（开放世界 dev_openworld.js；main 3.4.1 的 dev_entry_v25.js 已改用 RT27、不再引用）引用 RealtimeBattle：' + refs.join(','));
