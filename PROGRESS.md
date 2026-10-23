@@ -313,3 +313,10 @@
 推进 Issue #5（T4 点游走 NPC、T9 自动任务），或正式债务系统对接奇遇链，或低模接入图集评估。可把完整即时原型（含敌人弹道）同步到覆盖层试炼场做对比测试。
 - [x] 10-23 v3.4.1 已发布（PR #24 squash eabd12e，tag CI 全绿，versionCode 230）。
 - [x] 10-23 3.4.2：#28 3_state（随机天赋带 tough，测试问题）、#32 #27 名字牌、#26 N1（关闭中弹窗挡点按，style.css .mwrap.outm pointer-events:none）+ test/tap342.py；PR「fix: 3.4.2」。
+
+### 3.5 一键连炼（lian35，2026-10-23 17:55 UTC+8，PR 待奥拉夫审）
+- [x] ROADMAP P2 #16「炼丹炼器一键连炼」：新增 `www/js/lian35.js`（LIAN35）；炼丹面板每个丹方加「连炼×N」（N = 行动力/材料/上限 10 取小，≥2 才显示），洞府炼器加「连炼×N」（上限 5，受玄铁晶/妖丹/灵石约束）。
+- 规则：连炼跳过火候小游戏，按中等火候 q=0.4 算成功率（手动完美火候仍更高、且只有手动能多出一颗）；每炉照扣 1 行动力 + 材料，成丹计 alchCount 与 alch10 成就；结果一条 toast 汇总。
+- 改动：`www/js/lian35.js`（新）、`www/js/ui.js`（炼丹面板按钮 + 提示）、`www/js/ui21.js`（炼器按钮）、`www/index.html`（fix342.js 之后加载）、`test/lian35_unit.py`（新，15 项）。
+- 测试：lian35_unit ALL PASS、validate22 0 错、jsscan33 0 错、sys33_unit 通过、dev341_audit 通过、controls 0 失败；412×915 炼丹面板截图按钮不溢出。
+- 未 bump VERSION；与 PR #25（pet35）无文件冲突（pet35 只改 ui.js 放生段，若 index.html 脚本行冲突按 fix342 → pet35 → lian35 顺序保留）。
