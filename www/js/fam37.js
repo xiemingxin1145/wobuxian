@@ -1786,8 +1786,9 @@ const FAM37 = {
       else for (const k in e.sectRel) add(k, e.sectRel[k]); out.push('宗门关系变化'); }
     if (e.fb33 && G.fb33) { G.fb33.exp = (G.fb33.exp || 0) + e.fb33; out.push(`本命法宝经验+${e.fb33}`); }
     if (e.fight) { const mons = (MAPINFO[(typeof R !== 'undefined' && R.mapId) || 'village'] || MAPINFO.village).mons; parts.push(`fight:${typeof e.fight === 'string' ? e.fight : mons[0]}`); }
-    let r = ''; if (parts.length) r = await Game.apply(parts.join(';'));
-    return [r].concat(out).filter(Boolean);
+    let r = null; if (parts.length) r = await Game.apply(parts.join(';'));
+    if (r && Array.isArray(r.later)) for (const fn of r.later) { try { await fn(); } catch (err) { console.warn('fam37 later', err); } }
+    return [r && r.txt !== undefined ? r.txt : r].concat(out).filter(Boolean);
   },
   async famEvent(id, rnd) {
     const G = this.G(); const F = this.ensure(G); const E = id ? this.T.fam.events.find(x => x.id === id) : this.pick(this.T.fam.events.filter(x => (F.sp || !/\{sp\}|@sp/.test(JSON.stringify(x))) && (F.kids.length || !/\{k\}/.test(x.t))), rnd);
