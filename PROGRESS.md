@@ -344,6 +344,14 @@
 - 测试：`test/lowpoly_attach.js` 102 PASS（新增：4 冠 4 佩齐全、面数预算、4 个角色 × 16 种冠×佩组合都能穿、冠在头部、佩在左侧、多出可见面）；npc37_unit 54/54、good_rel_cap 31/31、stage3_chain / stage3_life34 / lowpoly_box / battle_rt_proto ALL PASS。本轮不跑 Chrome（留给 02:50 的页面回归 + 路遇 PR）。
 - 下一步：02:50 路遇页面回归并开 PR；之后神器觉醒Ⅲ发光壳、预览页冠/佩下拉切换，名字待 Grok Bot 的 cos36/shenqi36 字段定了对齐。
 
+### 2026-10-24 第二十七轮（UTC+8，openworld-wip，02:59 起）——路遇 NPC37 页面回归全过 + 开 PR #39 给奥拉夫
+- 开跑前 rel35 的 test/human_olaf.py 正在用 Chrome，等到 03:13 它跑完才开始；openworld-wip 489a4b2 已是最新，工作区干净。
+- openworld-wip 页面回归（489a4b2）：dev_openworld_page 64 PASS、dev_openworld_gate_page 39/39、battle_rt_proto_page 12 PASS、tap342 FAILS []（无 JS 报错）、dev341 FAILS []（26 PASS，3_state 也过了）、dev341_audit 79 次点按 errors 全为 []、npc37_page 10/10。纯 JS：npc37_unit 54/54、lowpoly_attach / lowpoly_box / stage3_chain / stage3_life34 / battle_rt_proto ALL PASS、good_rel_cap 31/31。没有失败，代码没改。跑测试时被改到的已跟踪 test/results/dev341*.json 已还原，没提交。
+- PR 分支 `npc37-luyu`（7f42af0，基于 origin/main 354a2c8 sq36）：只放 www/js/npc37.js、index.html 一行 npc37.js 脚本（jianghu34.js 后）、test/npc37_unit.js、test/npc37_page.py、test/stage3_life34.js 的 huntBlocksFoe 白名单（main 已有 Stage3.huntBlocksFoe，不需要其他 stage3 改动；npc37 读 Stage3 前有 typeof 判断）。npc37_unit 里「开发者面板路遇按钮」那条在 PR 分支改为条件判断（main 的 dev_openworld.js 不引用 NPC37 时改成断言「不引用」）。该分支结果：npc37_unit 54/54、npc37_page 10/10、stage3_life34 ALL PASS、validate22 errors []、jsscan33 errors []、tap342 FAILS []。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/39 「路遇 NPC37：正常游玩中的随机路遇（独立文件）」，给奥拉夫审，未合并。
+- 注意：origin/main 已到 354a2c8（#37 神器 sq36），openworld-wip 还没合这次 main，留到下一轮。
+- 下一步：fight:1 接正式遭遇战入口；神器觉醒Ⅲ发光壳、预览页冠/佩下拉切换。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
