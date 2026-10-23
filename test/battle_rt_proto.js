@@ -136,9 +136,10 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   run(F.windLunge * 0.2 + F.lungeT + 0.05);
   ok(S.player.hp === hp0 - F.lungeDmg && S.dmgNums.some(n => n.txt === '-' + F.lungeDmg), '不躲 → 前冲命中 -' + F.lungeDmg);
   ok(S.enemies[0].state === 'chase' && S.enemies[0].atkCd > F.cdMin - 0.2, '出手后回到追击并进入冷却');
-  RB.end('lose'); await done;
+  RB.end('lose'); { const r8b = await done; ok(S.hitsTaken === 1 && S.dodged === 0 && r8b.hits === 1 && r8b.dodged === 0 && typeof r8b.time === 'number' && r8b.time > 0, '第二十二轮：不躲被前冲打中 → 受击计 1、闪避 0，结束结果带 hits / dodged / time'); }
   // 8c. 前摇中横移出锁定线 → 前冲落空
   done = freshLunge(); RB.update(1 / 60); hp0 = S.player.hp;
+  ok(S.hitsTaken === 0 && S.dodged === 0, '第二十二轮：新开一场受击 / 闪避计数归零');
   S.player.x += 80; // 侧移（模拟走位）
   run(F.windLunge + F.lungeT + 0.05);
   ok(S.player.hp === hp0, '前摇中走出预警区 → 前冲落空');
@@ -153,7 +154,7 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(S.player.hp === hp0 && S.dmgNums.some(n => n.txt === '闪避!') && S.enemies[0].lungeHit, '无敌中被前冲穿过 → 不扣血，显示「闪避!」');
   run(D.inv);
   ok(S.player.invuln === 0, '无敌时间结束归零');
-  RB.end('lose'); await done;
+  RB.end('lose'); { const r8d = await done; ok(r8d.hits === 0 && r8d.dodged >= 1 && S.dodged === r8d.dodged, '第二十二轮：无敌中被穿过 → 受击 0、闪避 ' + r8d.dodged + ' 次（免伤不算受击）'); }
   // 8e. 远距：弹道前摇 → 沿锁定方向发弹；不躲扣血，无敌穿过
   const freshShot = () => { const pr = RB.start([{ name: '远程怪', hp: 999, x: 300, y: 120, speed: 0, atkCd: 0 }], { timeLimit: 99 }); S.player.x = 300; S.player.y = 320; return pr; };
   done = freshShot(); RB.update(1 / 60);

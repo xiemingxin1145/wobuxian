@@ -594,6 +594,19 @@ const Stage3 = {
     return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note, token: false, tokens: this.tokenCount(G), tokenBlocked: null };
   },
 
+  // ======== 第二十二轮：即时战原型一小步——追兵战结算卡显示本场用时 / 受击次数 / 闪避次数 ========
+  // 纯函数：只读即时战原型结束时带回的 out.time / out.hits / out.dodged，返回 { time, hits, dodged, line }；
+  //   time 取 1 位小数（非数字 / 负数 / 无穷 → null，line 里写「用时 —」），hits / dodged 取非负整数（坏值 → null，显示「—」）。
+  //   不写 G、不改 out；只给开发者「追兵战」结算卡加一行，不参与 settleBounty 结算。
+  fightStats(out) {
+    const o = out && typeof out === 'object' ? out : {};
+    const t = typeof o.time === 'number' && isFinite(o.time) && o.time >= 0 ? Math.round(o.time * 10) / 10 : null;
+    const cnt = v => typeof v === 'number' && isFinite(v) && v >= 0 ? Math.floor(v) : null;
+    const hits = cnt(o.hits), dodged = cnt(o.dodged);
+    const line = `本场：用时 ${t == null ? '—' : t.toFixed(1) + 's'}，受击 ${hits == null ? '—' : hits} 次，闪避 ${dodged == null ? '—' : dodged} 次${hits === 0 && t != null ? '（无伤）' : ''}`;
+    return { time: t, hits, dodged, line };
+  },
+
   // ======== 债务系统强化 #3：债压档位 → 突破难度预览（只读，只由开发者入口「突破预估」按钮调用） ========
   // 「欠得多突破更难」：先按现行突破公式（game.js Game._tryBreak，原样复刻、不调用它）算出基础成功率，
   //   基础 = REALMS[境界].brk + 悟性×1.5% + 气运×0.5% + brkBonus + 技能树 brk + tmpBrk

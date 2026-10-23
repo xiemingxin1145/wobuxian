@@ -185,6 +185,7 @@
     RT.fx = [];
     RT.foeVolleys = 0; RT.foeShots = 0; // 敌人弹道齐射次数 / 弹丸总数（测试与调试用）
     RT.foeRings = 0; RT.foeRingShots = 0; // 头子环形弹次数 / 环形弹丸总数（单独计数，不混进上面的齐射统计）
+    RT.hitsTaken = 0; RT.dodged = 0; // 第二十二轮：本场主角真被打中次数 / 闪避免伤次数（只计数给结算卡看，不影响战斗逻辑）
     // 主角属性：opts 覆盖 > 存档只读 > 默认；敌人血量/伤害按同比缩放，保证「几刀砍死、几下被打死」的节奏不随境界变
     const ps = readPlayerStats();
     const sr = opts.els ? { els: opts.els.slice(), src: 'opts' } : readSpiritRoot();
@@ -405,7 +406,8 @@
   // 玩家受击：闪避无敌中免伤并提示「闪避!」。返回是否真的扣血
   function damagePlayer(dmg) {
     const p = RT.player;
-    if (p.invuln > 0) { addDmg(p.x, p.y - 80, '闪避!', '#9affff'); return false; }
+    if (p.invuln > 0) { RT.dodged = (RT.dodged || 0) + 1; addDmg(p.x, p.y - 80, '闪避!', '#9affff'); return false; }
+    RT.hitsTaken = (RT.hitsTaken || 0) + 1;
     p.hp = Math.max(0, p.hp - dmg);
     p.flash = 0.15;
     addDmg(p.x, p.y - 80, '-' + dmg, '#ff7a6a');
@@ -487,6 +489,7 @@
   }
 
   // reason：'dead' 主角倒下 / 'cleared' 敌人清空 / 'timeout' 超时 / 'closed' 玩家中途关掉覆盖层（宿主据此决定是否结算）
+  // hits / dodged：本场主角被打中 / 闪避免伤次数（第二十二轮，只读统计）
   // defeated：结束时已被打倒（hp≤0）的敌人名单（宿主据此判断头子是否被打倒，如追兵战「讨债令」）；只读，不影响战斗逻辑
   function endRealtime(result, reason) {
     if (!RT.on) return;
@@ -499,6 +502,7 @@
     toast('遭遇战结束：' + (result === 'win' ? '胜' : '败'), result === 'win' ? '#9aff9a' : '#ff9a9a');
     if (RT._resolve) {
       RT._resolve({ result, reason: RT.endReason, time: RT.time, playerHp: RT.player ? RT.player.hp : 0,
+        hits: RT.hitsTaken || 0, dodged: RT.dodged || 0, // 第二十二轮：本场受击 / 闪避次数（结算卡显示）
         defeated: (RT.enemies || []).filter(e => e.hp <= 0).map(e => e.name) });
       RT._resolve = null;
     }

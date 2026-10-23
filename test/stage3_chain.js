@@ -619,6 +619,25 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
       h.life34.pending = null; await G9.yearEnd(); ok(h.life34.pending && h.life34.pending.type === 'foe', '次年照派'); }
   }
 
+  // 15d. 第二十二轮：即时战原型一小步——Stage3.fightStats(out) 纯函数（追兵战结算卡「本场：用时 / 受击 / 闪避」）
+  {
+    const a = S.fightStats({ result: 'win', time: 12.345, hits: 3, dodged: 2 });
+    ok(a.time === 12.3 && a.hits === 3 && a.dodged === 2 && a.line === '本场：用时 12.3s，受击 3 次，闪避 2 次', 'fightStats：12.345s / 3 / 2 → 「本场：用时 12.3s，受击 3 次，闪避 2 次」');
+    const b = S.fightStats({ time: 4, hits: 0, dodged: 0 });
+    ok(b.line === '本场：用时 4.0s，受击 0 次，闪避 0 次（无伤）', '受击 0 → 行尾标「（无伤）」');
+    const bads = [null, undefined, 5, 'x', {}, { time: -1, hits: -2, dodged: NaN }, { time: Infinity, hits: '3', dodged: 1.9 }];
+    let allOk = true;
+    for (const o of bads) { let r; try { r = S.fightStats(o); } catch (e) { allOk = false; continue; } if (typeof r.line !== 'string' || !r.line.startsWith('本场：')) allOk = false; }
+    const c = S.fightStats({ time: Infinity, hits: '3', dodged: 1.9 });
+    ok(allOk && c.time === null && c.hits === null && c.dodged === 1 && c.line === '本场：用时 —，受击 — 次，闪避 1 次', '7 种坏输入不抛错，坏值显示「—」、不标无伤；1.9 次向下取整为 1');
+    const o = Object.freeze({ time: 7.25, hits: 1, dodged: 0 }); const r1 = S.fightStats(o), r2 = S.fightStats(o);
+    ok(JSON.stringify(r1) === JSON.stringify(r2) && r1.time === 7.3, '深冻结输入不抛错、两次结果一致（7.25 → 7.3）');
+    const src = S.fightStats.toString();
+    ok(!/\bG\b/.test(src) && !/o\.[a-z]+\s*=[^=]/.test(src) && !/save\(/.test(src), 'fightStats 源码不碰 G、不给 out 赋值、不 save');
+    const dsrc = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_openworld.js'), 'utf8');
+    ok(/Stage3\.fightStats\(r\)\.line/.test(dsrc), '追兵战结算卡调用 Stage3.fightStats(r).line');
+  }
+
   console.log(fails ? `${fails} FAILED` : 'ALL PASS');
   process.exit(fails);
 })();

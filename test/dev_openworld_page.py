@@ -9,7 +9,7 @@
 #      追兵调参（债务强化 #7）：localStorage wbx_dev_bounty_tuning 写覆盖 → 追兵战敌人参数按合并表变化（越界被钳制）、「追兵调参」卡显示生效表与被覆盖字段；
 #      坏 JSON / 非对象 → 回退默认并在卡片提示；清除覆盖后与默认逐字段一致；覆盖键不进存档。
 #      追兵调参一键预设（债务强化 #8）：卡片点「预设·好躲/原样/地狱」→ 只写/删 wbx_dev_bounty_tuning，追兵战按预设变化，卡片标出当前预设；存档不变。
-import asyncio, os, sys, json, threading, functools, http.server, socketserver
+import asyncio, os, re, sys, json, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8812'))
 def serve():
@@ -188,6 +188,7 @@ async def main():
             ck(f'天道通缉打赢、头子被打倒 → 结算卡含「缴获讨债令×1（共 1 枚）：只是凭证，暂无用途」，flags.s3b_token={t["n"]} 来源/年份已记并存档',
                '缴获讨债令×1（共 1 枚）：只是凭证，暂无用途' in wtxt and t['n'] == 1 and t['src'] == '天道通缉·讨债鬼头子' and t['y'] == t['gy']
                and t['sv'].get('s3b_token') == 1 and t['sv'].get('s3b_token_src') == '天道通缉·讨债鬼头子' and t['sv'].get('s3b_token_year') == t['gy'])
+            ck('第二十二轮：追兵战结算卡带「本场：用时 X.Xs，受击 N 次，闪避 M 次」一行（胜）', bool(re.search(r'本场：用时 \d+\.\ds，受击 \d+ 次，闪避 \d+ 次', wtxt)))
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             # 第十八轮（债务强化 #9）：同一年再打赢天道通缉 → 冷却挡下，卡片说明「今年已缴获过讨债令，明年再来」，计数仍 1
             await pg.evaluate("()=>{const G=Game.G;G.debt=30000;Game.save();}")
@@ -230,6 +231,7 @@ async def main():
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             ltxt = await card.inner_text()
             l = await pg.evaluate("({debt:Game.G.debt,lose:Game.G.flags.s3b_lose,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
+            ck('第二十二轮：追兵战打输结算卡同样带「本场：用时…受击…闪避…」一行', bool(re.search(r'本场：用时 \d+\.\ds，受击 \d+ 次，闪避 \d+ 次', ltxt)))
             ck('追兵战打输（重债）→ 误工费 889（10%）记进欠款并存档', l['debt'] == 8888 + 889 and l['saved'] == l['debt'] and l['lose'] == 1 and '误工费 889' in ltxt and '追兵特性：快攻双发' in ltxt and '头子：' not in ltxt)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             # 重债打赢（没有头子）：结算卡不含讨债令，计数仍为 2

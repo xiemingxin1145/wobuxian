@@ -287,6 +287,15 @@
 - 本轮改动文件：www/js/stage3_encounter_draft.js、www/js/dev_openworld.js、test/stage3_chain.js、test/dev_openworld_page.py、test/dev_openworld_gate_page.py、docs/openworld_upgrade.md、PROGRESS.md。
 - 下一步：即时战原型一小步（如追兵战结算卡显示本场用时/受击次数），或讨债令第二个只读用途（如抵扣误工费预览）；讨债令真正抵扣/兑换前须另开 PR 给奥拉夫审。
 
+### 2026-10-23 第二十二轮（UTC+8，openworld-wip，20:07 起）——即时战原型一小步：追兵战结算卡显示用时 / 受击 / 闪避 + 合 main
+- 普通 merge 合入 origin/main 046f8c6（docs/research_v36.md + test/human_olaf.py 小改），无冲突。
+- `www/js/battle_realtime_prototype.js`：开场 `RT.hitsTaken` / `RT.dodged` 归零；`damagePlayer` 真扣血计受击、无敌免伤计闪避；结束结果多带 `hits` / `dodged`（原有 `time` 不变）。只计数，不改任何战斗数值。
+- `www/js/stage3_encounter_draft.js`：纯函数 `Stage3.fightStats(out)` → `{ time, hits, dodged, line }`，line 如「本场：用时 12.3s，受击 3 次，闪避 2 次」，受击 0 标「（无伤）」，坏值显示「—」；不写 G、不参与 settleBounty。
+- `www/js/dev_openworld.js`：开发者「追兵战」结算卡（胜/败）在说明下加一行 `Stage3.fightStats(r).line`。没接入正常游戏流程。
+- 测试：`test/battle_rt_proto.js` 新增 3 条（被前冲打中 → 受击 1 / 闪避 0 且结果带 hits/dodged/time；无敌穿过 → 受击 0、闪避 ≥1；新开一场计数归零）ALL PASS；`test/stage3_chain.js` 新增 15d 6 条（格式 / 无伤 / 7 种坏输入 / 深冻结 / 源码只读 / 结算卡调用）235 PASS；`test/dev_openworld_page.py` 真页面胜、败两张结算卡都有「本场：用时…受击…闪避…」，64 PASS。stage3_life34 / lowpoly_box ALL PASS、good_rel_cap 31/31、validate22 errors []、encounter_chain_verify 14/14、dev_openworld_gate_page 39/39、battle_rt_proto_page / tap342 / dev341 / dev341_audit / jsscan33 / sys33_unit / life34_unit / jianghu34_unit 全过。results 不提交。
+- 本轮改动文件：www/js/battle_realtime_prototype.js、www/js/stage3_encounter_draft.js、www/js/dev_openworld.js、test/battle_rt_proto.js、test/stage3_chain.js、test/dev_openworld_page.py、docs/openworld_upgrade.md、PROGRESS.md。
+- 下一步：讨债令第二个只读用途（如抵扣误工费预览，仍只读、只走开发者入口），或即时战原型再一小步（如结算卡显示本场最大连击 / 技能命中数）；讨债令真正抵扣/兑换前须另开 PR 给奥拉夫审。
+
 ## 已完成（本轮）
 - [x] 开发者入口：连点版本号 7 次或 #dev 后，右下角「试炼场」按钮
 - [x] 试炼场：覆盖层 iframe 打开独立遭遇战原型 `prototypes/encounter/`（不跳页，不影响存档，可关闭返回）
