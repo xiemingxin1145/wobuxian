@@ -96,3 +96,6 @@ const PD35 = {
   css.textContent = `.pd35{margin-top:12px;padding:10px;border-radius:10px;background:rgba(120,220,140,.10);border:1px solid rgba(120,220,140,.4)}.pd35>b{display:block;font-size:16px;color:#9aff9a}.pd35 p{margin:4px 0}.pd35r{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0}.pd35r b{min-width:60px}.pd35r small{opacity:.85;flex:1}.pd35r select{font:inherit;padding:4px 6px;border-radius:6px;background:#1a2238;color:#eee;border:1px solid #667}`;
   document.head.appendChild(css);
 })();
+
+// 放生：被放生的在出战灵兽之前 → petA 前移一位；放生的就是出战灵兽 → petA=-1（无出战）。差事 p.pd35 挂在灵兽对象上，随对象移动不受下标影响。
+Game.releasePet = function (k) { const G = this.G; if (!G || !G.pets[k]) return false; G.pets.splice(k, 1); if (k < G.petA) G.petA--; else if (k === G.petA) G.petA = -1; if (G.petA >= G.pets.length) G.petA = G.pets.length - 1; return true; };

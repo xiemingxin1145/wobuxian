@@ -32,6 +32,10 @@ JS = r"""async () => {
   { const q = G.pets[2]; q.lv = 30; q.exp = 0; G.petA = 0; q.pd35 = { job: 'ore', y: 0 }; const lvf = x => x.lv + x.exp / (40 * Math.pow(1.25, x.lv)); const l0 = lvf(q); const ys = []; const y0 = G.year;
     for (let k = 0; k < 3; k++) { G.year = (y0 || 0) + 100 + k; const o0 = G.inv.ore || 0; PD35.settleOne(q, () => 0.5); ys.push((G.inv.ore || 0) - o0); }
     G.year = y0; ok('ore_cap_lv30_match', PD35.match(q, 'ore') && ys.every(n => n <= 4) && ys[0] === 4, ys); ok('exp_cap_3y', lvf(q) - l0 <= 1.5 && lvf(q) > l0, { gained: lvf(q) - l0, exp35: G.pd35exp }); delete q.pd35; }
+  // 放生前面的灵兽：出战与派遣都跟着原灵兽走
+  { const a = G.pets[2], d = G.pets[1]; G.petA = 2; d.pd35 = { job: 'ore', y: 0 }; const extra = { mon: 'fox', name: '放生狐', lv: 1, exp: 0, tier: 1 }; G.pets.unshift(extra); G.petA = 3;
+    Game.releasePet(0); ok('release_shift', G.pets[G.petA] === a && d.pd35 && d.pd35.job === 'ore' && PD35.away().includes(d), { petA: G.petA });
+    const n0 = G.pets.length; G.pets.push({ mon: 'fox', name: '出战狐', lv: 1, exp: 0, tier: 1 }); G.petA = n0; Game.releasePet(n0); ok('release_active_none', G.petA === -1 && G.pets.length === n0, G.petA); delete d.pd35; }
   G.petA = 0; Game.save();
   return { out, fails };
 }"""
