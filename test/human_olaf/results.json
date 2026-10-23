@@ -19,7 +19,7 @@
      "翠花",
      "cuihua",
      "💬",
-     5,
+     3.0,
      [
       51,
       89
@@ -69,7 +69,7 @@
      "王大爷",
      "farmer",
      "💬",
-     10.8,
+     11.7,
      [
       51,
       89
@@ -79,7 +79,7 @@
      "渡口船夫",
      "b34_boatman",
      "💬",
-     20.2,
+     22.6,
      [
       51,
       89
@@ -134,19 +134,19 @@
   },
   {
    "case": "N1_taps_still_work_after_battle",
-   "ok": false,
+   "ok": true,
    "ontap_before": true,
    "npc_tap_before_battle": "npc",
-   "fought": false,
+   "battle_shot": "002_N1_battle.png",
+   "fought": true,
    "ontap_after_battle": true,
    "ground_tap_opened": [
-    "翠花  ♥0",
     "路人甲"
    ],
-   "ground_tap_moved_tiles": 3.38,
-   "npc": "翠花",
+   "ground_tap_moved_tiles": 4.56,
+   "npc": "王大爷",
    "npc_tap_after_battle": "npc",
-   "shot": "002_N1_after_battle_tap_dead.png"
+   "shot": "003_N1_after_battle_tap_dead.png"
   },
   {
    "case": "N2_mark_does_not_steal_npc_tap",
@@ -156,56 +156,56 @@
     {
      "npc": "mom",
      "near": "打坐",
-     "css_dist": 24,
+     "css_dist": 43,
      "part": "name",
      "result": "npc"
     },
     {
      "npc": "mom",
      "near": "打坐",
-     "css_dist": 24,
+     "css_dist": 43,
      "part": "body",
      "result": "npc"
     },
     {
      "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 34,
+     "near": "采药",
+     "css_dist": 49,
      "part": "name",
      "result": "npc"
     },
     {
      "npc": "cuihua",
-     "near": "洞府",
-     "css_dist": 34,
+     "near": "采药",
+     "css_dist": 49,
      "part": "body",
      "result": "npc"
     },
     {
      "npc": "farmer",
      "near": "告示栏",
-     "css_dist": 70,
+     "css_dist": 78,
      "part": "name",
      "result": "npc"
     },
     {
      "npc": "farmer",
      "near": "告示栏",
-     "css_dist": 70,
+     "css_dist": 78,
      "part": "body",
      "result": "npc"
     },
     {
-     "npc": "b34_boatman",
-     "near": "✦机缘",
-     "css_dist": 70,
+     "npc": "luren",
+     "near": "告示栏",
+     "css_dist": 92,
      "part": "name",
      "result": "npc"
     },
     {
-     "npc": "b34_boatman",
-     "near": "✦机缘",
-     "css_dist": 70,
+     "npc": "luren",
+     "near": "告示栏",
+     "css_dist": 92,
      "part": "body",
      "result": "npc"
     }
@@ -228,10 +228,10 @@
     "tracker_go_button": true
    },
    "shots": [
-    "003_T0_dialog.png",
-    "004_T0_quest_panel.png"
+    "004_T0_dialog.png",
+    "005_T0_quest_panel.png"
    ],
-   "battles_on_way": 1
+   "battles_on_way": 0
   },
   {
    "case": "T1_hitbox_5_points",
@@ -254,21 +254,21 @@
    "ok": true,
    "npc": "集市货郎",
    "tap": [
-    28,
-    656
+    114,
+    679
    ],
    "result": "npc",
    "joy_activated_sampled": false,
-   "shot": "005_T2_npc_in_joystick_zone.png"
+   "shot": "006_T2_npc_in_joystick_zone.png"
   },
   {
    "case": "T3_near_interact_button",
    "ok": true,
    "npc": "集市货郎",
-   "dist": 1.41,
+   "dist": 0,
    "button": "对话集市货郎",
    "result": "npc",
-   "shot": "006_T3_near_npc.png",
+   "shot": "007_T3_near_npc.png",
    "note": null
   }
  ],

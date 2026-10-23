@@ -1,0 +1,75 @@
+{
+ "res": {
+  "N2a_mom_name_tag": {
+   "ok": true,
+   "info": {
+    "n": 41,
+    "qt": 1,
+    "slime": 10,
+    "bad": []
+   }
+  },
+  "N2b_peddler_moving_name": {
+   "ok": true,
+   "info": [
+    {
+     "d": [
+      -1,
+      -1
+     ],
+     "moving": true,
+     "res": "npc"
+    },
+    {
+     "d": [
+      1,
+      -1
+     ],
+     "moving": true,
+     "res": "npc"
+    },
+    {
+     "d": [
+      0,
+      -2
+     ],
+     "moving": true,
+     "res": "npc"
+    },
+    {
+     "d": [
+      1,
+      1
+     ],
+     "moving": true,
+     "res": "npc"
+    }
+   ]
+  },
+  "N2c_qt_still_opens_quests": {
+   "ok": true,
+   "info": {
+    "modal": 1,
+    "dlg": false,
+    "who": null,
+    "title": "任务",
+    "battle": false,
+    "inMap": false,
+    "path": 0
+   }
+  },
+  "N1_ground_tap_after_battle": {
+   "ok": true,
+   "info": {
+    "reps": 1,
+    "good": 1,
+    "bad": []
+   }
+  },
+  "no_js_errors": {
+   "ok": true,
+   "info": []
+  }
+ },
+ "fails": []
+}

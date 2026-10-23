@@ -141,7 +141,7 @@ const UI = {
   p_pets(b, re) {
     const G = Game.G;
     b.innerHTML = G.pets.length ? G.pets.map((p, k) => { const u = Game.petUnit(p); return `<div class="it ${k === G.petA ? 'act' : ''}"><i style="${porCss(MONS[p.mon].spr, 56)}"></i><div><b>${esc(p.name)} Lv${p.lv}</b><small>血${u.mhp} 攻${Math.round(u.atk)} 防${Math.round(u.def)}｜技能：${u.skills.map(s => SKILLS[s].n).join('、')}</small></div>${k === G.petA ? '<span class="tag">出战中</span>' : `<button class="sm" data-k="${k}">出战</button>`}<button class="sm rel" data-k="${k}">放生</button></div>`; }).join('') : '<p class="empty">还没有灵兽。\n战斗中用【御兽符】捕捉残血妖兽，或孵化灵兽蛋。</p>';
-    b.onclick = e => { const k = e.target.dataset.k; if (k === undefined) return; if (e.target.classList.contains('rel')) { G.pets.splice(+k, 1); if (G.petA >= G.pets.length) G.petA = G.pets.length - 1; } else G.petA = +k; Game.spawnPetEnt(); re(); };
+    b.onclick = e => { const k = e.target.dataset.k; if (k === undefined) return; if (e.target.classList.contains('rel')) { Game.releasePet(+k); } else G.petA = +k; Game.spawnPetEnt(); re(); };
   },
   p_comps(b) {
     const G = Game.G; const list = Object.keys(NPCS).filter(k => NPCS[k].comp);
@@ -202,9 +202,10 @@ const UI = {
     return new Promise(res => {
       const G = Game.G; const w = h('div', 'mwrap'); const p = h('div', 'panel'); w.appendChild(p); this.push(w);
       const render = () => {
-        p.innerHTML = `<div class="ph"><b>炼丹（炼丹等级 ${G.alchLv}）</b><button class="x">✕</button></div><div class="pb"><p class="hint">每次开炉消耗 1 点行动力（剩余 ${G.ap}）。在丹房长老或百草谷主处可学习提升炼丹等级。</p>${RECIPES.map((r, k) => { const ok = Object.entries(r.need).every(([i, c]) => Game.has(i, c)) && G.alchLv >= r.lv; return `<div class="it ${ok ? '' : 'dim'}"><i style="${iconCss(ITEMS[r.out].ic, 44)}"></i><div><b>${ITEMS[r.out].n} ×${r.n}</b><small>${Object.entries(r.need).map(([i, c]) => `${ITEMS[i].n}${G.inv[i] || 0}/${c}`).join(' ')}${G.alchLv < r.lv ? `　需炼丹${r.lv}级` : ''}</small></div><button class="sm mk" data-k="${k}" ${ok ? '' : 'disabled'}>开炉</button></div>`; }).join('')}</div>`;
+        p.innerHTML = `<div class="ph"><b>炼丹（炼丹等级 ${G.alchLv}）</b><button class="x">✕</button></div><div class="pb"><p class="hint">每次开炉消耗 1 点行动力（剩余 ${G.ap}）。在丹房长老或百草谷主处可学习提升炼丹等级。「连炼」一次最多 10 炉，不玩火候、按中等火候算成功率，也不会多出丹。</p>${RECIPES.map((r, k) => { const ok = Object.entries(r.need).every(([i, c]) => Game.has(i, c)) && G.alchLv >= r.lv; return `<div class="it ${ok ? '' : 'dim'}"><i style="${iconCss(ITEMS[r.out].ic, 44)}"></i><div><b>${ITEMS[r.out].n} ×${r.n}</b><small>${Object.entries(r.need).map(([i, c]) => `${ITEMS[i].n}${G.inv[i] || 0}/${c}`).join(' ')}${G.alchLv < r.lv ? `　需炼丹${r.lv}级` : ''}</small></div><button class="sm mk" data-k="${k}" ${ok ? '' : 'disabled'}>开炉</button>${(() => { const m = typeof LIAN35 !== 'undefined' ? LIAN35.maxAlch(r) : 0; return m >= 2 ? `<button class="sm mkn" data-k="${k}" data-n="${m}">连炼×${m}</button>` : ''; })()}</div>`; }).join('')}</div>`;
         p.querySelector('.x').onclick = () => { this.pop(w); res(); };
         p.querySelector('.pb').onclick = async e => {
+          const bn = e.target.closest('.mkn'); if (bn && typeof LIAN35 !== 'undefined') { const r = RECIPES[+bn.dataset.k]; const o = LIAN35.batchAlch(r, +bn.dataset.n, bonus); if (o.ok) Sfx.play('levelup'); else if (o.runs) Sfx.play('fail'); UI.toast(LIAN35.alchMsg(r, o), o.ok ? '#ffe680' : '#ff8a6a'); render(); UI.hud(); return; }
           const b = e.target.closest('.mk'); if (!b || b.disabled) return; if (!Game.useAP(1)) return; const r = RECIPES[+b.dataset.k];
           for (const [i, c] of Object.entries(r.need)) Game.take(i, c);
           const q = await this.fireGame(); const ch = Math.min(0.97, 0.55 + G.alchLv * 0.06 + G.alchBonus + Game.treeVal('alch') + Game.techVal('alch') + bonus + (G.sect === 'baicao' ? 0.2 : 0) + q * 0.2 - r.lv * 0.05);

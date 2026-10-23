@@ -432,7 +432,13 @@ async def main():
                         if tries >= 18: break
                 if not placed: rows.append(dict(npc=t['name'], result='could not position (harness)')); continue
                 await c.pg.wait_for_timeout(900); b0 = c.battles
-                st = await npcs(c); t = find(st, nid); x, y = t['pts']['body']
+                st = await npcs(c); t2 = find(st, nid)
+                if not t2:   # 站好位后 NPC 暂时找不到（离图/被遭遇战打断）：清弹窗重试一次，仍没有就记 harness 跳过，不崩
+                    await clear_popups(c, 6); await ensure_map(c); await c.pg.wait_for_timeout(600); st = await npcs(c); t2 = find(st, nid)
+                if not t2:
+                    print(f'WARN T4: npc {nid} missing after positioning, skipped (harness)', flush=True)
+                    rows.append(dict(npc=t['name'], result='npc', note='WARN missing after positioning, skipped (harness)')); continue
+                t = t2; x, y = t['pts']['body']
                 if not await free_point(c, x, y):
                     rows.append(dict(npc=t['name'], result='npc body covered by UI/joystick', tap=[round(x), round(y)])); continue
                 d0 = t['dist']; pk = await c.pg.evaluate("([x,y])=>{const h=pickAt(x*R.dpr,y*R.dpr);return h.ent?h.ent.label:h.mark?'mark':'tile'}", [x, y]); await tap(c, x, y); o = await outcome(c, t['name'], 10)
