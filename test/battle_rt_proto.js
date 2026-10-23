@@ -25,7 +25,7 @@ const fakeCtx = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}),
   ok(!RB.devEnabled(), '无 #dev / wbx2_dev 时开发者开关为关');
   const refs = fs.readdirSync(path.join(ROOT, 'www', 'js')).filter(f => f.endsWith('.js') && f !== 'battle_realtime_prototype.js')
     .filter(f => /RealtimeBattle/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', f), 'utf8')));
-  ok(refs.join(',') === 'dev_entry_v25.js,dev_openworld.js', '只有开发者入口（main 的 dev_entry_v25.js 与开放世界 dev_openworld.js）引用 RealtimeBattle：' + refs.join(','));
+  ok(refs.includes('dev_openworld.js') && refs.every(f => f === 'dev_entry_v25.js' || f === 'dev_openworld.js'), '只有开发者入口（开放世界 dev_openworld.js；main 3.4.1 的 dev_entry_v25.js 已改用 RT27、不再引用）引用 RealtimeBattle：' + refs.join(','));
   ok(/RealtimeBattle\.open\(/.test(fs.readFileSync(path.join(ROOT, 'www', 'js', 'dev_openworld.js'), 'utf8')), '开放世界「即时战」按钮走自带循环的 open()');
 
   // 2. 精灵：主角用 Game.playerSpr()，敌人默认 mon_slime，且都在真实图集里

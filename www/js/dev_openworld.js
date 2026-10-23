@@ -4,7 +4,7 @@
 // 按钮：试炼场（覆盖层 iframe / 取消 = 阶段3 债务奇遇）· 全套神装 · 即时战（覆盖层原型）· 奇遇链（钱多多）· 查账链（记账童子）
 //       · 追兵战（债压档位）· 突破预估（只读）· 追兵调参（开发者覆盖 + 一键预设）。行为与 openworld-wip aa00519 时 dev_entry_v25.js 里的同名按钮一致。
 //
-// 只在开发者模式生效（与 dev_entry_v25.js 同一判定）：URL #dev 或 ?dev=1，或 7 次快速点击 #title / .ver / #ver（间隔 ≤1.5s）。
+// 只在开发者模式生效：唯一判定 localStorage.wbx2_dev === '1'（main ux23.js 的持久开关，版本号 7 连点切换；APK 重启后仍保持），每秒轮询跟随开/关。
 //   非开发者模式：本文件只挂一个空壳 window.DevOpenWorld（active=false），不加载任何原型脚本、不建任何 DOM。
 //   开发者模式开启时才懒加载原型脚本（release 包里它们不再由 index.html 直接加载）：
 //     js/battle_realtime_prototype.js（RealtimeBattle）、js/stage3_encounter_draft.js（Stage3）。
@@ -15,7 +15,7 @@
 //     id: 'openworld', title: '开放世界',
 //     active: boolean,                 // 是否已进入开发者模式（原型脚本已开始加载）
 //     buttons: [{ key, label, run }],  // run(): Promise —— 先等原型脚本加载完，再执行按钮逻辑
-//     ready(): Promise,                // 开启开发者模式并等原型脚本加载完
+//     ready(): Promise | false,        // 开发者模式下加载原型脚本并等加载完；非开发者模式返回 false、什么都不加载
 //     mount(containerEl): () => void,  // 把按钮渲染进宿主容器（每个 <button class="dow-btn" data-key=…>），返回卸载函数；
 //                                      //   任何一次 mount 后，下面的浮动兜底入口自动隐藏（卸载全部后恢复）
 //   }
@@ -250,7 +250,10 @@
       document.head.appendChild(s);
     });
   }
+  const devOn = () => { try { return localStorage.getItem('wbx2_dev') === '1'; } catch (e) { return false; } };
+  // 非开发者模式返回 false 且不加载任何脚本（dev341 的 DevPanel.owTab() 会调 ready()，=== false 时不加页签）
   function ready() {
+    if (!devOn()) return false;
     API.active = true;
     if (!loading) loading = (async () => { for (const src of SCRIPTS) await loadScript(src); })();
     return loading;
@@ -265,7 +268,7 @@
     return el;
   }
   function mount(containerEl) {
-    if (!containerEl) return () => {};
+    if (!containerEl || !devOn()) return () => {};
     ready();
     const els = BUTTONS.map(b => makeButton(b, 'margin:4px;'));
     els.forEach(e => containerEl.appendChild(e));
@@ -302,28 +305,33 @@
     if (tabs.some(t => t && (t.key === 'openworld' || t.id === 'openworld'))) return;
     tabs.push({ key: 'openworld', id: 'openworld', name: '开放世界', render: render }); // dev341 按 key 识别；id 兼容旧写法
   }
+  function unregisterTab() {
+    const tabs = window.DevTabs; if (!Array.isArray(tabs)) return;
+    for (let i = tabs.length - 1; i >= 0; i--) { const t = tabs[i]; if (t && (t.key === 'openworld' || t.id === 'openworld')) tabs.splice(i, 1); }
+  }
   function enable() { ready(); registerTab(); if (!mounts) addFallback(); }
+  function disable() {
+    API.active = false; unregisterTab();
+    ['dow-open', 'dow-panel'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    document.querySelectorAll('.dow-btn').forEach(e => e.remove());
+  }
 
   const API = {
     id: 'openworld', title: '开放世界', active: false,
-    buttons: BUTTONS.map(b => ({ key: b.key, label: b.label, run: async () => { await ready(); return b.run(); } })),
+    buttons: BUTTONS.map(b => ({ key: b.key, label: b.label, run: async () => { if (await ready() === false) return; return b.run(); } })),
     ready, mount,
   };
-  BUTTONS.forEach((b, i) => { const r = b.run; b.run = API.buttons[i].run = async () => { await ready(); return r(); }; });
+  BUTTONS.forEach((b, i) => { const r = b.run; b.run = API.buttons[i].run = async () => { if (await ready() === false) return; return r(); }; });
   window.DevOpenWorld = API;
 
-  // 开发者模式判定：与 dev_entry_v25.js 相同
-  let clicks = 0, last = 0;
-  document.addEventListener('click', e => {
-    const t = e.target;
-    if (!t || !t.closest || !t.closest('#title, .ver, #ver')) return;
-    const now = Date.now();
-    if (now - last > 1500) clicks = 0;
-    last = now;
-    if (++clicks >= 7) { clicks = 0; enable(); }
-  });
-  if (location.hash === '#dev' || location.search.includes('dev=1')) {
-    ready(); registerTab(); // 尽早登记页签、加载原型脚本（main 的 dev_entry 按钮 500ms 后出现，也要用到 RealtimeBattle / Stage3）
-    setTimeout(enable, 500);
+  // 开发者模式判定（奥拉夫 PR #23 意见 1）：唯一依据 = main 的 localStorage.wbx2_dev === '1'（ux23.js 持久保存，APK 重启后仍在）。
+  //   不再自己数 7 连点、不再看 #dev / ?dev=1（ux23 自己会把 #dev 写进 wbx2_dev；ux23 的版本号 7 连点是开/关切换）。
+  //   ux23 的 devTap 是模块内函数、没有事件可挂 → 每秒轮询一次 localStorage（与 main 的 dev_entry_v25.js 同法，开销只是一次 getItem）。
+  //   开 → 懒加载原型脚本 + 登记页签 + 兜底入口；关 → 撤销页签登记、移除兜底入口、不再加载任何新东西（已加载的脚本要刷新页面才卸载）。
+  function sync() {
+    if (devOn()) { if (!API.active) enable(); else if (!mounts && !document.getElementById('dow-open')) addFallback(); }
+    else disable();
   }
+  sync(); // ux23.js 在本文件之前加载，wbx2_dev 已就绪：尽早加载原型、登记页签（dev_entry 按钮 500ms 后出现，也要用到 RealtimeBattle / Stage3）
+  setInterval(sync, 1000);
 })();

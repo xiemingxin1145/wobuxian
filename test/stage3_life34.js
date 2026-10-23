@@ -299,7 +299,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
   // 开发者入口：追兵战按钮先过 canHunt 再开即时战；只有 dev_entry 调 canHunt
   const zb = DEV.slice(DEV.indexOf("key: 'zb'"), DEV.indexOf("key: 'tp'"));
   ok(zb.indexOf('Stage3.canHunt(G)') > 0 && zb.indexOf('Stage3.canHunt(G)') < zb.indexOf('RealtimeBattle.open(') && /if \(!gate\.ok\) \{[^}]*return; \}/.test(zb), 'dev_entry「追兵战」：先 Stage3.canHunt，拒绝时 toast 后 return，不开即时战');
-  const users = re => fs.readdirSync(JS).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && re.test(fs.readFileSync(path.join(JS, f), 'utf8'))).join(',');
+  const users = re => fs.readdirSync(JS).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && re.test(fs.readFileSync(path.join(JS, f), 'utf8').split('\n').filter(l => !l.trim().startsWith('//')).join('\n'))).join(','); // 只看代码行（main 3.4.1 life34.js 注释里提到 Stage3.affRel）
   ok(users(/canHunt|affRel/) === 'dev_openworld.js', '只有 dev_openworld.js 调 canHunt（正式流程不接）：' + users(/canHunt|affRel/));
   ok(users(/huntBlocksFoe/) === 'life34.js' && /Stage3\.huntBlocksFoe\(G\)/.test(LIFE34) && /L\.seen\['foe_' \+ Life34\.yr\(\)\] = 1/.test(LIFE34) && !/s3b_hunt_year/.test(LIFE34),
     'main 的 life34.js 读 Stage3.huntBlocksFoe(G)、写 L.seen[\'foe_\' + Life34.yr()]；不直接读 s3b_hunt_year（本分支未改 life34.js）');
@@ -323,7 +323,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
     delete L34._inApply;
     { const g3 = fresh({ merchant: 30 }); GM.G = g3; pick(1, 0); const r3 = await S.runMerchantChain(g3);
       ok(rel(g3, 'merchant') === -20 && !r3.rel.deferred && r3.rel.synced === -15, 'C1 删掉标记（= 3.4.0 / 当前 main）：照第十三轮 syncAff -15 + 补 -5'); }
-    ok(!/_inApply/.test(LIFE34), '本分支的 life34.js 与 main 一致：还没有 _inApply（未改 life34.js）');
+    ok(/_inApply/.test(LIFE34), '本分支的 life34.js 与 main 3.4.1 一致：已有 _inApply（合 main 带进来，未改 life34.js）');
   }
   // C2 若本机有 origin/dev341（3.4.1 开发线），vm 载入它真实的 life34.js：链在真实 Game.apply 包装内部跑，总额仍不重复计；对照当前 main 会重复计
   {
@@ -355,7 +355,7 @@ const run = async (ctx, fn, G, picks) => { ctx.picks = picks.slice(); ctx.shown.
       return out;
     };
     const mainOut = await nested(LIFE34);
-    ok(mainOut['举报@30'].rel === -35 && mainOut['扛税@0'].rel === 50, 'C2 对照（当前 main，无 _inApply）：链在 Game.apply 内部跑会重复计（举报@30 = -35、扛税 = +20 + 外层 +30 = +50）——这就是 3.4.1 要加标记的原因：' + J(mainOut));
+    ok(mainOut['举报@30'].rel === -20 && mainOut['扛税@0'].rel === 20 && Object.values(mainOut).every(v => v.deferred && v.flagAfter === false), 'C2 当前 main（3.4.1，已有 _inApply）：链在 Game.apply 内部跑不重复计（举报 -20、扛税 +20），标记复位：' + J(mainOut));
     if (!DEV341 || !/_inApply/.test(DEV341)) ok(true, 'C2 跳过：本机没有 origin/dev341 或其 life34.js 没有 _inApply');
     else {
       const o = await nested(DEV341);

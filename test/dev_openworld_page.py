@@ -1,5 +1,5 @@
 # 开放世界开发者按钮真页面冒烟（原 dev_entry_v25_page.py；按钮已挪到 www/js/dev_openworld.js，经兜底入口「开放世界」面板点）（诊断用，非点按门禁；evaluate 只用于建档/读状态）：python3 -B test/dev_entry_v25_page.py，退出码=失败数
-# 覆盖：#dev 出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
+# 覆盖：wbx2_dev='1' 无 hash 重载后出现按钮；「奇遇链」钱多多两步闭环并接上讨债追兵；「查账链」记账童子贿赂露馅；「全套神装」确认后真的穿上 5 件；「试炼场」取消 → 阶段3 债务奇遇卡片真的弹出并能点完、改债务/好感/存档；
 #      「试炼场」确认 → 覆盖层 iframe，Escape 关闭；「追兵战」按债压档位刷讨债鬼进即时战，打完按胜负结算（中途关掉不结算）；
 #      「突破预估」按债压档位弹卡显示基础成功率 − 惩罚（只读，存档不变）；
 #      追兵战按档位分化敌人（债务强化 #4）：重债/通缉档讨债鬼带快攻/散射参数、顶栏与结算卡标注特性，真页面齐射 2/3 发 vs 小账 1 发；
@@ -30,7 +30,9 @@ async def main():
             dialog['seen'].append(d.message[:20])
             await (d.accept() if dialog['accept'] else d.dismiss())
         pg.on('dialog', lambda d: asyncio.ensure_future(on_dialog(d)))
-        await pg.goto(f'http://127.0.0.1:{PORT}/index.html#dev'); await pg.wait_for_timeout(3500)
+        # 开发者模式 = main 的持久开关 localStorage.wbx2_dev='1'，再无 hash 重载（模拟 APK 重启）
+        await pg.goto(f'http://127.0.0.1:{PORT}/index.html'); await pg.evaluate("localStorage.setItem('wbx2_dev','1')")
+        await pg.reload(); await pg.wait_for_timeout(3500)
         await pg.evaluate("""()=>{localStorage.removeItem('wbx2_save');Game.newLife({name:'测试',sex:'m',lg:LINGGEN[1].id,talents:[],st:{str:5,con:5,int:5,luck:5,wealth:5,charm:5}});
           const G=Game.G;G.debt=8888;G.stone=500;G.aff=G.aff||{};delete G.aff.debtor_family;G.flags=G.flags||{};delete G.flags.bounty;Game.save&&Game.save();}""")
         await pg.wait_for_timeout(600)
@@ -39,7 +41,7 @@ async def main():
         ck('「开放世界」兜底入口打开面板，面板里有八个按钮', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===8"))
         boxes = await pg.evaluate("""()=>{const q=[...document.querySelectorAll('#v25-entry,#v25-eq,#v25-rt,#dow-open')].concat([...document.querySelectorAll('#dow-panel button')]);return q.map(e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})}""")
         ck('main 三个开发者按钮 + 「开放世界」入口 + 面板八个按钮（含「突破预估」「追兵调参」）互不重叠且都在屏内（可点）', len(boxes) == 12 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(12) for j in range(i+1, 12)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
-        ck('#dev 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['dow-entry','dow-eq','dow-rt'].every(id=>!!document.getElementById(id))"))
+        ck('wbx2_dev=1 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['dow-entry','dow-eq','dow-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True
         await pg.click('#dow-eq'); await pg.wait_for_timeout(500)
@@ -64,7 +66,7 @@ async def main():
         async def card_click(title, k):
             c = pg.locator(f'.card:has(.ct:text("{title}"))').last
             await c.wait_for(timeout=3000); await c.locator(f'.opt[data-k="{k}"]').click()
-        ck('#dev 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('dow-qy')"))
+        ck('wbx2_dev=1 出现「奇遇链」按钮', await pg.evaluate("!!document.getElementById('dow-qy')"))
         b0 = await pg.evaluate("({debt:Game.G.debt,aff:(Game.G.aff.merchant||0),rel:(((Game.G.life34&&Game.G.life34.rel)||{}).merchant||0)})")
         try:
             await pg.click('#dow-qy'); await card_click('钱多多的赊账单', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
@@ -89,7 +91,7 @@ async def main():
             ck('奇遇链真页面流程（异常：' + str(e)[:80] + '）', False)
         # 2c. 查账链（记账童子）：贿赂 → 一般 → 查账露馅
         try:
-            ck('#dev 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('dow-qy2')"))
+            ck('wbx2_dev=1 出现「查账链」按钮', await pg.evaluate("!!document.getElementById('dow-qy2')"))
             await pg.evaluate("()=>{const G=Game.G;G.stone=1000;G.aff.xianguan=0;}")
             c0 = await pg.evaluate("({debt:Game.G.debt,rel:(((Game.G.life34&&Game.G.life34.rel)||{}).xianguan||0),sect:JSON.stringify(Game.G.sectRel||null)})")
             await pg.click('#dow-qy2'); await card_click('记账童子的错账', 1); await card_click('奇遇结果', 0); await pg.wait_for_timeout(300)
