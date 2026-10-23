@@ -29,6 +29,7 @@ const SQ36 = {
   RING_SJ: 5, WB_SJ: 2, FUXI_BRK: 0.05, BRK_CAP: 0.95, KILL_HP: 0.15, BOSS_MUL: 1.3, KL_HEAL: 0.3, PILL_MUL: 1.25, JIE_MUL: 0.65, MIN_REALM: 2,
   LINES: {
     clue: '残剑嗡鸣，似在说：带我走，我也欠了天道钱。',
+    clue2: '地上一点金光忽明忽暗，像在冲你眨眼：这里埋着一笔没人认领的旧账。',
     kunlun: '镜光一闪——刚才那下不算。',
     fuxi: '琴声一起，雷劫都放慢了节拍。',
   },
@@ -129,7 +130,7 @@ const SQ36 = {
     const G = Game.G; const s = this.st(G); const id = this.markWant(G); if (!id) { this.mark(); return; }
     const L = this.LIST[id];
     if (!s.quest) {
-      const k = await UI.card('神器线索', `${this.LINES.clue}\n\n地上的金光指向一件世界唯一的神器——【${L.n}】。\n线索：${this.mapNames(id)}（共 ${this.steps(id)} 环）`, 'i:' + L.ic, ['追寻', '不理会']);
+      const k = await UI.card('神器线索', `${id === 'sq_xuanyuan' ? this.LINES.clue : this.LINES.clue2}\n\n地上的金光指向一件世界唯一的神器——【${L.n}】。\n线索：${this.mapNames(id)}（共 ${this.steps(id)} 环）`, 'i:' + L.ic, ['追寻', '不理会']);
       if (k !== 0) return; this.startQuest(id, G);
     }
     const q = s.quest; const txt = this.stepText(q.id, q.step); const r = this.advance(G);
