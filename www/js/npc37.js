@@ -118,3 +118,14 @@ if (typeof npcAI === 'function') { const _ai = npcAI; npcAI = function (e, dt) {
 if (typeof Game !== 'undefined' && Game.yearEnd) { const _ye = Game.yearEnd; Game.yearEnd = async function () { const r = await _ye.apply(this, arguments); try { NPC37.yearNews(); } catch (x) { } return r; }; }
 const Story37 = window.Story37 || { on: (e, f) => NPC37.bus.on(e, f), fire: (e, d) => NPC37.bus.fire(e, d) };
 window.NPC37 = NPC37; window.Story37 = Story37; window.TEXT37 = TEXT37;
+// ---------- 序章/新手指引/主线战斗守卫（包裹式，不改 game.js / talk.js / data.js / ui.js） ----------
+// 设计规则：序章（打跑讨债史莱姆）结束前、新手指引（Game.meta.tut23 未置位）期间、任何战斗（B.on，含主线战）中，不出路遇卡、不弹江湖 toast（新闻仍只进新闻流）。
+// 序章结束 = G.flags.main0 已置位 或 G.main 已越过「序章·上门讨债」（MAIN[0]，id 'debt'）。返回 null（放行）或原因字符串。
+NPC37.storyBlock = function () { const G = this.G(); if (!G) return 'nogame';
+  let debt = 0; try { if (typeof MI === 'function') { const k = MI('debt'); if (k >= 0) debt = k; } } catch (e) { }
+  const f = G.flags || {}; if (!f.main0 && !((G.main | 0) > debt)) return 'prologue';
+  if (typeof Game !== 'undefined' && Game.meta && !Game.meta.tut23) return 'tutorial';
+  if (typeof B !== 'undefined' && B && B.on) return 'battle';
+  return null; };
+if (!NPC37.idle._g37) { const _idle = NPC37.idle; NPC37.idle = function () { if (this.storyBlock()) return false; return _idle.apply(this, arguments); }; NPC37.idle._g37 = 1; }
+if (!NPC37.feed._g37) { const _feed = NPC37.feed; NPC37.feed = function (s, toast) { let t = toast; try { if (t && this.storyBlock()) t = false; } catch (e) { } return _feed.call(this, s, t); }; NPC37.feed._g37 = 1; }
