@@ -76,7 +76,7 @@
 | 3.7.5 | ✅ 已发布（2026-10-24，Latest = v3.7.5 `a16b119`） | 奇遇链 chain37 · 规格 `docs/research_v22.md` §12（+ `research_story37.md` §4、`research_story37_text2.md` §三；数据 `fam37.js` `TEXT37B.chains`） |
 | 3.8.0 | 🔧 开发中（PR #50 prof38） | 人物详情面板 · `docs/research_v38_profile.md` |
 | 3.8.1 | 🟡 已审过待发（PR #45，#46 已合，已解除阻塞） | 称号 tit39 · `docs/research_v39_titles.md` |
-| 3.8.2 | ⬜ 未开始 | 道具 · `docs/research_v40_items.md` |
+| 3.8.2 | 🔧 开发中（PR #55 items40） | 道具 · `docs/research_v40_items.md` + `docs/research_v22.md` §13 |
 | 3.8.3 | ⬜ 未开始 | 家族深化 · `docs/research_v41_clan.md` |
 | 3.9.0 | ⏸ 后放（需 dungeon26 `Dng.roomTrap`） | 阵法 zf39 · `docs/research_v22.md` §11 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
