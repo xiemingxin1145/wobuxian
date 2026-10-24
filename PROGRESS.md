@@ -701,3 +701,7 @@
 - 测试（纯 node，未跑 Chrome）：zf39_unit 118/118、chain37_unit 78/78、npc37_unit 80/80、npc37_events_unit 54/54、good_rel_cap 31/31、stage3_chain 244 PASS、stage3_life34 114 PASS、stage3_token_offset 14/14、battle_rt_proto 149 PASS、lowpoly_attach 190 PASS、lowpoly_box 55 PASS、validate22 0 错。
 - 待跑页面测试（需空闲 Chrome）：同第三十七轮（dev_openworld_page、dev_entry_v25_page、route37_unit.py、npc37_page / npc37_events_page）。
 - 下一步：第 2 轮——洞府「阵法」面板（战阵/洞府阵/阵图）+ 包 battleLoop（B.round===0 apply、roundStart、winXp）/ rt27 calcDmg（rtMult）+ 坊市施工图/阵图 + 页面测试；之后 dungeon26 Dng.roomTrap 破阵、烂尾阵眼、洞府阵挂点、开发者 Tab「阵法39」。
+
+## 2026-10-24 openworld-wip：合入 origin/main（5 commits）+ 页面测试
+- 合并冲突：www/js/dev_openworld.js、www/js/stage3_encounter_draft.js（main 侧为 wip 子集，保留 wip 的 fightStats 与唯一 TOKEN_FEE_COST）。node 单测全过（含 stage3_chain）。
+- 页面测试（逐个跑，无 flake）：dev_openworld_page 68 PASS/0 FAIL（dev_entry_v25_page 已改名为此）；route37_unit fails=0 js_errors=0；npc37_page 12/12；npc37_events_page 11/11；jsscan33 21 maps 0 errors。

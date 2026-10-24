@@ -616,7 +616,20 @@ const Stage3 = {
     return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note, token: false, tokens: this.tokenCount(G), tokenBlocked: null };
   },
 
-  // ======== 第二十二轮：即时战原型一小步——追兵战结算卡显示本场用时 / 受击次数 / 闪避次数 =  // ======== 讨债令真抵扣误工费（2026-10-24，主人已批准） ========
+  // ======== 第二十二轮：即时战原型一小步——追兵战结算卡显示本场用时 / 受击次数 / 闪避次数 ========
+  // 纯函数：只读即时战原型结束时带回的 out.time / out.hits / out.dodged，返回 { time, hits, dodged, line }；
+  //   time 取 1 位小数（非数字 / 负数 / 无穷 → null，line 里写「用时 —」），hits / dodged 取非负整数（坏值 → null，显示「—」）。
+  //   不写 G、不改 out；只给开发者「追兵战」结算卡加一行，不参与 settleBounty 结算。
+  fightStats(out) {
+    const o = out && typeof out === 'object' ? out : {};
+    const t = typeof o.time === 'number' && isFinite(o.time) && o.time >= 0 ? Math.round(o.time * 10) / 10 : null;
+    const cnt = v => typeof v === 'number' && isFinite(v) && v >= 0 ? Math.floor(v) : null;
+    const hits = cnt(o.hits), dodged = cnt(o.dodged);
+    const line = `本场：用时 ${t == null ? '—' : t.toFixed(1) + 's'}，受击 ${hits == null ? '—' : hits} 次，闪避 ${dodged == null ? '—' : dodged} 次${hits === 0 && t != null ? '（无伤）' : ''}`;
+    return { time: t, hits, dodged, line };
+  },
+
+  // ======== 讨债令真抵扣误工费（2026-10-24，主人已批准） ========
   // offsetFee(G, s)：追兵战败场结算（settleBounty 返回 result:'lose'）后调用；持有 ≥ TOKEN_FEE_COST(1) 枚讨债令时
   //   扣 1 枚、欠款退回 debtBefore（这场不记误工费），flags.s3b_token_used +1（懒初始化，旧存档无此键按 0）。
   //   没令 / 不是败场 / 已抵过 / 非法输入 → 不改存档，返回 { ok:false, reason }。settleBounty 本身行为不变。
