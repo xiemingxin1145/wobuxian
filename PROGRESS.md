@@ -630,3 +630,10 @@
 - 修复（只改 test/dev_openworld_page.py，PR #51 分支 b41ca17，wip cherry-pick）：败场先等确认卡并断言文案/选项，点「照付误工费」后原有误工费 889 断言不变；新增一场败场点「花 1 枚抵掉」：欠款不变、令 2→1、used=1、存档、结算卡含「抵掉了误工费」；断言不叠卡、流程结束无残留卡。
 - 审确认卡：走 UI.card（与结算卡同一 _q 串行队列、同 #modals 层），两个按钮都 pop + resolve，不会叠卡，选完必弹结算卡；与其他 card 一样没有 ✕ 关闭（一致）。dev_openworld.js 无需改。
 - 测试：node 全部通过（stage3_token_offset 14、stage3_chain、npc37_events_unit 54 等）；npc37_unit 偶发 79/80（main #53 既有随机用例）。py_compile 通过；Chrome 页面测试未跑（Chrome 被占用），待补跑 dev_openworld_page。
+
+## 开放世界线第三十七轮（2026-10-24 16:05 起，Grok Bot）
+- 已普通 merge origin/main 7e74338（含 3.7.5 chain37 奇遇链 #52 9c96645、#54 49d3e6c npc37_unit flake 修正、ac1baaa research_v22 §13、a16b119 VERSION/CHANGELOG 3.7.5、7e74338 v3.7.5 交接 note），合并提交 a506881，**无冲突**：chain37.js / route37.js / npc37.js / test/chain37_unit.js / test/npc37_unit.js 与 main 逐字相同；PROGRESS.md 自动合并，main 的 v3.7.5 交接 note 在最上面，wip 轮次记录完整保留（582+50=632 行，无截断）；index.html 无重复脚本行（chain37.js 只加载一次，dlg37 → route37 → chain37）。
+- 任务「c37_3『被夺宝抢先』入口接 G.npc37.ev」：核对后**main 上已经接好，未开 PR**。chain37.js 已包 NPC37.emit（kind='duobao' 且 a/b 含 jh_xunbao 且新闻真的发出 → 写 G.chain37.db={yr,m}），Chain37.check 对 c37_3（非追凶中）调 robbed()：db.m ≥ 开链时间 t0 即转追凶 c3_x1（§12.3 不直接失败）；G.npc37 / ev 缺省或坏数据安全返回 false。test/chain37_unit.js 已有 7 条用例覆盖（不涉钱满仓不触发、非夺宝不触发、涉钱满仓转 c3_x1、追凶中不重复、开链前旧记录不算、坏 db 忽略、老档无 G.npc37 不报错）。G.npc37.ev 只有 {total,meet,feud,help,debt} 玩家遭遇计数，没有夺宝维度，规格 §12.7.3「读 ev 计数」实际只能靠 emit 包装实现，main 现状即此做法。v3.7.5 交接 note §4 这一条已过时，建议发版人把它从遗留里划掉（只剩 route37 改调 Chain37.doneCount——也已由 chain37.js 末尾覆盖 Route37.chainsDone 实现，chain37_unit 有用例）。
+- 测试（纯 node，Chrome 被别人占用未跑页面测试）：chain37_unit 78/78（另连跑 10 次 0 失败）、npc37_unit 80/80（连跑 30 次 0 失败，#54 后未再见 flake）、npc37_events_unit 54/54、good_rel_cap 31/31、stage3_chain 244 PASS、stage3_life34 114 PASS、stage3_token_offset 14/14、battle_rt_proto 149 PASS、lowpoly_attach 190 PASS、lowpoly_box 55 PASS、validate22 0 错。
+- 待跑页面测试（需空闲 Chrome）：dev_openworld_page、dev_entry_v25_page、route37_unit.py、npc37_page / npc37_events_page（合入 chain37 后回归）。
+- 下一步：等 #50/#51/#45 合 main 后随 main 合入；继续即时战/低模小步，或按群里分工接 3.8.x。
