@@ -637,3 +637,14 @@
 - 测试（纯 node，Chrome 被别人占用未跑页面测试）：chain37_unit 78/78（另连跑 10 次 0 失败）、npc37_unit 80/80（连跑 30 次 0 失败，#54 后未再见 flake）、npc37_events_unit 54/54、good_rel_cap 31/31、stage3_chain 244 PASS、stage3_life34 114 PASS、stage3_token_offset 14/14、battle_rt_proto 149 PASS、lowpoly_attach 190 PASS、lowpoly_box 55 PASS、validate22 0 错。
 - 待跑页面测试（需空闲 Chrome）：dev_openworld_page、dev_entry_v25_page、route37_unit.py、npc37_page / npc37_events_page（合入 chain37 后回归）。
 - 下一步：等 #50/#51/#45 合 main 后随 main 合入；继续即时战/低模小步，或按群里分工接 3.8.x。
+
+## 开放世界线第三十八轮（2026-10-24 18:10 起，Grok Bot）
+- 已普通 merge origin/main 41a4bd6（research_v22 §14 3.8.3 clan41 规格，纯文档），合并提交 5b651f3，无冲突。
+- 3.9.0 阵法 zf39 第 1 轮（数据 + 纯逻辑 + node 单测，**未接 UI**，规格 research_v22 §11）：PR #56（分支 zf39，0e09ffe，基于 main 41a4bd6）等奥拉夫审，未合并；wip cherry-pick 为 7140bd7。
+  - 新增 www/js/zf39.js：window.ZF39，TEXT390 逐字取自 §11.10；9 战阵/4 洞府阵/等级表；ensure 惰性兜底（只读函数不建 G.zf39，老档不变）、unlock、addXp/winXp、canCraft/craft、setWar/setCave/caveUseful、apply（同字段取最高、BOSS 抗性、相生 ×1.25 按方向、欠条阵无五行）、roundStart/reflectAt、rtMult、genPuzzle/start/checkStep/allowedErrors/hints/eyesFor、eyeCooldown/markEye。**未加入 index.html**（加载即惰性，但第 2 轮与 UI 一起加）。
+  - 新增 test/zf39_unit.js 118 项（A11.2/A11.3/A11.4、3/4/5 眼谜题、容错 2/lv9=3、等级表、炼制成本、槽位、老档、冷却）。
+  - test/stage3_chain.js 一行：breakthroughPreview 调用者检查改为匹配 `breakBase(` 调用（TEXT390 的 nums.xp.breakBase 是同名数据键，会误报）。
+  - 取舍（PR 里请审）：连阵 ×1.25 只乘百分比类；欠条阵 reflect=1 原样（battle.js 回合末 buf 递减）；洞府阵炼制不需阵图；zws39/ztc39 只放 ZF39.ITEMS390，未并入 ITEMS。
+- 测试（纯 node，未跑 Chrome）：zf39_unit 118/118、chain37_unit 78/78、npc37_unit 80/80、npc37_events_unit 54/54、good_rel_cap 31/31、stage3_chain 244 PASS、stage3_life34 114 PASS、stage3_token_offset 14/14、battle_rt_proto 149 PASS、lowpoly_attach 190 PASS、lowpoly_box 55 PASS、validate22 0 错。
+- 待跑页面测试（需空闲 Chrome）：同第三十七轮（dev_openworld_page、dev_entry_v25_page、route37_unit.py、npc37_page / npc37_events_page）。
+- 下一步：第 2 轮——洞府「阵法」面板（战阵/洞府阵/阵图）+ 包 battleLoop（B.round===0 apply、roundStart、winXp）/ rt27 calcDmg（rtMult）+ 坊市施工图/阵图 + 页面测试；之后 dungeon26 Dng.roomTrap 破阵、烂尾阵眼、洞府阵挂点、开发者 Tab「阵法39」。
