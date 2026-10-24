@@ -2,6 +2,51 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 交接 notes · v3.7.4（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.7.4「自由路线」**，`VERSION`=3.7.4，tag `v3.7.4` → commit `5b7a20b`（`test(npc37_page): #53 序章守卫后，页面测试放行 storyBlock`；其下 `9ec0e74` 3.7.4 VERSION + CHANGELOG、`3fb3a9f` #53、`c463c22` #43 squash）。
+- **是 Latest**（`releases/latest` = v3.7.4，2026-10-24 13:49 UTC+8 发布，非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.7.4
+- Release 资产：`wobuxian.apk` 371,947,979 B（≈372MB，HD）、`wobuxian-lite.apk` 83,791,531 B（≈84MB）；两包签名证书 SHA-256 `436bf9221c08…ce7ef29dc`（= 436bf922…29dc）。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **route37 自由路线**（PR #43 squash `c463c22`，新文件 `www/js/route37.js`，index 在 dlg37 后）：「更多 → 道途」5 条路线（散修/魔修/宗门掌门/凡人商贾/家族），换路线冷却 10 年；路线被动、20 条路线年事件 + 10 张前置卡 + 延迟后果；魔修仇杀、商贾行商/放贷；4 个新结局（逍遥/魔君/富甲/世家）；道途面板可退出宗门；测试 `test/route37_unit.py`。
+- 一并带上 **PR #53**（`3fb3a9f`，奥拉夫）：序章/新手指引/战斗期间不出路遇卡与江湖 toast（`npc37.js` / `npc37_events.js` 包裹式守卫），修 #43 上 human23 的偶发失败。
+- 测试修正：`test/npc37_page.py` 因 #53 守卫在新开局（序章中）不再弹路遇而失败，改为该页放行 `NPC37.storyBlock`（守卫本身由 `npc37_unit` 覆盖）。
+- 版本提交：`VERSION`、`CHANGELOG.md`（v3.7.4 自由路线）。
+- 刻意没做（与规格差异，见 PR #43 / 下方 3.7.4 开发记录）：宗门声望存 `G.route37.rep` 不写 `G.sectRel`；商贾买低卖高改为「行商」；掌门「宗门战冷却 −1 年」未做；子嗣无境界改为 `kid.r37zj` 筑基几率；散修任务酬劳 ×1.2 / 奇遇权重 ×1.5 未做。
+
+### 3 测试结果
+- 门禁（串行，2026-10-24 12:59–13:42 UTC+8，基于 `9ec0e74` = main 含 #53 + 版本号）：validate22 0 错、jsscan33 0 错、panels21 ✅、controls ✅、**human23 13/13**、**human_olaf 23/23 全过（N1/T1/N2 本次均通过）**、sys33/pet35/lian35/lg36/sq36/fam37/life34/jianghu34 unit ✅、npc37_unit ✅、stage3_life34 ✅、dlg37_unit PASS、npc37_events_unit ✅、npc37_events_page ✅、route37_unit ✅。
+- `npc37_page.py`：门禁中失败（#53 守卫导致的**测试本身**问题，非游戏 bug），修测试后单跑两次 12/12 PASS。
+- 合入前 PR #43 合并 main 后：route37_unit 全过、validate22 0 错（奥拉夫另测 route37_unit 全过、human23 复跑 13/13）。
+- CI（tag v3.7.4，run 40067584792）：build ✅、emulator-smoke API30 ✅、API34 ✅。
+
+### 4 遗留问题
+- PR #50 `prof38` 3.8.0 人物详情面板（profile38）：开发/评审中。
+- PR #52 `chain37` 3.7.5 奇遇链 chain37（research_v22 §12）：进行中。
+- 奥拉夫的 npc37 序章守卫 PR：已作为 #53 合入本版；如有后续守卫 PR → 待确认。
+- PR #45 `tit39` 3.8.1 称号：#46 已合（`45eaad4`），**已解除阻塞**，待按顺序发。
+- PR #51 `debt-token-offset` 讨债令抵扣误工费：待评审，负责人待确认。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未用新脚本跑全量验证。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+
+### 5 下一版任务（按顺序）
+1. **3.7.5 奇遇链**（PR #52，规格 `docs/research_v22.md` §12）
+2. **3.8.0 人物详情面板**（PR #50，`docs/research_v38_profile.md`）
+3. **3.8.1 称号**（PR #45，`docs/research_v39_titles.md`）
+4. **3.8.2 道具**（`docs/research_v40_items.md`）
+5. **3.8.3 家族深化**（`docs/research_v41_clan.md`）
+- **3.9.0 阵法**（`docs/research_v22.md` §11）往后放：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，需先确认/补齐该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；新字段放各自命名空间（`G.npc37`、`G.fam37`、`G.route37` 等）惰性兜底，缺省时行为等同旧版。
+- 路遇类新功能注意 #53 守卫：序章（`G.flags.main0` 未置位）、新手指引（`Game.meta.tut23` 未置位）、战斗中不出卡；页面测试需先跳过序章/指引或放行 `NPC37.storyBlock`。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源；更新用 `tools/make_hd_bundle.sh upload`。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+- 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`，忙就等；各自用独立 worktree。
+
 ## 交接 notes · v3.7.3（2026-10-24，Grok Bot）
 
 ### 1 当前版本 / 最新提交
@@ -44,6 +89,17 @@
 - HD 包：CI 按 `hd-assets.json`（现为 `wbx-hd-assets-3.2.0-202610161413.zip`，367,260,215 B）从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源。更新 HD 包：`tools/make_hd_bundle.sh upload`（或 `tools/hd_pack.sh`：重渲 HD → 打 zip → 上传 assets-hd → 改 hd-assets.json 并推送）。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
+
+
+## 3.7.4 自由路线 route37（Grok Bot 自动开发，2026-10-24 09:35 起，分支 `route374`，worktree `/workspace/route374`，未 bump VERSION）
+> 规格：`docs/research_v22.md` §10（研究员 07f76ad）。新文件 `www/js/route37.js`（index 在 fam37 后），不改 game.js/talk.js/data.js/ui.js。存档 `G.route37`，老档缺省 null。
+- [x] 「更多 → 道途」面板：5 条路线（散修/魔修/宗门掌门/凡人商贾/家族），🔒 显示原因；换路线冷却 10 年、魔修切出需善恶 ≥0、积分清零记入 hist（最多 8 条）；面板里可「退出宗门」（游戏原本没有退宗入口，散修需要）。
+- [x] 被动：魔修修为 ×1.15（「回头是岸」当年失效）、每年善恶 −2、正道声望 −3；商贾修为 ×0 + 不能冲击瓶颈（退出后也不能）、每年寿元 +1（上限 +20）；掌门记名弟子名额 +1（封顶 6）；家族子嗣灵根两次取优。
+- [x] 年积分 + 20 条路线专属年事件（每年最多 1 条，⚑ 标题，自动/挂机中不弹）+ 10 张前置提示卡（各 1 次）+ 延迟后果（灵田 3 年、囤货、赊账 5 年、族学）。
+- [x] 4 个新结局 `r37_xiaoyao/r37_mojun/r37_fujia/r37_shijia`：条件满足时在对应 NPC 对话出现「⚑ 大结局·xxx」，二次确认后 `Game.die`；不需要主线 done；NPC 陨落落到说书先生；结局分 +15。
+- [x] 魔修「⚑ ⚔ 仇杀」（萧十三/燕归/丹娘，每人每年 1 次，胜：击杀 +1、积分 +8、天魔殿声望 +8）；商贾「行商」（每年押货、年终 ×1.1–1.7 或 10% 遭劫 ×0.7，+200）+ 放贷（3 位借款人、最多 3 笔、3 年还本、陨落全额违约）。
+- [x] 开发者面板 Tab「道途37」；`test/route37_unit.py` 37 项全过（A10.1–A10.6、20 条事件、放贷/行商、结局 +15、面板、存档读档）。412×915 真实触摸截图 `/workspace/shots374/`（面板、弃仙确认卡、商贾面板）。
+- 与规格的差异：①玩家对宗门的声望存 `G.route37.rep`，不写 `G.sectRel`（那里是宗门对宗门的 a|b 键，life34 会把单键误读成一对宗门）；②market25 没有统一价格入口，商贾的买低卖高改为「行商」；③war29 没有冷却，掌门「宗门战冷却 −1 年」未做（「继续烧钱」改为贡献 +10）；④子嗣没有境界：家族路线下 16 岁以上子嗣每年按灵根有几率筑基（`kid.r37zj`），族谱三代 = 娘、你、≥1 个子嗣；⑤散修「任务酬劳 ×1.2 / 奇遇权重 ×1.5」未做。
 
 ## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
 > 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
