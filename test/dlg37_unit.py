@@ -51,11 +51,20 @@ JS = r"""async()=>{const o={};
   o.rollFn=/kind === 'brk'/.test(Game.roll.toString());
   // 新闻走 JH34
   const J=JH34.ensure(G); const n0=J.feed.length; DLG37.news('test'); o.news=J.feed.length===n0+1||J.feed.length===40;
+  // 奥拉夫 nit1：c37_ry_duel 按战斗结果结算（赢 aff+5，输 −30 灵石×境界系数）
+  const _f=Game.fight; G.realm=1; G.aff.ruyan=40;
+  G.mem37=null; DLG37.st(); Game.fight=async()=>({res:'win'}); let a1=G.aff.ruyan, s1=G.stone; await DLG37.ask(DLG37.C('c37_ry_duel'),0); o.duelWin=[G.aff.ruyan-a1, G.stone-s1].join();
+  G.mem37=null; DLG37.st(); Game.fight=async()=>({res:'lose'}); a1=G.aff.ruyan; s1=G.stone; await DLG37.ask(DLG37.C('c37_ry_duel'),0); o.duelLose=[G.aff.ruyan-a1, G.stone-s1].join();
+  Game.fight=_f;
+  // nit2：关掉后果卡（返回 null）= 选第一个（未锁）选项
+  G.mem37=null; const M4=DLG37.st(); const D4=DLG37.T.dues.find(d=>d.o&&!DLG37.lock(d.o[0][1])&&!(d.o[0][1]||{}).fight); const _c=UI.card; UI.card=async()=>null; await DLG37.card(D4); UI.card=_c; o.dismissFirst=M4.ev[D4.id+'_o'];
+  // nit3：阿离「分你一半」需要灵鱼并扣 1 条
+  const af=DLG37.C('c37_ali_fish'); G.inv.fish=0; o.fishLock=!!DLG37.lock(af.o[1][1]); G.inv.fish=1; G.mem37=null; DLG37.st(); await DLG37.ask(af,1); o.fishAfter=G.inv.fish||0;
   return o;}"""
 EXP = {'cnt': '24,72,22', 'npcs': 12, 'allNpcReal': True, 'condAll': True, 'dueAll': True, 'itemsOk': True, 'oldSave': True, 'tab': True,
        'menu': True, 'relHalf': None, 'karma': None, 'dueAt': '[13]', 'sameYear': True, 'nextYear': 'c37_ali_fish', 'notYet': True, 'pop13': 'd37_ali_lie',
        'lieAff': -20, 'once': True, 'opt0NoDue': True, 'due3': 3, 'y21': 2, 'y22': 1, 'aoStone': 500, 'aoWork': 2500, 'lockSu': True, 'lockRy': True,
-       'lockRetry': True, 'lockStone': True, 'dxClamp': 50, 'boxWait': True, 'boxPop': 'd37_mom_box', 'saveDue': True, 'ld1': 1, 'ld2': 0, 'cuiSkip': True, 'news': True}
+       'lockRetry': True, 'lockStone': True, 'dxClamp': 50, 'boxWait': True, 'boxPop': 'd37_mom_box', 'saveDue': True, 'ld1': 1, 'ld2': 0, 'cuiSkip': True, 'news': True, 'duelWin': '5,0', 'duelLose': '0,-30', 'dismissFirst': 0, 'fishLock': True, 'fishAfter': 0}
 async def main():
     errs = []
     async with async_playwright() as p:
