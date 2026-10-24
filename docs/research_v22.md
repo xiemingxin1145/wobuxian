@@ -1526,3 +1526,261 @@ gift(id):
 - [ ] 同一 NPC 同一游戏月第二次送礼被拒；讨厌礼物好感 −12 且不低于 0。
 - [ ] 6 个 3.8.3 道具在任何商店/掉落里都拿不到；DevPanel 发放后使用不消耗、提示「尚未开放」。
 - [ ] PF38 不存在（模拟 3.8.0 未合并）时：窥心类不在商店，`i40_mixin` 不掉落，无 JS 报错。
+
+## 14. 【2026-10-24 16:3x 研究员】3.8.3 家族深化 `clan41.js` 实装规格补全：代码核对 + 经济/修炼数值修订 + 族规落地 + 婚配门槛 + 缺失文案（可直接抄）
+
+> 对象：`docs/research_v41_clan.md`（下称 v41）。本节逐条对照 main `7e74338` 的 `fam37.js / legacy26.js / game.js / data.js / route37.js / mingge33.js` 和 3.8.0/3.8.2 规格，把 v41 里“写了但代码接不上”的地方改成能直接实现的版本。**v41 正文不改，冲突时以本节为准。** 仍是新模块 `www/js/clan41.js`，只包裹，不改 fam37/legacy26/game 本体；`G.clan41` 惰性兜底，不升 `G.v`。
+
+### 14.1 代码核对（v41 写法 → 代码事实 → 本节处理）
+
+| # | v41 写法 | 代码事实（main） | 处理 |
+|---|---|---|---|
+| K1 | 命格 `n_jucai +8% / n_pocai −5% / n_tianxi` | 玩家命格 `mingge33` 里**没有** n_* id（只有 caimi/fuyuan/changshou…）；n_* 是 **3.8.0 NPC 命格**（`research_v38_profile.md` TEXT38A.mg，存 `G.pf38.hid[npcId].mg`、子嗣 `kid.mg`），PR #50 未合 | 命格读「家族成员」命格：`[PF38 道侣命格, ...kids[].mg]`，`typeof PF38==='undefined'` 时全部当 0。玩家本人命格 `caimi` 额外给族产灵石 +5%（14.4） |
+| K2 | `G.heir = {n, lg, from:'clan41'}` | legacy26 的 `G.heir` 是 `{name, lg, talent, tech, born, age}`，面板读 `.name/.talent/.tech`，年末算 `age = year − born`；且 legacy26 自己会在「有道侣、40 岁、无后」时 40%/年生 heir | **不写 G.heir 的新结构**。立继承人存 `C.heirIdx`（kids 下标）；仅当 `G.heir` 为空时补一个 legacy26 兼容对象：`{name:kid.n, lg:kid.lg, talent:pick(TALENTS).id, tech:null, born:kid.born, age:kid.age, c41:1}` |
+| K3 | Lv10「渡劫圆满**或 G.heir 存在**，声望≥5000」 | `G.heir` 很容易有（K2），等于 Lv10 只卡声望；「声望≥5000」又和表里 50000 重复 | Lv10 = 声望 50000 + 渡劫 + （渡劫圆满 `G.stage===3` **或** `C.heirIdx` 已立且该子嗣 ≥ 金丹） |
+| K4 | `sectRel` 当作「玩家与宗门关系」（云氏要青云 sectRel≥40；仁厚/魔道传家「正道宗门 sectRel±」；事件「报官/送去宗门 sectRel」） | `G.sectRel['a|b']` 是**宗门对宗门**（jianghu34/life34 在用）；玩家对宗门声望在 `G.route37.rep[宗]`，只读接口 `Route37.rep(k)`（route37.js:129），`applyEff` 的数字型 sectRel 会改「本宗对其他两宗」的键 | 家族里所有“玩家↔宗门”一律改写 `G.route37.rep`（clan41 自带 `repAdd`，夹 −100..100，`G.route37` 缺失时先建 `{rep:{}}`）。事件里的 `sectRel:n` 统一改名 `srep:n`（加到 `G.sect`，无宗门则不加、选项文案照常） |
+| K5 | 「正道宗门」「魔殿」 | `SECTS` 只有 `qingyun`（青云宗）、`baicao`（百草谷）、`tianmo`（天魔殿） | 正道 = qingyun + baicao；魔殿 = tianmo |
+| K6 | 族产年产「乘 yieldMul」，回本 15–25 年 | 若族产灵石走 `FAM37.applyEff`，`stone` 会 ×(1+大境界)，渡劫期良田 150→1050，回本表作废 | 族产年产**不走 applyEff**，clan41 直接 `G.stone +=`，不乘境界（14.4） |
+| K7 | 升级「费 cost×(1+lv)，产 ×(1+0.5×lv)」 | 按字面：良田 2 级花 6000 只多 75/年 → 边际回本 80 年，3 级 120 年，没人点 | 改成 14.4 的「费 cost×L，产 base×L」 |
+| K8 | 族规「当铺 −2%」「还债为本 −5%」写进 `F.rate` | `famYear`：`debt += ceil(debt×F.rate)`，负数=每年直接减债；基础利息只有 3%/年（game.js:321/343）。−2%−5% 叠起来净利率 −4%，天道讨债主线被一个族规破掉 | 家族减息单独记 `C.rate`，**合计最多 −2%**（基础 3% 下净利率 ≥1%），在 clan41 年结算里 `debt −= floor(debt×min(−C.rate,0.02))`。不碰 `F.rate`（fam37 事件仍可加息） |
+| K9 | `KID_MAX 4→6` | fam37 内部全用 `this.KID_MAX`（birth/famYear/html），只有 DevPanel 文案写死「已满 4」 | `Object.defineProperty(FAM37,'KID_MAX',{configurable:true,get(){return C41.has('kaizhi')?6:4}})`。注意 3.8.1 称号 `t39_sitong` 是「子嗣满 4 人」，cond 写的是 `>=4`，不受影响 |
+| K10 | 世家联姻配偶「非命名 NPC」，占 sp | fam37 `famYear` 第一行：`G.partner !== F.sp` 就把 sp 清空；`Game.fill` 的 `{partner}`、`unpartner`、`UI.card(por:'partner')` 直接读 `NPCS[G.partner].n/.por`，非 NPCS id 会抛 TypeError | 模块加载时注册**一个**固定 NPCS 条目 `c41_sp`（不带 map/roam → game.js:441 不会把它放上地图），`n/por` 用 getter 读 `G.clan41.spInfo`；联姻时 `G.partner = F.sp = 'c41_sp'`，`FAM37.SP_LG.c41_sp` 用 getter 读 `spInfo.lg`。见 14.2 |
+| K11 | `luck` → `flag:i40_luck` | 3.8.2 落地方式是 `G.i40.luck = 1`（§13.3，下次 `Game.roll(p,'qiyu')` 必中），不是 flag | `luck:1` → `G.i40 = G.i40 || {}; G.i40.luck = 1`（与转运珠同效，不叠加） |
+| K12 | `compAtk`（武馆/尚武/魔道传家「族人攻击」） | 族人不参战，无伙伴加成入口 | 改为**家主本人**攻击（经 `Sys.bonus('atk')` 包装，systems21.js:160 已乘进 stats）：武馆 +1%/级、尚武 +3%、魔道传家 +4%；文案同步改「家主」 |
+| K13 | 事件 `wine` 写「老酒」 | data.js `wine` = 桃花酿（送礼品）；3.8.2 另有 `i40_laojiu` | 酒坊年产改 `i40_laojiu`（3.8.2 已登记）；若 3.8.2 未合则回退 `wine`，文案「酒坊出酒×1」不写酒名 |
+| K14 | 6 个家族道具 | 3.8.2 只登记、背包使用 toast「家族谱系尚未开放（3.8.3）」不消耗；`eff` 写的是 `flag:clan41_open / clanRule+1 / clanProp:tian / clanLv+1 / clanProp:kuang`，`lianhun` 是 `use:'clanMatch'`，`Game.apply` 都不认 | clan41 包 `UI.useItem`（在 items40 之后加载），自己处理这 6 个 + 月老红线的子嗣婚配用法，见 14.8 |
+| K15 | fam37 家事事件池不判 cond | `famEvent` 只过滤 `{sp}`/`{k}`；clan41 事件有 `cond` | clan41 自己的事件池按 14.7 的 cond 过滤，不进 fam37 的池 |
+| K16 | `fight:'tianbing'` | `MONS.tianbing` 存在（content22.js:20），`Game.apply` 的 `fight:id` 直接开打 ✅ | 不改 |
+| K17 | route37「世家」路线已有 `S.clan`（族人好感，route37.js:150） | clan41 没提 | 联动：`G.route37.id==='shijia'` 时立族免空白族谱、声望获取 +20%；`S.clan` 作为叛离修正（14.6 铁律） |
+
+### 14.2 存档与非命名配偶
+
+```js
+G.clan41 = {
+  v:1, on:0, name:'', lv:1, rep:0, pop:0,
+  props:{},            // { tian:1, kuang:2 } 等级 1–3
+  rules:[], ruleY:-99, // 上次换族规的年份（5 年冷却）
+  fams:{},             // NPC 家族关系 −100..100
+  wed:[],              // { kid, fam, n, lg, y, div:0 }
+  grand:0,             // 孙辈数（只计入 pop，不进 kids）
+  heirIdx:-1, rate:0, extraSlot:0, // extraSlot：祖训竹简 +1（硬上限见 14.6）
+  spInfo:null,         // 世家联姻配偶 { fam, n, lg, por }
+  ev:{}, evY:{}, yr:0, log:[], first:{} // first['zj@3'] 子嗣首次境界声望已领
+};
+// kid 追加（全部惰性）：realm:0, stage:0, xp:0, brk:0（下次突破加成）, hurt:0（养伤年数）, wed:-1
+```
+
+非命名配偶注册（模块加载时一次，NPCS 不进存档）：
+```js
+if (!NPCS.c41_sp) NPCS.c41_sp = {
+  get n(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.n : '道侣'; },
+  get por(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.por : 'npc_girl'; },
+  c41:1 // 无 map/roam/at：不上地图、不进 jianghu34 的 others
+};
+Object.defineProperty(FAM37.SP_LG, 'c41_sp', { configurable:true, enumerable:false, get(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.lg : 'san'; } });
+```
+- 名字：`对方姓 + '·' + pick(TEXT37B.dis.ming)`，如「云·清漪」（`FAM37.nm` 取 `·` 后半，与命名 NPC 显示一致）。`por`：对方家族 `por`（14.9 表），缺省 `npc_girl`。
+- `validate22` 若要求每个 NPCS 有 map，给 `c41_sp` 加 `roam: () => null` 即可（不会命中任何 mapId）。
+- 世家联姻与 `FAM37.marry` 互斥：`F.sp` 非空时两个按钮都 🔒。`unpartner`（game.js:279）会把 `G.partner` 清掉 → 下一年 fam37 自动清 `F.sp`；clan41 同年结算时发现 `spInfo` 存在而 `G.partner!=='c41_sp'` → 视为和离：`fams[spInfo.fam] −60`、`rep −200`、`spInfo=null`。
+
+### 14.3 家族等级表（只改 K3 与两处可达性）
+
+| Lv | 名 | 声望 | 玩家境界≥ | 附加条件（修订后） |
+|---|---|---|---|---|
+| 1–5 | 同 v41 | 同 | 同 | 同（「族人」= 1 + (sp?1:0) + kids.length + pop） |
+| 6 | 世家 | 3000 | 3 金丹 | 族产≥3，任一子嗣 `realm≥2`（筑基）。子嗣上限是玩家境界−1，玩家金丹时子嗣最高筑基 → 刚好可达 ✅ |
+| 7 | 名门 | 6000 | 4 | 联姻≥1（`wed` 里 `div:0` 的条数，**含玩家本人世家联姻**） |
+| 8 | 大族 | 12000 | 5 | 族产≥5 |
+| 9 | 仙族 | 25000 | 6 | 族人≥6（孙辈计入，K9 不开枝也可达：1+1+4+pop≥0） |
+| 10 | 万古仙族 | 50000 | 6 | 渡劫圆满（`G.stage===3`）**或** 已立继承人且其 `realm≥3` |
+
+升级只升不降（声望扣到门槛以下不掉级）；每年结算最多升 1 级，升级 toast 用 TEXT41.ui.lvUp。
+
+### 14.4 族产经济（修订公式 + 回本表）
+
+- 等级 `L∈{1,2,3}`；升 L→L+1 费用 = `cost × L`；年产 = `base × L`（灵石、物品个数、声望、修炼% 都乘 L；`ev:c41_robbed` 概率、`ruleSlot`、`var` 不乘）。
+- 灵石年产 = `Σ base×L × yieldMul(lv) × (1 + 族规修正 + 命格修正)`，再 `×(1+v)`（坊市 v∈[−0.3,0.3]，按 `hash(year)` 定，全族产同一年景），四舍五入；**直接加 `G.stone`，不乘境界**（K6）。
+- 修正项：族规 qinxue −10%、zhongshang +15%、renhou −8%（仅灵石）；玩家命格 caimi +5%；家族成员 NPC 命格 n_jucai +8%/人、n_pocai −5%/人（K1）。合计夹在 [−40%, +50%]。
+- 物品年产四舍五入到整数，`roll:p:item` 每年独立掷 `Math.random()`（不走 `Game.roll`，免得吃转运珠）。
+- 声望年产：每处族产 +5×L，另加武馆 30×L、宗祠 80×L。
+
+| 族产 | 买价 | 1 级年产 | 1 级回本 | 升 2 级（费/增量/边际回本） | 升 3 级 | 满级总投入 → 年产 |
+|---|---|---|---|---|---|---|
+| 良田 | 3000 | 150 | 20 年 | 3000 / +150 / 20 年 | 6000 / +150 / 40 年 | 12000 → 450 |
+| 酒坊 | 4000 | 200 | 20 | 4000 / +200 / 20 | 8000 / +200 / 40 | 16000 → 600 |
+| 镖局 | 8000 | 400（劫镖 15% 期望 −约 60） | ≈24 | 8000 / +400 / 20 | 16000 / +400 / 40 | 32000 → 1200 |
+| 当铺 | 10000 | 300 + 减息 | 33（不计减息） | 10000 / +300 / 33 | 20000 / +300 / 67 | 40000 → 900 |
+| 灵矿 | 12000 | 600 + 玄铁晶×2（市价 50） | 17 | 12000 / +700 / 17 | 24000 / +700 / 34 | 48000 → 2100 等值 |
+| 坊市铺面 | 20000 | 1000 ±30% | 20 | 20000 / +1000 / 20 | 40000 / +1000 / 40 | 80000 → 3000 |
+
+（以上按 yieldMul=1.0、无修正的灵石计；家族 Lv5 ×1.2 时回本约缩短 1/6。）当铺减息不随 L 叠加：始终 −2%（K8 上限）。药园/书坊/灵兽池/武馆/宗祠/洞天按 L 乘物品/修炼/声望，不算灵石回本。
+
+### 14.5 子嗣修炼（公式 + 时间线）
+
+- 16 岁起每年：`kid.xp += 40 × LINGGEN[kid.lg].mult × (1 + clanCult)`；`hurt>0` 时本年不涨、`hurt−−`。
+- `clanCult` = 家族等级 fx.cult + 书坊 0.03×L + 洞天 0.08×L + 族规（qinxue +0.06 / zhongshang −0.04）+ 事件 `clanCult` 累计（存 `C.cult`，上限 0.10）。**家族等级 fx.cult 同时经 `Sys.bonus('cult')` 给玩家**（包 `Sys.bonus`，k==='cult' 时加 `TEXT41.lv[C.lv-1].fx.cult`）；书坊/洞天/族规/事件**只给子嗣**，避免和称号、坐骑叠爆。
+- 每小层需 `REALMS[r].need × STAGE_MUL[s] / 10`（v41 没写 STAGE_MUL，补上与玩家同节奏）。满了 `stage<3` 直接 +1；`stage===3` 冲大境界：成功率 `REALMS[r].brk + kid.brk`，成功 `realm+1, stage=0, xp=0`，失败 `xp = floor(xp/2)`；无论成败 `kid.brk=0`。
+- 上限：`kid.realm ≤ max(0, G.realm − 1)`；到顶后 xp 封在当层满值，不再掷突破。
+- 首次到达：筑基 rep+50、金丹 +150、元婴 +400、化神 +1000（`C.first['zj@'+idx]` 防重复，v41 只写了前两档，补后两档给 Lv8–10 的声望）。
+
+三灵根（mult 1.0）、clanCult=0 时的时间线（年龄，估算，未计突破失败）：
+
+| 大境界 | 本境界合计 xp | 年数 | 到达年龄 | 天灵根(1.8) |
+|---|---|---|---|---|
+| 凡人→练气 | 50 | 1.3 | 17 | 16.7 |
+| 练气→筑基 | 126 | 3.2 | 21 | 18.5 |
+| 筑基→金丹 | 328 | 8.2 | 29 | 23 |
+| 金丹→元婴 | 819 | 20.5 | 49 | 34 |
+| 元婴→化神 | 2016 | 50 | 99 | 62 |
+| 化神→渡劫 | 4788 | 120 | 219 | 129 |
+
+子嗣无寿元/死亡判定（3.8.3 不做，fam37 也没有）；`c41_lifeend` 说的是“族中老人”，不是 kids。
+
+### 14.6 族规落地（10 条 → 具体挂点）
+
+槽位 = 等级表 ruleSlots + 宗祠(有即 +1，不随 L) + 祖训竹简 `extraSlot`(最多 1)，**硬上限 4**。换族规：距 `ruleY` ≥5 年才可「卸下」，卸下当年 rep −50；新装不受冷却。互斥 moxiu↔renhou、zhongshang↔yinshi，按钮 🔒 并提示互斥对象。
+
+| 族规 | pro 实装 | con 实装 |
+|---|---|---|
+| 勤学 qinxue | 子嗣 clanCult +0.06 | 族产灵石 −10% |
+| 重商 zhongshang | 族产灵石 +15% | 子嗣 clanCult −0.04；年末 rep −10 |
+| 尚武 shangwu | 家主攻击 +3%（K12）；`c41_robbed`「亲自去追」不开打，直接得 300 | 每年 10% 随机一名 ≥16 岁子嗣 `hurt=1` |
+| 仁厚 renhou | 年末 karma +2；qingyun/baicao 路线声望 +2 | 族产灵石 −8% |
+| 铁律 tieqi | 叛离（`c41_traitor`）不再出现 | **改**：子嗣婚配成功率 −10%（原「好感获取 −10%」无统一入口可包，K12 同理） |
+| 开枝 kaizhi | KID_MAX 6（K9）；年末若有 sp、本年未出生、未满员，额外 `rnd()<0.29` 再生一次（合计约 50%） | 年末灵石 −200×kids.length（不乘境界，不够扣到 0 并 rep −20） |
+| 广结 lianyin | 婚配成功率 +0.2 | 聘礼 ×1.5 |
+| 隐世 yinshi | 抽到负面事件（14.7 标 ⚠）时 50% 重抽一次非负面 | 所有 rep 正收益 ×0.5；不能向 `fam.lv > C.lv` 的家族提亲 |
+| 魔道传家 moxiu | 家主攻击 +4%；tianmo 路线声望 +5/年 | karma −3/年；qingyun/baicao −3/年 |
+| 还债为本 haiqian | 减息 −2%（与当铺**不叠加**，C.rate 总上限 −2%，K8）| 族产灵石的 20% 直接冲 `G.debt`（先算 debt 再加 stone，toast「族产两成拿去还了天道」） |
+
+**叛离**（v41 只在铁律里提到，补定义）：`c41_traitor` 的出现条件 = `pop4` 且未选铁律；另外家族成员里有 n_mozhong 命格且 `G.karma≤−30` 时，该事件权重 ×3。`G.route37.clan ≤ −10`（世家路线族人好感差）时权重 ×2。
+
+### 14.7 家族事件抽取与新字段实现
+
+- 每年 1 次判定：`C.on && rnd()<0.6`；候选 = cond 满足且 `year − evY[id] ≥ 5`；按权重 1 抽（叛离见上）。抽中后照 fam37 写法 `UI.card('族事', …)`，带第三元素 `rule:x` 的选项未选该族规时显示 🔒 且不可点（判断与 `FAM37.canEff` 同时生效）。
+- cond 解析：`kids`/`kids2`（kids.length≥1/2）、`kidAge16`（有 ≥16 岁且 `wed<0` 的子嗣）、`sp`、`pop3`/`pop4`（族人数≥3/4，族人数定义同 14.3）、`lv5`（C.lv≥5）、`prop:x`（`props[x]≥1`）。
+- 占位符：`{k}` = 本次被选中的子嗣（kidAge16 时取符合条件者，否则随机一名）；`{prop}` = 随机一处已有族产名；`{fam}` = 随机一个 NPC 家族名（`c41_marryrival`/`c41_alliance` 取关系最高者）；`{sp}` = `FAM37.nm(F.sp)`。
+- ⚠ 负面事件（供隐世重抽）：robbed、kidfight、split、fire、marryrival、tiandao、traitor、flood。
+- 效果分派：`stone item aff karma fight debt rate` 照旧交 `FAM37.applyEff`（stone ×(1+大境界)，事件按凡人基准写，**这是有意的**：族事花销随家主身家涨）；以下 4 条与族产收支直接挂钩，改为 `stoneRaw`（不乘境界，clan41 直接加减）：`c41_harvest`（−100 / +200）、`c41_robbed`（+300 / −400）、`c41_flood`（−400 / −200）、`c41_fire`「只救账本」(−200)。
+- 新字段：
+
+| 字段 | 实现 |
+|---|---|
+| `rep:n` | `C.rep += n>0 ? round(n×(隐世?0.5:1)×(世家路线?1.2:1)) : n`，下限 0 |
+| `pop:±1` | `C.pop = max(0, pop±1)` |
+| `prop:id` | 没有该族产则 L=1 送一处（超出 propSlots 时改给灵石 = 买价×0.5，stoneRaw） |
+| `propDmg:1` | 随机一处族产 L−1；L 为 1 时本年该族产不产出（`C.dmgY[id]=year`），不删除 |
+| `famRel:n` | 加到 `{fam}` 那家；夹 −100..100 |
+| `match:x` | 存 `C.matchB = x`，下一次子嗣提亲成功率 +x 后清零 |
+| `kidBrk:x` | `kid.brk += x`（{k} 那名），下次冲大境界用掉 |
+| `heir:'eldest'/'bestLg'` | 选年龄最大 / `FAM37.rankOf(lg)` 最高（同级取年长）的子嗣写 `C.heirIdx`；按 K2 补 legacy26 的 `G.heir` |
+| `clanCult:x` | `C.cult = min(0.10, C.cult + x)` |
+| `hpPct:x` | `G.hp = max(1, round(G.hp + Game.stats().mhp × x))` |
+| `luck:1` | K11 |
+| `roll:"p:item:id:n"` / `"p:stone:n"` | `Math.random()<p` 时发放；stone 这里走 stoneRaw |
+| `srep:n` | K4，加到 `G.sect` 路线声望 |
+
+`c41_tiandao`「把人打出去」：`fight:'tianbing'` 打输时 **不给** rep+100、`debt+2000` 仍照记（被打出去的是你）。判输赢读 `Game.apply` 返回的 `later` 执行结果；读不到就按赢算（不卡流程）。
+
+### 14.8 婚配（子嗣 + 玩家本人世家联姻）
+
+**提亲门槛**（在婚配页签每家一个按钮，不满足显示 🔒 + 原因）：
+
+| 家族 | lv | 门槛（修订：去掉 sectRel，K4） | 额外修正 | por |
+|---|---|---|---|---|
+| 桃花王氏 wang | 1 | 无 | — | npc_girl |
+| 临安林氏 lin | 3 | C.lv≥2 | 子嗣灵根 tian/shuang 才算「灵根匹配」 | npc_girl |
+| 钱塘钱氏 qian | 4 | C.lv≥2 | 聘礼 ×2 | npc_girl |
+| 百草白氏 bai | 4 | `G.karma≥20` | — | npc_girl |
+| 青云云氏 yun | 5 | `Route37.rep('qingyun')≥40` | — | npc_girl |
+| 魔都苏氏 su | 6 | `G.karma≤−20` | — | npc_girl |
+| 广寒冷氏 leng | 7 | C.lv≥5 且提亲者灵根 bing | — | npc_girl |
+| 东海敖氏 long | 8 | C.lv≥6 且 `fams.long≥30`（靠 `c41_alliance` 抽到敖氏攒关系） | `G.flags.boss_dragon` 为真时成功率 −0.2（v41「反而减分」） | npc_girl |
+
+通用：`fam.lv − C.lv ≥ 3` 一律 🔒「门第悬殊」；隐世时 `fam.lv > C.lv` 即 🔒。以上 por 先全用现有 `npc_girl`（不新增美术，奥拉夫的 art_specs 如要分立绘再定）。
+
+**成功率**（夹 [0.05, 0.9]）：`0.4 + 0.05×(C.lv − fam.lv) + 灵根匹配 0.15（wantLg 含 '*' 或含提亲者灵根）+ 提亲者命格 n_tianxi 0.15 + 月老红线 0.3（见下）+ 广结 0.2 + C.matchB − 铁律 0.1 − 敖氏龙王修正 0.2 + fams[fam]/500`。
+
+**聘礼**：`1000 × fam.lv × (1+0.2×fam.lv)`（不乘境界；钱氏 ×2、广结 ×1.5，可叠）→ 王 1200、林 4800、钱 14400、白 7200、云 10000、苏 13200、冷 16800、敖 20800。提亲前扣，失败退一半（文案「对方把聘礼退回了一半，另一半说是茶水钱」）。
+
+**成功后**：子嗣 `wed = C.wed.length`，push `{kid, fam, n, lg:pick(wantLg 去掉 '*'，全是 '*' 则 'san'), y}`；`pop+1`、`fams[fam]+30`、rep+100；之后该家族每年 30% 送礼：灵石 200×fam.lv（stoneRaw）或随机一件已登记的 `i40_*` 礼物类道具（3.8.2 未合则只给灵石）。孙辈：已婚子嗣每年 15% `C.grand+1, C.pop+1`（每名已婚子嗣最多 3 个孙辈，防人口滚雪球）。
+
+**玩家本人世家联姻**：仅 `F.sp` 为空且 `G.partner` 为空时出现；成功率与聘礼同上（提亲者灵根用 `G.lg`、命格不计）；成功后写 `C.spInfo`、`G.partner=F.sp='c41_sp'`，`Game.ach('partner')`（与 `FAM37.marry` 同），`wed` 记 `kid:-1`。
+
+**月老红线 i40_yuelao**：3.8.2 的用法（`G.i40.match=1` → 降低下一次**结道侣**门槛）保持不变；婚配页提亲时，若 `G.i40.match===1`，按钮旁显示「🧵 红线 +30%」，提亲即消耗（`match=0`），两种用途共用这一次。
+
+### 14.9 3.8.2 家族道具接入（包 `UI.useItem`，在 items40 之后加载）
+
+| 道具 | 用法（全部“能用才 `Game.take`”） |
+|---|---|
+| `i40_jiapu` 空白族谱 | 未立族 → 立族（`on=1`，`name=G.surname+'氏'`，toast 14.10 `found`）；已立族 → 🔒「族谱已经写上名字了」 |
+| `i40_zuxun` 祖训竹简 | 未立族 🔒；`extraSlot` 已为 1 或已达硬上限 4 → 🔒「祠堂墙上挂不下了」；否则 `extraSlot=1` |
+| `i40_dici` 地契 | 未立族 🔒；已有良田 → 良田 L+1（满 3 则 🔒「这块地已经是你家的了」）；否则送良田 L1；超 propSlots → 🔒「族产槽位已满」 |
+| `i40_ditu` 藏宝残图 | 背包满 4 张才可用，一次 `take 4` → 灵矿 L1（已有则 L+1，满级 🔒）；不满 4 → 🔒「还差 {n} 块」 |
+| `i40_zupu_old` 残破古族谱 | 未立族 🔒；`C.lv` 直接 +1（**跳过附加条件，但不跳境界门槛**；境界不够 → 🔒「你这修为撑不起这么大的门楣」）；每世限 1 次 |
+| `i40_lianhun` 联姻帖 | 由 `c41_matchmaker`「挑灵根最好的」以 30% 掉落；使用 → 弹家族列表，本次提亲**无视门第与特殊门槛**（karma/路线声望/灵根），成功率照算 |
+| `i40_songzi` 送子瓶 | 3.8.2 已按 fam37 接口落地；开枝族规下满员判断自动读 KID_MAX getter，无需改 |
+
+`clan41_open` 这个 flag 不再需要（3.8.2 的 eff 写法只是占位），立族状态以 `C.on` 为准。
+
+### 14.10 缺失文案包（v41 TEXT41 里没有的；合进 `TEXT41.ui2`）
+
+```json
+{
+ "found": ["{clan}今日开祠立谱。族谱第一页写着你的名字，第二页写着你欠天道的数。", "你在空白族谱上落笔，「{clan}」三个字墨还没干，天道讨债司的贺帖先到了。"],
+ "propBuy": "置下{prop}一处。账房先生说：“回本得{y}年，修仙的人等得起。”",
+ "propUp": "{prop}扩建到 {L} 级。",
+ "propFull": "族产槽位已满。升家族等级才能再置产。",
+ "yield": "族产年结：灵石 +{s}，声望 +{r}{items}。",
+ "yieldBad": "坊市年景不好，铺面只收了往年七成。",
+ "yieldGood": "坊市年景大好，铺面多赚了三成。",
+ "haiqian": "族产两成（{s} 灵石）拿去还了天道。账房先生在账本上画了一个哭脸。",
+ "ruleSet": "祠堂新挂一块牌子：「{rule}」。",
+ "ruleDrop": "「{rule}」的牌子摘了下来。族老们议论了一整年。（声望 −50）",
+ "ruleCd": "族规五年一换，还要等 {y} 年。",
+ "ruleLock": "与「{rule}」相冲，不能同挂。",
+ "kidUp": "{k}修为精进，至{realm}{stage}。",
+ "kidBrkOk": ["{k}破关而出，踏入{realm}！族人在祠堂外放了一挂鞭炮。", "{k}冲关成功，第一件事是问你：“那笔债现在算我的了吗？”"],
+ "kidBrkNo": ["{k}冲关失败，吐了口血，说下次一定。", "{k}闭关三月，出来只说了一句：“瓶颈是真的颈。”"],
+ "kidCap": "{k}的修为已追到你身后一步，再往前就得等你先走。",
+ "kidHurt": "{k}在演武场伤了筋骨，要养一年。",
+ "grand": ["{k}家添了个孙辈，族谱又多写了一行。", "孙辈出生，你被叫了一声“老祖”，第一次觉得自己老了。"],
+ "famGift": "{fam}送来年礼：{g}。",
+ "wedRefund": "对方把聘礼退回了一半，另一半说是茶水钱。",
+ "divorce": "与{fam}的婚事散了。两家从此见面只点头。（声望 −200）",
+ "heir": "族老当众宣读：立{k}为{clan}继承人。{k}接过族印，掂了掂：“比想象中轻，债比想象中重。”",
+ "spWed": "你与{fam}的{n}成亲。没有命中注定，只有两本族谱和一摞聘礼单。",
+ "lockMen": "门第悬殊，媒人连门都不敢敲。",
+ "lockKarma": "{fam}打听过你的为人，婉拒了。",
+ "lockSect": "{fam}要先看你在青云宗的名声。",
+ "lockLg": "{fam}只与冰灵根结亲。",
+ "lockLong": "敖氏还不认识你。先结个盟再说。",
+ "redLine": "🧵 月老红线 +30%（提亲即用掉）",
+ "lianhun": "持联姻帖提亲：门第与家规一概不论，成不成看缘分。",
+ "noClan": "尚未立族。有道侣或子嗣，或持空白族谱，即可开祠立谱。",
+ "reborn": "你记得上一世的{clan}，最后做到了「{n}」。这一世，族谱又是一张白纸。"
+}
+```
+
+### 14.11 年结算顺序（包 `Game.yearEnd`，在 fam37 之后）
+
+`_ye` 原函数 → fam37（已包）→ clan41：① 和离检测（14.2）② 族产（K6：先 haiqian 冲债，再加灵石/物品/声望）③ 开枝额外生育 / 开枝开销 ④ 子嗣修炼与突破、首次境界声望 ⑤ 尚武受伤 ⑥ 族规年效（karma、路线声望、rep −10）⑦ 联姻送礼、孙辈 ⑧ 家族减息（K8）⑨ 族事（14.7）⑩ 等级检查 ⑪ `FAM37.news` 写大事记 + `Game.save()`。每步 try/catch 独立，单步出错 `console.warn('clan41', step, e)` 不中断。
+
+轮回（包 `Game.newLife`）：`Game.meta.clan41Best = max(旧值, C.lv)`；新一世 `G.clan41` 重置。v41 提的「前世 Lv≥5 给初始灵石 500×lv」**建议不做**：legacy26 道统已给寿元+20/修为+5%，再加灵石会让轮回开局过肥；只显示 14.10 `reborn` 一句。
+
+### 14.12 验收补充（追加到 v41 §10）
+
+- [ ] `G.partner==='c41_sp'` 时：`Game.fill('{partner}')`、事件 `por:'partner'`、`unpartner` 都不抛错；`c41_sp` 不出现在任何地图。
+- [ ] 族产灵石不随玩家境界变（渡劫期良田 1 级仍是 150×yieldMul）；族事 stone 随境界变，stoneRaw 那 4 条不变。
+- [ ] 当铺 + 还债为本 同时开：每年减债恰为 2%，不叠到 7%；`F.rate` 不被 clan41 改动。
+- [ ] 子嗣境界永不超过 `max(0, G.realm−1)`；玩家金丹时可以凑齐 Lv6。
+- [ ] 开枝：第 5、6 个子嗣能出生；卸下开枝后 KID_MAX 回到 4，**已有的 5、6 号不删**，只是不再生。
+- [ ] 6 个家族道具在立族前后的 🔒 文案都对；藏宝残图不满 4 张不消耗。
+- [ ] 老档已有 legacy26 `G.heir` 时立继承人不覆盖它。
+- [ ] 3.8.0（PF38）未合时，命格修正全部为 0，不报错。
+
+### 14.13 ROADMAP 状态订正（只记在这里，不改 ROADMAP）
+
+- 3.8.2 行写「⬜ 未开始 · `research_v40_items.md`」：规格层面已由本文件 §13 补全（代码核对 + 实装表），实现仍未开始。建议该行的规格列加上「+ `research_v22.md` §13」。
+- 3.8.3 行同理：建议规格列加「+ `research_v22.md` §14（以 §14 为准）」。
+- 3.8.3 依赖：3.8.0（PF38 命格，可缺省为 0）、3.8.2（6 个家族道具 + i40_laojiu，可缺省回退）、3.7.4 route37（`Route37.rep`，已发布）。不阻塞开工。
