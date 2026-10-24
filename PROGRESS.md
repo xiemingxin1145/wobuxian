@@ -100,6 +100,14 @@
 - [x] 魔修「⚑ ⚔ 仇杀」（萧十三/燕归/丹娘，每人每年 1 次，胜：击杀 +1、积分 +8、天魔殿声望 +8）；商贾「行商」（每年押货、年终 ×1.1–1.7 或 10% 遭劫 ×0.7，+200）+ 放贷（3 位借款人、最多 3 笔、3 年还本、陨落全额违约）。
 - [x] 开发者面板 Tab「道途37」；`test/route37_unit.py` 37 项全过（A10.1–A10.6、20 条事件、放贷/行商、结局 +15、面板、存档读档）。412×915 真实触摸截图 `/workspace/shots374/`（面板、弃仙确认卡、商贾面板）。
 - 与规格的差异：①玩家对宗门的声望存 `G.route37.rep`，不写 `G.sectRel`（那里是宗门对宗门的 a|b 键，life34 会把单键误读成一对宗门）；②market25 没有统一价格入口，商贾的买低卖高改为「行商」；③war29 没有冷却，掌门「宗门战冷却 −1 年」未做（「继续烧钱」改为贡献 +10）；④子嗣没有境界：家族路线下 16 岁以上子嗣每年按灵根有几率筑基（`kid.r37zj`），族谱三代 = 娘、你、≥1 个子嗣；⑤散修「任务酬劳 ×1.2 / 奇遇权重 ×1.5」未做。
+## 3.7.5 奇遇链 chain37（Grok Bot，2026-10-24 12:45 起，分支 `chain37`，worktree `/workspace/chain37`，未 bump VERSION）
+> 规格：`docs/research_v22.md` §12。新文件 `www/js/chain37.js`（index 在 dlg37 后），驱动 `fam37.js` 的 `TEXT37B.chains`；不改 game.js/talk.js/data.js/ui.js。存档 `G.chain37={v:1,ch:{c37_x:{s,t0,tn,k,done,out,fail,pen,burst,offer,after,chase,hunt}},cy}` 惰性兜底（§12.2 原写 `G.jh34.ch`，按交接要求改独立命名空间，CH34 进度不受影响）。
+- [x] 运行器：风声（年结算 40%/散修 60%，2 年过期）、并发 ≤2、⚑ 选项（不进 SAFE、不进 Track.list）、追踪栏 HUD 行、地点节点进图 1.5s 弹卡（`NPC37.idle()` / `R.player.nav` 守卫）。
+- [x] §12.1 F1–F13、§12.3 失败态、§12.4 战斗表（`Game.fight` 胜才前进）、§12.5 追凶支线、§12.6 文案、§12.7 `Chain37.doneCount`、§12.8 开发者 Tab「奇遇37」。
+- [x] 规格勘误：战斗表 `c1_3/0` → `c1_3/1`（〔独自夜探〕是第 2 个选项）；c6_3 两个选项都花灵石，补零成本选项〔让萧十三自己想办法〕→ c6_5。
+- [x] `test/chain37_unit.js` 70/70（合 main 后 78/78）；validate22 0 错；npc37_unit 66/66。jsscan33 / fam37_unit / controls 需 Chrome，本轮未跑（奥拉夫占用 Chrome）。
+- [x] c37_3「被夺宝抢先」：包 NPC37.emit 记钱满仓的 duobao 新闻 → `G.chain37.db`，开链后发生即转追凶；route37 已合入，`Route37.chainsDone` 由 chain37 包装为 `Chain37.doneCount`。chain37_unit 78/78。
+- [ ] 未做：tit39 改调 `Chain37.doneCount`（#45 未合）；战斗敌名覆写为人物名（只靠战前卡）。
 
 ## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
 > 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
