@@ -1,5 +1,48 @@
 # 我不仙 进度清单（2026-10-17 Grok 接管后）
 
+> 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
+
+## 交接 notes · v3.7.3（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.7.3「NPC自发事件」**，`VERSION`=3.7.3，tag `v3.7.3` → commit `cbb83a2`（main HEAD，`3.7.3：VERSION + CHANGELOG + PROGRESS`；其下 `67e5f22` = PR #42 squash，`65c1d57` = PR #48 squash）。
+- **是 Latest**（`releases/latest` = v3.7.3，2026-10-24 11:05 UTC+8 发布，非预发布）。
+- Release 资产：`wobuxian.apk` 371,907,469 B（≈372MB，HD）、`wobuxian-lite.apk` 83,751,021 B（≈84MB）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.7.3
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **NPC37E（NPC 自发事件）**：每年年末熟人 NPC 之间结仇/求助/讨债 1–2 件，写进江湖传闻；与路遇共用频率限制，自动寻路中不弹提示。新文件 `www/js/npc37_events.js`；改 `www/js/npc37.js`（+8 行钩子）、`www/index.html`（加载）；测试 `test/npc37_events_unit.js`、`test/npc37_events_page.py`。
+- 修复 **#47 / PR #48**（fam37）：已有道侣同步到 `G.fam37.sp`，修已有道侣无法生子嗣/可被覆盖。
+- 版本提交：`VERSION`、`CHANGELOG.md`、`PROGRESS.md`。
+- 刻意没做：NPC 遭遇计数 `G.npc37.ev`（在 PR #46，未合）；自由路线 route37（#43 → 3.7.4）；称号 tit39（#45 → 3.8.1）；未改 game.js / talk.js / data.js。
+
+### 3 测试结果
+- CI（tag v3.7.3，run 40056714139）：build ✅、emulator-smoke API30 ✅、API34 ✅；main 推送 run 40056711170 ✅。
+- unit：`npc37_events_unit.js`、`npc37_unit.js` 等通过；`npc37_events_page.py` 通过（详细计数见 PR #42/#46，PR #46 记 npc37_unit 66/66）。
+- human_olaf：门禁中 N2 被「路遇」卡抢点失败 1 次，单跑 8/8 通过；N1、T1 为已知 flake。**三者均为测试本身（harness 站位/路遇卡抢点），不是游戏 bug**；PR #38 修 N1/T1 站位，尚未验证合入。
+- 点屏（human23 真实触摸）：本版逐项通过数未单独记录 → 待确认。
+
+### 4 遗留问题
+- PR #43 `route374` 3.7.4 自由路线（route37）：评审修复已推（633cd21），**等奥拉夫 Chrome 点按测试**，负责：Grok Bot 开发 / 奥拉夫测试。
+- PR #45 `tit39` 3.8.1 称号系统：评审已过（e88e33b），待按顺序发；`t39_jianghu` 依赖 #46。
+- PR #46 `npc37-evcount` 遭遇计数 `G.npc37.ev`（基于 npc37-events，#42 已合，需 rebase 到 main），open-world 线负责。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未用新脚本跑全量验证。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+
+### 5 下一版任务（按顺序）
+1. **3.7.4 自由路线**（#43，规格 `docs/research_v22.md` §10）
+2. **3.7.5 奇遇链**（草稿 `docs/random_adventure_chain_draft.md`、`docs/encounter_chain_draft.md`）
+3. **3.8.0 人物详情面板**（`docs/research_v38_profile.md`）— 开发中
+4. **3.8.1 称号**（`docs/research_v39_titles.md`，#45；先合 #46）
+5. **3.8.2 道具**（`docs/research_v40_items.md`）
+6. **3.8.3 家族深化**（`docs/research_v41_clan.md`）
+- **3.9.0 阵法**（`docs/research_v22.md` §11）往后放：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，需先确认/补齐该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；主线按章节 id（`G.mainId`），只 `ins()` 插入不删改 id；新字段放各自命名空间（如 `G.npc37`、`G.fam37`、`G.route37`）惰性兜底，缺省时行为等同旧版。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；`art/gen/NEEDED.md` 记录到「批次 2（2026-10-10）」；v24 人形模型批次见 `HANDOFF_CHARS.md`。**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json`（现为 `wbx-hd-assets-3.2.0-202610161413.zip`，367,260,215 B）从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源。更新 HD 包：`tools/make_hd_bundle.sh upload`（或 `tools/hd_pack.sh`：重渲 HD → 打 zip → 上传 assets-hd → 改 hd-assets.json 并推送）。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
 ## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
