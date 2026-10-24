@@ -91,6 +91,7 @@ const from = (E, kind, s, ix) => (ix || E.TEXT[kind].map((_, i) => i)).some(i =>
   ok(G(c).life34.pending === null, '不碰 L.pending');
   // 存档兼容
   c = box(); delete G(c).npc37; ok(c.NPC37E.rel('ali', 'mentor') === 0 && G(c).npc37.v === 1 && G(c).npc37.owe, '老档无 G.npc37：惰性建档');
+  { const cc = box(); G(cc).npc37 = { v: 1, st: {}, yc: { yr: 10, n: 0, per: {}, map: {} }, ev: {}, q: [] }; const E = cc.NPC37E; E.run('feud', 'ali', 'mentor', { force: true }); E.run('help', 'ali', 'mentor', { force: true }); const V = G(cc).npc37.ev; ok(V.feud === 1 && V.help === 1 && V.debt === 0 && V.meet === 0 && V.total === 2, '旧档 ev={} → 自发事件 feud/help/total 计数'); delete G(cc).npc37.ev; E.run('debt', 'ali', 'mentor', { force: true }); ok(G(cc).npc37.ev.debt === 1 && G(cc).npc37.ev.total === 1, 'ev 缺失 → 重建并计 debt'); }
   c = box(); G(c).npc37 = { v: 1, st: {}, yc: { yr: 10, n: 1, per: { ali: 1 }, map: {} }, ev: {}, q: [] }; const ev = c.NPC37E.run('help', 'ali', 'mentor');
   ok(ev && G(c).npc37.rel['ali|mentor'] === 20 && G(c).npc37.tie && G(c).npc37.owe && G(c).npc37.yc.per.ali === 2, '旧 npc37 存档（无 rel/tie/owe/feud）补字段并保留本年计数');
   c = box(); G(c).npc37 = { v: 1, rel: 'bad', tie: null, owe: 3, st: {}, yc: { yr: 10, n: 0, per: {}, map: {} }, ev: {}, q: [] }; ok(c.NPC37E.run('feud', 'ali', 'mentor', { force: true }) && typeof G(c).npc37.rel === 'object', '坏字段（rel/tie/owe 非对象）重建不报错');

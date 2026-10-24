@@ -33,12 +33,14 @@ const NPC37 = {
   foeBlocked(id) { const G = this.G(); const P = G && G.life34 && G.life34.pending; if (P && P.npc === id) return true;
     try { if (typeof Stage3 !== 'undefined' && Stage3.huntBlocksFoe && Stage3.huntBlocksFoe(G)) return true; } catch (e) { } return false; },
   // 路遇：通过则记冷却/额度，生成场景放入自有队列并返回；否则 null
+  // 遭遇计数 G.npc37.ev = {total,meet,feud,help,debt}（旧档 ev 可能是 {} / 缺失）
+  evc(S, k) { if (!S) return null; if (!S.ev || typeof S.ev !== 'object') S.ev = {}; const E = S.ev; for (const x of ['total', 'meet', 'feud', 'help', 'debt']) if (!Number.isInteger(E[x])) E[x] = 0; if (k) { E[k]++; E.total++; } return E; },
   onMeet(id, mapId, opt) { opt = opt || {}; if (!opt.force && this.block(id, mapId)) return null; const S = this.st(); if (!S) return null;
     let tier = this.tier(id); if (tier === 'chou' && this.foeBlocked(id)) { if (!opt.force) return null; tier = 'sheng'; }
     const pool = TEXT37.meet[tier]; const k = opt.k != null ? opt.k : Math.floor(Math.random() * pool.length); const sc = pool[k % pool.length];
     const o = { n: this.name(id), map: this.mapName(mapId) }; const lines = TEXT37.lines[id] || [];
     const scene = { id, map: mapId, tier, k: k % pool.length, title: '⚑ 路遇·' + o.n, line: lines.length ? this.rnd(lines) : '', t: this.fill(sc.t, o), ch: sc.ch.map(c => ({ x: c.x, fx: c.fx })) , yr: this.yr(), m: this.month() };
-    S.yc.n++; S.yc.per[id] = (S.yc.per[id] || 0) + 1; S.yc.map[mapId] = this.month(); S.q.push(scene); if (S.q.length > 4) S.q.splice(0, S.q.length - 4);
+    S.yc.n++; S.yc.per[id] = (S.yc.per[id] || 0) + 1; S.yc.map[mapId] = this.month(); this.evc(S, 'meet'); S.q.push(scene); if (S.q.length > 4) S.q.splice(0, S.q.length - 4);
     this.bus.fire('meet', scene); return scene; },
   // 选项是否可选（物品不足 / 灵石不足置灰）
   can(fx) { const G = this.G(); if (!G || !fx) return true; if (fx.stone < 0 && (G.stone || 0) < -fx.stone) return false;
