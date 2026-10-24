@@ -259,6 +259,10 @@ async def main():
             await clear_popups(c2, 8)
             mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
             fought = False
+            # 只挑离所有 NPC（身体/名字）≥80 css px 的怪，避免点怪时被旁边的 NPC 抢点（测试站位问题，非游戏 bug）
+            npts = [x['pts'][k] for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc' for k in ('body', 'name') if x['pts'].get(k)]
+            far = lambda m: min((math.hypot(m['s'][0] - q[0], m['s'][1] - q[1]) for q in npts), default=999)
+            mons = [m for m in mons if far(m) >= 80] + [m for m in mons if far(m) < 80]
             for m in mons[:8]:
                 if await free_point(c2, *m['s']):
                     await tap(c2, *m['s'])
@@ -353,6 +357,11 @@ async def main():
                     await stand_near(c, t['id'])
                     o = await tap_npc_point(c, t['id'], part, 7)
                     if o['result'].startswith('skip'): continue
+                    if o['result'] != 'npc' and not o['result'].startswith('card') and not o['result'].startswith('other'):
+                        # 点位被走进来的怪/遭遇战占了（测试站位拥挤）：回到地图、重新站位，同一点再试一次
+                        await ensure_map(c); await clear_popups(c, 6); await c.pg.wait_for_timeout(800); await stand_near(c, t['id'])
+                        o2 = await tap_npc_point(c, t['id'], part, 7)
+                        if not o2['result'].startswith('skip'): o = o2
                     tot += 1; hits += o['result'] == 'npc'; wrong += o['result'].startswith('card') or o['result'].startswith('other')
                     rows.append(dict(npc=t['name'], part=part, **{k: o[k] for k in ('result', 'tap', 'dom_at_point', 'dist_before')}))
                     if o['result'] != 'npc' and part in ('name', 'mark'): await shot(c, f'T1_{t["id"]}_{part}_miss')
