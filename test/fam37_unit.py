@@ -8,6 +8,10 @@ JS = r"""async () => {
   G.apprentice = 'cuihua'; G.apprenticeLvl = 3; delete G.dis36; delete G.fam37; FAM37.ensure(G);
   ok('A4.4_old_save', G.apprentice === 'cuihua' && G.apprenticeLvl === 3 && Array.isArray(G.dis36) && G.dis36.length === 0 && G.fam37.kids.length === 0);
   const heir0 = JSON.stringify(G.heir);
+  // 兼容：旧档/talk.js 已结侣（只有 G.partner）→ fam37.sp 由 G.partner 推导，不能再另娶
+  { const p0 = G.partner, f0 = G.follower, aff0 = G.aff.ruyan; G.partner = 'sumei'; delete G.fam37; FAM37.ensure(G); G.aff.ruyan = 150;
+    ok('compat_partner_sp', G.fam37.sp === 'sumei' && FAM37.canMarry(G, 'ruyan') === false, [G.fam37.sp, FAM37.canMarry(G, 'ruyan')]);
+    G.partner = p0; G.follower = f0; G.aff.ruyan = aff0; delete G.fam37; FAM37.ensure(G); }
   // A4.1 金丹（realm 3）最多 2 名记名
   G.realm = 3; G.stone = 1e6; const a = FAM37.recruit(), b = FAM37.recruit(), c = FAM37.recruit();
   ok('A4.1_cap', !!a && !!b && c === null && FAM37.cap(G) === 2 && G.apprentice === 'cuihua');
