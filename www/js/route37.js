@@ -125,6 +125,8 @@ const Route37 = {
     if (typeof Game.save === 'function') Game.save(); return true;
   },
   title(S) { if (!S || !S.id) return ''; const p = S.pts; const lv = p >= 60 ? '宗师' : p >= 30 ? '名家' : p >= 10 ? '小有名气' : '初入'; return `${this.n(S.id)}·${lv}`; },
+  // 只读：玩家在某宗门的路线声望（默认本人宗门 G.sect），取自 G.route37.rep；缺状态/字段返回 0，不抛错，不写 G.sectRel
+  rep(k) { try { const G = this.G(); const S = G && G.route37; if (!S || typeof S !== 'object' || !S.rep || typeof S.rep !== 'object') return 0; k = k || G.sect; const v = k ? S.rep[k] : 0; return typeof v === 'number' && isFinite(v) ? v : 0; } catch (e) { return 0; } },
   repAdd(S, k, v) { S.rep[k] = Math.max(-100, Math.min(100, (S.rep[k] || 0) + v)); },
   mul(G) { return this.cur(G) === 'shangjia' ? 1 : 1 + (G.realm || 0); },
   canFx(G, fx) { if (!fx) return true; if (fx.stone < 0 && (G.stone || 0) < -fx.stone * this.mul(G)) return false; if (fx.item) for (const k in fx.item) if (fx.item[k] < 0 && ((G.inv && G.inv[k]) || 0) < -fx.item[k]) return false; return true; },
@@ -275,7 +277,7 @@ const Route37 = {
     if (b) b.innerHTML = this.html();
   },
 };
-window.Route37 = Route37;
+window.Route37 = Route37; window.ROUTE37 = Route37;
 (function () {
   Object.assign(ENDINGS, TEXT374.endings);
   // 修为倍率：魔修 ×1.15（回头是岸当年失效）；商贾（含已弃仙）×0

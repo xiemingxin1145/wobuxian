@@ -50,6 +50,11 @@ JS = r"""async () => {
   const news = []; const _say = JH34.say; JH34.say = function (L, s) { news.push(s); return _say.apply(this, arguments); };
   { G.route37.kmo = {}; await Route37.duel('jh_danniang'); ok('fix4_kill_news', news.some(s => /击败了正道/.test(s)), news); }
   // fix5（G.sectRel 镜像）未实现：见 PR 评论
+  { const sr = JSON.stringify(G.sectRel || null), sv = G.route37, sc = G.sect; G.sect = 'qingyun';
+    G.route37 = null; const r0 = ROUTE37.rep(); G.route37 = { id: 'moxiu' }; const r1 = ROUTE37.rep(); G.route37 = { rep: { qingyun: 'x' } }; const r2 = ROUTE37.rep();
+    G.route37 = { rep: { qingyun: 12, tianmo: 40 } }; const r3 = ROUTE37.rep(), r4 = ROUTE37.rep('tianmo'); G.sect = null; const r5 = ROUTE37.rep();
+    const gg = Game.G; Game.G = null; let r6; try { r6 = ROUTE37.rep(); } finally { Game.G = gg; }
+    G.route37 = sv; G.sect = sc; ok('rep_reader', ROUTE37 === Route37 && [r0, r1, r2, r5, r6].every(v => v === 0) && r3 === 12 && r4 === 40 && JSON.stringify(G.sectRel || null) === sr, [r0, r1, r2, r3, r4, r5, r6]); }
   // A10.2 商贾：凡人 30 岁，灵石 100 万，钱多多处结局，结算分含 +15
   G.route37.since -= 20; G.karma = 0; G.realm = 0; G.age = 30; G.sect = null;
   ok('shangjia_enter', await Route37.choose('shangjia') && G.route37.merchant === 1 && Game.cultMult() === 0);
