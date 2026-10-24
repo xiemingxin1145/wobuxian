@@ -40,7 +40,7 @@ const NPC37 = {
     const pool = TEXT37.meet[tier]; const k = opt.k != null ? opt.k : Math.floor(Math.random() * pool.length); const sc = pool[k % pool.length];
     const o = { n: this.name(id), map: this.mapName(mapId) }; const lines = TEXT37.lines[id] || [];
     const scene = { id, map: mapId, tier, k: k % pool.length, title: '⚑ 路遇·' + o.n, line: lines.length ? this.rnd(lines) : '', t: this.fill(sc.t, o), ch: sc.ch.map(c => ({ x: c.x, fx: c.fx })) , yr: this.yr(), m: this.month() };
-    S.yc.n++; S.yc.per[id] = (S.yc.per[id] || 0) + 1; S.yc.map[mapId] = this.month(); this.evc(S, 'meet'); S.q.push(scene); if (S.q.length > 4) S.q.splice(0, S.q.length - 4);
+    S.yc.n++; S.yc.per[id] = (S.yc.per[id] || 0) + 1; S.yc.map[mapId] = this.month(); S.q.push(scene); if (S.q.length > 4) S.q.splice(0, S.q.length - 4);
     this.bus.fire('meet', scene); return scene; },
   // 选项是否可选（物品不足 / 灵石不足置灰）
   can(fx) { const G = this.G(); if (!G || !fx) return true; if (fx.stone < 0 && (G.stone || 0) < -fx.stone) return false;
@@ -64,6 +64,8 @@ const NPC37 = {
     return { ok: true, eff, out, fight }; },
   // 弹卡：标题以「⚑」开头，置灰选项加（缺）并重弹
   async play(scene) { if (typeof UI === 'undefined' || !UI.card || !scene) return null;
+    // 遭遇计数只在路遇卡真正弹给玩家时 +1（每张卡一次；被队列挤掉的不计）
+    if (!scene.cnt) { scene.cnt = 1; this.evc(this.st(), 'meet'); }
     for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => '⚑ ' + o.x + (this.can(o.fx) ? '' : '（缺）'));
       const c = await UI.card(scene.title, (scene.line ? `${scene.name || this.name(scene.id)}：“${scene.line}”\n` : '') + scene.t, 'i:bill', opts);
       const r = await this.resolve(scene, c, out => { if (typeof UI.toast === 'function' && out && out.length) UI.toast(out.join('，')); });

@@ -92,9 +92,8 @@ function box() {
   let bad = 0; for (let y = 20; y < 120; y++) { GG.year = y; GG.jh34.t = y * 12; for (let i = 0; i < 20; i++) { const ids = M.ids(); M.onMeet(ids[i % ids.length], 'm' + (i % 3)); M.emit('duobao', ids[i % ids.length], ids[(i + 1) % ids.length], 'market'); } M.topUp(); const Y = GG.npc37.yc; if (Y.n > 4 || Y.news > 6 || Y.news < 3 || Object.values(Y.per).some(v => v > 2)) bad++; }
   ok(bad === 0, '模拟 100 年：每年路遇 ≤4、新闻 3–6、每人 ≤2');
   // 总线 / schedule
-  { const E0 = GG.npc37.ev; const t0 = E0.total, m0 = E0.meet; GG.year = 301; M.onMeet('ali', 'evc1', { force: true }); ok(GG.npc37.ev.meet === m0 + 1 && GG.npc37.ev.total === t0 + 1, '路遇 → ev.meet/total 各 +1');
-    GG.npc37.ev = {}; GG.year = 302; M.onMeet('ali', 'evc2', { force: true }); const E1 = GG.npc37.ev; ok(E1.meet === 1 && E1.total === 1 && E1.feud === 0 && E1.help === 0 && E1.debt === 0, '旧档 ev={} → 安全补齐并计数');
-    GG.year = 303; const nb = M.onMeet('ali', 'evc2'); ok(GG.npc37.ev.meet === (nb ? 2 : 1), '被拦的路遇不计数'); }
+  { const E0 = M.evc(GG.npc37); const t0 = E0.total, m0 = E0.meet; GG.year = 301; M.onMeet('ali', 'evc1', { force: true }); ok(GG.npc37.ev.meet === m0 && GG.npc37.ev.total === t0, '路遇入队不计数（弹卡时才计）');
+    GG.npc37.ev = {}; ok(M.evc(GG.npc37).meet === 0 && GG.npc37.ev.total === 0 && GG.npc37.ev.feud === 0 && GG.npc37.ev.help === 0 && GG.npc37.ev.debt === 0, '旧档 ev={} → evc 安全补齐'); }
   let ev = 0; c.Story37.on('meet', () => ev++); GG.year = 300; M.onMeet('ali', 'zz'); ok(ev === 1, 'Story37.on("meet") 收到事件');
   GG.jh34.npcs = { jh_mozi: { map: 'secret' } }; ok(M.schedule('jh_mozi') === 'secret' && M.schedule('ali') === 'forest' && M.schedule('nobody') === null, 'schedule：JH34 游历图 > NPCS.map');
   // 无存档
@@ -141,6 +140,13 @@ function box() {
   { const dev = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8'); // PR 分支（main）不带开发者「路遇」按钮；openworld-wip 才有
     if (/NPC37/.test(dev)) ok(/label: '路遇'/.test(dev) && /NPC37\.onMeet\(id, mapId, \{ force: true \}\)/.test(dev), '开发者面板有「路遇」强制触发按钮');
     else ok(!/NPC37|npc37/.test(dev), 'main 的 dev_openworld.js 不引用 NPC37（路遇只走正常游玩入口）'); }
+  // 奥拉夫：meet/total 只在路遇卡真正弹出时 +1；队列溢出被挤掉的不计
+  { const d = box(); const DN = d.NPC37; let shown = 0; d.UI.card = async () => { shown++; return 1; }; d.UI.toast = () => { }; d.Game.apply = async () => null;
+    const S = DN.st(); S.ev = {}; const sc = []; for (let i = 0; i < 6; i++) { d.Game.G.year = 400 + i; const s = DN.onMeet('ali', 'ov' + i, { force: true, k: 0 }); if (s) sc.push(s); }
+    ok(sc.length === 6 && S.q.length === 4 && DN.evc(S).meet === 0 && S.ev.total === 0, '6 次入队、队列只留 4，尚未弹卡 → meet/total 为 0');
+    const q = S.q.slice(); for (const s of q) await DN.play(s); ok(shown === 4 && S.ev.meet === 4 && S.ev.total === 4, '弹出 4 张卡 → meet/total=4，被挤掉的 2 条不计');
+    await DN.play(q[0]); ok(S.ev.meet === 4, '同一张卡重弹不重复计数');
+    S.ev = {}; const s2 = DN.onMeet('sister', 'ov9', { force: true, k: 0 }); await DN.play(s2); ok(S.ev.meet === 1 && S.ev.total === 1 && S.ev.debt === 0, '旧档 ev={} 弹卡后补齐并计 1'); }
   // 第二十八轮：真实 Game.apply 形状 { txt, later }，fight 延后到 later 里，路遇必须真的开战
   { const d = box(); const DN = d.NPC37, DG = d.Game; const log = [];
     DG.apply = async function (eff) { const later = []; const out = []; for (const tk of eff.split(';')) { const p = tk.split(':'); if (p[0] === 'aff') { this.G.aff[p[1]] = (this.G.aff[p[1]] || 0) + +p[2]; out.push('好感' + p[2]); } else if (p[0] === 'fight') later.push(() => this.fight(p[1], { tier: 1 })); } return { txt: out.join('，'), later }; };
