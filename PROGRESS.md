@@ -568,3 +568,9 @@
 - 分支 debt-token-offset（基于 origin/main）→ PR #51「讨债令抵扣误工费」给奥拉夫审，提交 37d6063；同一改动 cherry-pick 进 wip 为 270869c（与 wip 的 fightStats 冲突，两边保留；TOKEN_FEE_COST 沿用 wip 的 tokenFeePreview 定义）。
 - 测试：新增 test/stage3_token_offset.js 14 条；test/ 下全部 node 测试通过（stage3_chain 244、stage3_life34 114、battle_rt_proto 149 等）。页面/Chrome 测试未跑（需协调）。
 - 遗留：tokenFeePreview 文案仍写「仅预览，尚未生效」、追兵战得令结算卡仍写「只是凭证，暂无用途」（stage3_chain 有断言锁定原文），待 #51 合入后另改文案与断言。
+
+## 开放世界线第三十五轮（2026-10-24 14:06 起，Grok Bot）
+- 已合并 origin/main 93738c6（3.7.4 自由路线 #43、#53 序章守卫）：route37.js 冲突取 main 版；删除 wip 自己那份 test/route37_unit.js；index.html 去掉重复的 route37.js 加载行，顺序与 main 一致（dlg37 → route37）。合并提交 30c7bc4。
+- 讨债令有了真用途后的文案收尾：PR #51 分支 debt-token-offset 追加 35bd522——追兵战得令结算卡「只是凭证，暂无用途」→「追兵战输了可花 1 枚抵掉误工费」，注释、stage3_chain、dev_openworld_page 断言同步，PR 描述已补文件清单。wip 同步 ecb381c，另把讨债令状态行和抵扣预览里的「若开放抵扣 / 仅预览，尚未生效」改成现行说法。
+- 测试：test/ 下全部 node 测试通过（stage3_chain、stage3_token_offset 14、npc37_unit 80、npc37_events_unit 54、validate22 无错等）。npc37_unit「放行后正常弹路遇卡」约 1/40 随机失败（来自 main #53 的用例，与 main 文件相同，非本线改动）。页面/Chrome 测试未跑：待补 dev_openworld_page、dev_entry_v25_page、route37_unit.py（playwright）。
+- 下一步：#50/#51 合 main 后随 main 合入；其后回到即时战/低模小步，或按群里分工接 3.7.5 之后的版本。
