@@ -360,3 +360,5 @@
 - [x] 10-24 3.6.1：神器（PR #37 squash 354a2c8）；VERSION 3.6.1 + CHANGELOG；门禁同 3.6.0，N1/T1 按已知 flake 放行。
 - [x] 10-24 v3.6.1 已发布（神器）。
 - [x] 10-24 3.7.0：路遇 NPC37（PR #39 squash f100a0b）；VERSION 3.7.0 + CHANGELOG；门禁串行全跑，N1/T1 按已知 flake 放行。
+- [x] 10-24 v3.7.0 已发布（路遇；修 npc37 自动寻路中不触发路遇）。
+- [x] 10-24 3.7.1：多徒弟与家族（PR #41 squash）；VERSION 3.7.1 + CHANGELOG；精简门禁（human23/human_olaf/panels21/controls/单测），N1/T1 按已知 flake 放行。
