@@ -432,6 +432,8 @@
 - [x] 10-24 3.7.0：路遇 NPC37（PR #39 squash f100a0b）；VERSION 3.7.0 + CHANGELOG；门禁串行全跑，N1/T1 按已知 flake 放行。
 - [x] 10-24 v3.7.0 已发布（路遇；修 npc37 自动寻路中不触发路遇）。
 - [x] 10-24 3.7.1：多徒弟与家族（PR #41 squash）；VERSION 3.7.1 + CHANGELOG；精简门禁（human23/human_olaf/panels21/controls/单测），N1/T1 按已知 flake 放行。
+- [x] 10-24 v3.7.1 已发布（多徒弟与家族）。
+- [x] 10-24 3.7.2：对话抉择 dlg37（PR #40 squash，含奥拉夫 3 条修正）；npc37 寻路判定加 R/R.player 空值保护；VERSION 3.7.2 + CHANGELOG；门禁：human_olaf N1 已知 flake，N2 一次被路遇卡抢点、单跑通过。
 
 ## 开放世界线第三十轮（2026-10-24，Grok Bot）
 - NPC37E（www/js/npc37_events.js）：NPC 之间自发事件 结仇/求助/讨债，年末掷 1–2 条，与路遇共用额度（每 NPC 年 ≤2、全年新闻 ≤6、toast ≤2），每人每年 ≤1 结仇；结果写 G.npc37.rel/tie/owe，玩家只经 JH34.addAff 改 G.aff；新闻 NEWS37C 走 JH34.say 进 G.jh34.feed；寻路中（R.player.nav，对齐 2f9407b）不弹 toast。

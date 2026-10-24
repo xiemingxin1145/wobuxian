@@ -98,7 +98,7 @@ NPC37.autoOn = function () { try { if (typeof AUTO !== 'undefined' && AUTO.on) r
 // 现在能不能弹路遇卡（不改状态）
 NPC37.idle = function () { const G = this.G(); if (!G || G.dead || this._busy) return false; if (typeof R === 'undefined' || R.mode !== 'map' || !R.player) return false;
   if (typeof Game !== 'undefined' && Game._busy) return false; if (typeof UI !== 'undefined' && UI.stack && UI.stack.length) return false;
-  if (typeof B !== 'undefined' && B && B.on) return false; if (this.autoOn()) return false; if (R.player.nav) return false; return true; };
+  if (typeof B !== 'undefined' && B && B.on) return false; if (this.autoOn()) return false; if (typeof R !== "undefined" && R && R.player && R.player.nav) return false; return true; };
 // 每个 NPC 帧更新时调用：节流、距离、冷却全部通过才弹卡；返回场景或 null
 NPC37.check = function (e, now) { if (!e || e.kind !== 'npc' || !TEXT37.lines[e.id] || e.talking > 0 || e.hidden) return null;
   now = now == null ? Date.now() : now; if (now - (this._t || 0) < this.CHECK_MS) return null; if (!this.idle()) return null;
