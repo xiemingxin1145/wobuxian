@@ -33,6 +33,8 @@ const NPC37 = {
   foeBlocked(id) { const G = this.G(); const P = G && G.life34 && G.life34.pending; if (P && P.npc === id) return true;
     try { if (typeof Stage3 !== 'undefined' && Stage3.huntBlocksFoe && Stage3.huntBlocksFoe(G)) return true; } catch (e) { } return false; },
   // 路遇：通过则记冷却/额度，生成场景放入自有队列并返回；否则 null
+  // 遭遇计数 G.npc37.ev = {total,meet,feud,help,debt}（旧档 ev 可能是 {} / 缺失）
+  evc(S, k) { if (!S) return null; if (!S.ev || typeof S.ev !== 'object') S.ev = {}; const E = S.ev; for (const x of ['total', 'meet', 'feud', 'help', 'debt']) if (!Number.isInteger(E[x])) E[x] = 0; if (k) { E[k]++; E.total++; } return E; },
   onMeet(id, mapId, opt) { opt = opt || {}; if (!opt.force && this.block(id, mapId)) return null; const S = this.st(); if (!S) return null;
     let tier = this.tier(id); if (tier === 'chou' && this.foeBlocked(id)) { if (!opt.force) return null; tier = 'sheng'; }
     const pool = TEXT37.meet[tier]; const k = opt.k != null ? opt.k : Math.floor(Math.random() * pool.length); const sc = pool[k % pool.length];
@@ -62,6 +64,8 @@ const NPC37 = {
     return { ok: true, eff, out, fight }; },
   // 弹卡：标题以「⚑」开头，置灰选项加（缺）并重弹
   async play(scene) { if (typeof UI === 'undefined' || !UI.card || !scene) return null;
+    // 遭遇计数只在路遇卡真正弹给玩家时 +1（每张卡一次；被队列挤掉的不计）
+    if (!scene.cnt) { scene.cnt = 1; this.evc(this.st(), 'meet'); }
     for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => '⚑ ' + o.x + (this.can(o.fx) ? '' : '（缺）'));
       const c = await UI.card(scene.title, (scene.line ? `${scene.name || this.name(scene.id)}：“${scene.line}”\n` : '') + scene.t, 'i:bill', opts);
       const r = await this.resolve(scene, c, out => { if (typeof UI.toast === 'function' && out && out.length) UI.toast(out.join('，')); });
