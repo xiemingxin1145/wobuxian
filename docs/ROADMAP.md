@@ -72,10 +72,10 @@
 | 3.4.0 | ✅ 发布中（2026-10-19，tag `v3.4.0`）：无缝相邻地图+邻图边条、地图扩大、江湖自转、找上门来客+恩怨、奇遇链、好感节奏；原计划项（心魔幻境等）顺延 | 心魔幻境（research_v33 §7）；开放世界线：stage3 两段式讨债遭遇正式接入、追兵/好感系统 |
 | 3.4.1 | 🔧 PR（分支 dev341） | 作弊菜单重做：开发者面板新增 功法/装备/天赋/金手指/道具 5 个可搜索分组 Tab（`www/js/dev341.js`）；修 v2.5 浮动入口盖菜单、全套神装槽位错误、面板重绘跳回顶部、🛠 无反应、调试开关不保存；`test/dev341.py` 真实点按门禁 |
 | 3.7.0–3.7.3 | ✅ 已发布（2026-10-24，Latest = v3.7.3 `cbb83a2`） | 3.7.0 路遇、3.7.1 多徒弟与家族、3.7.2 对话抉择、3.7.3 NPC 自发事件 + #47 修复 |
-| 3.7.4 | 🔧 测试中（PR #43，等奥拉夫 Chrome 点按测试） | 自由路线 route37 · `docs/research_v22.md` §10 |
-| 3.7.5 | 🟡 开发中（分支 `chain37`） | 奇遇链 chain37 · 规格 `docs/research_v22.md` §12（+ `research_story37.md` §4、`research_story37_text2.md` §三；数据 `fam37.js` `TEXT37B.chains`） |
-| 3.8.0 | 🔧 开发中 | 人物详情面板 · `docs/research_v38_profile.md` |
-| 3.8.1 | 🟡 已审过待发（PR #45，依赖 #46） | 称号 tit39 · `docs/research_v39_titles.md` |
+| 3.7.4 | ✅ 已发布（2026-10-24，Latest = v3.7.4 `5b7a20b`，含 #53 路遇序章守卫） | 自由路线 route37 · `docs/research_v22.md` §10 |
+| 3.7.5 | 🔧 开发中（PR #52 chain37） | 奇遇链 chain37 · 规格 `docs/research_v22.md` §12（+ `research_story37.md` §4、`research_story37_text2.md` §三；数据 `fam37.js` `TEXT37B.chains`） |
+| 3.8.0 | 🔧 开发中（PR #50 prof38） | 人物详情面板 · `docs/research_v38_profile.md` |
+| 3.8.1 | 🟡 已审过待发（PR #45，#46 已合，已解除阻塞） | 称号 tit39 · `docs/research_v39_titles.md` |
 | 3.8.2 | ⬜ 未开始 | 道具 · `docs/research_v40_items.md` |
 | 3.8.3 | ⬜ 未开始 | 家族深化 · `docs/research_v41_clan.md` |
 | 3.9.0 | ⏸ 后放（需 dungeon26 `Dng.roomTrap`） | 阵法 zf39 · `docs/research_v22.md` §11 |
