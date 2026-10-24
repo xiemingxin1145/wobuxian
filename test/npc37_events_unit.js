@@ -101,6 +101,13 @@ const from = (E, kind, s, ix) => (ix || E.TEXT[kind].map((_, i) => i)).some(i =>
   // 寻路守卫（对齐 2f9407b）：R.player.nav 时不弹 toast
   c = box(); c.R.mapId = 'market'; c.R.player = { nav: true }; ok(c.NPC37E.notable('jh_danniang', 'jh_tieguo') === false, '寻路中（R.player.nav）自发事件不算 notable、不弹 toast');
   c.R.player.nav = null; ok(c.NPC37E.notable('jh_danniang', 'jh_tieguo') === true, '不寻路时同图事件照常 notable');
+  // 概率走 Game.roll（奥拉夫 #42 建议，与 dlg37 一致）；没有 Game.roll 时退回 Math.random
+  c = box(); { const calls = []; c.Game.roll = (p, k) => { calls.push([p, k]); return false; }; c.Math.random = () => 0;
+    ok(c.NPC37E.roll(0.99) === false && calls.length === 1 && calls[0][0] === 0.99 && calls[0][1] === 'npc37e', 'Game.roll 存在时概率判定交给 Game.roll(p, \'npc37e\')，不看 Math.random');
+    c.Game.roll = () => true; const hh = c.NPC37E.run('help', 'jh_danniang', 'jh_tieguo'); ok(hh && hh.loan > 0, 'Game.roll 为真 → 求助附带借钱（走 roll 而非 Math.random）');
+    delete c.Game.roll; c.Math.random = () => 0.2; ok(c.NPC37E.roll(0.3) === true && c.NPC37E.roll(0.1) === false, '没有 Game.roll → 退回 Math.random() < p');
+    c.Math.random = Math.random; }
+  ok(!/Math\.random\(\)\s*</.test(SRC.replace(/return Math\.random\(\) < p;/, '')), '源码里概率判定只剩 roll() 兜底一处 Math.random() <');
   // 源码约束
   ok(!/L\.pending\s*=|pending\.push|Life34\.rel\(|\.rel\[[^\]]+\]\s*[+\-]?=/.test(SRC.replace(/S\.rel\[[^\]]+\]\s*=/g, '').replace(/S\.rel\[p\]\s*=/g, '')), '不写 L.pending、不调 Life34.rel、不直接改 L.rel');
   ok(!/G\.debt\s*[+\-]?=|\.debt\s*[+\-]=|G\.stone\s*[+\-]?=/.test(SRC), '不改玩家 G.debt / 灵石、不改 JH34 债务（只读）');

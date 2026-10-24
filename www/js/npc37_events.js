@@ -27,6 +27,8 @@ const NPC37E = {
   alive(id) { const S = this.st(); return !(S && S.st[id] && S.st[id].dead); },
   ids() { const N = this.N(); return N ? N.ids().filter(id => this.alive(id)) : []; },
   jh(id) { const G = this.G(); return (G && G.jh34 && G.jh34.npcs && G.jh34.npcs[id]) || null; },
+  // 概率判定走 Game.roll（与 dlg37 一致，作弊/种子可统一接管）；Game.roll 不存在时退回 Math.random。下标抽取仍用 Math.random
+  roll(p) { try { if (typeof Game !== 'undefined' && Game && typeof Game.roll === 'function') return !!Game.roll(p, 'npc37e'); } catch (e) {} return Math.random() < p; },
   owes(lender, debtor) { const S = this.st(); return (S && S.owe[lender + '>' + debtor]) || 0; },
   // 能否发生（不改状态）：null 或原因
   block(kind, a, b) { const N = this.N(), S = this.st(); if (!N || !S) return 'nogame'; if (!a || !b || a === b) return 'pair'; if (!this.alive(a) || !this.alive(b)) return 'dead';
@@ -35,7 +37,7 @@ const NPC37E = {
     return null; },
   // 这一对最自然的事件：有账先讨债；关系 <0 或同图结仇；关系 ≥0 求助
   pick(a, b) { if (this.owes(a, b)) return 'debt'; const r = this.rel(a, b); const N = this.N();
-    const same = N && N.schedule(a) && N.schedule(a) === N.schedule(b); if (r < 0) return 'feud'; if (same && Math.random() < 0.4) return 'feud'; return 'help'; },
+    const same = N && N.schedule(a) && N.schedule(a) === N.schedule(b); if (r < 0) return 'feud'; if (same && this.roll(0.4)) return 'feud'; return 'help'; },
   // 寻路中（R.player.nav，对齐 npc37 路遇的 2f9407b 守卫）不弹 toast，只进新闻流
   notable(a, b) { const N = this.N(); if (!N) return false; let here = null; try { if (typeof R !== 'undefined' && R && R.player && R.player.nav) return false; here = typeof R !== 'undefined' && R.mapId; } catch (e) { }
     return N.rel(a) >= 40 || N.rel(b) >= 40 || (!!here && (N.schedule(a) === here || N.schedule(b) === here)); },
@@ -48,10 +50,10 @@ const NPC37E = {
     if (kind === 'feud') { ev.rel = this.addRel(a, b, -30); S.yc.feud[a] = (S.yc.feud[a] || 0) + 1; S.yc.feud[b] = (S.yc.feud[b] || 0) + 1; ev.tie = S.tie[this.key(a, b)] || null; }
     else if (kind === 'help') { ev.rel = this.addRel(a, b, 20);
       // 出手相助者 b 借钱给被救者 a（NPC 之间的账，下次讨债用）
-      if (Math.random() < 0.5) { const amt = 100 * (1 + Math.floor(Math.random() * 3)); const k = b + '>' + a; S.owe[k] = (S.owe[k] || 0) + amt; ev.loan = amt; }
+      if (this.roll(0.5)) { const amt = 100 * (1 + Math.floor(Math.random() * 3)); const k = b + '>' + a; S.owe[k] = (S.owe[k] || 0) + amt; ev.loan = amt; }
       if (N.rel(a) >= 40) { const G = this.G(); if (typeof JH34 !== 'undefined' && JH34.addAff) JH34.addAff(G, b, 3); else { G.aff = G.aff || {}; G.aff[b] = Math.max(0, Math.min(150, (G.aff[b] || 0) + 3)); } ev.aff = 3; } }
     else { const k = a + '>' + b; if (!S.owe[k]) { const s = this.jh(b); S.owe[k] = Math.max(100, Math.min(800, Math.round(((s && s.debt) || 200) / 2 / 50) * 50)); }
-      const amt = S.owe[k]; const broke = !!(this.jh(b) && this.jh(b).debt > 0); const paid = opt.paid != null ? !!opt.paid : Math.random() < (broke ? 0.3 : 0.55);
+      const amt = S.owe[k]; const broke = !!(this.jh(b) && this.jh(b).debt > 0); const paid = opt.paid != null ? !!opt.paid : this.roll(broke ? 0.3 : 0.55);
       ev.amt = amt; ev.paid = paid;
       if (paid) { delete S.owe[k]; ev.rel = this.addRel(a, b, 5); ix = this.DEBT_PAID; }
       else { S.owe[k] = Math.min(5000, Math.round(amt * 1.1)); ev.rel = this.addRel(a, b, -15); ix = this.DEBT_DODGE; } }
@@ -65,7 +67,7 @@ const NPC37E = {
     // 先处理旧账：有欠账的一对优先讨债
     const debts = Object.keys(S.owe).map(x => x.split('>')).filter(p => ids.indexOf(p[0]) >= 0 && ids.indexOf(p[1]) >= 0);
     for (let g = 0; g < want * 6 && k < want; g++) { let a, b, kind;
-      if (debts.length && Math.random() < 0.5) { [a, b] = debts[Math.floor(Math.random() * debts.length)]; kind = 'debt'; }
+      if (debts.length && this.roll(0.5)) { [a, b] = debts[Math.floor(Math.random() * debts.length)]; kind = 'debt'; }
       else { a = ids[Math.floor(Math.random() * ids.length)]; b = ids[Math.floor(Math.random() * ids.length)]; if (a === b) continue; kind = this.pick(a, b); }
       if (this.block(kind, a, b)) continue; if (this.run(kind, a, b)) k++; }
     return k; },
