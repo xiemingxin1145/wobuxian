@@ -15,7 +15,7 @@
 
 
 
-**低模样例补充（2026-10-24）：** 在 `www/js/lowpoly_extra_chars.js` 新增从 Cube 拼出的「药农」样例（草帽、药篓、药锄，绿褐配色），并在低模预览页 `www/prototypes/lowpoly_box/` 下拉可选（同时补上已有的渡口船夫）。仍为离线预览，不接入正式加载链或图集。下一步：可继续加更多路人/NPC 样例，或把低模正式接入试炼场对比。
+**低模样例补充（2026-10-24）：** 在 `www/js/lowpoly_extra_chars.js` 新增从 Cube 拼出的「药农」样例（草帽、药篓、药锄，绿褐配色），并在低模预览页 `www/prototypes/lowpoly_box/` 下拉可选（同时补上已有的渡口船夫）。仍为离线预览，不接入正式加载链或图集。下一步：可继续加更多路人/NPC 样例（已补药农、黑市商人），或把低模正式接入试炼场对比。
 
 **当前：** art/prototypes/openworld_v25/ 三角色已完成并签收（离线资产）。另有运行时草稿 `www/js/lowpoly_box_chars.js`（2026-10-19）：Canvas 现画长方体 Q 版人（青衫剑修 / 讨债鬼差 / 主角女 / 剑仙，四向 + 待机/行走/挥砍/受击），预览页 `www/prototypes/lowpoly_box/`，只给即时战原型 `skin:'box'` 试用，不进正式加载链；单测 `test/lowpoly_box.js`。
 
