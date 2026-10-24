@@ -130,6 +130,17 @@
 - 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；`art/gen/NEEDED.md` 记录到「批次 2（2026-10-10）」；v24 人形模型批次见 `HANDOFF_CHARS.md`。**当前渲到哪一批：待确认**。
 - HD 包：CI 按 `hd-assets.json`（现为 `wbx-hd-assets-3.2.0-202610161413.zip`，367,260,215 B）从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源。更新 HD 包：`tools/make_hd_bundle.sh upload`（或 `tools/hd_pack.sh`：重渲 HD → 打 zip → 上传 assets-hd → 改 hd-assets.json 并推送）。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
 
+## 3.8.0 人物详情面板（Grok Bot，2026-10-24 11:40 起，分支 `prof38`，worktree `/workspace/prof38`，未 bump VERSION）
+> 规格 `docs/research_v38_profile.md`。新文件 `www/js/profile38.js`（index 在 dlg37 后；TEXT38A 由 `tools/gen_pf38.py` 从设计稿 §8 逐字生成），不改 game.js/talk.js/data.js；存档 `G.pf38` 惰性兜底，G.v 不变。
+- [x] 面板 `UI.p_pf38`：头部（立绘/名字/境界/地图，TIT39 若合入显示称号）、①基础 性格、②情谊 好感+关系分档、③隐藏 灵根/命格/真实好感/秘密①②（未解锁显示门槛）、④喜好（送过礼或好感≥60 才显示）。
+- [x] 入口：对话菜单「📜 查看详情」（包 Talk.extra）；角色面板底部「📜 人物详情（自己）」。
+- [x] 神识窥探：每年 3 次、目标境界高于玩家直接拒绝、成功率公式、30% 被发现扣好感 8/关系 5（karma≤−30 翻倍）、当年不可再窥；karma≥30 −10%。走 `Game.roll(p,'peek')`。
+- [x] 好感途径自动解锁（≥80 灵根 / ≥120 命格 / 道侣或 rel≥60&aff≥100 真实好感 / ≥130 秘密① / 150&rel≥80 秘密②），秘密 `on` 只结算一次；`PF38.reveal(id,key,{yr})` 给 3.8.2 道具用（同心香当年有效）。
+- [x] 年末「貌合神离」（道侣/记名弟子 taff≤−30，10%，寻路中不弹 toast）；子嗣 30% 继承道侣命格（包 FAM37.birth 写 kid.mg）；开发者页签「人物详情」。
+- [x] 测试：`node test/pf38_unit.js` 34/34；`python3 -B test/pf38_page.py`（真实触摸 412×915）FAILS []；validate22 0 错、npc37_unit 66/66、npc37_events_unit 50/50、fam37_unit fails []、jsscan33 errors []、controls FAILS 0。human_olaf / human23 未跑（交奥拉夫）。
+- ⚠ 待确认：设计稿 §3 门槛数字 6/10/13/16/20 与同表境界名（筑基中期/金丹后期/元婴中期/化神初期/渡劫初期）不一致；实现按境界名 = 9/14/17/20/24。命名 NPC 的大境界设计稿没给，`PF38.REALM` 按身份估值，待研究员确认。
+- [ ] 未做：秘密的对话选项 `opt`、命格 fx 数值（compAtk/disXp/kidLg 等，设计稿标「不支持」，只显示文案）、子嗣/记名弟子行尾「详情」按钮。
+
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
 
