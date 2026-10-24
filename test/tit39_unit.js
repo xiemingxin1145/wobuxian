@@ -9,7 +9,7 @@ function box(G) {
   c.G0 = G;
   vm.runInContext(`var TITLES=${JSON.stringify(OLD)}.map(id=>({id,n:id,d:'',ok:G=>id==='debtor',fx:id==='debtor'?{}:{atk:0.01}}));
     var NPCS={mentor:{n:'剑仙',por:'p'},sumei:{n:'苏魅',por:'p'},mom:{n:'娘',por:'p'},xx:{n:'路人',por:'p'}};
-    var Game={G:G0,meta:{endings:{}},async yearEnd(){this.G.year++;}};
+    var Game={G:G0,meta:{endings:{}},async yearEnd(){this.G.year++;},hasSave(){return SV;}};var SV=null;
     var Sys={title(){return TITLES.find(t=>t.id===Game.G.title)||TITLES[0];},mount(){return null;},bonus(k){return this.title().fx[k]||0;}};
     var UI={toast(s){toasts.push(s);},async say(p,n,s){says.push([n,s]);return 0;}};
     var JH34={ensure(G){return G.jh34=G.jh34||{feed:[]};},say(L,s,k,n){L.feed.push(s);news.push(s);}};
@@ -66,6 +66,12 @@ setTimeout(() => {
     ok(run(c, 'Game.G.aff.mentor') === 12 && run(c, 'Game.G.aff.sumei') === 8, 'affMod 送礼 ±2');
     ok(run(c, "typeof DevPanel.tabs.t39") === 'function', 'DevPanel 注册 t39 页签');
     ok(run(c, "NPC_TYPE39.baiwuchang==='debt'&&T39.npcType('mom')==='kin'"), 'NPC 类型表');
+    const jh = run(c, "TEXT39.titles.find(t=>t.id==='t39_jianghu')");
+    ok(run(c, "T39.def('t39_jianghu')._ok({})") === false && run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{}}})") === false, 't39_jianghu 缺 ev.total → false');
+    ok(run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{total:29,meet:40}}})") === false && run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{total:30}}})") === true, 't39_jianghu 读 G.npc37.ev.total≥30');
+    run(c, "SV={year:5,realm:3,stage:0,karma:40,stone:5,debt:0,aff:{},title:'debtor'};var s1=Game.hasSave();Game.G=s1;");
+    ok(run(c, 'Game.G.t39.cnt') === 7 && c.news.length === 6, '读档后刷新收藏（静默）cnt=' + run(c, 'Game.G.t39&&Game.G.t39.cnt'));
+    run(c, "Game.G.t39.cnt=99;Game.hasSave();"); ok(run(c, 'Game.G.t39.cnt') === 99, '同一存档只刷新一次');
     console.log(fails ? `${fails} FAIL` : 'ALL PASS'); process.exitCode = fails;
   });
 }, 0);
