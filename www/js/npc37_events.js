@@ -78,3 +78,5 @@ const NPC37E = {
 };
 if (typeof NPC37 !== 'undefined' && NPC37.yearNews && !NPC37.yearNews._e37) { const _yn = NPC37.yearNews; NPC37.yearNews = function () { let k = 0; try { k = NPC37E.yearTick(); } catch (x) { } return k + _yn.apply(this, arguments); }; NPC37.yearNews._e37 = 1; }
 window.NPC37E = NPC37E; window.NEWS37C = NEWS37C;
+// 序章/新手指引/战斗守卫：NPC37.storyBlock 为真时自发事件不弹 toast（只进新闻流）
+if (typeof NPC37E !== 'undefined' && NPC37E.notable && !NPC37E.notable._g37) { const _nt = NPC37E.notable; NPC37E.notable = function () { try { const N = this.N(); if (N && N.storyBlock && N.storyBlock()) return false; } catch (e) { } return _nt.apply(this, arguments); }; NPC37E.notable._g37 = 1; }
