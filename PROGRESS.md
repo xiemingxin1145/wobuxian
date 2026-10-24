@@ -45,6 +45,14 @@
 
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
 
+## 3.7.5 奇遇链 chain37（Grok Bot，2026-10-24 12:45 起，分支 `chain37`，worktree `/workspace/chain37`，未 bump VERSION）
+> 规格：`docs/research_v22.md` §12。新文件 `www/js/chain37.js`（index 在 dlg37 后），驱动 `fam37.js` 的 `TEXT37B.chains`；不改 game.js/talk.js/data.js/ui.js。存档 `G.chain37={v:1,ch:{c37_x:{s,t0,tn,k,done,out,fail,pen,burst,offer,after,chase,hunt}},cy}` 惰性兜底（§12.2 原写 `G.jh34.ch`，按交接要求改独立命名空间，CH34 进度不受影响）。
+- [x] 运行器：风声（年结算 40%/散修 60%，2 年过期）、并发 ≤2、⚑ 选项（不进 SAFE、不进 Track.list）、追踪栏 HUD 行、地点节点进图 1.5s 弹卡（`NPC37.idle()` / `R.player.nav` 守卫）。
+- [x] §12.1 F1–F13、§12.3 失败态、§12.4 战斗表（`Game.fight` 胜才前进）、§12.5 追凶支线、§12.6 文案、§12.7 `Chain37.doneCount`、§12.8 开发者 Tab「奇遇37」。
+- [x] 规格勘误：战斗表 `c1_3/0` → `c1_3/1`（〔独自夜探〕是第 2 个选项）；c6_3 两个选项都花灵石，补零成本选项〔让萧十三自己想办法〕→ c6_5。
+- [x] `test/chain37_unit.js` 70/70；validate22 0 错；npc37_unit 66/66。jsscan33 / fam37_unit / controls 需 Chrome，本轮未跑（奥拉夫占用 Chrome）。
+- [ ] 未做：c37_3「被夺宝抢先」入口（依赖 PR #46 `G.npc37.ev`）；route37 / tit39 改调 `Chain37.doneCount`（两 PR 未合）；战斗敌名覆写为人物名（只靠战前卡）。
+
 ## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
 > 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
 - [x] 元素亲和：包 `calcDmg`（回合制 battle.js 与即时战 rt27 共用），玩家本人非普攻技能按 `SKILLS[k].el`（data.js 原有字段）吃 24%/元素数，雷/冰再 +6%；灵兽/伙伴/普攻不吃。
