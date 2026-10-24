@@ -453,3 +453,4 @@
 - 已合并 origin/main af70924（3.7.2 dlg37、v39/v40/v41 设计稿）；index.html 冲突保留 route37.js + dlg37.js 两行。
 - 遭遇计数 G.npc37.ev = {total, meet, feud, help, debt}：NPC37.onMeet 成功生成路遇时 meet+total（被拦不计），NPC37E.run 成功时 feud/help/debt+total；NPC37.evc() 为旧档 ev={}/缺失补 0。使 #45 称号 t39_jianghu 可达。分支 npc37-evcount（基于 npc37-events，依赖 #42）→ PR #46 给奥拉夫，未合并；同一提交 cherry-pick 进 wip。
 - 测试：test/ 下全部 node 测试通过；未跑浏览器测试。
+- 奥拉夫 review #46：路遇 meet/total 改为在 NPC37.play 真正弹卡时计数（每卡一次，scene.cnt 防重复），onMeet 入队不再计数，队列溢出被挤掉的不计；evc() 旧档补齐保留；npc37_unit 加溢出用例。PR 分支 b85abf3，wip cherry-pick f17cc9f；仅跑 node 测试。
