@@ -574,3 +574,9 @@
 - 讨债令有了真用途后的文案收尾：PR #51 分支 debt-token-offset 追加 35bd522——追兵战得令结算卡「只是凭证，暂无用途」→「追兵战输了可花 1 枚抵掉误工费」，注释、stage3_chain、dev_openworld_page 断言同步，PR 描述已补文件清单。wip 同步 ecb381c，另把讨债令状态行和抵扣预览里的「若开放抵扣 / 仅预览，尚未生效」改成现行说法。
 - 测试：test/ 下全部 node 测试通过（stage3_chain、stage3_token_offset 14、npc37_unit 80、npc37_events_unit 54、validate22 无错等）。npc37_unit「放行后正常弹路遇卡」约 1/40 随机失败（来自 main #53 的用例，与 main 文件相同，非本线改动）。页面/Chrome 测试未跑：待补 dev_openworld_page、dev_entry_v25_page、route37_unit.py（playwright）。
 - 下一步：#50/#51 合 main 后随 main 合入；其后回到即时战/低模小步，或按群里分工接 3.7.5 之后的版本。
+
+## 开放世界线第三十六轮（2026-10-24 14:50，Grok Bot）
+- 奥拉夫报 #51 上 dev_openworld_page 必挂（main 通过）：原因是前面天道通缉打赢已攒 2 枚讨债令，「追兵战打输（重债）」时 #51 新增的「讨债令抵扣」确认卡先弹出，测试只等「追兵战结算」卡 → 5s 超时；确认卡留在 #modals 盖住面板，后续同年互斥/突破预估/追兵调参/调参预设点不到 #dow-zt（30s）。
+- 修复（只改 test/dev_openworld_page.py，PR #51 分支 b41ca17，wip cherry-pick）：败场先等确认卡并断言文案/选项，点「照付误工费」后原有误工费 889 断言不变；新增一场败场点「花 1 枚抵掉」：欠款不变、令 2→1、used=1、存档、结算卡含「抵掉了误工费」；断言不叠卡、流程结束无残留卡。
+- 审确认卡：走 UI.card（与结算卡同一 _q 串行队列、同 #modals 层），两个按钮都 pop + resolve，不会叠卡，选完必弹结算卡；与其他 card 一样没有 ✕ 关闭（一致）。dev_openworld.js 无需改。
+- 测试：node 全部通过（stage3_token_offset 14、stage3_chain、npc37_events_unit 54 等）；npc37_unit 偶发 79/80（main #53 既有随机用例）。py_compile 通过；Chrome 页面测试未跑（Chrome 被占用），待补跑 dev_openworld_page。
