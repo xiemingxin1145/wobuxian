@@ -176,7 +176,7 @@ function box() {
     gc.Game.meta = { tut23: 1 }; vm.runInContext('var B={on:true};', gc); ok(Q.storyBlock() === 'battle' && Q.idle() === false, '战斗中（B.on，含主线战）→ battle');
     await tick(); ok(qc.length === 0, '战斗中不弹路遇卡');
     gc.B.on = false; ok(Q.storyBlock() === null && Q.idle() === true, '序章完 + 指引完 + 不在战斗 → 放行');
-    await tick(); ok(qc.length === 1 && qc[0] === '⚑ 路遇·落魄剑仙', '放行后正常弹路遇卡');
+    await tick(); ok(qc.length >= 1 && qc.every(t => t === '⚑ 路遇·落魄剑仙') && QG.npc37 && QG.npc37.yc.n === 1, '放行后正常弹路遇卡（只生成 1 次路遇；mock 固定选 0，若该项缺物资 play 会重弹同一张卡，最多 3 次）');
     gc.toasts.length = 0; QG.flags = {}; QG.main = 0; Q.feed('【江湖风云】序章测试', true); ok(gc.toasts.length === 0 && QG.jh34.feed.some(f => f.s === '【江湖风云】序章测试'), '序章中新闻只进新闻流、不弹 toast');
     QG.flags = { main0: 1 }; QG.main = 1; Q.feed('【江湖风云】放行测试', true); ok(gc.toasts.length === 1, '序章后新闻 toast 正常');
     ok(Q.idle._g37 === 1 && Q.feed._g37 === 1, '守卫为包裹式（idle/feed 带 _g37 标记）');
