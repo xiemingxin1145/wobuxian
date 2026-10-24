@@ -74,7 +74,7 @@
 | 3.7.0–3.7.3 | ✅ 已发布（2026-10-24，Latest = v3.7.3 `cbb83a2`） | 3.7.0 路遇、3.7.1 多徒弟与家族、3.7.2 对话抉择、3.7.3 NPC 自发事件 + #47 修复 |
 | 3.7.4 | 🔧 测试中（PR #43，等奥拉夫 Chrome 点按测试） | 自由路线 route37 · `docs/research_v22.md` §10 |
 | 3.7.5 | ⬜ 未开始 | 奇遇链 · `docs/random_adventure_chain_draft.md` |
-| 3.8.0 | 🔧 开发中 | 人物详情面板 · `docs/research_v38_profile.md` |
+| 3.8.0 | 🔧 开发中（分支 prof38，PR 待奥拉夫点按测试） | 人物详情面板 · `docs/research_v38_profile.md` |
 | 3.8.1 | 🟡 已审过待发（PR #45，依赖 #46） | 称号 tit39 · `docs/research_v39_titles.md` |
 | 3.8.2 | ⬜ 未开始 | 道具 · `docs/research_v40_items.md` |
 | 3.8.3 | ⬜ 未开始 | 家族深化 · `docs/research_v41_clan.md` |
