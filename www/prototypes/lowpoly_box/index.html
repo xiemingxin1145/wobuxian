@@ -27,7 +27,8 @@
     <span id="wearOpts" style="margin-left:6px;">
       冠 <select id="guan"></select>
       佩 <select id="pei"></select>
-      神器 <select id="aw"><option value="1">轩辕残剑·觉醒Ⅰ</option><option value="2">轩辕残剑·觉醒Ⅱ</option><option value="3">轩辕残剑·觉醒Ⅲ（发光壳）</option></select>
+      神器 <select id="sq"></select>
+      <select id="aw"><option value="1">觉醒Ⅰ</option><option value="2">觉醒Ⅱ</option><option value="3">觉醒Ⅲ（发光壳）</option></select>
     </span>
     <button id="try" style="margin-top:6px;padding:6px 12px;background:#2a5a3a;color:#b0ffb0;border:1px solid #b0ffb0;border-radius:12px;">用方块角色试打即时战原型</button>
   </header>
@@ -47,11 +48,12 @@
     const COLS = [['idle', 0, 1, '待机·下'], ['idle', 1, 0, '待机·右'], ['idle', 0, -1, '待机·上'], ['idle', -1, 0, '待机·左'],
       ['walk', 1, 0, '行走·右'], ['attack', 1, 0, '挥砍·右'], ['hurt', 1, 0, '受击·右'], ['attack', 0, 1, '挥砍·下']];
     // 第 29 轮：冠 4 款 / 佩 4 款下拉（选项从 LowpolyBox.ATTACH 按槽位生成）+ 神器觉醒等级（Ⅲ 出发光壳）
-    for (const slot of ['guan', 'pei']) {
+    // 第 30 轮：神器 5 把下拉（sq 槽位），默认轩辕残剑
+    for (const slot of ['guan', 'pei', 'sq']) {
       const sel = document.getElementById(slot);
-      for (const [k, it] of Object.entries(LowpolyBox.ATTACH)) if (it.slot === slot) sel.add(new Option(it.name + '（' + k + '）', k));
+      for (const [k, it] of Object.entries(LowpolyBox.ATTACH)) if (it.slot === (slot === 'sq' ? 'shenqi' : slot)) sel.add(new Option(it.name + '（' + k + '）', k));
     }
-    const curWear = () => ({ guan: document.getElementById('guan').value, pei: document.getElementById('pei').value, shenqi: 'sq_xuanyuan', aw: +document.getElementById('aw').value });
+    const curWear = () => ({ guan: document.getElementById('guan').value, pei: document.getElementById('pei').value, shenqi: document.getElementById('sq').value || 'sq_xuanyuan', aw: +document.getElementById('aw').value });
     window.LowpolyPreview = { curWear };
     let scale = 1.0, t0 = performance.now();
     document.getElementById('try').onclick = () => RealtimeBattle.open([{ name: '讨债鬼差', hp: 80, x: 420, y: 200, speed: 70 }, { name: '讨债鬼差', hp: 80, x: 160, y: 160, speed: 60 }],

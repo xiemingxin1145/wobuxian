@@ -180,6 +180,15 @@
         const id = (here.length ? here : ids)[Math.floor(Math.random() * (here.length ? here.length : ids.length))];
         const sc = NPC37.onMeet(id, mapId, { force: true }); if (sc) await NPC37.play(sc);
     } },
+      // 自发事件按钮（第三十轮）：NPC37E 强制触发一次 NPC 之间的自发事件（结仇/求助/讨债随机一类，跳过额度但照样计入），写关系网 + 江湖新闻，结果用卡片显示
+    { key: 'zf', label: '自发事件', bg: '#3a2a4a', fg: '#e0c0ff', run: async () => {
+        const g = gameObj(); const u = uiObj();
+        if (!window.NPC37E || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
+        const ev = NPC37E.force(); if (!ev) { toast('没有可用的 NPC'); return; }
+        if (g.save) g.save();
+        const body = `${NPC37E.LABEL[ev.kind]}：${NPC37.name(ev.a)} ↔ ${NPC37.name(ev.b)}\n关系 ${ev.r0} → ${ev.rel}${ev.tie === 'ch' ? '（成仇）' : ''}${ev.loan ? `\n借出 ${ev.loan} 灵石` : ''}${ev.amt ? `\n账 ${ev.amt} 灵石：${ev.paid ? '讨回' : '赖账（加息一成）'}` : ''}${ev.aff ? `\n你对${NPC37.name(ev.b)}好感 +${ev.aff}` : ''}\n\n${ev.s || '（本年新闻额度已满，未上新闻）'}`;
+        if (u && u.card) await u.card('自发事件', body, 'i:bill', ['知道了']);
+    } },
     { key: 'zt', label: '追兵调参', bg: '#4a2a3a', fg: '#ffc0d8', run: async () => {
         const u = uiObj();
         if (!window.Stage3 || !Stage3.bountyTuning) return;

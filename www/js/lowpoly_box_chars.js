@@ -165,6 +165,30 @@
       ['guard', 0, -6, 0, 10, 3, 3, '#8a6a2a'],
       ['grip', 0, -10, 0, 3, 6, 3, '#5a3a1a'],
     ] },
+    // 第 30 轮：其余 4 把神器（命名对齐 shenqi36.js 的 sq_kunlun / sq_shennong / sq_haotian / sq_fuxi），各带觉醒Ⅲ发光色
+    sq_kunlun: { name: '昆仑镜', slot: 'shenqi', glow: '#a0e8ff', parts: [
+      ['disc', 0, 8, 0, 12, 2, 12, '#b8d8e8'],
+      ['rim', 0, 8, 0, 14, 1, 14, '#8a7a4a'],
+      ['handle', 0, -3, 0, 3, 10, 3, '#5a3a1a'],
+    ] },
+    sq_shennong: { name: '神农鼎', slot: 'shenqi', glow: '#90ff90', parts: [
+      ['body', 0, 0, 0, 10, 10, 8, '#6a8a4a'],
+      ['lid', 0, 0, 5, 8, 8, 2, '#4a6a3a'],
+      ['legL', -3, 0, -6, 2, 2, 4, '#3a4a2a'],
+      ['legR', 3, 0, -6, 2, 2, 4, '#3a4a2a'],
+      ['ear', 0, 0, 8, 6, 2, 3, '#8a6a2a'],
+    ] },
+    sq_haotian: { name: '昊天塔', slot: 'shenqi', glow: '#ffe8a0', parts: [
+      ['base', 0, 0, -4, 10, 10, 3, '#8a6a3a'],
+      ['mid', 0, 0, 0, 8, 8, 5, '#c8a050'],
+      ['top', 0, 0, 4.5, 6, 6, 4, '#d8b060'],
+      ['spire', 0, 0, 8.5, 2, 2, 4, '#ffd860'],
+    ] },
+    sq_fuxi: { name: '伏羲琴', slot: 'shenqi', glow: '#e0b0ff', parts: [
+      ['board', 0, 4, 0, 6, 22, 2, '#6a3a2a'],
+      ['strings', 0, 4, 1.5, 4, 20, 1, '#f0e8d0'],
+      ['head', 0, -8, 0, 7, 3, 3, '#4a2a1a'],
+    ] },
   };
   // 觉醒Ⅲ发光壳（第 29 轮）：觉醒等级 aw 由调用方传入（对齐 Grok Bot 数据层 sq36.own[id].aw，1..3；本文件不读 G），
   //   wear={shenqi:'sq_xuanyuan', aw:3}。壳 = 每块神器部件各方向外扩 GLOW_PAD、同中心、同挥砍组，部件名 'att:glow:*'，

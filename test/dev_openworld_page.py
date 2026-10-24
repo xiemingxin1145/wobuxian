@@ -39,9 +39,9 @@ async def main():
         await pg.wait_for_timeout(600)
         await pg.evaluate("localStorage.removeItem('wbx_dev_bounty_tuning')")
         await pg.click('#dow-open'); await pg.wait_for_timeout(300)
-        ck('「开放世界」兜底入口打开面板，面板里有十个按钮（第二十一轮加「讨债令」、第二十四轮加「路遇」）', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===10"))
+        ck('「开放世界」兜底入口打开面板，面板里有十一个按钮（第二十一轮加「讨债令」、第二十四轮加「路遇」、第三十轮加「自发事件」）', await pg.evaluate("document.getElementById('dow-panel').style.display==='flex' && document.querySelectorAll('#dow-panel button').length===11"))
         boxes = await pg.evaluate("""()=>{const q=[...document.querySelectorAll('#v25-entry,#v25-eq,#v25-rt,#dow-open')].concat([...document.querySelectorAll('#dow-panel button')]);return q.map(e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,r.left,r.right]})}""")
-        ck('main 三个开发者按钮 + 「开放世界」入口 + 面板十个按钮（含「突破预估」「讨债令」「追兵调参」「路遇」）互不重叠且都在屏内（可点）', len(boxes) == 14 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(14) for j in range(i+1, 14)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
+        ck('main 三个开发者按钮 + 「开放世界」入口 + 面板十一个按钮（含「突破预估」「讨债令」「追兵调参」「路遇」「自发事件」）互不重叠且都在屏内（可点）', len(boxes) == 15 and all(boxes[i][1] <= boxes[j][0] or boxes[j][1] <= boxes[i][0] for i in range(15) for j in range(i+1, 15)) and all(b[0] >= 0 and b[1] <= 915 and b[2] >= 0 and b[3] <= 412 for b in boxes))
         ck('wbx2_dev=1 出现 试炼场/全套神装/即时战 三个按钮', await pg.evaluate("['dow-entry','dow-eq','dow-rt'].every(id=>!!document.getElementById(id))"))
         # 1. 全套神装
         dialog['accept'] = True

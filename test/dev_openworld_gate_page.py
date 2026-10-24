@@ -4,7 +4,7 @@
 #   RealtimeBattle / Stage3 / LowpolyBox 全局不存在，DevOpenWorld 只是空壳（active=false、ready()===false），没有任何开发者按钮 / 覆盖层 / 页签。
 # 用例：(a) wbx2_dev='1' 后无 hash 重载（模拟 APK 重启）→ 原型 + 页签都在；(b) 未设 / '0' → 什么都没有；
 #   (c) 开发者模式下用 ux23 真实 7 连点关掉 → 兜底入口立即消失；再重载 → 什么都不加载；(d) 用 ux23 真实 7 连点打开 → 本会话内懒加载 + 登记页签；
-#   (e) main 真实 3.4.1 作弊菜单（UI.p_dev + dev341.js 包装）里「开放世界」页签恰好 1 个，点开渲染 10 个按钮（第二十一轮加「讨债令」、第二十四轮加「路遇」）。
+#   (e) main 真实 3.4.1 作弊菜单（UI.p_dev + dev341.js 包装）里「开放世界」页签恰好 1 个，点开渲染 11 个按钮（第二十一轮加「讨债令」、第二十四轮加「路遇」、第三十轮加「自发事件」）。
 import asyncio, os, sys, re, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'www'); PORT = int(os.environ.get('PORT', '8813'))
@@ -71,14 +71,14 @@ async def main():
         m = await pg.evaluate("""(()=>{const D=DevOpenWorld;const box=document.createElement('div');document.body.appendChild(box);const un=D.mount(box);
           const a={id:D.id,title:D.title,n:D.buttons.length,inBox:box.querySelectorAll('button.dow-btn').length,fbHidden:document.getElementById('dow-open').style.display==='none'};
           un();a.after=box.querySelectorAll('button').length;a.fbBack=document.getElementById('dow-open').style.display!=='none';return a})()""")
-        ck(f'(a) mount API：id=openworld / title=开放世界 / 10 个按钮 {m}', m['id'] == 'openworld' and m['title'] == '开放世界' and m['n'] == 10 and m['inBox'] == 10)
+        ck(f'(a) mount API：id=openworld / title=开放世界 / 11 个按钮 {m}', m['id'] == 'openworld' and m['title'] == '开放世界' and m['n'] == 11 and m['inBox'] == 11)
         ck('(a) mount() 后兜底入口隐藏，卸载后恢复', m['fbHidden'] and m['after'] == 0 and m['fbBack'])
         await pg.add_script_tag(url='js/dev_openworld.js'); await pg.wait_for_timeout(1200); st = await pg.evaluate(STATE)
         ck(f'(a) dev_openworld.js 再执行一次，页签仍 1 个 {st["owTabs"]}/{st["p341"]}', st['owTabs'] == 1 and st['p341'] == 1)
         # (e) main 真实 3.4.1 作弊菜单
         mm = await pg.evaluate(MENU)
         ck(f'(e) main 真实作弊菜单（ux23 UI.p_dev + dev341）页签条里「开放世界」恰好 1 个 {mm}', mm['n'] == 1 and mm['name'] == '开放世界')
-        ck('(e) 点开「开放世界」页签：10 个按钮渲染进页签、兜底入口隐藏；关面板后恢复', mm.get('inBox') == 10 and mm.get('fbHidden') and mm['fbBack'])
+        ck('(e) 点开「开放世界」页签：11 个按钮渲染进页签、兜底入口隐藏；关面板后恢复', mm.get('inBox') == 11 and mm.get('fbHidden') and mm['fbBack'])
         # (c) 开发者模式下 ux23 真实 7 连点关掉 → 兜底入口/页签立即消失，不再加载；重载后什么都没有
         await ux23_toggle(); st = await pg.evaluate(STATE)
         ck(f'(c) ux23 7 连点后 wbx2_dev 被移除（{st["dev"]}）', st['dev'] is None)
@@ -89,7 +89,7 @@ async def main():
         ck(f"(d) ux23 7 连点后 wbx2_dev='1'（{st['dev']}）", st['dev'] == '1')
         await all_loaded('(d) 会话内用 ux23 打开', st)
         mm = await pg.evaluate(MENU)
-        ck(f'(d)(e) 打开后 main 真实作弊菜单里「开放世界」恰好 1 个、10 个按钮 {mm}', mm['n'] == 1 and mm.get('inBox') == 10)
+        ck(f'(d)(e) 打开后 main 真实作弊菜单里「开放世界」恰好 1 个、11 个按钮 {mm}', mm['n'] == 1 and mm.get('inBox') == 11)
         await all_loaded('(d) 再无 hash 重载（APK 重启）', await load())
         await pg.evaluate("localStorage.removeItem('wbx2_dev')")
         await b.close()

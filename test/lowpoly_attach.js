@@ -143,14 +143,32 @@ for (const id of ALL) {
 {
   const pv = fs.readFileSync(path.join(ROOT, 'www', 'prototypes', 'lowpoly_box', 'index.html'), 'utf8');
   ok(/id="guan"/.test(pv) && /id="pei"/.test(pv) && /id="aw"/.test(pv), '预览页有 冠 / 佩 / 神器觉醒 下拉');
-  ok(/it\.slot === slot/.test(pv) && /LowpolyBox\.ATTACH/.test(pv), '冠/佩下拉选项从 ATTACH 按槽位生成（4+4 款）');
+  ok(/it\.slot === \(slot === 'sq' \? 'shenqi' : slot\)/.test(pv) && /LowpolyBox\.ATTACH/.test(pv), '冠/佩/神器下拉选项从 ATTACH 按槽位生成（4+4+5 款）');
   ok(/value="3"[^<]*觉醒Ⅲ/.test(pv) && /aw: \+document\.getElementById\('aw'\)\.value/.test(pv), '觉醒下拉含 Ⅲ，并把 aw 传给 wear');
 }
 
 const src = fs.readFileSync(path.join(ROOT, 'www', 'js', 'lowpoly_box_chars.js'), 'utf8');
 ok(!/\bG\.|\bG\[|localStorage|Game\./.test(src), '挂点代码不读写 G / Game / localStorage');
 const prev = fs.readFileSync(path.join(ROOT, 'www', 'prototypes', 'lowpoly_box', 'index.html'), 'utf8');
-ok(/id="wear"/.test(prev) && /shenqi: 'sq_xuanyuan'/.test(prev), '预览页有「试穿 3.6 挂点」开关');
+ok(/id="wear"/.test(prev) && /shenqi: document\.getElementById\('sq'\)\.value \|\| 'sq_xuanyuan'/.test(prev) && /id="sq"/.test(prev), '预览页有「试穿 3.6 挂点」开关 + 神器下拉（默认轩辕残剑）');
+
+// 第 30 轮：其余 4 把神器低模 + 觉醒Ⅲ发光壳
+{
+  const SQ5 = ['sq_xuanyuan', 'sq_kunlun', 'sq_shennong', 'sq_haotian', 'sq_fuxi'];
+  const SQSRC = fs.readFileSync(path.join(ROOT, 'www', 'js', 'shenqi36.js'), 'utf8');
+  ok(SQ5.every(k => L.ATTACH[k] && L.ATTACH[k].slot === 'shenqi') && Object.keys(L.ATTACH).filter(k => L.ATTACH[k].slot === 'shenqi').join() === SQ5.join(), '5 把神器齐全（顺序同 shenqi36）');
+  ok(SQ5.every(k => new RegExp(k + ": \\{ n: '" + L.ATTACH[k].name + "'").test(SQSRC)), 'id 与中文名对齐 shenqi36.js 数据层');
+  for (const k of SQ5) {
+    const it = L.ATTACH[k];
+    ok(/^#[0-9a-f]{6}$/i.test(it.glow) && L.hasGlow(k, 3) && !L.hasGlow(k, 2), `${it.name}：有发光色，只在觉醒Ⅲ出壳`);
+    ok(L.triCount(k) === it.parts.length * 12 && L.triCount(k, 3) === it.parts.length * 24 && L.triCount(k, 3) <= L.SLOT_BUDGET.shenqi, `${it.name}：Ⅰ/Ⅱ ${L.triCount(k)} tri，Ⅲ 含壳 ${L.triCount(k, 3)} tri ≤ 300`);
+    for (const id of L.ids) {
+      const D = L.dressParts(id, { shenqi: k, aw: 3 }); const body = D.filter(p => p[0].startsWith('att:shenqi:')), gl = D.filter(p => p[0].startsWith('att:glow:'));
+      ok(body.length === it.parts.length && gl.length === it.parts.length && gl.every(g => { const b = body.find(p => p[0] === 'att:shenqi:' + g[0].slice(9)); return b && g[1] === b[1] && g[2] === b[2] && g[3] === b[3] && g[4] === b[4] + L.GLOW_PAD * 2 && g[7] === it.glow.toLowerCase() && g[8] === 'sword'; }), `${id} 持${it.name}：本体 + 同中心外扩发光壳，跟随挥砍组`);
+    }
+    const F = L.build('jianxiu', { wear: { shenqi: k, aw: 3 } }); ok(F.some(f => f.glow) && F.filter(f => f.glow).every(f => f.part.startsWith('att:glow:')), `${it.name}：build 出发光面`);
+  }
+}
 ok(!/lowpoly_box/.test(fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8')), 'www/index.html 仍未加载低模脚本');
 
 console.log(fails ? `FAILED ${fails}` : 'ALL PASS');
