@@ -638,6 +638,36 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     ok(/Stage3\.fightStats\(r\)\.line/.test(dsrc), '追兵战结算卡调用 Stage3.fightStats(r).line');
   }
 
+  // 15d. 第三十三轮：讨债令第二个只读用途——Stage3.tokenFeePreview(G) 抵扣误工费预览（只读，不真正抵扣）
+  {
+    const deep = o => JSON.stringify(o);
+    const frz = o => { if (o && typeof o === 'object') { Object.values(o).forEach(frz); Object.freeze(o); } return o; };
+    ok(typeof S.tokenFeePreview === 'function' && S.TOKEN_FEE_COST === 1, '有 Stage3.tokenFeePreview(G)，1 枚抵 1 次');
+    const g0 = mk({ debt: 30000, year: 5 }); const s0 = deep(g0); const p0 = S.tokenFeePreview(g0);
+    ok(p0.tier === 3 && p0.fee === 3600 && p0.count === 0 && !p0.canOffset && p0.after === 33600 && p0.afterNoToken === 33600 && p0.tokensLeft === 0
+      && p0.text.includes('天道通缉档，费率 12%') && p0.text.includes('欠款 30000 → 33600') && p0.text.includes('抵不了') && p0.text.includes('仅预览，尚未生效') && deep(g0) === s0, '0 枚、欠 30000：误工费 3600、抵不了、存档不变');
+    const g1 = frz(mk({ debt: 30000, flags: { s3b_token: 3 } })); const s1 = deep(g1); let p1;
+    try { p1 = S.tokenFeePreview(g1); } catch (e) { p1 = null; }
+    ok(p1 && p1.canOffset && p1.after === 30000 && p1.tokensLeft === 2 && p1.text.includes('花 1 枚讨债令抵掉这笔，欠款保持 30000，讨债令剩 2 枚') && deep(g1) === s1 && g1.flags.s3b_token === 3, '3 枚：深冻结存档不抛错、预览抵后剩 2 枚、欠款不变、flag 不动');
+    const g2 = mk({ debt: 500 }); const p2 = S.tokenFeePreview(g2);
+    ok(p2.tier === 0 && p2.fee === 100 && p2.text.includes('误工费 100（保底）') && p2.text.includes('小账档，费率 5%'), '小账 500：保底 100 并标「保底」');
+    const g3 = mk({ debt: 3000, flags: { bounty: 1, s3b_token: 1 } }); const p3 = S.tokenFeePreview(g3);
+    ok(p3.tier === 2 && p3.fee === 300 && p3.text.includes('含通缉 +1 档') && p3.tokensLeft === 0, '欠款档 + 通缉 → 重债档 10%：300，抵后剩 0 枚');
+    ok([null, undefined, {}, 5, { debt: 'x', flags: null }, { debt: -50, flags: { s3b_token: 'a' } }].every(x => { try { const r = S.tokenFeePreview(x); return r.debt === 0 && r.fee === 100 && r.count === 0 && !r.canOffset && typeof r.text === 'string'; } catch (e) { return false; } }), '无存档 / 坏字段 / 负欠款：不崩，按欠 0、保底 100、0 枚');
+    // 与败场 settleBounty 同式：预览的误工费 = 下一场按开战档位打输真正记的误工费；且现在打输照旧加费、不扣讨债令
+    let agree = true;
+    for (const [d, b, n] of [[0, 0, 0], [999, 0, 1], [1001, 1, 2], [5001, 0, 0], [8888, 1, 9], [20001, 0, 4], [123456, 1, 1]]) {
+      const g = mk({ debt: d, flags: Object.assign({ s3b_token: n }, b ? { bounty: 1 } : {}) });
+      const pv = S.tokenFeePreview(g), r = SB(g, { result: 'lose', reason: 'dead', tier: S.debtPressure(g).tier });
+      if (pv.fee !== r.fee || pv.afterNoToken !== g.debt || S.tokenCount(g) !== n) agree = false;
+    }
+    ok(agree, 'tokenFeePreview.fee / afterNoToken 与下一场败场 settleBounty 逐例一致（7 例），且败场不扣讨债令');
+    const src = S.tokenFeePreview.toString();
+    ok(!/G\.[a-zA-Z_]+\s*=[^=]/.test(src) && !/flags\.[a-zA-Z_0-9]+\s*=[^=]/.test(src) && !/save\(/.test(src), 'tokenFeePreview 源码不给 G / flags 赋值、不 save');
+    const dsrc = require('fs').readFileSync(path.join(__dirname, '..', 'www', 'js', 'dev_openworld.js'), 'utf8');
+    ok(/Stage3\.tokenFeePreview\(g\.G\)\.text/.test(dsrc), '开发者「讨债令」卡片附上 Stage3.tokenFeePreview(g.G).text');
+  }
+
   console.log(fails ? `${fails} FAILED` : 'ALL PASS');
   process.exit(fails);
 })();

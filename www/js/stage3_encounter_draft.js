@@ -525,6 +525,28 @@ const Stage3 = {
     lines.push('只是凭证，暂无用途；本页只读，不改存档');
     return { count, max, full, year, lastYear, takenThisYear, src, block, lines, text: lines.join('\n') };
   },
+  // ======== 讨债令第二个只读用途（2026-10-24 第三十三轮）：抵扣误工费预览 ========
+  // tokenFeePreview(G)：纯函数，只读 G.debt / G.flags（bounty、s3b_token），不写任何字段、不调存档。
+  //   按现在的债压档位（debtPressure，挂通缉 +1 档）预估「若下一场追兵战输了（倒下或超时）」的误工费
+  //   fee = max(BOUNTY_FEE_MIN, 欠款 × BOUNTY_FEE[档位])，与 settleBounty 败场同式；再假设「1 枚讨债令抵 1 次误工费」（TOKEN_FEE_COST），
+  //   给出有令 / 无令两种结果。**只是预览，没有真正抵扣**：settleBounty 照旧加误工费、不扣讨债令；真抵扣须另开 PR 给奥拉夫审。
+  //   返回 { tier, n, debt, rate, fee, count, cost, canOffset, after, afterNoToken, tokensLeft, lines, text }。
+  TOKEN_FEE_COST: 1,
+  tokenFeePreview(G) {
+    const P = this.debtPressure(G);
+    const rate = this.BOUNTY_FEE[P.tier];
+    const fee = Math.max(this.BOUNTY_FEE_MIN, Math.round(P.debt * rate));
+    const count = this.tokenCount(G), cost = this.TOKEN_FEE_COST, canOffset = count >= cost;
+    const afterNoToken = P.debt + fee, after = canOffset ? P.debt : afterNoToken;
+    const tokensLeft = canOffset ? count - cost : count;
+    const N = this.TOKEN_NAME, lines = [];
+    lines.push(`抵扣误工费预览（${P.n}档，费率 ${Math.round(rate * 100)}%${P.bounty ? '，含通缉 +1 档' : ''}）`);
+    lines.push(`若下一场追兵战输了：误工费 ${fee}${fee === this.BOUNTY_FEE_MIN && P.debt * rate < this.BOUNTY_FEE_MIN ? '（保底）' : ''}，欠款 ${P.debt} → ${afterNoToken}`);
+    lines.push(canOffset ? `若开放抵扣：花 ${cost} 枚${N}抵掉这笔，欠款保持 ${P.debt}，${N}剩 ${tokensLeft} 枚`
+      : `若开放抵扣：需 ${cost} 枚${N}，你现在 ${count} 枚，抵不了`);
+    lines.push('仅预览，尚未生效：现在输了照旧记误工费、不扣讨债令');
+    return { tier: P.tier, n: P.n, debt: P.debt, rate, fee, count, cost, canOffset, after, afterNoToken, tokensLeft, lines, text: lines.join('\n') };
+  },
   bountyTokenEarned(out, tier) {
     return !!out && out.result === 'win' && (out.reason == null || out.reason === 'cleared') && tier === 3 &&
       Array.isArray(out.defeated) && out.defeated.includes(this.BOSS_NAME);

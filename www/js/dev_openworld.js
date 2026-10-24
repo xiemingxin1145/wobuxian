@@ -163,11 +163,12 @@
         await u.card('突破预估', body, 'i:sk_meditate', ['知道了']);
     } },
       // 讨债令按钮（第二十一轮）：讨债令第一个只读用途——显示「讨债令 x/9，今年是否已领」（Stage3.tokenInfo 纯函数），不改存档、不调 Game.save
+      // 第三十三轮：卡片下半加「抵扣误工费预览」（Stage3.tokenFeePreview 纯函数，只读，不真正抵扣）
     { key: 'lt', label: '讨债令', bg: '#3a3a2a', fg: '#ffe0a0', run: async () => {
         const g = gameObj(); const u = uiObj();
         if (!window.Stage3 || !Stage3.tokenInfo || !g || !g.G) { toast('请先开始一局（没有存档）'); return; }
         if (!u || !u.card) return;
-        await u.card(Stage3.TOKEN_NAME, Stage3.tokenInfo(g.G).text, 'i:bill', ['知道了']);
+        await u.card(Stage3.TOKEN_NAME, Stage3.tokenInfo(g.G).text + (Stage3.tokenFeePreview ? '\n\n' + Stage3.tokenFeePreview(g.G).text : ''), 'i:bill', ['知道了']);
     } },
       // 追兵调参按钮：债务强化 #7——显示当前生效的追兵档位参数表（默认表 + localStorage 开发者覆盖）、哪些字段被覆盖/钳制/回退；可一键清除覆盖。不改存档
       // 债务强化 #8：卡片选项固定为「知道了」+ 三个预设（好躲 / 原样（清除覆盖）/ 地狱），点预设 = 把预设 JSON 写进 TUNING_KEY（原样 = 删键）

@@ -499,3 +499,10 @@
 - 遭遇计数 G.npc37.ev = {total, meet, feud, help, debt}：NPC37.onMeet 成功生成路遇时 meet+total（被拦不计），NPC37E.run 成功时 feud/help/debt+total；NPC37.evc() 为旧档 ev={}/缺失补 0。使 #45 称号 t39_jianghu 可达。分支 npc37-evcount（基于 npc37-events，依赖 #42）→ PR #46 给奥拉夫，未合并；同一提交 cherry-pick 进 wip。
 - 测试：test/ 下全部 node 测试通过；未跑浏览器测试。
 - 奥拉夫 review #46：路遇 meet/total 改为在 NPC37.play 真正弹卡时计数（每卡一次，scene.cnt 防重复），onMeet 入队不再计数，队列溢出被挤掉的不计；evc() 旧档补齐保留；npc37_unit 加溢出用例。PR 分支 b85abf3，wip cherry-pick f17cc9f；仅跑 node 测试。
+
+## 开放世界线第三十三轮（2026-10-24 12:00 起，Grok Bot）
+- 已合并 origin/main 45eaad4（3.7.3、AGENTS.md 唯一入口与交接规则、#46 遭遇计数已合）；PROGRESS.md 冲突两边都保留。
+- 3.8.0 人物详情面板：发现 Grok Bot 已在 prof38 分支做完并开了 PR #50（profile38.js，写 G.pf38.seen，t39_kuixin 可读），本线不再重复开发；#50 合进 main 后随 main 合入 wip。
+- 讨债令第二个只读用途「抵扣误工费预览」：stage3_encounter_draft.js 新增 `Stage3.tokenFeePreview(G)` / `TOKEN_FEE_COST=1`（纯函数，按当前债压档位算下一场追兵战输了的误工费，与 settleBounty 败场同式；有令时预览「花 1 枚抵掉、欠款不变」，无令时「抵不了」；明确标「仅预览，尚未生效」）；dev_openworld.js 开发者「讨债令」卡片下半追加这段预览。不改存档、不改 settleBounty。
+- 测试：`node test/stage3_chain.js` 244 条全过（新增 10 条：0 枚/3 枚/保底/通缉升档/坏输入/与败场 settleBounty 7 例一致/源码不赋值/开发者卡片接线）；test/ 下全部 10 个 node 测试通过（含 validate22）。页面测试未跑（Chrome 需群里协调）：建议补跑 `python3 -B test/dev_entry_v25_page.py`、dev_openworld_page。
+- 下一步：讨债令真抵扣（追兵战败场可选花 1 枚免误工费）需主人定是否开放，开放则另开 PR 给奥拉夫审；或回到即时战/低模小步；#43 合进 main 时合并取 main 的 route37.js 与测试。
