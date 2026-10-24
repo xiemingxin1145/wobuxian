@@ -438,3 +438,11 @@
 - npc37.js：emit 支持 opt.pool / opt.force，新增 room() 额度查询。开发者面板加「自发事件」按钮（11 个按钮）。
 - 低模：其余 4 把神器（昆仑镜/神农鼎/昊天塔/伏羲琴）+ 觉醒Ⅲ发光壳，预览页神器下拉。
 - 已合并 origin/main 6ce5d1c（3.7.1、fam37、路遇寻路守卫）。纯 JS 测试全过；页面测试（npc37_events_page、dev_openworld_page、dev_openworld_gate_page 及 *_unit.py）因机器上已有 Chrome 在跑，待补跑。
+
+## 开放世界线第三十一轮（2026-10-24 10:05 起，Grok Bot）
+- 已合并 origin/main a9994ac（docs/research_v38_profile.md 人物详情面板设计稿 + TEXT38A）。
+- #42 小修（奥拉夫建议）：npc37_events.js 新增 `NPC37E.roll(p)`，4 处概率判定改走 `Game.roll(p, 'npc37e')`（与 dlg37 一致，无 Game.roll 退回 Math.random；抽人下标仍用 Math.random）；npc37_events_unit 加 4 条 → 48/48。npc37-events 分支 2ba07c3、wip 5d0251a，PR 已留言。
+- 3.7.4 自由路线 route37 第一轮：新文件 www/js/route37.js（TEXT374 逐字自 research_v22 §10.9；20 条路线年事件自 §10.6；进入条件/10 年冷却/魔修心魔、年积分与被动、商贾放贷、提示卡、4 个 r37_ 结局 ready()/+15 分；包 Game.yearEnd/Game.die，老档 route37=null 不变），index.html 在 fam37.js 后加载；test/route37_unit.js 72/72。分支 route37（8817339，基于 main a9994ac）→ PR #44 给奥拉夫，未合并；同一提交 cherry-pick 进 wip。
+- 数据缺口（写进 PR）：fam37 子嗣无境界/代数字段，家族路线与仙门世家结局暂时达不到；正道围剿战斗胜负未接；族学/族人好感/利息+1%/宗门战冷却 buff 只记录未接线。
+- 测试：test/ 下全部 node 测试通过；页面测试未跑（Chrome 需群里协调）。
+- 下一步：route37 第二轮——「更多→道途」面板、NPC ⚑ 大结局入口与二次确认、年事件/提示卡弹卡（⚑ 不代选）、修炼/打坐/坊市加成接线、放贷 UI + 页面测试；其后 v38 人物详情面板（docs/research_v38_profile.md 已到）。
