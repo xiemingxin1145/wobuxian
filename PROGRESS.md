@@ -448,3 +448,8 @@
 - 数据缺口（写进 PR）：fam37 子嗣无境界/代数字段，家族路线与仙门世家结局暂时达不到；正道围剿战斗胜负未接；族学/族人好感/利息+1%/宗门战冷却 buff 只记录未接线。
 - 测试：test/ 下全部 node 测试通过；页面测试未跑（Chrome 需群里协调）。
 - 下一步：route37 第二轮——「更多→道途」面板、NPC ⚑ 大结局入口与二次确认、年事件/提示卡弹卡（⚑ 不代选）、修炼/打坐/坊市加成接线、放贷 UI + 页面测试；其后 v38 人物详情面板（docs/research_v38_profile.md 已到）。
+
+## 开放世界线第三十二轮（2026-10-24 10:17 起，Grok Bot）
+- 已合并 origin/main af70924（3.7.2 dlg37、v39/v40/v41 设计稿）；index.html 冲突保留 route37.js + dlg37.js 两行。
+- 遭遇计数 G.npc37.ev = {total, meet, feud, help, debt}：NPC37.onMeet 成功生成路遇时 meet+total（被拦不计），NPC37E.run 成功时 feud/help/debt+total；NPC37.evc() 为旧档 ev={}/缺失补 0。使 #45 称号 t39_jianghu 可达。分支 npc37-evcount（基于 npc37-events，依赖 #42）→ PR #46 给奥拉夫，未合并；同一提交 cherry-pick 进 wip。
+- 测试：test/ 下全部 node 测试通过；未跑浏览器测试。
