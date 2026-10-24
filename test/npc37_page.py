@@ -31,6 +31,8 @@ async def main():
         for _ in range(10):
             if not await pg.evaluate("UI.stack.length"): break
             await pg.evaluate("(()=>{const t=UI.stack[UI.stack.length-1];const o=t&&t.querySelector('.opt');if(o)o.click();else{const x=t&&t.querySelector('.ph .x');x&&x.click()}})()"); await pg.wait_for_timeout(400)
+        # 3.7.4 #53：序章/新手指引期间不出路遇 → 本页测路遇本身，序章守卫由 npc37_unit 覆盖，这里放行
+        await pg.evaluate("if(Game.meta)Game.meta.tut23=1;NPC37.storyBlock=function(){return null}")
         # 自动任务开着：不触发
         await pg.evaluate("AUTO.on='quest'"); nid = await pg.evaluate(NEAR); await pg.wait_for_timeout(1500)
         ck('自动任务开着时贴近熟人不触发路遇', await pg.evaluate("!document.querySelector('.card .ct') || ![...document.querySelectorAll('.card .ct')].some(x=>x.textContent.startsWith('⚑ 路遇'))") and await pg.evaluate("!(Game.G.npc37&&Game.G.npc37.yc.n)"))

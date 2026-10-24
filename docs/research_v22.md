@@ -1135,3 +1135,652 @@ suanpan:    { n: '三界总算盘', spr: 'boss_tiandao2' /*2D 叠加*/, el: '金
   }
 }
 ```
+
+## 12. 【2026-10-24 12:4x 研究员】3.7.5 奇遇链 `chain37.js` 实装规格补全：id 核对 + 触发/失败态 + 战斗表 + 追凶支线文案（可直接抄）
+
+> 对应 `docs/research_story37.md` §4（规则）与 `docs/research_story37_text2.md` §三（6 链 36 节点 18 结局文案）。只写规格/文本/数值，不改代码。
+> 已核对（origin/main `45eaad4`，v3.7.3）：**链数据已经在代码里**——`www/js/fam37.js` 的 `TEXT37B.chains`（第 491 行起，6 条链，字段 `id/n/src/trig/fail/nodes[{id,npc,map,cond,t,ch[{t,fx,next}],to}]`），效果执行器 `FAM37.applyEff`（第 1775 行，支持 stone×(1+大境界)/item/aff/karma/debt/rate/sectRel/fb33/fight）也已存在；**缺的只是运行器 `chain37.js`**。本节把文案稿里只有文字描述、代码无法直接执行的部分全部落成可执行规格。
+
+### 12.0 ROADMAP 状态更正（不改 ROADMAP，仅在此记录）
+1. `docs/ROADMAP.md` 3.7.5 行写的规格文件是 `docs/random_adventure_chain_draft.md`，那是 10-17 的阶段 3 旧草稿（2 条示例链，已被 qc34/CH34 吸收）。**3.7.5 的实际规格 = `research_story37.md` §4 + `research_story37_text2.md` §三 + 本节 §12**，数据源 = `fam37.js` 的 `TEXT37B.chains`。建议发版人把 3.7.5 行的规格列改成这三处。
+2. `research_story37.md` §7 把 chain37 写成 3.7.3、route37 写成 3.7.4；实际 3.7.3 已发 NPC 自发事件，chain37 顺延为 3.7.5。route37（3.7.4，PR #43）的 `r37_xiaoyao` 依赖“已完成奇遇链 ≥4”，3.7.5 未合入前该结局只能靠 CH34 两条链计数，**route37 的计数函数要同时数 CH34 与 chain37**（见 12.7）。
+3. ROADMAP P1 #11「奇遇链 2.0 首批 12 条，每张地图 1 条」：现有 qc34 5 条 + CH34 2 条 + chain37 6 条 = 13 条，但按“起点地图”算仍缺 **乱葬岗 graveyard、东海仙岛 island（只有 c6_4 途经）**、桃花村只有 qc34 杀怪链。建议 3.7.6 补 2 条（乱葬岗、东海），本节不展开。
+
+### 12.1 文案稿与代码不一致处（必须按此修，否则会卡死或报错）
+
+| # | 问题 | 位置 | 处理 |
+|---|---|---|---|
+| F1 | `c37_3` 名字「半张藏宝图」与已上线的 CH34 `cangbao`「半张藏宝图」同名同 NPC（jh_xunbao） | TEXT37B c37_3 `n` | 显示名改为 **「秘境石门」**，id 不变；触发加“CH34 `cangbao` 已完成且 `out==='split'`”（作为续篇），见 12.2 |
+| F2 | 部分 `fx` 是空字符串 `""` | c1_1 等 | 运行器把 `""`/`{}`/缺省都当无效果 |
+| F3 | 结局奖励里 `debt:"-10%"`、`debt:"-20%"`、`rate:"-0.5%"`、`fb33:"+exp"` 是字符串，`applyEff` 只认数字 | e1_a / e2_c / e2_a / e6_a | 运行器先做 `norm()`：`debt:"-N%"` → `-Math.round(G.debt*N/100)`；`rate:"-0.5%"` → `-0.005`；`fb33:"+exp"` → 见 F4 |
+| F4 | `fb33.exp` 字段不存在（fabao33 存档只有 `id/tier/spent/aff/wipe`），加了也没任何作用 | e6_a | 改为：器灵好感 `G.fb33.aff=min(100,aff+30)` + 灵石 `round(FB33.cost(tier).stone×0.5)`（不再乘大境界；tier≥9 改为 +2000 灵石）。toast「萧十三的剑意抵了半阶炼器费」 |
+| F5 | `fight:1` 没写打谁，`applyEff` 会取**当前地图** `mons[0]`（坊市=讨债鬼、裂谷=小魔头…），且只把战斗塞进 `later`，**不返回胜负** | 所有 `fight` 选项 | 运行器不走 applyEff 的 fight，按 12.4 战斗表直接 `await Game.fight(mon,{elite,solo:true,tier})`，**只有胜利才执行该选项其余 fx 并前进**；输了节点不动、不扣其它资源，toast「没打过，回头再来」（同节点可重试，超时照算） |
+| F6 | `trig`/`cond` 是中文描述字符串（“G.debt>0 且筑基+”），不能 eval | 每条链 | 用 12.2 的 `CHAIN37X[id].can(G)` 函数替代；节点 `cond` 只在首节点有意义，运行器忽略其余节点的 `cond` |
+| F7 | `npc:"—"` 的节点（c1_5 讨债司地库、c3_4 秘境石门）没有 NPC 可点 | c1_5、c3_4 | 「地点节点」：玩家**进入该图**且节点激活时，延迟 1.5 秒弹卡（自动寻路/挂机中不弹，`NPC37.idle()` 为真才弹）；关掉后追踪栏显示「⚑ 奇遇·xxx：在{图}点此继续」，点追踪栏重新弹卡 |
+| F8 | 游走 NPC（jh_*）的节点绑了固定地图，但 jh_ 会被 JH34 月推进带走；`c3_5` 绑 `rift`（需元婴），筑基玩家去不了 | c1_3、c3_x、c4_x、c5_x、c6_x | jh_ 节点**忽略表里的 map**，用 `JH34.mapOf(id)`；节点激活时 `JH34hold(id,1)` 钉住，节点结束/链结束 `JH34hold(id,0)`。若钉住时该 NPC 所在图 `MAPINFO[m].need > G.realm`，把他的 JH34 位置改成该链首节点地图（c3 → secret）。固定 NPC（merchant/xianguan/mentor/sister）照表 |
+| F9 | 文案稿里节点 `aff` 负值（−10/−30/−40）想表达“结仇”，但 `JH34.addAff` 把好感夹在 ≥0，减到 0 就没区别了 | 多处 | 负值 aff 照常写 `G.aff`；**额外**把同值写进 `Life34.rel(id, v)`（恩怨轴 −100..100，npc37 寻仇/路遇读这个）。正值只写 G.aff |
+| F10 | `c37_2` 触发“主线≥尾声”：尾声链 `asc1` 在 `MI('done')` 之后（main30.js），等于天道账算清后才开，和链的主题（错账导致利息翻倍）矛盾 | c37_2 | 去掉主线条件，只要 `G.realm>=5`（化神，天外天 need=5） |
+| F11 | `c37_4` 首节点在 `rift`（need=4），触发条件只写 karma≤−20 | c37_4 | 加 `G.realm>=4` |
+| F12 | 花灵石的选项经 ×(1+大境界) 放大后可能付不起（c6_3 买剑在元婴是 −4000），`Game.apply` 会扣成负数 | 所有 `stone<0` | 运行器按放大后金额判断，不够则选项显示「🔒 灵石不足（需 N）」并不可点；每个节点至少保留一个零成本选项（已逐个核对：36 节点均满足） |
+| F13 | 物品消耗选项（bill/ledger/key/herb/ore/hcd/tsf）缺物品时 | 多处 | 复用 `FAM37.canEff` → 🔒 + 「缺 xxx」；已核对每个节点都有不需物品的选项，不会卡死。`ledger` 只能从 c37_1 结局 e1_b 拿到，这是有意的跨链联动，保留 |
+
+### 12.2 触发条件、出场节奏与存档
+
+**存档**：沿用 `G.jh34.ch[chainId]`（与 CH34 同一对象，key 以 `c37_` 开头不冲突）：
+`{ s:'c1_3'(当前节点id), t0:开始月, tn:进入当前节点的月, done:0|1, out:'e1_a'|'fail'|'chase_a'…, fail:0|1, pen:0, burst:0, offer:年 }`
+月份一律用 `JH34.now(G)`（绝对月），超时 = `now − tn ≥ 36`。老档无字段 = 未开始。
+
+| id | 显示名 | 起点 NPC@图 | `can(G)` | 链总时限 |
+|---|---|---|---|---|
+| c37_1 | 钱多多的赊账单 | merchant@market | `G.debt>0 && G.realm>=2` | **24 个月**（文案稿“拖 2 年”，比通用 36 月更紧） |
+| c37_2 | 记账童子的错账 | xianguan@heaven | `G.realm>=5` | 每节点 36 月 |
+| c37_3 | 秘境石门 | jh_xunbao（钉在 secret） | `G.realm>=2 && (G.aff.jh_xunbao||0)>=20 && CH34 cangbao.done && cangbao.out==='split'` | 每节点 36 月 |
+| c37_4 | 魔修的欠条 | jh_mozi（钉在 rift） | `G.realm>=4 && (G.karma<=-20 || (G.route37&&G.route37.id==='moxiu'))` | 每节点 36 月 |
+| c37_5 | 丹娘的炸炉 | jh_danniang（钉在 market） | `(G.alchLv||0)>=2` | 每节点 36 月 |
+| c37_6 | 剑与当铺 | jh_jianke（钉在 sect） | `!!(G.fb33&&FABAO[G.fb33.id]) && G.realm>=3` | 每节点 36 月；c6_1→c6_5 之间强制等 36 月（“三年后赎”），等待期不算超时 |
+
+**出场节奏（让“奇遇”像奇遇，而不是常驻任务）**：
+1. 每年年结算（包 `Game.yearEnd`，挂在 talk37/npc37_events 之后），对每条“满足 `can` 且未开始”的链掷骰：基础 **40%**，散修路线 ×1.5 = **60%**；成功则 `S.offer = 当年`，起点 NPC 对话出现「⚑ 奇遇·{显示名}」，并 toast 一句风声（12.6）。
+2. 风声有效期 2 年，过期没接就清掉 `offer`，下一年重新掷。
+3. 同时进行中（已接、未完成）的 chain37 **≤2 条**；满 2 条时起点选项显示「🔒 手头奇遇太多（2/2）」。CH34 不计入。
+4. 对话选项标题一律以「⚑」开头 → 不在 `ux23.js` SAFE 白名单，自动任务/挂机永不代选（AGENTS.md 硬规则 2）。
+5. 追踪栏：激活链显示「⚑ {显示名}（第 k 步）：找{NPC}于{图}」，k = 已走节点数 + 1（分支链步数不固定，不显示分母）；可点追踪寻路，jh_ 用 `JH34.mapOf`。
+
+### 12.3 失败态（6 条链各自的可执行后果）
+
+失败统一：`S.done=1, S.fail=1, S.out='fail'`，解除 hold，弹卡（标题「⚑ 奇遇·{显示名}·落空」，正文 = 当前节点 `to` 文案 + 下表“失败卡”一句），发 `Story37` 事件 `'chain:fail'`（若该总线存在），写一条江湖传闻。**不可重开**（A4.2）。
+
+| id | 何时失败 | 后果（代码） | 失败卡追加文案 |
+|---|---|---|---|
+| c37_1 | 链总时限 24 月到；或 merchant 好感为 0 且走到 c1_4 拒绝后又超时 | `G.debt += round(G.debt*0.10)`；下一次年结算强制一战「讨债鬼追猎」：`collector` 精英，tier=max(地图档位, realm+stage×0.2)+0.3，输了 `G.stone -= round(G.stone*0.1)`，赢了 +1 功德、无其它奖励 | 讨债司在赊账单上盖了个“逾期”，顺手把你的名字描粗了一圈。 |
+| c37_2 | 任一节点 36 月超时 | `S.pen` 机制：此后每年结算若 `S.pen<6`，`FAM37.ensure(G).rate += 0.01; S.pen++`（最多累计 +6%）；**若玩家后来走到别处使 debt=0，停止累加**。显示在家族面板已有的“天道利率额外 +x%”里 | 童子没等到你，只好把错账原样上报。天道批示：“利息照算，错的那笔按复利。” |
+| c37_3 | 任一节点超时；或 jh_xunbao 陨落；或当年 npc37 对 jh_xunbao 发生 `duobao`（夺宝）事件 | **不直接失败**，转入「追凶支线」`c3_x1`（12.5），追凶支线再超时才真正失败（无额外惩罚，只记 out='fail'） | （转支线时）钱满仓托人带话：“图被抢了，石门的位置也漏了。帮我把东西追回来！” |
+| c37_4 | 任一节点超时；或在 c4_6 选〔背叛魔门〕（这是结局 e4_b，不算失败，但同样扣 sectRel） | 超时 = 判定“背叛”：`G.sectRel.tianmo = clamp(−100,100, (…||0) − 30)`；`Life34.rel('jh_mozi', −30)` | 厉无咎在裂谷口等了三年，最后把那张欠条钉在了你的名字上。 |
+| c37_5 | 链在 c5_3–c5_5 期间，玩家自己炼丹炸炉累计 3 次（读 `lian35` 连炼结果 `out.fail` 累加到 `S.burst`）；或任一节点超时 | 掷骰：30% `jh_danniang` 陨落（走 npc37 现有陨落路径，置 `G.npc37.st.jh_danniang.dead=1` 并写传闻），70% 重伤：`JH34` 该 NPC `inj=1` 12 个月、好感 −10。**节点 NPC 陨落的链（含本链）一律按 A4.3 转失败而不是卡死** | 炉子炸了第三回，整条街都听见了。苏半夏被抬走的时候还攥着那张丹方。 |
+| c37_6 | 任一节点超时（c6_1→c6_5 的固定 36 月等待不算）；或在 c6_5 选〔拒赎〕（=结局 e6_c，照常给奖励） | 超时 = 萧十三认定你失信：`Life34.rel('jh_jianke', −40)`，`G.aff.jh_jianke` 减半 | 当票过期了。萧十三没来，只托人送来一截断掉的剑穗。 |
+
+**NPC 陨落通用规则（A4.3）**：每次打开对话/年结算时检查当前节点 NPC：`NPC37.block(id)==='dead'` 或 NPCS 中不存在 → 立刻按该链失败处理（c37_3 走追凶支线）。固定 NPC merchant/xianguan/mentor/sister 不会陨落，无需特判。
+
+### 12.4 战斗表（替换所有 `fight:1`）
+
+tier 统一 `max(MAPINFO[当前图].tier, G.realm + G.stage*0.2)`，表里“+x”为在此基础上加档。`solo:true`（不刷杂兵）。人物对手用怪物代打（现有 MONS 无人形对手），**战前卡写明“{人物}出手了”**；若 `_startBattle` 支持标题覆写则把敌名改成人物名（待确认，不支持就只靠战前卡）。
+
+| 节点·选项 | 对手 MONS | 精英 | 加档 | 战前一句 |
+|---|---|---|---|---|
+| c1_3〔独自夜探〕 | collector | 否 | +0 | 地库门口的讨债鬼正在数铜板，数到一半看见了你。 |
+| c1_5〔硬闯〕 | collector | 是 | +0.3 | 账房鬼一拍算盘：“擅闯者，按日计息！” |
+| c3_3〔探路〕 | treant | 否 | +0 | 你刚踩进去，脚下的树根就动了。 |
+| c3_4〔强行破门〕 | rock | 是 | +0.3 | 石门上的门神是块石头精，脾气比门还硬。 |
+| c3_5〔拼了〕 | demon | 是 | +0.5 | 厉无咎没拔刀，只放出了一团魔火：“陪它玩玩。” |
+| c4_1〔当场拔剑〕 | demon | 是 | +0.5 | 厉无咎冷笑着接下了你的第一剑。 |
+| c4_4〔动手〕 | paper | 是 | +0.4 | 萧十三剑出如符，满天剑气化成纸符扑面而来。 |
+| c6_4〔并肩杀出〕 | crab | 是 | +0.3 | 海妖首领挥着两只大钳子，嫌你们来得太晚。 |
+| c3_x1〔硬抢〕（12.5） | demon | 否 | +0.2 | 抢图的小魔头把图塞进嘴里，你只好动手。 |
+
+胜利额外奖励：无（奖励都在选项与结局里）。失败：按 F5 原地重试。
+
+### 12.5 追凶支线（c37_3 失败转入，新文案，2 节点 2 结局）
+
+| 节点 | NPC@图 | 文本 | 选项 → 效果 → next | 超时 |
+|---|---|---|---|---|
+| `c3_x1` | jh_mozi 所在图（F8 规则，筑基玩家够不着则改到 secret） | 抢图的人留下一串魔火脚印，一路通到厉无咎的落脚处。 | 〔硬抢〕{fight: demon, stone: 0} → `c3_x2`<br>〔花钱赎图〕{"stone": -300} → `c3_x2`<br>〔算了〕— → `chase_b` | 脚印被雨冲没了。 |
+| `c3_x2` | jh_xunbao（已陨落则改为 `villager` 说书先生代收） | 图追回来了，边角被魔火燎掉一块，石门的位置还认得出。 | 〔交还钱满仓〕{"aff": {"jh_xunbao": 15}} → `chase_a`<br>〔自己留着〕{"item": {"key": 1}, "karma": -5} → `chase_b` | 图上的墨迹褪得一干二净。 |
+
+- `chase_a` 钱满仓拍着你的肩：“图丢了能追回来，兄弟丢了可追不回来。”石门下回一起开。 奖励 {"stone": 200, "item": {"lz": 1}}
+- `chase_b` 你把这桩事咽下了。秘境深处那扇石门，以后大概会有别人去开。 奖励 {"aff": {"jh_xunbao": -10}}
+
+（stone 照 applyEff 规则 ×(1+大境界)；`chase_a`/`chase_b` 都算“完成”，`chase_a` 计入 route37 的有效完成数，`chase_b` 不计。）
+
+### 12.6 风声 toast / 起点卡 / 完成 toast（每链 3 句）
+
+| id | 风声 toast（年结算掷中时） | 起点选项文字 | 完成 toast（任一结局，失败除外） |
+|---|---|---|---|
+| c37_1 | 坊市有人在传：钱多多翻出一卷很旧的赊账单，逢人就问认不认得上面的名字。 | ⚑ 奇遇·钱多多的赊账单 | 赊账单这事总算了了。坊市的算盘声都轻快了些。 |
+| c37_2 | 天外天来了只纸鹤，翅膀上写着：“急！账错了！是你的！——记账童子” | ⚑ 奇遇·记账童子的错账 | 天道账本翻过了一页。你那一页上，墨迹总算干了。 |
+| c37_3 | 钱满仓托人捎话：“上回那箱子底下还压着东西，这回是扇门。” | ⚑ 奇遇·秘境石门 | 石门的事传开了，秘境里的妖都说你是“开门的那位”。 |
+| c37_4 | 魔道裂谷飘出一张烧了一半的欠条，落款处是青云宗的掌门印。 | ⚑ 奇遇·魔修的欠条 | 那张欠条的事，正魔两道都记住了你的名字——用不同的语气。 |
+| c37_5 | 坊市东头又“轰”了一声。街坊说：苏半夏的炉子，这个月第四回了。 | ⚑ 奇遇·丹娘的炸炉 | 丹香飘过半条街，路过的人都多吸了两口。 |
+| c37_6 | 青云宗山脚的当铺里，挂出了一把很眼熟的剑。 | ⚑ 奇遇·剑与当铺 | 当铺的掌柜说，这辈子没见过谁把当票当成婚书一样收着。 |
+
+### 12.7 与其它系统的接口
+
+1. **route37（3.7.4）**：完成数 `Chain37.doneCount(G)` = CH34 中 `done && out 不在 ['no','ignored']` 的条数 + chain37 中 `done && !fail && out!=='chase_b'` 的条数。`r37_xiaoyao` 条件“已完成奇遇链 ≥4”改调此函数。散修路线：风声概率 ×1.5（12.2）、chain37 结局灵石 ×1.2（与 route37 §10.2 “江湖任务酬劳 ×1.2” 同一口径）。
+2. **tit39（3.8.1）**：建议称号钩子 `Chain37.doneCount(G)>=3` → 「江湖百晓」（若 research_v39 已有同类称号则复用，不新增）。
+3. **npc37**：c37_3 的“被夺宝抢先”读 npc37 当年对 `jh_xunbao` 的 `duobao` 记录（`G.npc37.ev` 计数，PR #46）；PR #46 未合前，只用“超时/陨落”两个失败入口。
+4. **talk37/dlg37 延迟后果**：不复用，chain37 的后果都是即时或年结算一次性，不进 dlg37 的延迟队列，避免一个年结算里叠两张卡。年结算弹卡顺序：fam37 家事 → npc37_events → chain37（风声 toast 不占卡；失败卡/追猎战占一张卡，同年最多 1 张）。
+
+### 12.8 开发者面板（dev341 新 Tab「奇遇37」）
+
+每条链一行：`[开始]`（无视 can/节奏，直接激活首节点）`[跳到节点 ▾]`（下拉 6–7 个节点）`[直达结局 ▾]`（逐个结局，执行该结局奖励）`[判超时]`（把 tn 拨回 37 个月前并立即检查）`[杀节点NPC]`（只对 jh_，验 A4.3）`[重置]`。另加全局：`[本年掷风声]`、`[炸炉×3]`（给 c37_5 的 S.burst +3）。
+
+### 12.9 验收用例（`test/chain37_unit.py`，补全 §4 的 A4.1–A4.3）
+
+| 用例 | 内容 | 通过标准 |
+|---|---|---|
+| A4.1 | 18 个原结局 + 2 个追凶结局，经 dev 面板逐个直达 | 每个结局奖励按 F3/F4 归一化后数值正确，无 pageerror |
+| A4.2 | 6 条链各判一次超时 | 落入 12.3 失败后果；起点选项不再出现；`S.fail=1` |
+| A4.3 | 杀 jh_xunbao / jh_danniang / jh_jianke / jh_mozi 各一次 | c37_3 转 `c3_x1`，其余转失败；无卡死节点（追踪栏不再指向死人） |
+| A4.4 | 并发上限 | 已接 2 条时第 3 条起点显示 🔒 且不可点 |
+| A4.5 | 战斗输 | 节点不前进、不扣该选项其它资源，可重试 |
+| A4.6 | 灵石不足 / 缺物品 | 选项 🔒 且显示需求；每节点至少一个可点选项（静态检查 38 节点） |
+| A4.7 | 挂机/自动任务 | 5 分钟挂机不选任何 ⚑ 选项（读 UX SAFE/UNSAFE） |
+| A4.8 | 老档 | 无 `c37_*` 字段读档正常；CH34 两条链进度不受影响 |
+| A4.9 | 真实触摸（412×915） | 起点 NPC 对话点「⚑ 奇遇·钱多多的赊账单」→ 走到任一结局，卡片不溢出 |
+| A4.10 | c37_2 罚息 | 判超时后连过 8 年，`FAM37 rate` 只累加到 +0.06；debt=0 后停止 |
+
+### 12.10 可直接抄的补丁数据块（与 `TEXT37B.chains` 合用）
+
+```js
+// chain37.js 顶部：TEXT37B.chains 之外的可执行补丁（研究员 2026-10-24）
+const CHAIN37X = {
+  OFFER_P: 0.4, OFFER_YEARS: 2, MAX_ACTIVE: 2, NODE_TO: 36,
+  c37_1: { n: '钱多多的赊账单', home: 'market', limit: 24,
+    can: G => G.debt > 0 && G.realm >= 2,
+    fail: { debtPct: 10, hunt: { mon: 'collector', elite: 1, add: 0.3, losePct: 10 } } },
+  c37_2: { n: '记账童子的错账', home: 'heaven', can: G => G.realm >= 5, fail: { ratePerYear: 0.01, rateMax: 0.06 } },
+  c37_3: { n: '秘境石门', home: 'secret',
+    can: G => { const c = G.jh34 && G.jh34.ch && G.jh34.ch.cangbao; return G.realm >= 2 && ((G.aff && G.aff.jh_xunbao) || 0) >= 20 && !!(c && c.done && c.out === 'split'); },
+    fail: { chase: 'c3_x1' } },
+  c37_4: { n: '魔修的欠条', home: 'rift', can: G => G.realm >= 4 && (G.karma <= -20 || (G.route37 && G.route37.id === 'moxiu')),
+    fail: { sectRel: { tianmo: -30 }, rel: { jh_mozi: -30 } } },
+  c37_5: { n: '丹娘的炸炉', home: 'market', can: G => (G.alchLv || 0) >= 2, burstNodes: ['c5_3', 'c5_4', 'c5_5'],
+    fail: { burst: 3, dieP: 0.3, injMonths: 12, aff: { jh_danniang: -10 } } },
+  c37_6: { n: '剑与当铺', home: 'sect', can: G => !!(G.fb33 && typeof FABAO !== 'undefined' && FABAO[G.fb33.id]) && G.realm >= 3,
+    wait: { from: 'c6_1', to: 'c6_5', months: 36 }, fail: { rel: { jh_jianke: -40 }, affHalf: 'jh_jianke' } },
+  fights: {
+    'c1_3/0': ['collector', 0, 0], 'c1_5/0': ['collector', 1, 0.3], 'c3_3/0': ['treant', 0, 0], 'c3_4/1': ['rock', 1, 0.3],
+    'c3_5/1': ['demon', 1, 0.5], 'c4_1/1': ['demon', 1, 0.5], 'c4_4/0': ['paper', 1, 0.4], 'c6_4/0': ['crab', 1, 0.3], 'c3_x1/0': ['demon', 0, 0.2],
+  }, // key = 节点id/选项下标 → [MONS id, elite, 加档]
+  norm: { e1_a: { debtPct: -10, karma: 5 }, e2_c: { debtPct: -20, karma: -10 }, e2_a: { rate: -0.005, aff: { xianguan: 20 } },
+    e6_a: { fbHalfCost: 1, fbAff: 30, aff: { jh_jianke: 10 } } },
+  chase: [
+    { id: 'c3_x1', npc: 'jh_mozi', t: '抢图的人留下一串魔火脚印，一路通到厉无咎的落脚处。',
+      ch: [{ t: '硬抢', fx: {}, next: 'c3_x2' }, { t: '花钱赎图', fx: { stone: -300 }, next: 'c3_x2' }, { t: '算了', fx: {}, next: 'chase_b' }], to: '脚印被雨冲没了。' },
+    { id: 'c3_x2', npc: 'jh_xunbao', alt: 'villager', t: '图追回来了，边角被魔火燎掉一块，石门的位置还认得出。',
+      ch: [{ t: '交还钱满仓', fx: { aff: { jh_xunbao: 15 } }, next: 'chase_a' }, { t: '自己留着', fx: { item: { key: 1 }, karma: -5 }, next: 'chase_b' }], to: '图上的墨迹褪得一干二净。' },
+  ],
+  chaseEnd: { chase_a: { t: '钱满仓拍着你的肩：“图丢了能追回来，兄弟丢了可追不回来。”石门下回一起开。', fx: { stone: 200, item: { lz: 1 } }, count: 1 },
+    chase_b: { t: '你把这桩事咽下了。秘境深处那扇石门，以后大概会有别人去开。', fx: { aff: { jh_xunbao: -10 } }, count: 0 } },
+  failText: {
+    c37_1: '讨债司在赊账单上盖了个“逾期”，顺手把你的名字描粗了一圈。',
+    c37_2: '童子没等到你，只好把错账原样上报。天道批示：“利息照算，错的那笔按复利。”',
+    c37_3: '钱满仓托人带话：“图被抢了，石门的位置也漏了。帮我把东西追回来！”',
+    c37_4: '厉无咎在裂谷口等了三年，最后把那张欠条钉在了你的名字上。',
+    c37_5: '炉子炸了第三回，整条街都听见了。苏半夏被抬走的时候还攥着那张丹方。',
+    c37_6: '当票过期了。萧十三没来，只托人送来一截断掉的剑穗。',
+  },
+  rumor: {
+    c37_1: '坊市有人在传：钱多多翻出一卷很旧的赊账单，逢人就问认不认得上面的名字。',
+    c37_2: '天外天来了只纸鹤，翅膀上写着：“急！账错了！是你的！——记账童子”',
+    c37_3: '钱满仓托人捎话：“上回那箱子底下还压着东西，这回是扇门。”',
+    c37_4: '魔道裂谷飘出一张烧了一半的欠条，落款处是青云宗的掌门印。',
+    c37_5: '坊市东头又“轰”了一声。街坊说：苏半夏的炉子，这个月第四回了。',
+    c37_6: '青云宗山脚的当铺里，挂出了一把很眼熟的剑。',
+  },
+  doneToast: {
+    c37_1: '赊账单这事总算了了。坊市的算盘声都轻快了些。',
+    c37_2: '天道账本翻过了一页。你那一页上，墨迹总算干了。',
+    c37_3: '石门的事传开了，秘境里的妖都说你是“开门的那位”。',
+    c37_4: '那张欠条的事，正魔两道都记住了你的名字——用不同的语气。',
+    c37_5: '丹香飘过半条街，路过的人都多吸了两口。',
+    c37_6: '当铺的掌柜说，这辈子没见过谁把当票当成婚书一样收着。',
+  },
+  fightLine: {
+    'c1_3/0': '地库门口的讨债鬼正在数铜板，数到一半看见了你。', 'c1_5/0': '账房鬼一拍算盘：“擅闯者，按日计息！”',
+    'c3_3/0': '你刚踩进去，脚下的树根就动了。', 'c3_4/1': '石门上的门神是块石头精，脾气比门还硬。',
+    'c3_5/1': '厉无咎没拔刀，只放出了一团魔火：“陪它玩玩。”', 'c4_1/1': '厉无咎冷笑着接下了你的第一剑。',
+    'c4_4/0': '萧十三剑出如符，满天剑气化成纸符扑面而来。', 'c6_4/0': '海妖首领挥着两只大钳子，嫌你们来得太晚。',
+    'c3_x1/0': '抢图的小魔头把图塞进嘴里，你只好动手。',
+  },
+};
+```
+
+### 12.11 数值自检（按 applyEff 的 ×(1+大境界) 口径）
+
+| 链 | 典型触发境界 | 走最优路线净灵石（约） | 对照 | 结论 |
+|---|---|---|---|---|
+| c37_1 | 筑基（×3） | −300（问钱多多）+1500（交原件）+2400（e1_c）≈ +3600；或 e1_a 欠款 −10%（8888 起步约 −900，随利息增长更值） | 筑基一年打怪收入约千级 | 合理；e1_a/e1_c 是“长期 vs 现钱”的真选择 |
+| c37_2 | 化神（×6） | 复原字迹 −1800；e2_a 永久 −0.5% 利率 | 欠款上万时每年省数百，渡劫前回本 | 合理 |
+| c37_3 | 筑基–金丹（×3–4） | 买图 −1500~−2000，e3_a +900~1200 + 千年灵芝 | 主要价值在灵芝与好感 | 偏亏但有物品补偿，保留（独吞 e3_b 给 2 灵芝 + 欠条是诱惑） |
+| c37_4 | 元婴（×5） | e4_a +7500 | 元婴宗门战酬劳同量级 | 合理；代价是 karma −20 左右与正道关系 |
+| c37_5 | 炼丹 Lv2 常在练气–筑基（×2–3） | 逼钱多多赔 +600~900；e5_a 筑基丹（市价 300） | 小链 | 合理 |
+| c37_6 | 元婴（×5） | 借 −2500 或买剑 −4000；e6_a 半阶炼器费（4→5 阶约 3000+） | fabao33 cost(n)=300×2.2^n | 合理；F4 修正后剑意确实有用 |
+
+## 13. 【2026-10-24 14:3x 研究员】3.8.2 道具 `items40.js` 实装规格补全：代码核对 + 效果改写 + 来源/商店表 + 战斗道具 + 送礼算法 + 剧情道具交付文案（可直接抄）
+
+> 对应 `docs/research_v40_items.md`（60 个 `i40_` 道具、TEXT40）。只写规格/文本/数值，不改代码。
+> 已核对：origin/main `9c96645`（含 3.7.5 chain37）+ 分支 `origin/prof38` `8d78fb2`（3.8.0 `www/js/profile38.js`，PR #50 未合）。结论：**v40 有 9 处效果写法在现有代码里会“静默无效”或“效果反了”**（见 13.1，I1–I9 必须改）；另有 6 个道具依赖 3.8.3，本版只登记不投放（13.2）。
+
+### 13.0 状态更正（不改 ROADMAP，仅在此记录）
+1. `docs/ROADMAP.md` 3.7.5 行仍写「🔧 开发中（PR #52）」：PR #52 已 squash 进 main（`9c96645`）；`VERSION`/`CHANGELOG` 提交 `cd66c54` 当前只在本机分支 `rel375`，origin/main 上还没有（14:3x 核对）。发版人推版本号后把该行改成「✅ 已发布」。
+2. v40 §1「现有 31 个 id」已复核无误（data.js 24 + xyf/mg_reroll/lgd/tcdb/sqj/wb33_frag/hetong_doc），www/js 里目前没有任何 `i40_` 字符串，无冲突。
+3. 3.8.2 硬依赖 3.8.0 的 `PF38`（`reveal/has/secs/hid/ss`）。若 3.8.2 先于 PR #50 合并，窥心类和 `sec:*` 剧情道具一律按「未上线」处理（13.2 的 gate 列），不进商店、不掉落。
+
+### 13.1 v40 写法与代码不一致处（必须按此改，否则无效/反效果）
+
+| # | 道具 | v40 写法 | 代码事实 | 改为 |
+|---|---|---|---|---|
+| I1 | i40_xiaoyao 逍遥丸 | `use:'life'` 寿元+2 | `ui.js:113` 的 `life` **写死 +20 年** | `use:'i40'`，`eff:'life+2'`（`Game.apply` 支持 `life+N`，game.js:252）；限用见 13.3 |
+| I2 | i40_jiezhai 延期还款单 | `eff:'debtint'` 本年利息减半 | `game.js:275` 的 `debtint` 是**欠款 +8%**，效果正好反了 | 用 `G.i40.half = G.year` 标记；包 `Game.yearEnd`：调用前记 `d0=G.debt`、`r=0.03+(G.fam37&&G.fam37.rate||0)`，调用后若 `half===结算前的 G.year` 则 `G.debt=max(0,G.debt−floor(ceil(d0*r)/2))`，toast「延期还款单生效：利息减半（省 N）」。**闭关（`Game.seclude`）不生效**，使用卡注明 |
+| I3 | i40_lingshou 灵兽肉干 | `petexp` 灵宠经验+50 | `petexp` 实际给 `80×POW(realm)`（game.js:276），且没有出战灵宠时**吞掉道具不提示** | `use:'i40'`，`eff:'petexp'`；使用前 `Game.activePet()` 为空 → toast「没有出战的灵宠」不消耗；描述改「出战灵宠经验大涨」 |
+| I4 | i40_huanyan 驻颜丹 / i40_kaiqiao 开窍丹 | `st:cha:1` / `st:int:1`（标 false） | `Game.apply` 原生支持 `cha+1` / `int+1`（game.js:243，写 `G.st[k]`） | `eff:'cha+1'` / `eff:'int+1'`，`sup:'partial'`（只差 `use:'i40'` 分派 + 限用计数） |
+| I5 | i40_xisui_s 小洗髓液 | `eff:'lg36pur+8'` | 不是 apply 词法；lg36.js:101 已处理 `use:'lg36pur'`，但**写死 +5** | `use:'i40'`，`eff:'pur:8'`，items40 内用 `LG36.addPur(8,G)`，toast 文案同灵根丹 |
+| I6 | i40_huiyuan 回元散 | `use:'heal'`，sup:true | 背包里可用；但**战斗道具栏写死 `['hcd','hld']`**（ui.js:248），battle.js:174 也只认这两个 id | 背包照 `heal`；战斗道具栏按 13.4 追加；战斗内效果按 13.4 处理 |
+| I7 | i40_mixin 密信 | `peek sec1` = 秘密① | PF38 的键是 **`sec0`=秘密①、`sec1`=秘密②**（profile38.js:61） | `peek sec0`；`sec:npc:1`（秘密②）不变 |
+| I8 | 剧情道具 flag 名 | `pf_qian_weight` / `pf_lingpai` / `ruyan_duel` | PF38 秘密实际置的是 `pf_qian_scale` / `pf_keeper_tablet` / `pf_ruyan_oath` | 道具**获得条件**读 PF38 的真名；道具自身 `eff` 保留 v40 的新 flag（作为“已交出”标记，不冲突） |
+| I9 | 4 个 `sec:*` 剧情道具 | 见右 | ① `i40_nilin` 来源「敖小乐秘密②」又去解锁秘密②，**循环**；② `i40_duanjian` 来源「追问 pf_mentor_sword 后」——这个 flag 就是秘密②自己的 `on`，**循环**；③ `i40_bingxin`(sec:lengyue:1)、`i40_huangzhang`(sec:xianguan:1)：这两人**只有 1 个秘密**，`reveal` 返回 false，道具白交 | 全部改成 13.6 的「交付表」（每个道具二选一，有实际奖励） |
+
+其余写法可直接用：`aff:id:n`、`flag:x`、`life+N`、`stone±N` 都是 `Game.apply` 现有词法；`i40_shuguan` 的 `use:'scroll'` 现成可用。
+
+### 13.2 本版投放范围（gate）
+- **3.8.2 投放 54 个**；以下 6 个**只登记到 ITEMS、不进任何商店/掉落**，背包使用时 toast「家族谱系尚未开放（3.8.3）」不消耗：`i40_jiapu`、`i40_zuxun`、`i40_dici`、`i40_lianhun`、`i40_zupu_old`、`i40_ditu`。（v40 §8「sup:false 的道具在系统未上线前不进商店」即此。）
+- `i40_songzi`（子嗣 +40%）和 `i40_yuelao`（婚配）**不必等 3.8.3**，用 fam37 现有接口落地（13.3）。
+- 依赖 PF38 的 8 个（`kuixin_jing/mingpan/tongxin/mixin/shenshi` + 13.6 里的 4 个 `sec:*`）：`typeof PF38==='undefined'` 时不进商店、不掉落。
+
+### 13.3 存档与 `use:'i40'` 分派器
+
+`G.i40 = { v:1, cnt:{}, cntR:{}, giftM:{}, yr:{}, dz:0, luck:0, half:-1, birth:-1, match:0, mixin:[], done:{}, pref:{} }`，惰性兜底，不升 `G.v`。
+
+| 字段 | 含义 |
+|---|---|
+| `cnt[id]` | 终身已用次数（驻颜/开窍上限 3） |
+| `cntR[id+'@'+G.realm]` | 本大境界已用次数（逍遥丸上限 3） |
+| `yr[id]` | 最近使用年份（静心丹/养神丹/送子瓶每年 1 次） |
+| `dz` | 静心丹待生效（下一次「打坐」修为 ×2） |
+| `luck` | 转运珠待生效（下一次 `Game.roll(p,'qiyu')` 必中） |
+| `half` / `birth` | 延期还款单 / 送子瓶生效的年份 |
+| `match` | 月老红线：下一次结侣门槛降低（一次性） |
+| `mixin` | 密信绑定的 NPC 队列（背包里只有数量，绑定存这里，先进先出） |
+| `done[id]` | 13.6 剧情道具已交付及选项 |
+| `pref[npc+'@'+礼物]` | 送礼命中爱(1)/憎(-1)，供详情面板「喜好」栏 |
+
+包 `UI.useItem`（在 lg36 的包装之后加载即可）：`I.use==='i40'` 或 `'peek'` 或 `'passive'` 时自己处理并 `return`，否则交给原函数。
+
+| 道具 | 实现（全部“先检查、能用才 `Game.take`”） |
+|---|---|
+| jingxin | 本年已用 → 🔒「今年已经服过了」；否则 `dz=1; yr.jingxin=G.year`。包 `Acts.mat(m,bonus)`：`dz` 为 1 时以 `bonus×2` 调原函数，返回后若行动力从 >0 变 0（真打坐了）才 `dz=0`（选闭关/算了不消耗效果） |
+| xiaoyao | `cntR` 满 3 → 🔒「这一境界吃不下了」；`Game.apply('life+2')` |
+| xisui_s | `LG36.addPur(8,G)`，返回 0 → 🔒「纯度已满」不消耗 |
+| huanyan / kaiqiao | `cnt` 满 3 → 🔒；`Game.apply('cha+1')` / `('int+1')` |
+| shenshi | 本年已用 → 🔒；`yr.shenshi=G.year`；包 `PF38.ss(G)`：`yr.shenshi===G.year` 时 +3 |
+| wangyou | 弹 NPC 列表：`G.aff` 里有值、或 `Life34.st().rel[id]` ≠0 的 NPC，**排除 `G.partner`、`G.fam37.sp`、`mom`**；选中后 `G.aff[id]=0`、`Life34.st().rel[id]=0`，toast「一碗下去，{名}看你的眼神像看陌生人」 |
+| yuelao | `match=1`；包 `FAM37.canMarry`：`match` 时门槛改 `aff≥80 && rel≥40`；`marry` 成功后 `match=0` |
+| songzi | 无道侣 → 🔒「你还没有道侣」；子嗣已满 `FAM37.KID_MAX` → 🔒；`birth=G.year`。包 `FAM37.famYear`：原函数返回后，若 `birth===结算年` 且本年没出生（调用前后 `kids.length` 相同）且 `rnd()<0.4` → `FAM37.birth(rnd)` 并 toast |
+| xingyun | `luck=1`；包 `Game.roll`：`kind==='qiyu' && luck` → `luck=0; return true`。描述改「下一次奇遇风声必定出现（需满足奇遇链条件）」，因为 `'qiyu'` 目前只有 chain37 年结算掷骰会用 |
+| jiezhai | 见 I2 |
+| lingshou | 见 I3 |
+| dazuo（passive） | 无「使用」按钮（`use` 留空，`passive:'cult'`）；包 `Game.cultMult`：`Game.has('i40_dazuo')` 时 ×1.10，多个不叠加 |
+| peek 类 | 见 13.5 |
+
+### 13.4 战斗道具（`poxie` / `dunfu` / `leifu` / `huiyuan`）
+- 道具栏：包 `UI.renderBB`，`sub==='item'` 时在 `hcd、hld` 后追加 `BATTLE40=['i40_huiyuan','i40_poxie','i40_dunfu','i40_leifu']` 中持有的，按钮格式与原来一致（无货 disabled）。
+- 效果：`battle.js` 的 `doAction` 是全局函数声明，`battleLoop` 按名字调用 → items40 里 `const _da=doAction; doAction=async function(a){…}` 即可接管；`a.sk==='item' && BATTLE40.includes(a.item)` 时自己处理并 return，其它交原函数。每场状态存在 `B.i40={}`（`startBattle` 时清空，同样包一层）。
+
+| 道具 | 战斗内效果 | 限制 / 不可用时 |
+|---|---|---|
+| huiyuan | 同 hcd：回复 `mhp×0.5×(1+pillBonus)` | — |
+| poxie | `B.i40.poxie=1`；包全局 `calcDmg(a,d,sk)`：`B.i40.poxie && a.side===0 && POXIE40.has(d.mon)` 时 `dm×1.2`，飘字「破邪」 | 每场 1 张；对象表：`POXIE40 = guiwang collector paper ghost jiangshi demon corpse mozun moguard xian_yaomo guizu`（按 MONS 名字含 魔/鬼/魂/尸 核出来的，新增怪自行补） |
+| dunfu | `B.fled=true`，飘字「土遁！」 | `B.opts.boss \|\| B.opts.noflee` → 飘字「此地封了土遁」，**不消耗** |
+| leifu | 对选中单体造成 `round(90×POW(t.tier)×0.35×(t.boss?0.5:1))` 真实伤害（不算防御、不暴击），飘字「掌心雷」 | 每场 1 张（`B.i40.lei`）。数值含义：同档普通怪约 1/3 血，精英约 1/5，BOSS 约 1/40；price 150 不随境界变 |
+
+- 物品 `use` 字段：huiyuan=`heal`；poxie/dunfu/leifu=`'battle'`，背包里点「使用」→ toast「战斗中才能用」，不消耗。
+- 自动战斗（`B.auto`）不使用这四个（AI 只从技能里挑，不改）。
+
+### 13.5 窥心道具（对接 PF38）
+- 使用流程：弹 NPC 列表（`G.aff` 有记录的 NPC ∪ `PF38.T.fixed`），每行标「已知晓 / 可窥」；只列 `!PF38.has(id,k)` 且（`k` 为秘密时）`PF38.secs(id)[i]` 存在的。列表为空 → toast「没有可窥探的人了」，不消耗。
+- 选中后 `PF38.reveal(id,k,opt)`；返回 false 时 toast「已知晓」，不消耗；成功则消耗并直接打开该 NPC 详情面板。
+
+| 道具 | k | opt |
+|---|---|---|
+| kuixin_jing | `lg` | — |
+| mingpan | `mg` | — |
+| tongxin | `taff` | `{yr:1}`（PF38 已支持当年有效） |
+| mixin | `sec0` | **不弹列表**：直接用 `G.i40.mixin.shift()` 的 NPC；该 NPC 已知晓或已陨落 → 改成从「有秘密①未知晓」的 NPC 里随机一个；都没有 → 返还 300 灵石并消耗 |
+
+- 密信掉落：包 npc37 路遇结算，选项结束后 5% 掷骰；只在该 NPC `PF38.secs(id)[0]` 存在且未知晓时掉落，`G.i40.mixin.push(id)`，toast「{名}掉了一封密信」。
+- 命格加成（送礼时结算，13.7）读 `PF38.hid(id).mg`。
+
+### 13.6 剧情道具：来源与交付（替代 v40 的 `sec:*` / `debtSeed`，可直接抄）
+
+所有交付选项都以「⚑」开头（`ux23.js:264` 的 SAFE 白名单里有「★」和「交付」，**不能用这两个开头**），自动任务永不代选。`G.i40.done[id]={c:选项序号}`，交过的不再出现。
+
+| 道具 | 怎么拿（条件 → 入口） | 交给谁 / 选项 → 效果 |
+|---|---|---|
+| i40_duanjian 断剑残片 | `PF38.has('mentor','sec0')` → 仙官·记账童子对话「⚑ 打听断剑下落」，付 300×(1+realm) 灵石 | mentor「⚑ 把断剑交给他」→ `reveal('mentor','sec1')`、`aff:mentor:15`、`atkup`（攻击 +2%）。 |
+| i40_weibali 第九尾当票 | flag `pf_ali_tail` → 阴三娘「⚑ 赎回阿离的尾巴」，付 5000 灵石 | ali「⚑ 把当票还给她」→ `reveal('ali','sec1')`、`aff:ali:20` |
+| i40_nilin 逆鳞 | `reveal('aoxiao','sec1')` 时自动给（包 `PF38.reveal`，返回 true 且 id/k 匹配） | aoxiao「⚑ 还给她」→ `aff:aoxiao:30`、`karma+5`；taizi（敖小白）「⚑ 交给龙宫」→ `stone+(10000×(1+realm))`、`karma-10`、`G.aff.aoxiao=0`、`Life34.rel('aoxiao',-40)` |
+| i40_diya 灵脉抵押书 | flag `pf_elder_mortgage` 且已入青云宗 → 宗门藏经阁（elder 对话）「⚑ 翻一翻旧档」 | elder「⚑ 还给掌门」→ `reveal('elder','sec1')`、`contrib+50`；xianguan「⚑ 递给讨债司」→ `debt` 减 10%、`G.aff.elder=0`、`Life34.rel('elder',-50)`、已入青云宗则 `contrib` 清零 |
+| i40_bingxin 冰心玉 | `PF38.has('lengyue','sec0')` → lengyue 对话「⚑ 问冰封之人」后给 | lengyue「⚑ 把玉放回冰棺」→ `aff:lengyue:20`、flag `i40_ly_jade`；若心魔系统（xinmo34）存在则下次心魔幻境成功率 +10%（读 flag） |
+| i40_huangzhang 坏账名单 | `PF38.has('xianguan','sec0')` → xianguan 对话「⚑ 他抽屉里的册子」 | xianguan「⚑ 还给他」→ `aff:xianguan:25`、欠款 −5%；suanpan「⚑ 交给天道会计」→ `stone+(3000×(1+realm))`、`karma-15`、`G.aff.xianguan=0`、`Life34.rel('xianguan',-50)` |
+| i40_yuejie 旧借据（v40 `debtSeed`） | flag `pf_mom_debt` → mom 对话「⚑ 翻家里的旧箱子」 | mom「⚑ 收好，不提了」→ `aff:mom:10`、`karma+3`；suanpan「⚑ 拿去讨债司对质」→ 欠款 −10%（一次性）、`karma+2` |
+| i40_jiacheng 假秤砣 | flag `pf_qian_scale` → merchant 对话「⚑ 顺走他的秤砣」（50% 被发现：`aff:merchant:-10`，仍到手） | farmer「⚑ 交给王大爷（举报）」→ `karma+5`、本年 merchant 商店 9 折（`G.i40.yr.scale=G.year`）；merchant「⚑ 拿秤砣敲诈他」→ `stone+(800×(1+realm))`、`karma-5`、`Life34.rel('merchant',-30)` |
+| i40_lingpai 无名灵牌 | flag `pf_keeper_tablet` → keeper 对话后给 | keeper「⚑ 把灵牌供回去」→ `karma+3`、`life+3` |
+| i40_jianzhong 剑冢誓书 | flag `pf_ruyan_oath` → ruyan 对话后给 | ruyan「⚑ 接她三剑」→ 连打 3 场 `Game.fight('ruyan',{elite:true,solo:true,noflee:true})`（MONS 无 ruyan 时用 `heixin` 精英换名），全胜 `aff:ruyan:30`、flag `ruyan_duel`；败一场即止，道具不消耗可再来 |
+| i40_cuihuabao 七个荷包 | `G.aff.cuihua>=120 && PF38.has('cuihua','sec0')` → cuihua 对话自动给 | 背包「使用」→ `aff:cuihua:15`（v40 原样，`aff:` 现成） |
+| i40_jiezhai_qi 天道借债契 | 主线 `MI('done')` 后讨债司（cuizhai 图任意 NPC 对话）「⚑ 调阅原始契约」 | 只读道具：背包「使用」弹卡展示契约全文（13.8），flag `i40_contract`，不消耗 |
+
+### 13.7 送礼算法（重写 `Talk.gift`，保留原文案与 `giftCount`/成就）
+```
+gift(id):
+  have = GIFTS（原 6 个 + 20 个 i40 礼物）中持有的；超过 8 个时分页（每页 7 个 +「下一页」）
+  本月已送：G.i40.giftM[id] === JH34.now(G) → say「这个月已经收过你的礼了。」 return
+  g = 选中; Game.take(g); G.i40.giftM[id] = JH34.now(G)
+  kin = (id==='mom'||id==='farmer'||id==='cuihua'||id===G.partner)
+  if g==='i40_tiezhi': v = (aff>=60 ? 15 : 3)
+  elif love(g) 含 id 或 (含 'kin' 且 kin) 或 Talk.prefs[id]===g: v = 22
+  elif hate(g) 含 id: v = -12
+  else: v = ri(8,12)
+  if v>0 且 PF38: mg = PF38.hid(id).mg; n_tianxi → v = round(v*1.25); n_qiongxiang → v += 5
+  G.aff[id] = clamp(0,150, aff+v); v<0 时额外 Life34.rel(id,-3)
+  love/hate 命中时记 G.i40.pref[id+'@'+g]=±1（3.8.0 详情面板「喜好」栏读）
+```
+回话文案：love「“这、这正是我最喜欢的！”」（沿用）；普通「“谢谢你。”」（沿用）；hate 按下表，其余 NPC 用默认「“……你是故意的吧？”（好感−12）」。
+
+| NPC | 讨厌时的台词 |
+|---|---|
+| mentor | “拿走拿走，看着就想起我那些债主。” |
+| sister | “你送这个给我？我看起来像那种人吗？” |
+| lengyue | “俗物。”（冷月仙子连眼皮都没抬） |
+| elder | “年轻人，心思要放在修炼上。” |
+| mom | “乱花钱！这得多少灵石？下回不许买了。” |
+| merchant | “这玩意儿我铺子里有一百个，进价三文。” |
+| danlao | “甜食伤丹田，拿走。” |
+| sumei | “啧，这么正经的东西，送错人了吧。” |
+| aoxiao | “不好玩！我要会动的！” |
+| guzhu | “雷劈过的东西，药性全毁了。” |
+
+### 13.8 来源 / 商店表（`SHOPS` 追加，`p` 用 TEXT40 原价）
+- 已有商店追加：`yaopu` +huiyuan、jingxin、xiangnang；`merchant` +dunfu、yuzan、ganggu、zhangben、laojiu；`sumei` +huanyan、mozhu；`xianguan` +jiezhai；`fisherm` +yugan、lingshou、xingyun；`qianxd` +yueguang。
+- 新开商店（`Object.assign(SHOPS,…)`，talk.js:48 会自动出现「交易」）：
+
+| key | 店名 | 货品 | 门槛 |
+|---|---|---|---|
+| sanniang | 鬼市当铺 | xiaoyao、kuixin_jing、wangyou、baigu、suanpan | — |
+| shuoshu | 茶馆书摊 | huaben、poxie、shuguan、mingpan | mingpan 需 PF38 |
+| danlao | 丹房小柜 | kaiqiao、shenshi | shenshi 需 `aff.danlao≥80` 且 PF38 |
+| leigong | 雷部福利 | leiguo、leifu | leifu 需 `aff.leigong≥40` |
+| guzhu | 百草谷药圃 | xisui_s、yaocao | — |
+| taizi | 龙宫御膳房 | longxu | — |
+| guanghan | 广寒宫 | yueguang、tongxin | tongxin 需 PF38 |
+| farmer | 王大爷的小摊 | guihua、tanghulu | — |
+| guichengxiang | 龟丞相 | qiju | — |
+| caishen | 财神庙 | suanpan | — |
+
+  门槛做法：给该店 `items` 定义 getter（`Object.defineProperty(SHOPS.x,'items',{get(){…按条件过滤…}})`），这样 `UI.shop` 不用改。
+- 掉落：huaduo 野花 = 包 `Acts.herb`，采药后 15% +1；dazuo 蒲团 / yaocao / jianpei = 包 `Dng.exit`（同 shenqi36.js:220 的通关判定），秘境通关各 10% / 15% / 15%；mixin 见 13.5；tiezhi 请柬 = 3.8.3 书坊，本版改为 merchant 在 `G.realm≥2` 时售卖。
+- **i40_jiezhai_qi 契约全文**（13.6 使用时弹卡）：
+  > 立契人：落魄剑仙（签名潦草，疑似用剑划的）。
+  > 承建：天道营造司。标的：本世界（含山川、灵脉、凡人若干、蚊子不计）。
+  > 尾款：飞升尾款捌仟捌佰捌拾捌灵石整，按年三分计息，利滚利，滚到天荒地老为止。
+  > 担保人：________（这一栏的墨迹比别处新，写的是你的生辰八字）。
+  > 备注：担保人若已转世，债随魂走。若魂也没了，债随名字走。若名字也改了——天道会找到你的。
+
+### 13.9 给奥拉夫的验收补充（在 v40 §8 之外）
+- [ ] 逍遥丸只加 2 年寿元（不是 20）；同一大境界第 4 颗显示 🔒 且不消耗。
+- [ ] 延期还款单：使用当年年结算后欠款增量约为不用时的一半；**欠款没有因使用而增加**（I2 回归）。
+- [ ] 驻颜丹/开窍丹各第 4 颗 🔒；角色面板魅力/悟性 +1。
+- [ ] 灵兽肉干在无出战灵宠时不消耗。
+- [ ] 战斗道具栏出现回元散/破邪符/土遁符/掌心雷符（持有时）；土遁对 BOSS 不消耗；掌心雷每场仅 1 张；自动战斗不碰它们。
+- [ ] 密信解锁的是「秘密①」（PF38 `sec0`）。
+- [ ] 13.6 的 12 个剧情道具：每个都能从对应条件拿到，交付选项都以「⚑」开头，`human_olaf` T9 自动任务跑 3 分钟不会触发任何「⚑」选项。
+- [ ] 同一 NPC 同一游戏月第二次送礼被拒；讨厌礼物好感 −12 且不低于 0。
+- [ ] 6 个 3.8.3 道具在任何商店/掉落里都拿不到；DevPanel 发放后使用不消耗、提示「尚未开放」。
+- [ ] PF38 不存在（模拟 3.8.0 未合并）时：窥心类不在商店，`i40_mixin` 不掉落，无 JS 报错。
+
+## 14. 【2026-10-24 16:3x 研究员】3.8.3 家族深化 `clan41.js` 实装规格补全：代码核对 + 经济/修炼数值修订 + 族规落地 + 婚配门槛 + 缺失文案（可直接抄）
+
+> 对象：`docs/research_v41_clan.md`（下称 v41）。本节逐条对照 main `7e74338` 的 `fam37.js / legacy26.js / game.js / data.js / route37.js / mingge33.js` 和 3.8.0/3.8.2 规格，把 v41 里“写了但代码接不上”的地方改成能直接实现的版本。**v41 正文不改，冲突时以本节为准。** 仍是新模块 `www/js/clan41.js`，只包裹，不改 fam37/legacy26/game 本体；`G.clan41` 惰性兜底，不升 `G.v`。
+
+### 14.1 代码核对（v41 写法 → 代码事实 → 本节处理）
+
+| # | v41 写法 | 代码事实（main） | 处理 |
+|---|---|---|---|
+| K1 | 命格 `n_jucai +8% / n_pocai −5% / n_tianxi` | 玩家命格 `mingge33` 里**没有** n_* id（只有 caimi/fuyuan/changshou…）；n_* 是 **3.8.0 NPC 命格**（`research_v38_profile.md` TEXT38A.mg，存 `G.pf38.hid[npcId].mg`、子嗣 `kid.mg`），PR #50 未合 | 命格读「家族成员」命格：`[PF38 道侣命格, ...kids[].mg]`，`typeof PF38==='undefined'` 时全部当 0。玩家本人命格 `caimi` 额外给族产灵石 +5%（14.4） |
+| K2 | `G.heir = {n, lg, from:'clan41'}` | legacy26 的 `G.heir` 是 `{name, lg, talent, tech, born, age}`，面板读 `.name/.talent/.tech`，年末算 `age = year − born`；且 legacy26 自己会在「有道侣、40 岁、无后」时 40%/年生 heir | **不写 G.heir 的新结构**。立继承人存 `C.heirIdx`（kids 下标）；仅当 `G.heir` 为空时补一个 legacy26 兼容对象：`{name:kid.n, lg:kid.lg, talent:pick(TALENTS).id, tech:null, born:kid.born, age:kid.age, c41:1}` |
+| K3 | Lv10「渡劫圆满**或 G.heir 存在**，声望≥5000」 | `G.heir` 很容易有（K2），等于 Lv10 只卡声望；「声望≥5000」又和表里 50000 重复 | Lv10 = 声望 50000 + 渡劫 + （渡劫圆满 `G.stage===3` **或** `C.heirIdx` 已立且该子嗣 ≥ 金丹） |
+| K4 | `sectRel` 当作「玩家与宗门关系」（云氏要青云 sectRel≥40；仁厚/魔道传家「正道宗门 sectRel±」；事件「报官/送去宗门 sectRel」） | `G.sectRel['a|b']` 是**宗门对宗门**（jianghu34/life34 在用）；玩家对宗门声望在 `G.route37.rep[宗]`，只读接口 `Route37.rep(k)`（route37.js:129），`applyEff` 的数字型 sectRel 会改「本宗对其他两宗」的键 | 家族里所有“玩家↔宗门”一律改写 `G.route37.rep`（clan41 自带 `repAdd`，夹 −100..100，`G.route37` 缺失时先建 `{rep:{}}`）。事件里的 `sectRel:n` 统一改名 `srep:n`（加到 `G.sect`，无宗门则不加、选项文案照常） |
+| K5 | 「正道宗门」「魔殿」 | `SECTS` 只有 `qingyun`（青云宗）、`baicao`（百草谷）、`tianmo`（天魔殿） | 正道 = qingyun + baicao；魔殿 = tianmo |
+| K6 | 族产年产「乘 yieldMul」，回本 15–25 年 | 若族产灵石走 `FAM37.applyEff`，`stone` 会 ×(1+大境界)，渡劫期良田 150→1050，回本表作废 | 族产年产**不走 applyEff**，clan41 直接 `G.stone +=`，不乘境界（14.4） |
+| K7 | 升级「费 cost×(1+lv)，产 ×(1+0.5×lv)」 | 按字面：良田 2 级花 6000 只多 75/年 → 边际回本 80 年，3 级 120 年，没人点 | 改成 14.4 的「费 cost×L，产 base×L」 |
+| K8 | 族规「当铺 −2%」「还债为本 −5%」写进 `F.rate` | `famYear`：`debt += ceil(debt×F.rate)`，负数=每年直接减债；基础利息只有 3%/年（game.js:321/343）。−2%−5% 叠起来净利率 −4%，天道讨债主线被一个族规破掉 | 家族减息单独记 `C.rate`，**合计最多 −2%**（基础 3% 下净利率 ≥1%），在 clan41 年结算里 `debt −= floor(debt×min(−C.rate,0.02))`。不碰 `F.rate`（fam37 事件仍可加息） |
+| K9 | `KID_MAX 4→6` | fam37 内部全用 `this.KID_MAX`（birth/famYear/html），只有 DevPanel 文案写死「已满 4」 | `Object.defineProperty(FAM37,'KID_MAX',{configurable:true,get(){return C41.has('kaizhi')?6:4}})`。注意 3.8.1 称号 `t39_sitong` 是「子嗣满 4 人」，cond 写的是 `>=4`，不受影响 |
+| K10 | 世家联姻配偶「非命名 NPC」，占 sp | fam37 `famYear` 第一行：`G.partner !== F.sp` 就把 sp 清空；`Game.fill` 的 `{partner}`、`unpartner`、`UI.card(por:'partner')` 直接读 `NPCS[G.partner].n/.por`，非 NPCS id 会抛 TypeError | 模块加载时注册**一个**固定 NPCS 条目 `c41_sp`（不带 map/roam → game.js:441 不会把它放上地图），`n/por` 用 getter 读 `G.clan41.spInfo`；联姻时 `G.partner = F.sp = 'c41_sp'`，`FAM37.SP_LG.c41_sp` 用 getter 读 `spInfo.lg`。见 14.2 |
+| K11 | `luck` → `flag:i40_luck` | 3.8.2 落地方式是 `G.i40.luck = 1`（§13.3，下次 `Game.roll(p,'qiyu')` 必中），不是 flag | `luck:1` → `G.i40 = G.i40 || {}; G.i40.luck = 1`（与转运珠同效，不叠加） |
+| K12 | `compAtk`（武馆/尚武/魔道传家「族人攻击」） | 族人不参战，无伙伴加成入口 | 改为**家主本人**攻击（经 `Sys.bonus('atk')` 包装，systems21.js:160 已乘进 stats）：武馆 +1%/级、尚武 +3%、魔道传家 +4%；文案同步改「家主」 |
+| K13 | 事件 `wine` 写「老酒」 | data.js `wine` = 桃花酿（送礼品）；3.8.2 另有 `i40_laojiu` | 酒坊年产改 `i40_laojiu`（3.8.2 已登记）；若 3.8.2 未合则回退 `wine`，文案「酒坊出酒×1」不写酒名 |
+| K14 | 6 个家族道具 | 3.8.2 只登记、背包使用 toast「家族谱系尚未开放（3.8.3）」不消耗；`eff` 写的是 `flag:clan41_open / clanRule+1 / clanProp:tian / clanLv+1 / clanProp:kuang`，`lianhun` 是 `use:'clanMatch'`，`Game.apply` 都不认 | clan41 包 `UI.useItem`（在 items40 之后加载），自己处理这 6 个 + 月老红线的子嗣婚配用法，见 14.8 |
+| K15 | fam37 家事事件池不判 cond | `famEvent` 只过滤 `{sp}`/`{k}`；clan41 事件有 `cond` | clan41 自己的事件池按 14.7 的 cond 过滤，不进 fam37 的池 |
+| K16 | `fight:'tianbing'` | `MONS.tianbing` 存在（content22.js:20），`Game.apply` 的 `fight:id` 直接开打 ✅ | 不改 |
+| K17 | route37「世家」路线已有 `S.clan`（族人好感，route37.js:150） | clan41 没提 | 联动：`G.route37.id==='shijia'` 时立族免空白族谱、声望获取 +20%；`S.clan` 作为叛离修正（14.6 铁律） |
+
+### 14.2 存档与非命名配偶
+
+```js
+G.clan41 = {
+  v:1, on:0, name:'', lv:1, rep:0, pop:0,
+  props:{},            // { tian:1, kuang:2 } 等级 1–3
+  rules:[], ruleY:-99, // 上次换族规的年份（5 年冷却）
+  fams:{},             // NPC 家族关系 −100..100
+  wed:[],              // { kid, fam, n, lg, y, div:0 }
+  grand:0,             // 孙辈数（只计入 pop，不进 kids）
+  heirIdx:-1, rate:0, extraSlot:0, // extraSlot：祖训竹简 +1（硬上限见 14.6）
+  spInfo:null,         // 世家联姻配偶 { fam, n, lg, por }
+  ev:{}, evY:{}, yr:0, log:[], first:{} // first['zj@3'] 子嗣首次境界声望已领
+};
+// kid 追加（全部惰性）：realm:0, stage:0, xp:0, brk:0（下次突破加成）, hurt:0（养伤年数）, wed:-1
+```
+
+非命名配偶注册（模块加载时一次，NPCS 不进存档）：
+```js
+if (!NPCS.c41_sp) NPCS.c41_sp = {
+  get n(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.n : '道侣'; },
+  get por(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.por : 'npc_girl'; },
+  c41:1 // 无 map/roam/at：不上地图、不进 jianghu34 的 others
+};
+Object.defineProperty(FAM37.SP_LG, 'c41_sp', { configurable:true, enumerable:false, get(){ const s = Game.G && Game.G.clan41 && Game.G.clan41.spInfo; return s ? s.lg : 'san'; } });
+```
+- 名字：`对方姓 + '·' + pick(TEXT37B.dis.ming)`，如「云·清漪」（`FAM37.nm` 取 `·` 后半，与命名 NPC 显示一致）。`por`：对方家族 `por`（14.9 表），缺省 `npc_girl`。
+- `validate22` 若要求每个 NPCS 有 map，给 `c41_sp` 加 `roam: () => null` 即可（不会命中任何 mapId）。
+- 世家联姻与 `FAM37.marry` 互斥：`F.sp` 非空时两个按钮都 🔒。`unpartner`（game.js:279）会把 `G.partner` 清掉 → 下一年 fam37 自动清 `F.sp`；clan41 同年结算时发现 `spInfo` 存在而 `G.partner!=='c41_sp'` → 视为和离：`fams[spInfo.fam] −60`、`rep −200`、`spInfo=null`。
+
+### 14.3 家族等级表（只改 K3 与两处可达性）
+
+| Lv | 名 | 声望 | 玩家境界≥ | 附加条件（修订后） |
+|---|---|---|---|---|
+| 1–5 | 同 v41 | 同 | 同 | 同（「族人」= 1 + (sp?1:0) + kids.length + pop） |
+| 6 | 世家 | 3000 | 3 金丹 | 族产≥3，任一子嗣 `realm≥2`（筑基）。子嗣上限是玩家境界−1，玩家金丹时子嗣最高筑基 → 刚好可达 ✅ |
+| 7 | 名门 | 6000 | 4 | 联姻≥1（`wed` 里 `div:0` 的条数，**含玩家本人世家联姻**） |
+| 8 | 大族 | 12000 | 5 | 族产≥5 |
+| 9 | 仙族 | 25000 | 6 | 族人≥6（孙辈计入，K9 不开枝也可达：1+1+4+pop≥0） |
+| 10 | 万古仙族 | 50000 | 6 | 渡劫圆满（`G.stage===3`）**或** 已立继承人且其 `realm≥3` |
+
+升级只升不降（声望扣到门槛以下不掉级）；每年结算最多升 1 级，升级 toast 用 TEXT41.ui.lvUp。
+
+### 14.4 族产经济（修订公式 + 回本表）
+
+- 等级 `L∈{1,2,3}`；升 L→L+1 费用 = `cost × L`；年产 = `base × L`（灵石、物品个数、声望、修炼% 都乘 L；`ev:c41_robbed` 概率、`ruleSlot`、`var` 不乘）。
+- 灵石年产 = `Σ base×L × yieldMul(lv) × (1 + 族规修正 + 命格修正)`，再 `×(1+v)`（坊市 v∈[−0.3,0.3]，按 `hash(year)` 定，全族产同一年景），四舍五入；**直接加 `G.stone`，不乘境界**（K6）。
+- 修正项：族规 qinxue −10%、zhongshang +15%、renhou −8%（仅灵石）；玩家命格 caimi +5%；家族成员 NPC 命格 n_jucai +8%/人、n_pocai −5%/人（K1）。合计夹在 [−40%, +50%]。
+- 物品年产四舍五入到整数，`roll:p:item` 每年独立掷 `Math.random()`（不走 `Game.roll`，免得吃转运珠）。
+- 声望年产：每处族产 +5×L，另加武馆 30×L、宗祠 80×L。
+
+| 族产 | 买价 | 1 级年产 | 1 级回本 | 升 2 级（费/增量/边际回本） | 升 3 级 | 满级总投入 → 年产 |
+|---|---|---|---|---|---|---|
+| 良田 | 3000 | 150 | 20 年 | 3000 / +150 / 20 年 | 6000 / +150 / 40 年 | 12000 → 450 |
+| 酒坊 | 4000 | 200 | 20 | 4000 / +200 / 20 | 8000 / +200 / 40 | 16000 → 600 |
+| 镖局 | 8000 | 400（劫镖 15% 期望 −约 60） | ≈24 | 8000 / +400 / 20 | 16000 / +400 / 40 | 32000 → 1200 |
+| 当铺 | 10000 | 300 + 减息 | 33（不计减息） | 10000 / +300 / 33 | 20000 / +300 / 67 | 40000 → 900 |
+| 灵矿 | 12000 | 600 + 玄铁晶×2（市价 50） | 17 | 12000 / +700 / 17 | 24000 / +700 / 34 | 48000 → 2100 等值 |
+| 坊市铺面 | 20000 | 1000 ±30% | 20 | 20000 / +1000 / 20 | 40000 / +1000 / 40 | 80000 → 3000 |
+
+（以上按 yieldMul=1.0、无修正的灵石计；家族 Lv5 ×1.2 时回本约缩短 1/6。）当铺减息不随 L 叠加：始终 −2%（K8 上限）。药园/书坊/灵兽池/武馆/宗祠/洞天按 L 乘物品/修炼/声望，不算灵石回本。
+
+### 14.5 子嗣修炼（公式 + 时间线）
+
+- 16 岁起每年：`kid.xp += 40 × LINGGEN[kid.lg].mult × (1 + clanCult)`；`hurt>0` 时本年不涨、`hurt−−`。
+- `clanCult` = 家族等级 fx.cult + 书坊 0.03×L + 洞天 0.08×L + 族规（qinxue +0.06 / zhongshang −0.04）+ 事件 `clanCult` 累计（存 `C.cult`，上限 0.10）。**家族等级 fx.cult 同时经 `Sys.bonus('cult')` 给玩家**（包 `Sys.bonus`，k==='cult' 时加 `TEXT41.lv[C.lv-1].fx.cult`）；书坊/洞天/族规/事件**只给子嗣**，避免和称号、坐骑叠爆。
+- 每小层需 `REALMS[r].need × STAGE_MUL[s] / 10`（v41 没写 STAGE_MUL，补上与玩家同节奏）。满了 `stage<3` 直接 +1；`stage===3` 冲大境界：成功率 `REALMS[r].brk + kid.brk`，成功 `realm+1, stage=0, xp=0`，失败 `xp = floor(xp/2)`；无论成败 `kid.brk=0`。
+- 上限：`kid.realm ≤ max(0, G.realm − 1)`；到顶后 xp 封在当层满值，不再掷突破。
+- 首次到达：筑基 rep+50、金丹 +150、元婴 +400、化神 +1000（`C.first['zj@'+idx]` 防重复，v41 只写了前两档，补后两档给 Lv8–10 的声望）。
+
+三灵根（mult 1.0）、clanCult=0 时的时间线（年龄，估算，未计突破失败）：
+
+| 大境界 | 本境界合计 xp | 年数 | 到达年龄 | 天灵根(1.8) |
+|---|---|---|---|---|
+| 凡人→练气 | 50 | 1.3 | 17 | 16.7 |
+| 练气→筑基 | 126 | 3.2 | 21 | 18.5 |
+| 筑基→金丹 | 328 | 8.2 | 29 | 23 |
+| 金丹→元婴 | 819 | 20.5 | 49 | 34 |
+| 元婴→化神 | 2016 | 50 | 99 | 62 |
+| 化神→渡劫 | 4788 | 120 | 219 | 129 |
+
+子嗣无寿元/死亡判定（3.8.3 不做，fam37 也没有）；`c41_lifeend` 说的是“族中老人”，不是 kids。
+
+### 14.6 族规落地（10 条 → 具体挂点）
+
+槽位 = 等级表 ruleSlots + 宗祠(有即 +1，不随 L) + 祖训竹简 `extraSlot`(最多 1)，**硬上限 4**。换族规：距 `ruleY` ≥5 年才可「卸下」，卸下当年 rep −50；新装不受冷却。互斥 moxiu↔renhou、zhongshang↔yinshi，按钮 🔒 并提示互斥对象。
+
+| 族规 | pro 实装 | con 实装 |
+|---|---|---|
+| 勤学 qinxue | 子嗣 clanCult +0.06 | 族产灵石 −10% |
+| 重商 zhongshang | 族产灵石 +15% | 子嗣 clanCult −0.04；年末 rep −10 |
+| 尚武 shangwu | 家主攻击 +3%（K12）；`c41_robbed`「亲自去追」不开打，直接得 300 | 每年 10% 随机一名 ≥16 岁子嗣 `hurt=1` |
+| 仁厚 renhou | 年末 karma +2；qingyun/baicao 路线声望 +2 | 族产灵石 −8% |
+| 铁律 tieqi | 叛离（`c41_traitor`）不再出现 | **改**：子嗣婚配成功率 −10%（原「好感获取 −10%」无统一入口可包，K12 同理） |
+| 开枝 kaizhi | KID_MAX 6（K9）；年末若有 sp、本年未出生、未满员，额外 `rnd()<0.29` 再生一次（合计约 50%） | 年末灵石 −200×kids.length（不乘境界，不够扣到 0 并 rep −20） |
+| 广结 lianyin | 婚配成功率 +0.2 | 聘礼 ×1.5 |
+| 隐世 yinshi | 抽到负面事件（14.7 标 ⚠）时 50% 重抽一次非负面 | 所有 rep 正收益 ×0.5；不能向 `fam.lv > C.lv` 的家族提亲 |
+| 魔道传家 moxiu | 家主攻击 +4%；tianmo 路线声望 +5/年 | karma −3/年；qingyun/baicao −3/年 |
+| 还债为本 haiqian | 减息 −2%（与当铺**不叠加**，C.rate 总上限 −2%，K8）| 族产灵石的 20% 直接冲 `G.debt`（先算 debt 再加 stone，toast「族产两成拿去还了天道」） |
+
+**叛离**（v41 只在铁律里提到，补定义）：`c41_traitor` 的出现条件 = `pop4` 且未选铁律；另外家族成员里有 n_mozhong 命格且 `G.karma≤−30` 时，该事件权重 ×3。`G.route37.clan ≤ −10`（世家路线族人好感差）时权重 ×2。
+
+### 14.7 家族事件抽取与新字段实现
+
+- 每年 1 次判定：`C.on && rnd()<0.6`；候选 = cond 满足且 `year − evY[id] ≥ 5`；按权重 1 抽（叛离见上）。抽中后照 fam37 写法 `UI.card('族事', …)`，带第三元素 `rule:x` 的选项未选该族规时显示 🔒 且不可点（判断与 `FAM37.canEff` 同时生效）。
+- cond 解析：`kids`/`kids2`（kids.length≥1/2）、`kidAge16`（有 ≥16 岁且 `wed<0` 的子嗣）、`sp`、`pop3`/`pop4`（族人数≥3/4，族人数定义同 14.3）、`lv5`（C.lv≥5）、`prop:x`（`props[x]≥1`）。
+- 占位符：`{k}` = 本次被选中的子嗣（kidAge16 时取符合条件者，否则随机一名）；`{prop}` = 随机一处已有族产名；`{fam}` = 随机一个 NPC 家族名（`c41_marryrival`/`c41_alliance` 取关系最高者）；`{sp}` = `FAM37.nm(F.sp)`。
+- ⚠ 负面事件（供隐世重抽）：robbed、kidfight、split、fire、marryrival、tiandao、traitor、flood。
+- 效果分派：`stone item aff karma fight debt rate` 照旧交 `FAM37.applyEff`（stone ×(1+大境界)，事件按凡人基准写，**这是有意的**：族事花销随家主身家涨）；以下 4 条与族产收支直接挂钩，改为 `stoneRaw`（不乘境界，clan41 直接加减）：`c41_harvest`（−100 / +200）、`c41_robbed`（+300 / −400）、`c41_flood`（−400 / −200）、`c41_fire`「只救账本」(−200)。
+- 新字段：
+
+| 字段 | 实现 |
+|---|---|
+| `rep:n` | `C.rep += n>0 ? round(n×(隐世?0.5:1)×(世家路线?1.2:1)) : n`，下限 0 |
+| `pop:±1` | `C.pop = max(0, pop±1)` |
+| `prop:id` | 没有该族产则 L=1 送一处（超出 propSlots 时改给灵石 = 买价×0.5，stoneRaw） |
+| `propDmg:1` | 随机一处族产 L−1；L 为 1 时本年该族产不产出（`C.dmgY[id]=year`），不删除 |
+| `famRel:n` | 加到 `{fam}` 那家；夹 −100..100 |
+| `match:x` | 存 `C.matchB = x`，下一次子嗣提亲成功率 +x 后清零 |
+| `kidBrk:x` | `kid.brk += x`（{k} 那名），下次冲大境界用掉 |
+| `heir:'eldest'/'bestLg'` | 选年龄最大 / `FAM37.rankOf(lg)` 最高（同级取年长）的子嗣写 `C.heirIdx`；按 K2 补 legacy26 的 `G.heir` |
+| `clanCult:x` | `C.cult = min(0.10, C.cult + x)` |
+| `hpPct:x` | `G.hp = max(1, round(G.hp + Game.stats().mhp × x))` |
+| `luck:1` | K11 |
+| `roll:"p:item:id:n"` / `"p:stone:n"` | `Math.random()<p` 时发放；stone 这里走 stoneRaw |
+| `srep:n` | K4，加到 `G.sect` 路线声望 |
+
+`c41_tiandao`「把人打出去」：`fight:'tianbing'` 打输时 **不给** rep+100、`debt+2000` 仍照记（被打出去的是你）。判输赢读 `Game.apply` 返回的 `later` 执行结果；读不到就按赢算（不卡流程）。
+
+### 14.8 婚配（子嗣 + 玩家本人世家联姻）
+
+**提亲门槛**（在婚配页签每家一个按钮，不满足显示 🔒 + 原因）：
+
+| 家族 | lv | 门槛（修订：去掉 sectRel，K4） | 额外修正 | por |
+|---|---|---|---|---|
+| 桃花王氏 wang | 1 | 无 | — | npc_girl |
+| 临安林氏 lin | 3 | C.lv≥2 | 子嗣灵根 tian/shuang 才算「灵根匹配」 | npc_girl |
+| 钱塘钱氏 qian | 4 | C.lv≥2 | 聘礼 ×2 | npc_girl |
+| 百草白氏 bai | 4 | `G.karma≥20` | — | npc_girl |
+| 青云云氏 yun | 5 | `Route37.rep('qingyun')≥40` | — | npc_girl |
+| 魔都苏氏 su | 6 | `G.karma≤−20` | — | npc_girl |
+| 广寒冷氏 leng | 7 | C.lv≥5 且提亲者灵根 bing | — | npc_girl |
+| 东海敖氏 long | 8 | C.lv≥6 且 `fams.long≥30`（靠 `c41_alliance` 抽到敖氏攒关系） | `G.flags.boss_dragon` 为真时成功率 −0.2（v41「反而减分」） | npc_girl |
+
+通用：`fam.lv − C.lv ≥ 3` 一律 🔒「门第悬殊」；隐世时 `fam.lv > C.lv` 即 🔒。以上 por 先全用现有 `npc_girl`（不新增美术，奥拉夫的 art_specs 如要分立绘再定）。
+
+**成功率**（夹 [0.05, 0.9]）：`0.4 + 0.05×(C.lv − fam.lv) + 灵根匹配 0.15（wantLg 含 '*' 或含提亲者灵根）+ 提亲者命格 n_tianxi 0.15 + 月老红线 0.3（见下）+ 广结 0.2 + C.matchB − 铁律 0.1 − 敖氏龙王修正 0.2 + fams[fam]/500`。
+
+**聘礼**：`1000 × fam.lv × (1+0.2×fam.lv)`（不乘境界；钱氏 ×2、广结 ×1.5，可叠）→ 王 1200、林 4800、钱 14400、白 7200、云 10000、苏 13200、冷 16800、敖 20800。提亲前扣，失败退一半（文案「对方把聘礼退回了一半，另一半说是茶水钱」）。
+
+**成功后**：子嗣 `wed = C.wed.length`，push `{kid, fam, n, lg:pick(wantLg 去掉 '*'，全是 '*' 则 'san'), y}`；`pop+1`、`fams[fam]+30`、rep+100；之后该家族每年 30% 送礼：灵石 200×fam.lv（stoneRaw）或随机一件已登记的 `i40_*` 礼物类道具（3.8.2 未合则只给灵石）。孙辈：已婚子嗣每年 15% `C.grand+1, C.pop+1`（每名已婚子嗣最多 3 个孙辈，防人口滚雪球）。
+
+**玩家本人世家联姻**：仅 `F.sp` 为空且 `G.partner` 为空时出现；成功率与聘礼同上（提亲者灵根用 `G.lg`、命格不计）；成功后写 `C.spInfo`、`G.partner=F.sp='c41_sp'`，`Game.ach('partner')`（与 `FAM37.marry` 同），`wed` 记 `kid:-1`。
+
+**月老红线 i40_yuelao**：3.8.2 的用法（`G.i40.match=1` → 降低下一次**结道侣**门槛）保持不变；婚配页提亲时，若 `G.i40.match===1`，按钮旁显示「🧵 红线 +30%」，提亲即消耗（`match=0`），两种用途共用这一次。
+
+### 14.9 3.8.2 家族道具接入（包 `UI.useItem`，在 items40 之后加载）
+
+| 道具 | 用法（全部“能用才 `Game.take`”） |
+|---|---|
+| `i40_jiapu` 空白族谱 | 未立族 → 立族（`on=1`，`name=G.surname+'氏'`，toast 14.10 `found`）；已立族 → 🔒「族谱已经写上名字了」 |
+| `i40_zuxun` 祖训竹简 | 未立族 🔒；`extraSlot` 已为 1 或已达硬上限 4 → 🔒「祠堂墙上挂不下了」；否则 `extraSlot=1` |
+| `i40_dici` 地契 | 未立族 🔒；已有良田 → 良田 L+1（满 3 则 🔒「这块地已经是你家的了」）；否则送良田 L1；超 propSlots → 🔒「族产槽位已满」 |
+| `i40_ditu` 藏宝残图 | 背包满 4 张才可用，一次 `take 4` → 灵矿 L1（已有则 L+1，满级 🔒）；不满 4 → 🔒「还差 {n} 块」 |
+| `i40_zupu_old` 残破古族谱 | 未立族 🔒；`C.lv` 直接 +1（**跳过附加条件，但不跳境界门槛**；境界不够 → 🔒「你这修为撑不起这么大的门楣」）；每世限 1 次 |
+| `i40_lianhun` 联姻帖 | 由 `c41_matchmaker`「挑灵根最好的」以 30% 掉落；使用 → 弹家族列表，本次提亲**无视门第与特殊门槛**（karma/路线声望/灵根），成功率照算 |
+| `i40_songzi` 送子瓶 | 3.8.2 已按 fam37 接口落地；开枝族规下满员判断自动读 KID_MAX getter，无需改 |
+
+`clan41_open` 这个 flag 不再需要（3.8.2 的 eff 写法只是占位），立族状态以 `C.on` 为准。
+
+### 14.10 缺失文案包（v41 TEXT41 里没有的；合进 `TEXT41.ui2`）
+
+```json
+{
+ "found": ["{clan}今日开祠立谱。族谱第一页写着你的名字，第二页写着你欠天道的数。", "你在空白族谱上落笔，「{clan}」三个字墨还没干，天道讨债司的贺帖先到了。"],
+ "propBuy": "置下{prop}一处。账房先生说：“回本得{y}年，修仙的人等得起。”",
+ "propUp": "{prop}扩建到 {L} 级。",
+ "propFull": "族产槽位已满。升家族等级才能再置产。",
+ "yield": "族产年结：灵石 +{s}，声望 +{r}{items}。",
+ "yieldBad": "坊市年景不好，铺面只收了往年七成。",
+ "yieldGood": "坊市年景大好，铺面多赚了三成。",
+ "haiqian": "族产两成（{s} 灵石）拿去还了天道。账房先生在账本上画了一个哭脸。",
+ "ruleSet": "祠堂新挂一块牌子：「{rule}」。",
+ "ruleDrop": "「{rule}」的牌子摘了下来。族老们议论了一整年。（声望 −50）",
+ "ruleCd": "族规五年一换，还要等 {y} 年。",
+ "ruleLock": "与「{rule}」相冲，不能同挂。",
+ "kidUp": "{k}修为精进，至{realm}{stage}。",
+ "kidBrkOk": ["{k}破关而出，踏入{realm}！族人在祠堂外放了一挂鞭炮。", "{k}冲关成功，第一件事是问你：“那笔债现在算我的了吗？”"],
+ "kidBrkNo": ["{k}冲关失败，吐了口血，说下次一定。", "{k}闭关三月，出来只说了一句：“瓶颈是真的颈。”"],
+ "kidCap": "{k}的修为已追到你身后一步，再往前就得等你先走。",
+ "kidHurt": "{k}在演武场伤了筋骨，要养一年。",
+ "grand": ["{k}家添了个孙辈，族谱又多写了一行。", "孙辈出生，你被叫了一声“老祖”，第一次觉得自己老了。"],
+ "famGift": "{fam}送来年礼：{g}。",
+ "wedRefund": "对方把聘礼退回了一半，另一半说是茶水钱。",
+ "divorce": "与{fam}的婚事散了。两家从此见面只点头。（声望 −200）",
+ "heir": "族老当众宣读：立{k}为{clan}继承人。{k}接过族印，掂了掂：“比想象中轻，债比想象中重。”",
+ "spWed": "你与{fam}的{n}成亲。没有命中注定，只有两本族谱和一摞聘礼单。",
+ "lockMen": "门第悬殊，媒人连门都不敢敲。",
+ "lockKarma": "{fam}打听过你的为人，婉拒了。",
+ "lockSect": "{fam}要先看你在青云宗的名声。",
+ "lockLg": "{fam}只与冰灵根结亲。",
+ "lockLong": "敖氏还不认识你。先结个盟再说。",
+ "redLine": "🧵 月老红线 +30%（提亲即用掉）",
+ "lianhun": "持联姻帖提亲：门第与家规一概不论，成不成看缘分。",
+ "noClan": "尚未立族。有道侣或子嗣，或持空白族谱，即可开祠立谱。",
+ "reborn": "你记得上一世的{clan}，最后做到了「{n}」。这一世，族谱又是一张白纸。"
+}
+```
+
+### 14.11 年结算顺序（包 `Game.yearEnd`，在 fam37 之后）
+
+`_ye` 原函数 → fam37（已包）→ clan41：① 和离检测（14.2）② 族产（K6：先 haiqian 冲债，再加灵石/物品/声望）③ 开枝额外生育 / 开枝开销 ④ 子嗣修炼与突破、首次境界声望 ⑤ 尚武受伤 ⑥ 族规年效（karma、路线声望、rep −10）⑦ 联姻送礼、孙辈 ⑧ 家族减息（K8）⑨ 族事（14.7）⑩ 等级检查 ⑪ `FAM37.news` 写大事记 + `Game.save()`。每步 try/catch 独立，单步出错 `console.warn('clan41', step, e)` 不中断。
+
+轮回（包 `Game.newLife`）：`Game.meta.clan41Best = max(旧值, C.lv)`；新一世 `G.clan41` 重置。v41 提的「前世 Lv≥5 给初始灵石 500×lv」**建议不做**：legacy26 道统已给寿元+20/修为+5%，再加灵石会让轮回开局过肥；只显示 14.10 `reborn` 一句。
+
+### 14.12 验收补充（追加到 v41 §10）
+
+- [ ] `G.partner==='c41_sp'` 时：`Game.fill('{partner}')`、事件 `por:'partner'`、`unpartner` 都不抛错；`c41_sp` 不出现在任何地图。
+- [ ] 族产灵石不随玩家境界变（渡劫期良田 1 级仍是 150×yieldMul）；族事 stone 随境界变，stoneRaw 那 4 条不变。
+- [ ] 当铺 + 还债为本 同时开：每年减债恰为 2%，不叠到 7%；`F.rate` 不被 clan41 改动。
+- [ ] 子嗣境界永不超过 `max(0, G.realm−1)`；玩家金丹时可以凑齐 Lv6。
+- [ ] 开枝：第 5、6 个子嗣能出生；卸下开枝后 KID_MAX 回到 4，**已有的 5、6 号不删**，只是不再生。
+- [ ] 6 个家族道具在立族前后的 🔒 文案都对；藏宝残图不满 4 张不消耗。
+- [ ] 老档已有 legacy26 `G.heir` 时立继承人不覆盖它。
+- [ ] 3.8.0（PF38）未合时，命格修正全部为 0，不报错。
+
+### 14.13 ROADMAP 状态订正（只记在这里，不改 ROADMAP）
+
+- 3.8.2 行写「⬜ 未开始 · `research_v40_items.md`」：规格层面已由本文件 §13 补全（代码核对 + 实装表），实现仍未开始。建议该行的规格列加上「+ `research_v22.md` §13」。
+- 3.8.3 行同理：建议规格列加「+ `research_v22.md` §14（以 §14 为准）」。
+- 3.8.3 依赖：3.8.0（PF38 命格，可缺省为 0）、3.8.2（6 个家族道具 + i40_laojiu，可缺省回退）、3.7.4 route37（`Route37.rep`，已发布）。不阻塞开工。

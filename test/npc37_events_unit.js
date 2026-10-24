@@ -19,7 +19,7 @@ function box(noJH) {
     var Game={G:null,save(){},async yearEnd(){},interactEnt(){},refreshNpcs(){},async enterMap(){},acceptQuest(){},canEnter(){return true},give(){},has(){return true},async apply(){return {txt:'',later:[]}}};
   `, c);
   vm.runInContext(LIFE, c); vm.runInContext(N37, c); vm.runInContext(SRC, c);
-  vm.runInContext(`Game.G={year:10,age:30,stone:500,karma:0,aff:{},inv:{},flags:{},sectRel:{'qingyun|tianmo':-30},life34:{v:1,loc:{},rel:{},sect:{},log:[],seen:{},pending:null,qt:{},yc:null},
+  vm.runInContext(`Game.G={year:10,age:30,stone:500,karma:0,aff:{},inv:{},flags:{main0:1},main:1,sectRel:{'qingyun|tianmo':-30},life34:{v:1,loc:{},rel:{},sect:{},log:[],seen:{},pending:null,qt:{},yc:null},
     jh34:{t:120,feed:[],npcs:{jh_jianke:{sect:'qingyun',map:'sect',debt:0},jh_yangui:{sect:'qingyun',map:'sect',debt:0},jh_mozi:{sect:'tianmo',map:'forest',debt:0},jh_tieguo:{sect:null,map:'market',debt:600},jh_danniang:{sect:'baicao',map:'market',debt:0}}}};`, c);
   return c;
 }
@@ -117,5 +117,12 @@ const from = (E, kind, s, ix) => (ix || E.TEXT[kind].map((_, i) => i)).some(i =>
   { const dev = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8');
     if (/NPC37/.test(dev)) ok(/label: '自发事件'/.test(dev) && /NPC37E\.force\(\)/.test(dev), '开发者面板有「自发事件」强制触发按钮');
     else ok(!/NPC37E/.test(dev), 'main 的 dev_openworld.js 不引用 NPC37E'); }
+  // ---------- 序章/新手指引守卫 ----------
+  { const gc = box(); const E2 = gc.NPC37E, G2 = gc.Game.G; vm.runInContext("R.mapId='market';", gc); G2.life34.rel = { jh_tieguo: 50, jh_danniang: 50 };
+    const base = E2.notable('jh_tieguo', 'jh_danniang');
+    G2.flags = {}; G2.main = 0; ok(E2.notable('jh_tieguo', 'jh_danniang') === false, '序章未完：自发事件不 toast（notable=false）');
+    G2.flags = { main0: 1 }; G2.main = 1; gc.Game.meta = { tut23: 0 }; ok(E2.notable('jh_tieguo', 'jh_danniang') === false, '新手指引期间：自发事件不 toast');
+    gc.Game.meta = { tut23: 1 }; ok(E2.notable('jh_tieguo', 'jh_danniang') === base, '放行后 notable 与原逻辑一致');
+    ok(E2.notable._g37 === 1, 'notable 为包裹式守卫'); }
   console.log(`${n - fails}/${n} PASS`); process.exit(fails);
 })().catch(e => { console.log('FAIL 异常 ' + (e && e.stack)); process.exit(99); });

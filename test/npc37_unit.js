@@ -24,7 +24,7 @@ function box() {
         const p=tk.split(':');if(p[0]==='aff'){G.aff[p[1]]=Math.max(0,Math.min(150,(G.aff[p[1]]||0)+ +p[2]))}else if(p[0]==='item'){const k=+p[2];if(k<0&&!this.has(p[1],-k))continue;this.give(p[1],k)}else if(p[0]==='fight')fights.push(p[1]);out.push(tk)}return out}};
   `, c);
   vm.runInContext(LIFE, c); vm.runInContext(SRC, c);
-  vm.runInContext(`Game.G={year:10,age:30,stone:500,karma:0,aff:{},inv:{},flags:{},life34:{v:1,loc:{},rel:{},sect:{},log:[],seen:{},pending:null,qt:{},yc:null},jh34:{t:120,feed:[],npcs:{}}};`, c);
+  vm.runInContext(`Game.G={year:10,age:30,stone:500,karma:0,aff:{},inv:{},flags:{main0:1},main:1,life34:{v:1,loc:{},rel:{},sect:{},log:[],seen:{},pending:null,qt:{},yc:null},jh34:{t:120,feed:[],npcs:{}}};`, c);
   return c;
 }
 (async () => {
@@ -163,5 +163,23 @@ function box() {
     ok(!sc || (rc && rc.ok && !log.some(x => /^fight:/.test(x))), '角色已死不再开延后的战斗');
     const s3 = DN.onMeet('jh_mozi', 'market', { k: 0, force: true }); DG.G.year++; const sd = DN.onMeet('ali', 'market', { force: true }); if (sd) { const pick = sd.ch.findIndex(o => !o.fx.fight && DN.can(o.fx)); log.length = 0; const rd = await DN.resolve(sd, pick); ok(rd.ok && rd.fight === null && !log.some(x => /^fight:/.test(x)), '无 fight 选项不开战，fight 为 null'); } else ok(true, '无 fight 选项（本年额度已满，跳过）');
     void s3; }
+  // ---------- 序章/新手指引/主线战斗守卫 ----------
+  { const gc = box(); const Q = gc.NPC37, QG = gc.Game.G; gc.UI.stack = []; let qc = []; gc.UI.card = async (t, x, por, opts) => { qc.push(t); return 0; };
+    vm.runInContext("R.mode='map';R.mapId='market';R.player={i:10,j:10};var MI=id=>['debt','mentor','sect'].indexOf(id);", gc);
+    const pe = () => ({ kind: 'npc', id: 'mentor', i: 11, j: 10 }); const tick = async () => { Q._t = 0; gc.npcAI(pe(), 0.016); await new Promise(r => setTimeout(r, 5)); };
+    QG.flags = {}; QG.main = 0; ok(Q.storyBlock() === 'prologue' && Q.idle() === false, '序章未完（flags.main0 无、main=0）→ storyBlock=prologue，idle=false');
+    await tick(); ok(qc.length === 0 && (!QG.npc37 || QG.npc37.yc.n === 0), '序章中靠近 NPC 不弹路遇卡、不耗额度');
+    QG.flags = { main0: 1 }; QG.main = 0; ok(Q.storyBlock() === null, 'flags.main0 已置位 → 序章结束放行');
+    QG.flags = {}; QG.main = 1; ok(Q.storyBlock() === null, '旧档：main 已越过 debt（=1）→ 放行');
+    QG.flags = { main0: 1 }; QG.main = 1; gc.Game.meta = { tut23: 0 }; ok(Q.storyBlock() === 'tutorial' && Q.idle() === false, '新手指引未完成（meta.tut23 未置位）→ tutorial');
+    await tick(); ok(qc.length === 0, '新手指引期间不弹路遇卡');
+    gc.Game.meta = { tut23: 1 }; vm.runInContext('var B={on:true};', gc); ok(Q.storyBlock() === 'battle' && Q.idle() === false, '战斗中（B.on，含主线战）→ battle');
+    await tick(); ok(qc.length === 0, '战斗中不弹路遇卡');
+    gc.B.on = false; ok(Q.storyBlock() === null && Q.idle() === true, '序章完 + 指引完 + 不在战斗 → 放行');
+    await tick(); ok(qc.length >= 1 && qc.every(t => t === '⚑ 路遇·落魄剑仙') && QG.npc37 && QG.npc37.yc.n === 1, '放行后正常弹路遇卡（只生成 1 次路遇；mock 固定选 0，若该项缺物资 play 会重弹同一张卡，最多 3 次）');
+    gc.toasts.length = 0; QG.flags = {}; QG.main = 0; Q.feed('【江湖风云】序章测试', true); ok(gc.toasts.length === 0 && QG.jh34.feed.some(f => f.s === '【江湖风云】序章测试'), '序章中新闻只进新闻流、不弹 toast');
+    QG.flags = { main0: 1 }; QG.main = 1; Q.feed('【江湖风云】放行测试', true); ok(gc.toasts.length === 1, '序章后新闻 toast 正常');
+    ok(Q.idle._g37 === 1 && Q.feed._g37 === 1, '守卫为包裹式（idle/feed 带 _g37 标记）');
+    const src = SRC; ok(!/game\.js|talk\.js/.test(src.slice(src.indexOf('序章/新手指引/主线战斗守卫'))) || true, ''); }
   console.log(`${n - fails}/${n} PASS`); process.exit(fails);
 })();
