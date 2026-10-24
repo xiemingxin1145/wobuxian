@@ -98,6 +98,9 @@ const from = (E, kind, s, ix) => (ix || E.TEXT[kind].map((_, i) => i)).some(i =>
   ok(G(c).jh34.feed.length === 40 && G(c).jh34.feed[39].k === 'npc37' && G(c).jh34.feed[0].s === 'x1', 'feed 已满 40 → 裁掉最旧一条');
   c = box(true); c.NPC37E.force('help'); ok(G(c).jh34.feed.length === 1 && G(c).jh34.feed[0].k === 'npc37', '没有 JH34 时走 npc37 兜底 feed');
   c = box(); c.Game.G = null; ok(c.NPC37E.yearTick() === 0 && c.NPC37E.force() === null && c.NPC37E.run('help', 'a', 'b') === null, '没有存档不报错');
+  // 寻路守卫（对齐 2f9407b）：R.player.nav 时不弹 toast
+  c = box(); c.R.mapId = 'market'; c.R.player = { nav: true }; ok(c.NPC37E.notable('jh_danniang', 'jh_tieguo') === false, '寻路中（R.player.nav）自发事件不算 notable、不弹 toast');
+  c.R.player.nav = null; ok(c.NPC37E.notable('jh_danniang', 'jh_tieguo') === true, '不寻路时同图事件照常 notable');
   // 源码约束
   ok(!/L\.pending\s*=|pending\.push|Life34\.rel\(|\.rel\[[^\]]+\]\s*[+\-]?=/.test(SRC.replace(/S\.rel\[[^\]]+\]\s*=/g, '').replace(/S\.rel\[p\]\s*=/g, '')), '不写 L.pending、不调 Life34.rel、不直接改 L.rel');
   ok(!/G\.debt\s*[+\-]?=|\.debt\s*[+\-]=|G\.stone\s*[+\-]?=/.test(SRC), '不改玩家 G.debt / 灵石、不改 JH34 债务（只读）');

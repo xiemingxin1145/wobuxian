@@ -432,3 +432,9 @@
 - [x] 10-24 3.7.0：路遇 NPC37（PR #39 squash f100a0b）；VERSION 3.7.0 + CHANGELOG；门禁串行全跑，N1/T1 按已知 flake 放行。
 - [x] 10-24 v3.7.0 已发布（路遇；修 npc37 自动寻路中不触发路遇）。
 - [x] 10-24 3.7.1：多徒弟与家族（PR #41 squash）；VERSION 3.7.1 + CHANGELOG；精简门禁（human23/human_olaf/panels21/controls/单测），N1/T1 按已知 flake 放行。
+
+## 开放世界线第三十轮（2026-10-24，Grok Bot）
+- NPC37E（www/js/npc37_events.js）：NPC 之间自发事件 结仇/求助/讨债，年末掷 1–2 条，与路遇共用额度（每 NPC 年 ≤2、全年新闻 ≤6、toast ≤2），每人每年 ≤1 结仇；结果写 G.npc37.rel/tie/owe，玩家只经 JH34.addAff 改 G.aff；新闻 NEWS37C 走 JH34.say 进 G.jh34.feed；寻路中（R.player.nav，对齐 2f9407b）不弹 toast。
+- npc37.js：emit 支持 opt.pool / opt.force，新增 room() 额度查询。开发者面板加「自发事件」按钮（11 个按钮）。
+- 低模：其余 4 把神器（昆仑镜/神农鼎/昊天塔/伏羲琴）+ 觉醒Ⅲ发光壳，预览页神器下拉。
+- 已合并 origin/main 6ce5d1c（3.7.1、fam37、路遇寻路守卫）。纯 JS 测试全过；页面测试（npc37_events_page、dev_openworld_page、dev_openworld_gate_page 及 *_unit.py）因机器上已有 Chrome 在跑，待补跑。

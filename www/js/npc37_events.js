@@ -36,7 +36,8 @@ const NPC37E = {
   // 这一对最自然的事件：有账先讨债；关系 <0 或同图结仇；关系 ≥0 求助
   pick(a, b) { if (this.owes(a, b)) return 'debt'; const r = this.rel(a, b); const N = this.N();
     const same = N && N.schedule(a) && N.schedule(a) === N.schedule(b); if (r < 0) return 'feud'; if (same && Math.random() < 0.4) return 'feud'; return 'help'; },
-  notable(a, b) { const N = this.N(); if (!N) return false; let here = null; try { here = typeof R !== 'undefined' && R.mapId; } catch (e) { }
+  // 寻路中（R.player.nav，对齐 npc37 路遇的 2f9407b 守卫）不弹 toast，只进新闻流
+  notable(a, b) { const N = this.N(); if (!N) return false; let here = null; try { if (typeof R !== 'undefined' && R && R.player && R.player.nav) return false; here = typeof R !== 'undefined' && R.mapId; } catch (e) { }
     return N.rel(a) >= 40 || N.rel(b) >= 40 || (!!here && (N.schedule(a) === here || N.schedule(b) === here)); },
   news(kind, a, b, ix, opt) { const N = this.N(); const pool = ix ? ix.map(i => NEWS37C[kind][i]).filter(Boolean) : NEWS37C[kind];
     return N.emit(kind, a, b, N.schedule(a) || N.schedule(b), { pool, notable: this.notable(a, b), force: !!(opt && opt.force) }); },
