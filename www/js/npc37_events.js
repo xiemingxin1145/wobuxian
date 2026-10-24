@@ -57,7 +57,7 @@ const NPC37E = {
       ev.amt = amt; ev.paid = paid;
       if (paid) { delete S.owe[k]; ev.rel = this.addRel(a, b, 5); ix = this.DEBT_PAID; }
       else { S.owe[k] = Math.min(5000, Math.round(amt * 1.1)); ev.rel = this.addRel(a, b, -15); ix = this.DEBT_DODGE; } }
-    ev.s = this.news(kind, a, b, ix, opt); S.yc.e37++;
+    ev.s = this.news(kind, a, b, ix, opt); S.yc.e37++; N.evc(S, kind);
     N.bus.fire('npc:' + kind, ev); return ev; },
   // 年度衰减：|rel|>60 每年向 0 移 5
   decay() { const S = this.st(); if (!S) return 0; let k = 0; for (const p in S.rel) { const v = S.rel[p]; if (Math.abs(v) > 60) { S.rel[p] = v > 0 ? v - 5 : v + 5; k++; if (S.tie[p] === 'ch' && S.rel[p] > -60) delete S.tie[p]; } } return k; },

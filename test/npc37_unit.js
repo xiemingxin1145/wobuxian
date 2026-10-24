@@ -92,6 +92,9 @@ function box() {
   let bad = 0; for (let y = 20; y < 120; y++) { GG.year = y; GG.jh34.t = y * 12; for (let i = 0; i < 20; i++) { const ids = M.ids(); M.onMeet(ids[i % ids.length], 'm' + (i % 3)); M.emit('duobao', ids[i % ids.length], ids[(i + 1) % ids.length], 'market'); } M.topUp(); const Y = GG.npc37.yc; if (Y.n > 4 || Y.news > 6 || Y.news < 3 || Object.values(Y.per).some(v => v > 2)) bad++; }
   ok(bad === 0, '模拟 100 年：每年路遇 ≤4、新闻 3–6、每人 ≤2');
   // 总线 / schedule
+  { const E0 = GG.npc37.ev; const t0 = E0.total, m0 = E0.meet; GG.year = 301; M.onMeet('ali', 'evc1', { force: true }); ok(GG.npc37.ev.meet === m0 + 1 && GG.npc37.ev.total === t0 + 1, '路遇 → ev.meet/total 各 +1');
+    GG.npc37.ev = {}; GG.year = 302; M.onMeet('ali', 'evc2', { force: true }); const E1 = GG.npc37.ev; ok(E1.meet === 1 && E1.total === 1 && E1.feud === 0 && E1.help === 0 && E1.debt === 0, '旧档 ev={} → 安全补齐并计数');
+    GG.year = 303; const nb = M.onMeet('ali', 'evc2'); ok(GG.npc37.ev.meet === (nb ? 2 : 1), '被拦的路遇不计数'); }
   let ev = 0; c.Story37.on('meet', () => ev++); GG.year = 300; M.onMeet('ali', 'zz'); ok(ev === 1, 'Story37.on("meet") 收到事件');
   GG.jh34.npcs = { jh_mozi: { map: 'secret' } }; ok(M.schedule('jh_mozi') === 'secret' && M.schedule('ali') === 'forest' && M.schedule('nobody') === null, 'schedule：JH34 游历图 > NPCS.map');
   // 无存档
