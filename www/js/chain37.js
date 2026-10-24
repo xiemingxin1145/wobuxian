@@ -196,10 +196,14 @@ const Chain37 = {
     if (id === 'c37_1' && !S.chase && now - (S.t0 || 0) >= X.limit) return this.fail(id, 'limit', opt);
     if (now - Math.max(S.tn || 0, S.after || 0) >= this.X.NODE_TO) return this.fail(id, 'timeout', opt);
     if (id === 'c37_5' && (S.burst || 0) >= X.fail.burst) return this.fail(id, 'burst', opt);
+    if (id === 'c37_3' && !S.chase && this.robbed(G, S)) return this.fail(id, 'duobao', opt);
     const n = this.node(id, S.s); const npc = n && n.npc && n.npc !== '—' ? n.npc : null;
     if (npc && this.dead(this.npcOf(id, n, G), G)) { if (S.s === 'c3_x1') { this.activate(id, 'c3_x2', G); return null; } return this.fail(id, 'dead', opt); }
     return null;
   },
+  // §12.7.3：npc37 当年对钱满仓的「夺宝」新闻（PR #46 后有 G.npc37.ev；新闻本身无 NPC 记录，故由 NPC37.emit 包装写 G.chain37.db）
+  noteDuobao(kind, a, b, G) { G = G || this.G(); if (!G || kind !== 'duobao' || (a !== 'jh_xunbao' && b !== 'jh_xunbao')) return false; const C = this.root(G); C.db = { yr: G.year || 0, m: this.now(G) }; return true; },
+  robbed(G, S) { const C = G && G.chain37; const d = C && C.db; if (!d || typeof d.m !== 'number') return false; const ev = G.npc37 && G.npc37.ev; if (ev && typeof ev !== 'object') return false; return d.m >= (S.t0 || 0); },
   async checkAll(opt) { for (const id of this.active()) { try { await this.check(id, opt); } catch (e) { console.warn('chain37 check', e); } } },
   // ---- 年结算：罚息 / 追猎 / 超时 / 风声 ----
   async yearTick(G) {
@@ -257,6 +261,10 @@ window.CHAIN37X = CHAIN37X; window.Chain37 = Chain37;
   if (typeof Game !== 'undefined' && Game.yearEnd) { const _ye = Game.yearEnd; Game.yearEnd = async function () { const G = this.G; const y0 = G && G.year; const r = await _ye.apply(this, arguments); if (G && !G.dead && G.year !== y0) { try { await Chain37.yearTick(G); Game.save(); } catch (e) { console.warn('chain37 year', e); } } return r; }; }
   if (typeof Game !== 'undefined' && Game.enterMap) { const _em = Game.enterMap; Game.enterMap = async function (id) { const r = await _em.apply(this, arguments);
     try { const G = this.G; if (G && Chain37.hereNodes(id, G).length) setTimeout(() => { if (!Chain37.idle() || (typeof R !== 'undefined' && R.mapId !== id)) return; const c = Chain37.hereNodes(id, Game.G)[0]; if (c) Chain37.run(c); }, 1500); } catch (e) { console.warn('chain37 enter', e); } return r; }; }
+  // 夺宝新闻 → 记一笔（惰性：NPC37 / emit 不存在则跳过）
+  if (typeof NPC37 !== 'undefined' && NPC37 && typeof NPC37.emit === 'function') { const _em2 = NPC37.emit; NPC37.emit = function (kind, a, b) { const r = _em2.apply(this, arguments); try { if (r) Chain37.noteDuobao(kind, a, b); } catch (e) { } return r; }; }
+  // route37 的「完成奇遇链数」改用 §12.7.1 口径（CH34 + chain37）
+  if (typeof Route37 !== 'undefined' && Route37 && typeof Route37.chainsDone === 'function') Route37.chainsDone = function (G) { return Chain37.doneCount(G); };
   // 炸炉计数（c37_5 c5_3–c5_5 期间）
   if (typeof LIAN35 !== 'undefined' && LIAN35.batchAlch) { const _ba = LIAN35.batchAlch; LIAN35.batchAlch = function () { const o = _ba.apply(this, arguments); try { const S = Chain37.st('c37_5'); if (o && o.fail && Chain37.isActive(S) && CHAIN37X.c37_5.burstNodes.includes(S.s)) { S.burst = (S.burst || 0) + o.fail; if (S.burst >= CHAIN37X.c37_5.fail.burst) Chain37.check('c37_5'); } } catch (e) { } return o; }; }
   // 追踪栏：不进 Track.list（AUTO 不代办），只在 HUD 里加行；按钮走 Track.go

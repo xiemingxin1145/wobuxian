@@ -23,10 +23,10 @@ function box(gx) {
       mapOf(id){const G=Game.G;return this.ensure(G).npcs[id].map},say(L,s,k){L.feed.push({s,k})}};
     function JH34hold(id,v){JH34.ensure(Game.G).npcs[id].hold=v?1:0}
     var Life34={rel(id,d){const L=Game.G.life34;L.rel[id]=Math.max(-100,Math.min(100,(L.rel[id]||0)+d))},st(){return Game.G.life34}};
-    var NPC37={st(){const G=Game.G;G.npc37=G.npc37||{v:1,st:{}};G.npc37.st=G.npc37.st||{};return G.npc37},idle(){return !(R.player&&R.player.nav)}};
+    var NPC37={emit(kind,a,b){return '【江湖风云】'+kind},st(){const G=Game.G;G.npc37=G.npc37||{v:1,st:{}};G.npc37.st=G.npc37.st||{};return G.npc37},idle(){return !(R.player&&R.player.nav)}};
     var Story37={ev:[],fire(e,d){this.ev.push(e)}};
     var Talk={extra(id){return [['打听',()=>0]]}};
-    var LIAN35={batchAlch(){return {runs:3,ok:0,fail:3,made:0}}};
+    var Route37={chainsDone(G){return -1}};var LIAN35={batchAlch(){return {runs:3,ok:0,fail:3,made:0}}};
     var Game={G:null,save(){},log(){},async yearEnd(){this.G.year++},async enterMap(){},refreshNpcs(){},
       roll(p,k){if(rollQ!==null)return rollQ;return Math.random()<p},
       async fight(m,o){fights.push([m,o]);return {res:fightRes}},
@@ -132,5 +132,14 @@ function box(gx) {
   // ---- 地点节点进图弹卡 F7 ----
   c = box(); c.Chain37.dev.jump('c37_1', 'c1_5'); c.R.player.nav = { txt: 'x' }; await c.Game.enterMap('market'); await new Promise(r => setTimeout(r, 1600)); const nc = c.cards.length;
   c.R.player.nav = null; await c.Game.enterMap('market'); await new Promise(r => setTimeout(r, 1600)); ok(nc === 0 && c.cards.length >= 1 && /第/.test(c.cards[0].t), 'F7 进图 1.5 秒弹地点卡；寻路中(R.player.nav)不弹');
+  // ---- c37_3 被夺宝抢先（PR #46 后） ----
+  c = box({ realm: 2 }); c.Chain37.start('c37_3'); c.NPC37.emit('duobao', 'jh_mozi', 'jh_tieguo'); ok((await c.Chain37.check('c37_3')) === null, '夺宝新闻不涉及钱满仓 → 不触发');
+  c.NPC37.emit('jiechou', 'jh_xunbao', 'jh_mozi'); ok((await c.Chain37.check('c37_3')) === null, '钱满仓非夺宝新闻 → 不触发');
+  c.Game.G.npc37 = { v: 1, st: {}, ev: { total: 1, meet: 0, feud: 0, help: 0, debt: 0 } }; c.NPC37.emit('duobao', 'jh_mozi', 'jh_xunbao'); ok((await c.Chain37.check('c37_3')) === 'chase' && c.Chain37.st('c37_3').s === 'c3_x1', '夺宝新闻涉及钱满仓 → 转追凶 c3_x1');
+  ok((await c.Chain37.check('c37_3')) === null && !c.Chain37.st('c37_3').done, '追凶中不重复触发');
+  c = box({ realm: 2 }); c.NPC37.emit('duobao', 'jh_xunbao', 'jh_mozi'); c.Game.G.year += 1; c.Chain37.start('c37_3'); ok((await c.Chain37.check('c37_3')) === null, '开链前的旧夺宝记录不算');
+  c = box({ realm: 2 }); c.Chain37.start('c37_3'); c.Game.G.chain37.db = { yr: 'x' }; ok((await c.Chain37.check('c37_3')) === null, '坏数据 G.chain37.db 惰性忽略');
+  c = box({ realm: 2 }); delete c.Game.G.npc37; c.Chain37.start('c37_3'); ok(c.Chain37.robbed(c.Game.G, c.Chain37.st('c37_3')) === false, '老档无 G.npc37 不报错');
+  c = box(); await c.Chain37.dev.end('c37_5', 'e5_a'); ok(c.Route37.chainsDone(c.Game.G) === 1, 'route37.chainsDone 改用 Chain37.doneCount');
   console.log(`\n${n - fails}/${n} passed`); process.exit(fails);
 })().catch(e => { console.error(e); process.exit(99); });
