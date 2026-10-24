@@ -1345,3 +1345,184 @@ const CHAIN37X = {
 | c37_4 | 元婴（×5） | e4_a +7500 | 元婴宗门战酬劳同量级 | 合理；代价是 karma −20 左右与正道关系 |
 | c37_5 | 炼丹 Lv2 常在练气–筑基（×2–3） | 逼钱多多赔 +600~900；e5_a 筑基丹（市价 300） | 小链 | 合理 |
 | c37_6 | 元婴（×5） | 借 −2500 或买剑 −4000；e6_a 半阶炼器费（4→5 阶约 3000+） | fabao33 cost(n)=300×2.2^n | 合理；F4 修正后剑意确实有用 |
+
+## 13. 【2026-10-24 14:3x 研究员】3.8.2 道具 `items40.js` 实装规格补全：代码核对 + 效果改写 + 来源/商店表 + 战斗道具 + 送礼算法 + 剧情道具交付文案（可直接抄）
+
+> 对应 `docs/research_v40_items.md`（60 个 `i40_` 道具、TEXT40）。只写规格/文本/数值，不改代码。
+> 已核对：origin/main `9c96645`（含 3.7.5 chain37）+ 分支 `origin/prof38` `8d78fb2`（3.8.0 `www/js/profile38.js`，PR #50 未合）。结论：**v40 有 9 处效果写法在现有代码里会“静默无效”或“效果反了”**（见 13.1，I1–I9 必须改）；另有 6 个道具依赖 3.8.3，本版只登记不投放（13.2）。
+
+### 13.0 状态更正（不改 ROADMAP，仅在此记录）
+1. `docs/ROADMAP.md` 3.7.5 行仍写「🔧 开发中（PR #52）」：PR #52 已 squash 进 main（`9c96645`）；`VERSION`/`CHANGELOG` 提交 `cd66c54` 当前只在本机分支 `rel375`，origin/main 上还没有（14:3x 核对）。发版人推版本号后把该行改成「✅ 已发布」。
+2. v40 §1「现有 31 个 id」已复核无误（data.js 24 + xyf/mg_reroll/lgd/tcdb/sqj/wb33_frag/hetong_doc），www/js 里目前没有任何 `i40_` 字符串，无冲突。
+3. 3.8.2 硬依赖 3.8.0 的 `PF38`（`reveal/has/secs/hid/ss`）。若 3.8.2 先于 PR #50 合并，窥心类和 `sec:*` 剧情道具一律按「未上线」处理（13.2 的 gate 列），不进商店、不掉落。
+
+### 13.1 v40 写法与代码不一致处（必须按此改，否则无效/反效果）
+
+| # | 道具 | v40 写法 | 代码事实 | 改为 |
+|---|---|---|---|---|
+| I1 | i40_xiaoyao 逍遥丸 | `use:'life'` 寿元+2 | `ui.js:113` 的 `life` **写死 +20 年** | `use:'i40'`，`eff:'life+2'`（`Game.apply` 支持 `life+N`，game.js:252）；限用见 13.3 |
+| I2 | i40_jiezhai 延期还款单 | `eff:'debtint'` 本年利息减半 | `game.js:275` 的 `debtint` 是**欠款 +8%**，效果正好反了 | 用 `G.i40.half = G.year` 标记；包 `Game.yearEnd`：调用前记 `d0=G.debt`、`r=0.03+(G.fam37&&G.fam37.rate||0)`，调用后若 `half===结算前的 G.year` 则 `G.debt=max(0,G.debt−floor(ceil(d0*r)/2))`，toast「延期还款单生效：利息减半（省 N）」。**闭关（`Game.seclude`）不生效**，使用卡注明 |
+| I3 | i40_lingshou 灵兽肉干 | `petexp` 灵宠经验+50 | `petexp` 实际给 `80×POW(realm)`（game.js:276），且没有出战灵宠时**吞掉道具不提示** | `use:'i40'`，`eff:'petexp'`；使用前 `Game.activePet()` 为空 → toast「没有出战的灵宠」不消耗；描述改「出战灵宠经验大涨」 |
+| I4 | i40_huanyan 驻颜丹 / i40_kaiqiao 开窍丹 | `st:cha:1` / `st:int:1`（标 false） | `Game.apply` 原生支持 `cha+1` / `int+1`（game.js:243，写 `G.st[k]`） | `eff:'cha+1'` / `eff:'int+1'`，`sup:'partial'`（只差 `use:'i40'` 分派 + 限用计数） |
+| I5 | i40_xisui_s 小洗髓液 | `eff:'lg36pur+8'` | 不是 apply 词法；lg36.js:101 已处理 `use:'lg36pur'`，但**写死 +5** | `use:'i40'`，`eff:'pur:8'`，items40 内用 `LG36.addPur(8,G)`，toast 文案同灵根丹 |
+| I6 | i40_huiyuan 回元散 | `use:'heal'`，sup:true | 背包里可用；但**战斗道具栏写死 `['hcd','hld']`**（ui.js:248），battle.js:174 也只认这两个 id | 背包照 `heal`；战斗道具栏按 13.4 追加；战斗内效果按 13.4 处理 |
+| I7 | i40_mixin 密信 | `peek sec1` = 秘密① | PF38 的键是 **`sec0`=秘密①、`sec1`=秘密②**（profile38.js:61） | `peek sec0`；`sec:npc:1`（秘密②）不变 |
+| I8 | 剧情道具 flag 名 | `pf_qian_weight` / `pf_lingpai` / `ruyan_duel` | PF38 秘密实际置的是 `pf_qian_scale` / `pf_keeper_tablet` / `pf_ruyan_oath` | 道具**获得条件**读 PF38 的真名；道具自身 `eff` 保留 v40 的新 flag（作为“已交出”标记，不冲突） |
+| I9 | 4 个 `sec:*` 剧情道具 | 见右 | ① `i40_nilin` 来源「敖小乐秘密②」又去解锁秘密②，**循环**；② `i40_duanjian` 来源「追问 pf_mentor_sword 后」——这个 flag 就是秘密②自己的 `on`，**循环**；③ `i40_bingxin`(sec:lengyue:1)、`i40_huangzhang`(sec:xianguan:1)：这两人**只有 1 个秘密**，`reveal` 返回 false，道具白交 | 全部改成 13.6 的「交付表」（每个道具二选一，有实际奖励） |
+
+其余写法可直接用：`aff:id:n`、`flag:x`、`life+N`、`stone±N` 都是 `Game.apply` 现有词法；`i40_shuguan` 的 `use:'scroll'` 现成可用。
+
+### 13.2 本版投放范围（gate）
+- **3.8.2 投放 54 个**；以下 6 个**只登记到 ITEMS、不进任何商店/掉落**，背包使用时 toast「家族谱系尚未开放（3.8.3）」不消耗：`i40_jiapu`、`i40_zuxun`、`i40_dici`、`i40_lianhun`、`i40_zupu_old`、`i40_ditu`。（v40 §8「sup:false 的道具在系统未上线前不进商店」即此。）
+- `i40_songzi`（子嗣 +40%）和 `i40_yuelao`（婚配）**不必等 3.8.3**，用 fam37 现有接口落地（13.3）。
+- 依赖 PF38 的 8 个（`kuixin_jing/mingpan/tongxin/mixin/shenshi` + 13.6 里的 4 个 `sec:*`）：`typeof PF38==='undefined'` 时不进商店、不掉落。
+
+### 13.3 存档与 `use:'i40'` 分派器
+
+`G.i40 = { v:1, cnt:{}, cntR:{}, giftM:{}, yr:{}, dz:0, luck:0, half:-1, birth:-1, match:0, mixin:[], done:{}, pref:{} }`，惰性兜底，不升 `G.v`。
+
+| 字段 | 含义 |
+|---|---|
+| `cnt[id]` | 终身已用次数（驻颜/开窍上限 3） |
+| `cntR[id+'@'+G.realm]` | 本大境界已用次数（逍遥丸上限 3） |
+| `yr[id]` | 最近使用年份（静心丹/养神丹/送子瓶每年 1 次） |
+| `dz` | 静心丹待生效（下一次「打坐」修为 ×2） |
+| `luck` | 转运珠待生效（下一次 `Game.roll(p,'qiyu')` 必中） |
+| `half` / `birth` | 延期还款单 / 送子瓶生效的年份 |
+| `match` | 月老红线：下一次结侣门槛降低（一次性） |
+| `mixin` | 密信绑定的 NPC 队列（背包里只有数量，绑定存这里，先进先出） |
+| `done[id]` | 13.6 剧情道具已交付及选项 |
+| `pref[npc+'@'+礼物]` | 送礼命中爱(1)/憎(-1)，供详情面板「喜好」栏 |
+
+包 `UI.useItem`（在 lg36 的包装之后加载即可）：`I.use==='i40'` 或 `'peek'` 或 `'passive'` 时自己处理并 `return`，否则交给原函数。
+
+| 道具 | 实现（全部“先检查、能用才 `Game.take`”） |
+|---|---|
+| jingxin | 本年已用 → 🔒「今年已经服过了」；否则 `dz=1; yr.jingxin=G.year`。包 `Acts.mat(m,bonus)`：`dz` 为 1 时以 `bonus×2` 调原函数，返回后若行动力从 >0 变 0（真打坐了）才 `dz=0`（选闭关/算了不消耗效果） |
+| xiaoyao | `cntR` 满 3 → 🔒「这一境界吃不下了」；`Game.apply('life+2')` |
+| xisui_s | `LG36.addPur(8,G)`，返回 0 → 🔒「纯度已满」不消耗 |
+| huanyan / kaiqiao | `cnt` 满 3 → 🔒；`Game.apply('cha+1')` / `('int+1')` |
+| shenshi | 本年已用 → 🔒；`yr.shenshi=G.year`；包 `PF38.ss(G)`：`yr.shenshi===G.year` 时 +3 |
+| wangyou | 弹 NPC 列表：`G.aff` 里有值、或 `Life34.st().rel[id]` ≠0 的 NPC，**排除 `G.partner`、`G.fam37.sp`、`mom`**；选中后 `G.aff[id]=0`、`Life34.st().rel[id]=0`，toast「一碗下去，{名}看你的眼神像看陌生人」 |
+| yuelao | `match=1`；包 `FAM37.canMarry`：`match` 时门槛改 `aff≥80 && rel≥40`；`marry` 成功后 `match=0` |
+| songzi | 无道侣 → 🔒「你还没有道侣」；子嗣已满 `FAM37.KID_MAX` → 🔒；`birth=G.year`。包 `FAM37.famYear`：原函数返回后，若 `birth===结算年` 且本年没出生（调用前后 `kids.length` 相同）且 `rnd()<0.4` → `FAM37.birth(rnd)` 并 toast |
+| xingyun | `luck=1`；包 `Game.roll`：`kind==='qiyu' && luck` → `luck=0; return true`。描述改「下一次奇遇风声必定出现（需满足奇遇链条件）」，因为 `'qiyu'` 目前只有 chain37 年结算掷骰会用 |
+| jiezhai | 见 I2 |
+| lingshou | 见 I3 |
+| dazuo（passive） | 无「使用」按钮（`use` 留空，`passive:'cult'`）；包 `Game.cultMult`：`Game.has('i40_dazuo')` 时 ×1.10，多个不叠加 |
+| peek 类 | 见 13.5 |
+
+### 13.4 战斗道具（`poxie` / `dunfu` / `leifu` / `huiyuan`）
+- 道具栏：包 `UI.renderBB`，`sub==='item'` 时在 `hcd、hld` 后追加 `BATTLE40=['i40_huiyuan','i40_poxie','i40_dunfu','i40_leifu']` 中持有的，按钮格式与原来一致（无货 disabled）。
+- 效果：`battle.js` 的 `doAction` 是全局函数声明，`battleLoop` 按名字调用 → items40 里 `const _da=doAction; doAction=async function(a){…}` 即可接管；`a.sk==='item' && BATTLE40.includes(a.item)` 时自己处理并 return，其它交原函数。每场状态存在 `B.i40={}`（`startBattle` 时清空，同样包一层）。
+
+| 道具 | 战斗内效果 | 限制 / 不可用时 |
+|---|---|---|
+| huiyuan | 同 hcd：回复 `mhp×0.5×(1+pillBonus)` | — |
+| poxie | `B.i40.poxie=1`；包全局 `calcDmg(a,d,sk)`：`B.i40.poxie && a.side===0 && POXIE40.has(d.mon)` 时 `dm×1.2`，飘字「破邪」 | 每场 1 张；对象表：`POXIE40 = guiwang collector paper ghost jiangshi demon corpse mozun moguard xian_yaomo guizu`（按 MONS 名字含 魔/鬼/魂/尸 核出来的，新增怪自行补） |
+| dunfu | `B.fled=true`，飘字「土遁！」 | `B.opts.boss \|\| B.opts.noflee` → 飘字「此地封了土遁」，**不消耗** |
+| leifu | 对选中单体造成 `round(90×POW(t.tier)×0.35×(t.boss?0.5:1))` 真实伤害（不算防御、不暴击），飘字「掌心雷」 | 每场 1 张（`B.i40.lei`）。数值含义：同档普通怪约 1/3 血，精英约 1/5，BOSS 约 1/40；price 150 不随境界变 |
+
+- 物品 `use` 字段：huiyuan=`heal`；poxie/dunfu/leifu=`'battle'`，背包里点「使用」→ toast「战斗中才能用」，不消耗。
+- 自动战斗（`B.auto`）不使用这四个（AI 只从技能里挑，不改）。
+
+### 13.5 窥心道具（对接 PF38）
+- 使用流程：弹 NPC 列表（`G.aff` 有记录的 NPC ∪ `PF38.T.fixed`），每行标「已知晓 / 可窥」；只列 `!PF38.has(id,k)` 且（`k` 为秘密时）`PF38.secs(id)[i]` 存在的。列表为空 → toast「没有可窥探的人了」，不消耗。
+- 选中后 `PF38.reveal(id,k,opt)`；返回 false 时 toast「已知晓」，不消耗；成功则消耗并直接打开该 NPC 详情面板。
+
+| 道具 | k | opt |
+|---|---|---|
+| kuixin_jing | `lg` | — |
+| mingpan | `mg` | — |
+| tongxin | `taff` | `{yr:1}`（PF38 已支持当年有效） |
+| mixin | `sec0` | **不弹列表**：直接用 `G.i40.mixin.shift()` 的 NPC；该 NPC 已知晓或已陨落 → 改成从「有秘密①未知晓」的 NPC 里随机一个；都没有 → 返还 300 灵石并消耗 |
+
+- 密信掉落：包 npc37 路遇结算，选项结束后 5% 掷骰；只在该 NPC `PF38.secs(id)[0]` 存在且未知晓时掉落，`G.i40.mixin.push(id)`，toast「{名}掉了一封密信」。
+- 命格加成（送礼时结算，13.7）读 `PF38.hid(id).mg`。
+
+### 13.6 剧情道具：来源与交付（替代 v40 的 `sec:*` / `debtSeed`，可直接抄）
+
+所有交付选项都以「⚑」开头（`ux23.js:264` 的 SAFE 白名单里有「★」和「交付」，**不能用这两个开头**），自动任务永不代选。`G.i40.done[id]={c:选项序号}`，交过的不再出现。
+
+| 道具 | 怎么拿（条件 → 入口） | 交给谁 / 选项 → 效果 |
+|---|---|---|
+| i40_duanjian 断剑残片 | `PF38.has('mentor','sec0')` → 仙官·记账童子对话「⚑ 打听断剑下落」，付 300×(1+realm) 灵石 | mentor「⚑ 把断剑交给他」→ `reveal('mentor','sec1')`、`aff:mentor:15`、`atkup`（攻击 +2%）。 |
+| i40_weibali 第九尾当票 | flag `pf_ali_tail` → 阴三娘「⚑ 赎回阿离的尾巴」，付 5000 灵石 | ali「⚑ 把当票还给她」→ `reveal('ali','sec1')`、`aff:ali:20` |
+| i40_nilin 逆鳞 | `reveal('aoxiao','sec1')` 时自动给（包 `PF38.reveal`，返回 true 且 id/k 匹配） | aoxiao「⚑ 还给她」→ `aff:aoxiao:30`、`karma+5`；taizi（敖小白）「⚑ 交给龙宫」→ `stone+(10000×(1+realm))`、`karma-10`、`G.aff.aoxiao=0`、`Life34.rel('aoxiao',-40)` |
+| i40_diya 灵脉抵押书 | flag `pf_elder_mortgage` 且已入青云宗 → 宗门藏经阁（elder 对话）「⚑ 翻一翻旧档」 | elder「⚑ 还给掌门」→ `reveal('elder','sec1')`、`contrib+50`；xianguan「⚑ 递给讨债司」→ `debt` 减 10%、`G.aff.elder=0`、`Life34.rel('elder',-50)`、已入青云宗则 `contrib` 清零 |
+| i40_bingxin 冰心玉 | `PF38.has('lengyue','sec0')` → lengyue 对话「⚑ 问冰封之人」后给 | lengyue「⚑ 把玉放回冰棺」→ `aff:lengyue:20`、flag `i40_ly_jade`；若心魔系统（xinmo34）存在则下次心魔幻境成功率 +10%（读 flag） |
+| i40_huangzhang 坏账名单 | `PF38.has('xianguan','sec0')` → xianguan 对话「⚑ 他抽屉里的册子」 | xianguan「⚑ 还给他」→ `aff:xianguan:25`、欠款 −5%；suanpan「⚑ 交给天道会计」→ `stone+(3000×(1+realm))`、`karma-15`、`G.aff.xianguan=0`、`Life34.rel('xianguan',-50)` |
+| i40_yuejie 旧借据（v40 `debtSeed`） | flag `pf_mom_debt` → mom 对话「⚑ 翻家里的旧箱子」 | mom「⚑ 收好，不提了」→ `aff:mom:10`、`karma+3`；suanpan「⚑ 拿去讨债司对质」→ 欠款 −10%（一次性）、`karma+2` |
+| i40_jiacheng 假秤砣 | flag `pf_qian_scale` → merchant 对话「⚑ 顺走他的秤砣」（50% 被发现：`aff:merchant:-10`，仍到手） | farmer「⚑ 交给王大爷（举报）」→ `karma+5`、本年 merchant 商店 9 折（`G.i40.yr.scale=G.year`）；merchant「⚑ 拿秤砣敲诈他」→ `stone+(800×(1+realm))`、`karma-5`、`Life34.rel('merchant',-30)` |
+| i40_lingpai 无名灵牌 | flag `pf_keeper_tablet` → keeper 对话后给 | keeper「⚑ 把灵牌供回去」→ `karma+3`、`life+3` |
+| i40_jianzhong 剑冢誓书 | flag `pf_ruyan_oath` → ruyan 对话后给 | ruyan「⚑ 接她三剑」→ 连打 3 场 `Game.fight('ruyan',{elite:true,solo:true,noflee:true})`（MONS 无 ruyan 时用 `heixin` 精英换名），全胜 `aff:ruyan:30`、flag `ruyan_duel`；败一场即止，道具不消耗可再来 |
+| i40_cuihuabao 七个荷包 | `G.aff.cuihua>=120 && PF38.has('cuihua','sec0')` → cuihua 对话自动给 | 背包「使用」→ `aff:cuihua:15`（v40 原样，`aff:` 现成） |
+| i40_jiezhai_qi 天道借债契 | 主线 `MI('done')` 后讨债司（cuizhai 图任意 NPC 对话）「⚑ 调阅原始契约」 | 只读道具：背包「使用」弹卡展示契约全文（13.8），flag `i40_contract`，不消耗 |
+
+### 13.7 送礼算法（重写 `Talk.gift`，保留原文案与 `giftCount`/成就）
+```
+gift(id):
+  have = GIFTS（原 6 个 + 20 个 i40 礼物）中持有的；超过 8 个时分页（每页 7 个 +「下一页」）
+  本月已送：G.i40.giftM[id] === JH34.now(G) → say「这个月已经收过你的礼了。」 return
+  g = 选中; Game.take(g); G.i40.giftM[id] = JH34.now(G)
+  kin = (id==='mom'||id==='farmer'||id==='cuihua'||id===G.partner)
+  if g==='i40_tiezhi': v = (aff>=60 ? 15 : 3)
+  elif love(g) 含 id 或 (含 'kin' 且 kin) 或 Talk.prefs[id]===g: v = 22
+  elif hate(g) 含 id: v = -12
+  else: v = ri(8,12)
+  if v>0 且 PF38: mg = PF38.hid(id).mg; n_tianxi → v = round(v*1.25); n_qiongxiang → v += 5
+  G.aff[id] = clamp(0,150, aff+v); v<0 时额外 Life34.rel(id,-3)
+  love/hate 命中时记 G.i40.pref[id+'@'+g]=±1（3.8.0 详情面板「喜好」栏读）
+```
+回话文案：love「“这、这正是我最喜欢的！”」（沿用）；普通「“谢谢你。”」（沿用）；hate 按下表，其余 NPC 用默认「“……你是故意的吧？”（好感−12）」。
+
+| NPC | 讨厌时的台词 |
+|---|---|
+| mentor | “拿走拿走，看着就想起我那些债主。” |
+| sister | “你送这个给我？我看起来像那种人吗？” |
+| lengyue | “俗物。”（冷月仙子连眼皮都没抬） |
+| elder | “年轻人，心思要放在修炼上。” |
+| mom | “乱花钱！这得多少灵石？下回不许买了。” |
+| merchant | “这玩意儿我铺子里有一百个，进价三文。” |
+| danlao | “甜食伤丹田，拿走。” |
+| sumei | “啧，这么正经的东西，送错人了吧。” |
+| aoxiao | “不好玩！我要会动的！” |
+| guzhu | “雷劈过的东西，药性全毁了。” |
+
+### 13.8 来源 / 商店表（`SHOPS` 追加，`p` 用 TEXT40 原价）
+- 已有商店追加：`yaopu` +huiyuan、jingxin、xiangnang；`merchant` +dunfu、yuzan、ganggu、zhangben、laojiu；`sumei` +huanyan、mozhu；`xianguan` +jiezhai；`fisherm` +yugan、lingshou、xingyun；`qianxd` +yueguang。
+- 新开商店（`Object.assign(SHOPS,…)`，talk.js:48 会自动出现「交易」）：
+
+| key | 店名 | 货品 | 门槛 |
+|---|---|---|---|
+| sanniang | 鬼市当铺 | xiaoyao、kuixin_jing、wangyou、baigu、suanpan | — |
+| shuoshu | 茶馆书摊 | huaben、poxie、shuguan、mingpan | mingpan 需 PF38 |
+| danlao | 丹房小柜 | kaiqiao、shenshi | shenshi 需 `aff.danlao≥80` 且 PF38 |
+| leigong | 雷部福利 | leiguo、leifu | leifu 需 `aff.leigong≥40` |
+| guzhu | 百草谷药圃 | xisui_s、yaocao | — |
+| taizi | 龙宫御膳房 | longxu | — |
+| guanghan | 广寒宫 | yueguang、tongxin | tongxin 需 PF38 |
+| farmer | 王大爷的小摊 | guihua、tanghulu | — |
+| guichengxiang | 龟丞相 | qiju | — |
+| caishen | 财神庙 | suanpan | — |
+
+  门槛做法：给该店 `items` 定义 getter（`Object.defineProperty(SHOPS.x,'items',{get(){…按条件过滤…}})`），这样 `UI.shop` 不用改。
+- 掉落：huaduo 野花 = 包 `Acts.herb`，采药后 15% +1；dazuo 蒲团 / yaocao / jianpei = 包 `Dng.exit`（同 shenqi36.js:220 的通关判定），秘境通关各 10% / 15% / 15%；mixin 见 13.5；tiezhi 请柬 = 3.8.3 书坊，本版改为 merchant 在 `G.realm≥2` 时售卖。
+- **i40_jiezhai_qi 契约全文**（13.6 使用时弹卡）：
+  > 立契人：落魄剑仙（签名潦草，疑似用剑划的）。
+  > 承建：天道营造司。标的：本世界（含山川、灵脉、凡人若干、蚊子不计）。
+  > 尾款：飞升尾款捌仟捌佰捌拾捌灵石整，按年三分计息，利滚利，滚到天荒地老为止。
+  > 担保人：________（这一栏的墨迹比别处新，写的是你的生辰八字）。
+  > 备注：担保人若已转世，债随魂走。若魂也没了，债随名字走。若名字也改了——天道会找到你的。
+
+### 13.9 给奥拉夫的验收补充（在 v40 §8 之外）
+- [ ] 逍遥丸只加 2 年寿元（不是 20）；同一大境界第 4 颗显示 🔒 且不消耗。
+- [ ] 延期还款单：使用当年年结算后欠款增量约为不用时的一半；**欠款没有因使用而增加**（I2 回归）。
+- [ ] 驻颜丹/开窍丹各第 4 颗 🔒；角色面板魅力/悟性 +1。
+- [ ] 灵兽肉干在无出战灵宠时不消耗。
+- [ ] 战斗道具栏出现回元散/破邪符/土遁符/掌心雷符（持有时）；土遁对 BOSS 不消耗；掌心雷每场仅 1 张；自动战斗不碰它们。
+- [ ] 密信解锁的是「秘密①」（PF38 `sec0`）。
+- [ ] 13.6 的 12 个剧情道具：每个都能从对应条件拿到，交付选项都以「⚑」开头，`human_olaf` T9 自动任务跑 3 分钟不会触发任何「⚑」选项。
+- [ ] 同一 NPC 同一游戏月第二次送礼被拒；讨厌礼物好感 −12 且不低于 0。
+- [ ] 6 个 3.8.3 道具在任何商店/掉落里都拿不到；DevPanel 发放后使用不消耗、提示「尚未开放」。
+- [ ] PF38 不存在（模拟 3.8.0 未合并）时：窥心类不在商店，`i40_mixin` 不掉落，无 JS 报错。
