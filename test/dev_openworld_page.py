@@ -211,8 +211,16 @@ async def main():
             await pg.evaluate("()=>{const G=Game.G;G.debt=8888;Game.save();}")
             await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>{RealtimeBattle.state.player.hp=0;}")
+            # 讨债令抵扣（#51）：手上有 2 枚令 → 败场先弹「讨债令抵扣」确认卡；这里选「照付误工费」，令不扣、误工费照记
+            oc = pg.locator('.card:has(.ct:text("讨债令抵扣"))').last; await oc.wait_for(timeout=5000)
+            otxt = await oc.inner_text()
+            ck('重债打输且有 2 枚讨债令 → 先弹「讨债令抵扣」确认卡：误工费 889、你有 2 枚、选项「花 1 枚抵掉 / 照付误工费」',
+               '误工费 889' in otxt and '你有 2 枚讨债令' in otxt and await oc.locator('.opt').all_inner_texts() == ['花 1 枚抵掉', '照付误工费'])
+            await oc.locator('.opt[data-k="1"]').click(); await pg.wait_for_timeout(300)
             card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
             ltxt = await card.inner_text()
+            oc0 = await pg.evaluate("({n:document.querySelectorAll('#modals .card').length,t:Game.G.flags.s3b_token})")
+            ck('选「照付误工费」→ 确认卡关掉、只剩结算卡（不叠卡）、讨债令仍 2 枚', oc0['n'] == 1 and oc0['t'] == 2)
             l = await pg.evaluate("({debt:Game.G.debt,lose:Game.G.flags.s3b_lose,saved:JSON.parse(localStorage.getItem('wbx2_save')||'{}').debt})")
             ck('追兵战打输（重债）→ 误工费 889（10%）记进欠款并存档', l['debt'] == 8888 + 889 and l['saved'] == l['debt'] and l['lose'] == 1 and '误工费 889' in ltxt and '追兵特性：快攻双发' in ltxt and '头子：' not in ltxt)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
@@ -224,6 +232,19 @@ async def main():
             h = await pg.evaluate("({n:Game.G.flags.s3b_token,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{}).s3b_token,win:Game.G.flags.s3b_win})")
             ck('重债打赢（没有头子）→ 结算卡不含「讨债令」、s3b_token 仍为 2（存档同）；重债打输卡也不含', '胜·重债' in htxt and '讨债令' not in htxt and '讨债令' not in ltxt and h['n'] == 2 and h['sv'] == 2 and h['win'] == 4)
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            # 讨债令抵扣（#51）：再打输一场重债，选「花 1 枚抵掉」→ 欠款不变、令 2 → 1、结算卡写明抵掉、存档同步
+            d0 = await pg.evaluate("Game.G.debt")
+            await pg.click('#dow-zb'); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>{RealtimeBattle.state.player.hp=0;}")
+            oc = pg.locator('.card:has(.ct:text("讨债令抵扣"))').last; await oc.wait_for(timeout=5000)
+            await oc.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            card = pg.locator('.card:has(.ct:text("追兵战结算"))').last; await card.wait_for(timeout=5000)
+            otx = await card.inner_text()
+            o = await pg.evaluate("({debt:Game.G.debt,n:Game.G.flags.s3b_token,u:Game.G.flags.s3b_token_used,cards:document.querySelectorAll('#modals .card').length,sv:JSON.parse(localStorage.getItem('wbx2_save')||'{}')})")
+            ck(f'选「花 1 枚抵掉」→ 欠款 {d0} 不变、讨债令 2 → 1、used=1、已存档，结算卡含「抵掉了误工费」且只剩这一张卡',
+               o['debt'] == d0 and o['n'] == 1 and o['u'] == 1 and o['sv'].get('debt') == d0 and (o['sv'].get('flags') or {}).get('s3b_token') == 1 and '抵掉了误工费' in otx and o['cards'] == 1)
+            await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
+            ck('抵扣流程结束 → 没有残留卡片挡住面板', await pg.evaluate("document.querySelectorAll('#modals .card').length") == 0)
         except Exception as e:
             ck('追兵战结算真页面流程（异常：' + str(e)[:80] + '）', False)
         # 5b. 第十二轮：追兵战 × life34「仇家上门」同一年互斥（造场景：直接挂一个 life34 仇家 pending，与上面造债务的做法相同）
