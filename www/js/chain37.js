@@ -22,7 +22,7 @@ const CHAIN37X = {
   c37_6: { n: '剑与当铺', home: 'sect', can: G => !!(G.fb33 && typeof FABAO !== 'undefined' && FABAO[G.fb33.id]) && G.realm >= 3,
     wait: { from: 'c6_1', to: 'c6_5', months: 36 }, fail: { rel: { jh_jianke: -40 }, affHalf: 'jh_jianke' } },
   fights: {
-    'c1_3/0': ['collector', 0, 0], 'c1_5/0': ['collector', 1, 0.3], 'c3_3/0': ['treant', 0, 0], 'c3_4/1': ['rock', 1, 0.3],
+    'c1_3/1': ['collector', 0, 0], 'c1_5/0': ['collector', 1, 0.3], 'c3_3/0': ['treant', 0, 0], 'c3_4/1': ['rock', 1, 0.3],
     'c3_5/1': ['demon', 1, 0.5], 'c4_1/1': ['demon', 1, 0.5], 'c4_4/0': ['paper', 1, 0.4], 'c6_4/0': ['crab', 1, 0.3], 'c3_x1/0': ['demon', 0, 0.2],
   }, // key = 节点id/选项下标 → [MONS id, elite, 加档]
   norm: { e1_a: { debtPct: -10, karma: 5 }, e2_c: { debtPct: -20, karma: -10 }, e2_a: { rate: -0.005, aff: { xianguan: 20 } },
@@ -60,13 +60,17 @@ const CHAIN37X = {
     c37_6: '当铺的掌柜说，这辈子没见过谁把当票当成婚书一样收着。',
   },
   fightLine: {
-    'c1_3/0': '地库门口的讨债鬼正在数铜板，数到一半看见了你。', 'c1_5/0': '账房鬼一拍算盘：“擅闯者，按日计息！”',
+    'c1_3/1': '地库门口的讨债鬼正在数铜板，数到一半看见了你。', 'c1_5/0': '账房鬼一拍算盘：“擅闯者，按日计息！”',
     'c3_3/0': '你刚踩进去，脚下的树根就动了。', 'c3_4/1': '石门上的门神是块石头精，脾气比门还硬。',
     'c3_5/1': '厉无咎没拔刀，只放出了一团魔火：“陪它玩玩。”', 'c4_1/1': '厉无咎冷笑着接下了你的第一剑。',
     'c4_4/0': '萧十三剑出如符，满天剑气化成纸符扑面而来。', 'c6_4/0': '海妖首领挥着两只大钳子，嫌你们来得太晚。',
     'c3_x1/0': '抢图的小魔头把图塞进嘴里，你只好动手。',
   },
 };
+// 补丁（实装时发现）：§12.10 战斗表 key 'c1_3/0' 实为 c1_3 第 2 个选项〔独自夜探〕→ 已改 'c1_3/1'；
+// c6_3 两个选项都要花灵石（§12.1 F12 说“36 节点均满足”不成立），补一个零成本选项，避免穷玩家卡死。
+CHAIN37X.extraCh = { c6_3: [{ t: '让萧十三自己想办法', fx: { aff: { jh_jianke: -10 } }, next: 'c6_5' }] };
+
 const Chain37 = {
   X: CHAIN37X, IDS: ['c37_1', 'c37_2', 'c37_3', 'c37_4', 'c37_5', 'c37_6'], FIXED: ['merchant', 'xianguan', 'mentor', 'sister', 'villager'],
   G() { return typeof Game !== 'undefined' ? Game.G : null; },
@@ -76,7 +80,7 @@ const Chain37 = {
   mk(id, G) { const C = this.root(G); return C.ch[id] || (C.ch[id] = { s: null, t0: 0, tn: 0, k: 0, done: 0, out: '', fail: 0, pen: 0, burst: 0, offer: 0 }); },
   def(id) { return typeof TEXT37B !== 'undefined' ? TEXT37B.chains.find(c => c.id === id) : null; },
   name(id) { return (this.X[id] && this.X[id].n) || (this.def(id) || {}).n || id; },
-  node(id, nid) { if (!nid) return null; const ch = this.X.chase.find(n => n.id === nid); if (ch) return Object.assign({ map: null }, ch); const D = this.def(id); return D ? D.nodes.find(n => n.id === nid) || null : null; },
+  node(id, nid) { if (!nid) return null; const ch = this.X.chase.find(n => n.id === nid); if (ch) return Object.assign({ map: null }, ch); const D = this.def(id); const n = D ? D.nodes.find(n => n.id === nid) || null : null; const ex = n && this.X.extraCh && this.X.extraCh[nid]; return ex ? Object.assign({}, n, { ch: n.ch.concat(ex) }) : n; },
   isEnd(nid) { return /^e\d_/.test(nid) || /^chase_/.test(nid); },
   endOf(id, eid) { if (this.X.chaseEnd[eid]) return { id: eid, t: this.X.chaseEnd[eid].t, rw: this.X.chaseEnd[eid].fx }; const D = this.def(id); return D ? D.ends.find(e => e.id === eid) : null; },
   isActive(S) { return !!(S && S.s && !S.done); },
