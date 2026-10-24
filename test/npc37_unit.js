@@ -135,7 +135,9 @@ function box() {
   // 源码约束
   ok(!/L\.pending\s*=|pending\.push|Life34\.rel\(/.test(SRC), '不写 L.pending、不直接调 Life34.rel（只经 G.aff 同步）');
   const idx = fs.readFileSync(path.join(JS, '..', 'index.html'), 'utf8'); ok(idx.indexOf('js/jianghu34.js') < idx.indexOf('js/npc37.js'), 'index.html 在 jianghu34.js 之后加载 npc37.js');
-  const dev = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8'); ok(/label: '路遇'/.test(dev) && /NPC37\.onMeet\(id, mapId, \{ force: true \}\)/.test(dev), '开发者面板有「路遇」强制触发按钮');
+  { const dev = fs.readFileSync(path.join(JS, 'dev_openworld.js'), 'utf8'); // PR 分支（main）不带开发者「路遇」按钮；openworld-wip 才有
+    if (/NPC37/.test(dev)) ok(/label: '路遇'/.test(dev) && /NPC37\.onMeet\(id, mapId, \{ force: true \}\)/.test(dev), '开发者面板有「路遇」强制触发按钮');
+    else ok(!/NPC37|npc37/.test(dev), 'main 的 dev_openworld.js 不引用 NPC37（路遇只走正常游玩入口）'); }
   // 第二十八轮：真实 Game.apply 形状 { txt, later }，fight 延后到 later 里，路遇必须真的开战
   { const d = box(); const DN = d.NPC37, DG = d.Game; const log = [];
     DG.apply = async function (eff) { const later = []; const out = []; for (const tk of eff.split(';')) { const p = tk.split(':'); if (p[0] === 'aff') { this.G.aff[p[1]] = (this.G.aff[p[1]] || 0) + +p[2]; out.push('好感' + p[2]); } else if (p[0] === 'fight') later.push(() => this.fight(p[1], { tier: 1 })); } return { txt: out.join('，'), later }; };
