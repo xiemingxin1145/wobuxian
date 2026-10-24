@@ -68,12 +68,16 @@ const NPC37 = {
       if (r.ok) { if (r.fight && typeof UI.toast === 'function') UI.toast(r.fight === 'win' ? `路遇一战：击退来敌` : `路遇一战：落了下风`); if (Game.save) Game.save(); return r; }
       if (typeof UI.toast === 'function') UI.toast('条件不足'); } return null; },
   // 新闻：kind ∈ news 六类；a/b NPC id；每 NPC 年 ≤2、全年 ≤6、toast ≤2
-  emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = TEXT37.news[kind]; if (!pool) return null; const c = S.yc;
-    if (c.news >= this.NEWS_MAX) return null; if ((c.per[a] || 0) >= this.PER_MAX || (b && (c.per[b] || 0) >= this.PER_MAX)) return null;
+  // 第三十轮：opt.pool 自带模板（npc37_events.js 的 NEWS37C 结仇/求助/讨债，与路遇共用同一套额度）；opt.force 跳过额度但照样计入（开发者按钮）
+  emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = opt.pool || TEXT37.news[kind]; if (!pool || !pool.length) return null; const c = S.yc;
+    if (!opt.force && !this.room(a, b)) return null;
     const pl = b ? pool : pool.filter(x => x.indexOf('{b}') < 0); if (!pl.length) return null; const s = '【江湖风云】' + this.fill(this.rnd(pl), { a: this.name(a), b: b ? this.name(b) : '', map: this.mapName(mapId) });
     c.news++; c.per[a] = (c.per[a] || 0) + 1; if (b) c.per[b] = (c.per[b] || 0) + 1;
     const toast = !!opt.notable && c.toast < this.TOAST_MAX; if (toast) c.toast++;
     this.feed(s, toast); this.bus.fire('news', { kind, a, b, s }); return s; },
+  // 额度查询（不改状态）：全年新闻未满 6 条，且 a、b 本年事件（路遇 + 新闻）都 <2
+  room(a, b) { const S = this.st(); if (!S) return false; const c = S.yc; if (c.news >= this.NEWS_MAX) return false;
+    return (c.per[a] || 0) < this.PER_MAX && (!b || b === a || (c.per[b] || 0) < this.PER_MAX); },
   feed(s, toast) { const G = this.G(); if (!G) return;
     if (typeof JH34 !== 'undefined' && JH34.say && JH34.ensure) { JH34.say(JH34.ensure(G), s, 'npc37', false); }
     else { G.jh34 = G.jh34 || { feed: [] }; const F = G.jh34.feed = G.jh34.feed || []; F.push({ t: G.jh34.t || 0, s, k: 'npc37' }); if (F.length > 40) F.splice(0, F.length - 40); }
