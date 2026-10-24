@@ -40,7 +40,7 @@ const TEXT374 = {
   "evtP": {"sanxiu":0.35,"moxiu":0.40,"zhangmen":0.30,"shangjia":0.45,"shijia":0.30},
   "cooldownYears": 10, "endingBonusPts": 15
 };
-// 路线专属年事件（§10.6）：fx 字段 stone（×(1+大境界)，商贾 ×1）expN（修为=need×n）dx karma debt rep{宗} aff{id} affRand item{} fight later{} loy clan zj
+// 路线专属年事件（§10.6）：fx 字段 stone（×(1+大境界)，商贾 ×1；debtX:1 时 debt 同倍率）expN（修为=need×n）dx karma debt rep{宗} aff{id} affRand item{} fight later{} loy clan zj
 const R37_EV = {
   sanxiu: [
     ['野路子', '山洞里有本没封皮的功法，字迹像是你小学同桌写的。', ['照着练', { expN: 0.05, dxRisk: -3 }], ['拿去换钱', { stone: 400 }]],
@@ -51,7 +51,7 @@ const R37_EV = {
   moxiu: [
     ['血契', '天魔殿送来一份血契，条款比天道的合同还长。', ['签', { rep: { tianmo: 10 }, karma: -5 }], ['让他们先把字号写大点', {}]],
     ['正道围剿', '三个青云宗弟子堵在山口，喊着“除魔卫道”。', ['打', { fight: 1 }], ['跑', { stone: -300 }]],
-    ['讨债司的友好提醒', '催收使：“魔修客户请注意：杀人越货的收入同样需要还债。”', ['给钱', { stone: -500, debt: -500 }], ['把催收使吓跑', { karma: -3, debtPct: 0.01 }]],
+    ['讨债司的友好提醒', '催收使：“魔修客户请注意：杀人越货的收入同样需要还债。”', ['给钱', { stone: -500, debt: -500, debtX: 1 }], ['把催收使吓跑', { karma: -3, debtPct: 0.01 }]],
     ['回头是岸', '一个老和尚拦住你：“施主，你的账，佛祖可以帮你分期。”', ['听他讲完', { karma: 10, noBonus: 1 }], ['不听', { karma: -2 }]],
   ],
   zhangmen: [
@@ -107,7 +107,7 @@ const Route37 = {
   // 能否离开当前路线（切换/退出）
   leaveLock(G) {
     G = G || this.G(); const S = this.st(G); if (!S || !S.id) return null;
-    const left = 10 - (this.yr(G) - (S.since || 0)); if (left > 0) return `还要再走 ${left} 年（换路线需满 ${this.T.cooldownYears} 年）`;
+    const left = this.T.cooldownYears - (this.yr(G) - (S.since || 0)); if (left > 0) return `还要再走 ${left} 年（换路线需满 ${this.T.cooldownYears} 年）`;
     if (S.id === 'moxiu' && (G.karma || 0) < 0) return this.T.routes.moxiu.lockLeave;
     return null;
   },
@@ -132,7 +132,7 @@ const Route37 = {
     rnd = rnd || Math.random; const G = this.G(); const S = this.mk(G); const out = []; const parts = []; fx = fx || {};
     if (fx.stone) parts.push(`stone${fx.stone >= 0 ? '+' : '-'}${Math.abs(Math.round(fx.stone * this.mul(G)))}`);
     if (fx.karma) parts.push(`karma${fx.karma >= 0 ? '+' : '-'}${Math.abs(fx.karma)}`);
-    if (fx.debt) parts.push(`debt${fx.debt >= 0 ? '+' : '-'}${Math.abs(fx.debt)}`);
+    if (fx.debt) { const dv = Math.round(fx.debt * (fx.debtX ? this.mul(G) : 1)); parts.push(`debt${dv >= 0 ? '+' : '-'}${Math.abs(dv)}`); }
     if (fx.contrib) parts.push(`contrib${fx.contrib >= 0 ? '+' : '-'}${Math.abs(fx.contrib)}`);
     if (fx.item) for (const k in fx.item) parts.push(`item:${k}:${fx.item[k]}`);
     if (fx.aff) for (const k in fx.aff) parts.push(`aff:${k}:${fx.aff[k]}`);
@@ -142,7 +142,7 @@ const Route37 = {
     if (fx.dxRisk && rnd() < 0.3) { S.dx = Math.max(-50, Math.min(50, S.dx + fx.dxRisk)); out.push(`道心${fx.dxRisk}`); }
     if (fx.dx) { S.dx = Math.max(-50, Math.min(50, S.dx + fx.dx)); out.push(`道心${fx.dx >= 0 ? '+' : ''}${fx.dx}`); }
     if (fx.rep) for (const k in fx.rep) { this.repAdd(S, k, fx.rep[k]); out.push(`${SECTS[k] ? SECTS[k].n : k}声望${fx.rep[k] >= 0 ? '+' : ''}${fx.rep[k]}`); }
-    if (fx.debtPct) { S.debtPct = (S.debtPct || 0) + fx.debtPct; out.push('本年欠款利息 +1%'); }
+    if (fx.debtPct) { S.debtPct = (S.debtPct || 0) + fx.debtPct; out.push(`本年欠款利息 ${fx.debtPct >= 0 ? '+' : '−'}${Math.round(Math.abs(fx.debtPct) * 1000) / 10}%`); }
     if (fx.noBonus) { S.noBonus = this.yr(G) + 1; out.push('魔功加成本年失效'); }
     if (fx.loy && Array.isArray(G.dis36)) { G.dis36.forEach(d => { d.loy = Math.max(0, Math.min(100, (d.loy || 50) + fx.loy)); }); out.push(`弟子忠诚${fx.loy >= 0 ? '+' : ''}${fx.loy}`); }
     if (fx.clan) { S.clan = (S.clan || 0) + fx.clan; out.push(`族人好感${fx.clan >= 0 ? '+' : ''}${fx.clan}`); }
@@ -152,7 +152,7 @@ const Route37 = {
       const mi = (typeof MAPINFO !== 'undefined' && MAPINFO[(typeof R !== 'undefined' && R.mapId) || 'village']) || {}; const mons = mi.mons || []; let res = null;
       if (mons.length && typeof Game.fight === 'function') { const r = await Game.fight(mons[mons.length - 1], { tier: (G.realm || 0) + (G.stage || 0) * 0.2 + 0.3 }); res = r && r.res; }
       if (res === 'win') { const g = S.merchant ? 0 : Game.addExp(Game.need() * 0.05, true); out.push(`击退来敌，修为+${fmt(g || 0)}`); }
-      else { const d = Math.round((G.stone || 0) * 0.1); G.stone -= d; out.push(`落败，灵石-${d}`); }
+      else { if (G.dead) return out; const d = Math.round((G.stone || 0) * 0.1); G.stone -= d; out.push(`落败，灵石-${d}`); }
     }
     return out;
   },
@@ -170,9 +170,9 @@ const Route37 = {
     // 放贷（离开商贾后已借出的照样收）
     for (const Ln of S.loans.slice()) {
       const C = this.T.loan[Ln.who]; if (!C) { S.loans.splice(S.loans.indexOf(Ln), 1); continue; }
-      if (this.dead(Ln.who)) { S.loans.splice(S.loans.indexOf(Ln), 1); res.msgs.push(`${this.nm(Ln.who)}已陨落，借出的 ${fmt(Ln.amt)} 灵石全额违约`); UI.toast(`⚠ ${this.nm(Ln.who)}陨落：放贷全额违约`, '#ff8a8a'); continue; }
+      if (this.dead(Ln.who)) { S.loans.splice(S.loans.indexOf(Ln), 1); res.msgs.push(`${this.nm(Ln.who)}已陨落，借出的 ${fmt(Ln.amt)} 灵石全额违约`); UI.toast(`⚠ ${this.nm(Ln.who)}陨落：放贷全额违约`, '#ff8a8a'); this.news(`${this.nm(Ln.who)}陨落，欠你的 ${fmt(Ln.amt)} 灵石成了坏账。`); continue; }
       if (rnd() < C.def) {
-        const back = Math.round(Ln.amt * C.back); G.stone += back; S.loans.splice(S.loans.indexOf(Ln), 1); res.msgs.push(`${this.nm(Ln.who)}违约：只还回 ${fmt(back)} 灵石`);
+        const back = Math.round(Ln.amt * C.back); G.stone += back; S.loans.splice(S.loans.indexOf(Ln), 1); res.msgs.push(`${this.nm(Ln.who)}违约：只还回 ${fmt(back)} 灵石`); this.news(`${this.nm(Ln.who)}还不上钱，只还回 ${fmt(back)} 灵石。`);
         if (Ln.who === 'jh_tieguo') { G.aff.jh_tieguo = Math.max(0, (G.aff.jh_tieguo || 0) - 10); Game.give('herb', 1); res.msgs.push('赵铁锅过意不去，塞给你一把灵草'); }
         if (Ln.who === 'jh_xunbao' && rnd() < 0.3) { res.msgs.push('钱满仓留下一张藏宝图残页（奇遇线索）'); G.flags = G.flags || {}; G.flags.r37_xunbao_clue = 1; }
         continue;
@@ -194,9 +194,12 @@ const Route37 = {
       S.pts += p; res.pts = p;
     }
     if (res.msgs.length) UI.toast(res.msgs.slice(0, 3).join('；'), '#c8a0ff');
-    if (!this.autoOn()) { await this.tips(G, S); if (id && rnd() < this.T.evtP[id]) res.ev = await this.runEvent(id, null, rnd); }
+    if (!this.autoOn() && this.idleYE()) { await this.tips(G, S); if (id && rnd() < this.T.evtP[id]) res.ev = await this.runEvent(id, null, rnd); }
     return res;
   },
+  // 年终弹卡守卫（同 npc37.idle）：战斗中 / 寻路中不弹
+  idleYE() { if (typeof B !== 'undefined' && B && B.on) return false; if (typeof R !== 'undefined' && R && R.player && R.player.nav) return false; return true; },
+  news(s) { try { const G = this.G(); if (typeof JH34 !== 'undefined' && JH34.say && JH34.ensure && G) JH34.say(JH34.ensure(G), s, 'route37', false); } catch (e) { console.warn('route37 news', e); } },
   tipList(G, S) {
     const out = []; const id = S.id;
     if (id === 'sanxiu') { const n = this.chainsDone(G); if (n >= 2) out.push(['r37_xiaoyao', 0]); if ((G.realm || 0) >= 4 && n >= 4 && (G.debt || 0) > 0) out.push(['r37_xiaoyao', 1]); }
@@ -234,7 +237,7 @@ const Route37 = {
     let res = 'lose';
     if (typeof Game.fight === 'function') { const mi = (typeof MAPINFO !== 'undefined' && MAPINFO[(typeof R !== 'undefined' && R.mapId) || 'village']) || MAPINFO.village; const mons = (mi && mi.mons) || []; const r = mons.length ? await Game.fight(mons[mons.length - 1], { tier: (G.realm || 0) + (G.stage || 0) * 0.2 + 0.5 }) : null; res = (r && r.res) || 'lose'; }
     if (rnd && !Game.fight) res = rnd() < 0.5 ? 'win' : 'lose';
-    if (res === 'win') { S.kills++; S.pts += 8; this.repAdd(S, 'tianmo', 8); G.karma = (G.karma || 0) - 5; G.aff[id] = Math.max(0, (G.aff[id] || 0) - 30); UI.toast(`你击败了${this.nm(id)}（正道 ${S.kills}）：天魔殿声望 +8`, '#ff7a9a'); }
+    if (res === 'win') { S.kills++; S.pts += 8; this.repAdd(S, 'tianmo', 8); G.karma = (G.karma || 0) - 5; G.aff[id] = Math.max(0, (G.aff[id] || 0) - 30); UI.toast(`你击败了${this.nm(id)}（正道 ${S.kills}）：天魔殿声望 +8`, '#ff7a9a'); this.news(`魔修击败了正道${this.nm(id)}，天魔殿记了一功。`); }
     else UI.toast(`${this.nm(id)}全身而退，你没讨到便宜`);
     if (Game.save) Game.save(); return res;
   },
