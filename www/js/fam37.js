@@ -1656,7 +1656,7 @@ const FAM37 = {
     G = G || this.G(); if (!G) return null;
     if (!Array.isArray(G.dis36)) G.dis36 = [];
     let F = G.fam37; if (!F || typeof F !== 'object') F = G.fam37 = {};
-    F.v = 1; if (F.sp === undefined) F.sp = null; if (!Array.isArray(F.kids)) F.kids = [];
+    F.v = 1; if (!F.sp && G.partner) F.sp = G.partner; /* 旧存档/talk.js 结侣：由 G.partner 推导（research_story37 兼容条） */ if (F.sp === undefined) F.sp = null; if (!Array.isArray(F.kids)) F.kids = [];
     if (typeof F.rate !== 'number') F.rate = 0; if (!Array.isArray(F.log)) F.log = []; if (!F.ev || typeof F.ev !== 'object') F.ev = {};
     if (typeof G.karma !== 'number') G.karma = 0; if (typeof G.debt !== 'number') G.debt = 0;
     return F;
