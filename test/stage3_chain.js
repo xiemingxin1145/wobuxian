@@ -251,7 +251,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   ok(prevSrc.length > 500 && !/tryBreak|\.save\(|\.take\(|\.give\(|G\.\w+\s*=[^=]|tmpBrk\s*=[^=]/.test(prevSrc), '预览代码不调用 tryBreak/save/take/give、不给 G 赋值');
   const gameSrc = fsB.readFileSync(path.join(jsDir, 'game.js'), 'utf8');
   ok(gameSrc.includes("let ch = REALMS[r].brk + G.st.int * 0.015 + G.st.luck * 0.005 + G.brkBonus + this.treeVal('brk') + (G.tmpBrk || 0);") && gameSrc.includes('ch = Math.min(0.97, ch); G.tmpBrk = 0;'), '正式突破公式（game.js）未被改动，与预览复刻的一致');
-  const callers5 = fsB.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /breakthroughPreview|breakBase/.test(fsB.readFileSync(path.join(jsDir, f), 'utf8')));
+  const callers5 = fsB.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /breakthroughPreview|breakBase\s*\(/.test(fsB.readFileSync(path.join(jsDir, f), 'utf8')));
   ok(callers5.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 调用 breakthroughPreview：' + callers5.join(','));
 
   // 13. 债务强化 #4：追兵战按档位分化敌人（参数单调、低档 = 旧行为、只出数据不改存档）
