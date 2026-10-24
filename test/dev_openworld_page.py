@@ -185,8 +185,8 @@ async def main():
             ck('追兵战打赢（天道通缉）→ 结算卡在覆盖层关掉后弹出、撤掉通缉、欠款不变、已存档', not w['ov'] and not w['bounty'] and not w['bd'] and w['debt'] == 30000 and w['win'] == 1
                and not (w['sv'].get('flags') or {}).get('bounty') and w['sv'].get('debt') == 30000 and '通缉已撤销' in wtxt and '追兵特性：疾攻三发' in wtxt and '头子：回身环弹' in wtxt)
             t = await pg.evaluate("({n:Game.G.flags.s3b_token,src:Game.G.flags.s3b_token_src,y:Game.G.flags.s3b_token_year,gy:Game.G.year,sv:(JSON.parse(localStorage.getItem('wbx2_save')||'{}').flags||{})})")
-            ck(f'天道通缉打赢、头子被打倒 → 结算卡含「缴获讨债令×1（共 1 枚）：只是凭证，暂无用途」，flags.s3b_token={t["n"]} 来源/年份已记并存档',
-               '缴获讨债令×1（共 1 枚）：只是凭证，暂无用途' in wtxt and t['n'] == 1 and t['src'] == '天道通缉·讨债鬼头子' and t['y'] == t['gy']
+            ck(f'天道通缉打赢、头子被打倒 → 结算卡含「缴获讨债令×1（共 1 枚）：追兵战输了可花 1 枚抵掉误工费」，flags.s3b_token={t["n"]} 来源/年份已记并存档',
+               '缴获讨债令×1（共 1 枚）：追兵战输了可花 1 枚抵掉误工费' in wtxt and t['n'] == 1 and t['src'] == '天道通缉·讨债鬼头子' and t['y'] == t['gy']
                and t['sv'].get('s3b_token') == 1 and t['sv'].get('s3b_token_src') == '天道通缉·讨债鬼头子' and t['sv'].get('s3b_token_year') == t['gy'])
             await card.locator('.opt[data-k="0"]').click(); await pg.wait_for_timeout(300)
             # 第十八轮（债务强化 #9）：同一年再打赢天道通缉 → 冷却挡下，卡片说明「今年已缴获过讨债令，明年再来」，计数仍 1

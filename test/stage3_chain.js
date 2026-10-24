@@ -336,7 +336,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const tokCallers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /TOKEN_NAME|bountyTokenEarned|tokenCount/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(tokCallers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 引用讨债令相关接口：' + tokCallers.join(','));
   const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
-  ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
+  ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：追兵战输了可花 1 枚抵掉误工费`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
 
   // 15b. 债务强化 #9（第十八轮）：讨债令上限 TOKEN_MAX=9 + 同一游戏年只缴获一枚的冷却
   {
