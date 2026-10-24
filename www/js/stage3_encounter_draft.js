@@ -629,6 +629,27 @@ const Stage3 = {
     return { time: t, hits, dodged, line };
   },
 
+  // ======== 讨债令真抵扣误工费（2026-10-24，主人已批准） ========
+  // offsetFee(G, s)：追兵战败场结算（settleBounty 返回 result:'lose'）后调用；持有 ≥ TOKEN_FEE_COST(1) 枚讨债令时
+  //   扣 1 枚、欠款退回 debtBefore（这场不记误工费），flags.s3b_token_used +1（懒初始化，旧存档无此键按 0）。
+  //   没令 / 不是败场 / 已抵过 / 非法输入 → 不改存档，返回 { ok:false, reason }。settleBounty 本身行为不变。
+  // TOKEN_FEE_COST 见上方 tokenFeePreview（=1）
+  canOffsetFee(G, s) {
+    return !!G && typeof G === 'object' && !!s && s.settled === true && s.result === 'lose' && !s.offset &&
+      Number(s.fee) > 0 && this.tokenCount(G) >= this.TOKEN_FEE_COST;
+  },
+  offsetFee(G, s) {
+    if (!this.canOffsetFee(G, s)) return { ok: false, reason: !s || s.result !== 'lose' ? 'notLose' : s.offset ? 'done' : 'noToken', tokens: this.tokenCount(G) };
+    const F = this.flags(G);
+    const tokens = this.tokenCount(G) - this.TOKEN_FEE_COST;
+    F.s3b_token = tokens;
+    F.s3b_token_used = (Number(F.s3b_token_used) || 0) + this.TOKEN_FEE_COST;
+    G.debt = s.debtBefore;
+    s.offset = true; s.debtAfter = G.debt; s.tokens = tokens;
+    s.note = `花 ${this.TOKEN_FEE_COST} 枚${this.TOKEN_NAME}抵掉了误工费 ${s.fee}，欠款不变。`;
+    return { ok: true, fee: s.fee, tokens, debt: G.debt };
+  },
+
   // ======== 债务系统强化 #3：债压档位 → 突破难度预览（只读，只由开发者入口「突破预估」按钮调用） ========
   // 「欠得多突破更难」：先按现行突破公式（game.js Game._tryBreak，原样复刻、不调用它）算出基础成功率，
   //   基础 = REALMS[境界].brk + 悟性×1.5% + 气运×0.5% + brkBonus + 技能树 brk + tmpBrk
