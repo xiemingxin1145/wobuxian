@@ -481,7 +481,7 @@ const Stage3 = {
   BOUNTY_FEE_MIN: 100,
   // 债务强化 #6「头子掉讨债令」：追兵战胜利、开战档位为天道通缉、且本场被打倒的敌人里有「讨债鬼头子」（out.defeated = 即时战原型结束时带上的已倒下敌人名单）
   //   → 缴获一枚「讨债令」凭证：只记 flags.s3b_token（累计枚数）、s3b_token_src（最近一次来源）、s3b_token_year（最近一次获得的游戏年份，G.year 非数字则不记）。
-  //   不发正式物品/灵石，暂无用途。没有头子 / 败 / 超时 / 中途关掉 / 非法输入 一律不得令，也不碰这三个 flag；旧存档没有 s3b_token 按 0 算。
+  //   不发正式物品/灵石；用途：追兵战输了可花 1 枚抵掉误工费（canOffsetFee/offsetFee）。没有头子 / 败 / 超时 / 中途关掉 / 非法输入 一律不得令，也不碰这三个 flag；旧存档没有 s3b_token 按 0 算。
   //   注意：打赢不还钱、欠款不降，天道通缉档可以反复刷令——若以后给讨债令加用途，须先加上限或冷却。
   // 债务强化 #9（2026-10-23 第十八轮）「讨债令上限 + 冷却」防反复刷：
   //   上限：最多持有 TOKEN_MAX = 9 枚，已有 ≥ 9 枚再打赢不再得令（tokenBlocked:'cap'），已存的异常大数不改。
@@ -568,6 +568,27 @@ const Stage3 = {
     F.s3b_lose = (Number(F.s3b_lose) || 0) + 1;
     const note = (out.reason === 'timeout' ? '拖太久没打完，' : '被讨债鬼按在地上，') + `讨债司记了一笔误工费 ${fee}。`;
     return { settled: true, result: 'lose', tier, n, debtBefore: before, debtAfter: G.debt, fee, bountyCleared: false, note, token: false, tokens: this.tokenCount(G), tokenBlocked: null };
+  },
+
+  // ======== 讨债令真抵扣误工费（2026-10-24，主人已批准） ========
+  // offsetFee(G, s)：追兵战败场结算（settleBounty 返回 result:'lose'）后调用；持有 ≥ TOKEN_FEE_COST(1) 枚讨债令时
+  //   扣 1 枚、欠款退回 debtBefore（这场不记误工费），flags.s3b_token_used +1（懒初始化，旧存档无此键按 0）。
+  //   没令 / 不是败场 / 已抵过 / 非法输入 → 不改存档，返回 { ok:false, reason }。settleBounty 本身行为不变。
+  TOKEN_FEE_COST: 1,
+  canOffsetFee(G, s) {
+    return !!G && typeof G === 'object' && !!s && s.settled === true && s.result === 'lose' && !s.offset &&
+      Number(s.fee) > 0 && this.tokenCount(G) >= this.TOKEN_FEE_COST;
+  },
+  offsetFee(G, s) {
+    if (!this.canOffsetFee(G, s)) return { ok: false, reason: !s || s.result !== 'lose' ? 'notLose' : s.offset ? 'done' : 'noToken', tokens: this.tokenCount(G) };
+    const F = this.flags(G);
+    const tokens = this.tokenCount(G) - this.TOKEN_FEE_COST;
+    F.s3b_token = tokens;
+    F.s3b_token_used = (Number(F.s3b_token_used) || 0) + this.TOKEN_FEE_COST;
+    G.debt = s.debtBefore;
+    s.offset = true; s.debtAfter = G.debt; s.tokens = tokens;
+    s.note = `花 ${this.TOKEN_FEE_COST} 枚${this.TOKEN_NAME}抵掉了误工费 ${s.fee}，欠款不变。`;
+    return { ok: true, fee: s.fee, tokens, debt: G.debt };
   },
 
   // ======== 债务系统强化 #3：债压档位 → 突破难度预览（只读，只由开发者入口「突破预估」按钮调用） ========
