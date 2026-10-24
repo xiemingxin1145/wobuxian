@@ -481,7 +481,7 @@ const Stage3 = {
   BOUNTY_FEE_MIN: 100,
   // 债务强化 #6「头子掉讨债令」：追兵战胜利、开战档位为天道通缉、且本场被打倒的敌人里有「讨债鬼头子」（out.defeated = 即时战原型结束时带上的已倒下敌人名单）
   //   → 缴获一枚「讨债令」凭证：只记 flags.s3b_token（累计枚数）、s3b_token_src（最近一次来源）、s3b_token_year（最近一次获得的游戏年份，G.year 非数字则不记）。
-  //   不发正式物品/灵石，暂无用途。没有头子 / 败 / 超时 / 中途关掉 / 非法输入 一律不得令，也不碰这三个 flag；旧存档没有 s3b_token 按 0 算。
+  //   不发正式物品/灵石；用途：追兵战输了可花 1 枚抵掉误工费（canOffsetFee/offsetFee）。没有头子 / 败 / 超时 / 中途关掉 / 非法输入 一律不得令，也不碰这三个 flag；旧存档没有 s3b_token 按 0 算。
   //   注意：打赢不还钱、欠款不降，天道通缉档可以反复刷令——若以后给讨债令加用途，须先加上限或冷却。
   // 债务强化 #9（2026-10-23 第十八轮）「讨债令上限 + 冷却」防反复刷：
   //   上限：最多持有 TOKEN_MAX = 9 枚，已有 ≥ 9 枚再打赢不再得令（tokenBlocked:'cap'），已存的异常大数不改。
@@ -522,14 +522,14 @@ const Stage3 = {
     lines.push(year === null ? '今年是否已领：无年份（旧存档），不做每年冷却' : takenThisYear ? `今年（第 ${year} 年）已领过，明年再来` : `今年（第 ${year} 年）还没领`);
     if (count > 0) lines.push(`最近一次：${src || '来源未记'}${lastYear !== null ? `（第 ${lastYear} 年）` : ''}`);
     lines.push(block === 'cap' ? `下一场天道通缉打赢头子：已满 ${max} 枚，不会再缴获` : block === 'cooldown' ? '下一场天道通缉打赢头子：今年冷却中，不会再缴获' : '下一场天道通缉打赢头子：可缴获 1 枚');
-    lines.push('只是凭证，暂无用途；本页只读，不改存档');
+    lines.push('用途：追兵战输了可花 1 枚抵掉误工费；本页只读，不改存档');
     return { count, max, full, year, lastYear, takenThisYear, src, block, lines, text: lines.join('\n') };
   },
   // ======== 讨债令第二个只读用途（2026-10-24 第三十三轮）：抵扣误工费预览 ========
   // tokenFeePreview(G)：纯函数，只读 G.debt / G.flags（bounty、s3b_token），不写任何字段、不调存档。
   //   按现在的债压档位（debtPressure，挂通缉 +1 档）预估「若下一场追兵战输了（倒下或超时）」的误工费
   //   fee = max(BOUNTY_FEE_MIN, 欠款 × BOUNTY_FEE[档位])，与 settleBounty 败场同式；再假设「1 枚讨债令抵 1 次误工费」（TOKEN_FEE_COST），
-  //   给出有令 / 无令两种结果。**只是预览，没有真正抵扣**：settleBounty 照旧加误工费、不扣讨债令；真抵扣须另开 PR 给奥拉夫审。
+  //   给出有令 / 无令两种结果。本函数只读；真抵扣由 canOffsetFee/offsetFee 在败场确认卡里做（第三十四轮，PR #51）。
   //   返回 { tier, n, debt, rate, fee, count, cost, canOffset, after, afterNoToken, tokensLeft, lines, text }。
   TOKEN_FEE_COST: 1,
   tokenFeePreview(G) {
@@ -542,9 +542,9 @@ const Stage3 = {
     const N = this.TOKEN_NAME, lines = [];
     lines.push(`抵扣误工费预览（${P.n}档，费率 ${Math.round(rate * 100)}%${P.bounty ? '，含通缉 +1 档' : ''}）`);
     lines.push(`若下一场追兵战输了：误工费 ${fee}${fee === this.BOUNTY_FEE_MIN && P.debt * rate < this.BOUNTY_FEE_MIN ? '（保底）' : ''}，欠款 ${P.debt} → ${afterNoToken}`);
-    lines.push(canOffset ? `若开放抵扣：花 ${cost} 枚${N}抵掉这笔，欠款保持 ${P.debt}，${N}剩 ${tokensLeft} 枚`
-      : `若开放抵扣：需 ${cost} 枚${N}，你现在 ${count} 枚，抵不了`);
-    lines.push('仅预览，尚未生效：现在输了照旧记误工费、不扣讨债令');
+    lines.push(canOffset ? `可抵扣：花 ${cost} 枚${N}抵掉这笔，欠款保持 ${P.debt}，${N}剩 ${tokensLeft} 枚`
+      : `抵扣需 ${cost} 枚${N}，你现在 ${count} 枚，抵不了`);
+    lines.push('本页只读：真输了会弹确认卡，选「花 1 枚抵掉」才扣讨债令');
     return { tier: P.tier, n: P.n, debt: P.debt, rate, fee, count, cost, canOffset, after, afterNoToken, tokensLeft, lines, text: lines.join('\n') };
   },
   bountyTokenEarned(out, tier) {

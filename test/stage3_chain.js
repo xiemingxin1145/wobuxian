@@ -336,7 +336,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const tokCallers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /TOKEN_NAME|bountyTokenEarned|tokenCount/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(tokCallers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 引用讨债令相关接口：' + tokCallers.join(','));
   const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
-  ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：只是凭证，暂无用途`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
+  ok(/s\.token \? `\\n缴获\$\{Stage3\.TOKEN_NAME\}×1（共 \$\{s\.tokens\} 枚）：追兵战输了可花 1 枚抵掉误工费`/.test(de6), '开发者「追兵战」结算卡：得令时加一行「缴获讨债令×1（共 N 枚）：只是凭证，暂无用途」');
 
   // 15b. 债务强化 #9（第十八轮）：讨债令上限 TOKEN_MAX=9 + 同一游戏年只缴获一枚的冷却
   {
@@ -645,7 +645,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
     ok(typeof S.tokenFeePreview === 'function' && S.TOKEN_FEE_COST === 1, '有 Stage3.tokenFeePreview(G)，1 枚抵 1 次');
     const g0 = mk({ debt: 30000, year: 5 }); const s0 = deep(g0); const p0 = S.tokenFeePreview(g0);
     ok(p0.tier === 3 && p0.fee === 3600 && p0.count === 0 && !p0.canOffset && p0.after === 33600 && p0.afterNoToken === 33600 && p0.tokensLeft === 0
-      && p0.text.includes('天道通缉档，费率 12%') && p0.text.includes('欠款 30000 → 33600') && p0.text.includes('抵不了') && p0.text.includes('仅预览，尚未生效') && deep(g0) === s0, '0 枚、欠 30000：误工费 3600、抵不了、存档不变');
+      && p0.text.includes('天道通缉档，费率 12%') && p0.text.includes('欠款 30000 → 33600') && p0.text.includes('抵不了') && p0.text.includes('本页只读：真输了会弹确认卡') && deep(g0) === s0, '0 枚、欠 30000：误工费 3600、抵不了、存档不变');
     const g1 = frz(mk({ debt: 30000, flags: { s3b_token: 3 } })); const s1 = deep(g1); let p1;
     try { p1 = S.tokenFeePreview(g1); } catch (e) { p1 = null; }
     ok(p1 && p1.canOffset && p1.after === 30000 && p1.tokensLeft === 2 && p1.text.includes('花 1 枚讨债令抵掉这笔，欠款保持 30000，讨债令剩 2 枚') && deep(g1) === s1 && g1.flags.s3b_token === 3, '3 枚：深冻结存档不抛错、预览抵后剩 2 枚、欠款不变、flag 不动');
