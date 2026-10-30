@@ -2,6 +2,47 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 交接 notes · v3.8.2（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.2「道具」**，`VERSION`=3.8.2，tag `v3.8.2` → commit `28bd81b`（`3.8.2：VERSION + CHANGELOG`；其下 `4a0fae8` #55 merge、`0cdc5f4` 清截图噪音、`1894d0f` #58 merge）。
+- **是 Latest**（`releases/latest` = v3.8.2，2026-10-30 20:34 UTC+8 前后发布，非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.2
+- Release 资产：`wobuxian.apk` 372,127,936 B（≈372MB，HD）、`wobuxian-lite.apk` 83,971,488 B（≈84MB）；固定链接 `…/releases/latest/download/wobuxian.apk`（及 lite）已指向 v3.8.2。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **items40 道具**（PR #55 merge `4a0fae8`，新文件 `www/js/items40.js`，index：`zf39_ui` → `items40`，clan41 槽位其后）：60 个 `i40_`（25 使用 / 20 礼物 / 15 剧情）；`use:'i40'` 分派；战斗道具栏；送礼爱憎+月冷却；商店追加与新店；采药/秘境掉落；剧情「⚑」交付；`G.i40` 惰性兜底；转运珠 luck 仅 `Chain37.yearTick` 消耗；测试 `test/items40_unit.js`。
+- **同版合入 #58 zf39_ui**（merge `1894d0f`，新文件 `www/js/zf39_ui.js`）：洞府「阵法」面板学/炼/布 + 战斗胜利阵道经验；**未**单独立 3.9.0 发号——破阵、rtMult（#59）、洞府阵实际挂点、`Dng.roomTrap` 仍未完。
+- index 加载序：`profile38` → `tit39` → `zf39` → `zf39_hook` → `zf39_ui` → `items40`（两者均包 `UI.useItem` / 相关钩子；ui 先于 items，items 为外层）。
+- 刻意没做：#59/#60 未合；6 个家族道具提示「3.8.3 尚未开放」；灵兽肉干野猪掉落、请柬书坊未做；不删分支。
+
+### 3 测试结果
+- **node（合并后 main `4a0fae8`/`28bd81b`，无 Chrome）**：validate22 **0 错**；items40_unit **147/147**；zf39_ui **60/60**；zf39 **121/121**；zf39_hook **20/20**；tit39 / pf38 **34** / chain37 **78** / npc37 **80** / npc37_events **54** / good_rel_cap **31** / battle_rt_proto / lowpoly_box / stage3_* 全过 → **16/16 套件 PASS**。
+- **jsscan33**：本轮未跑（Chrome 被奥拉夫占用；按任务禁止开浏览器）。奥拉夫在 #58 上已过 jsscan33（21 maps, errors []）。
+- **奥拉夫页测（合入前）**：#58 → jsscan33/pf38_page/dev_openworld_page/human23 **全过**；#55 → panels21 PASS、multilife PASS（console canEnter noise 与 main 同类）、human_olaf **7/8**（T3=`dom_at_btn=i` 在 main 同复现 = **测试本身**，#38 跟踪）。
+- CI（tag v3.8.2，run 41055386179）：build ✅（versionName 3.8.2）；emulator-smoke API30 ✅、API34 ✅。
+
+### 4 遗留问题
+- PR #59 `zf39-rt`：3.9.0 即时战 rtMult，未合。
+- PR #60 `clan41`：3.8.3 家族，未合（index 需接在 items40 之后）。
+- PR #38 `olaf-n1t1-fix`：仅测试；T3 harness/`<i>` 叠加问题。
+- Issue #12（游走 NPC 重叠点错人）仍 OPEN。
+- 分支保留：`items40`、`zf39-ui`、`zf39-dng`、`zf39-rt`、`clan41`、`olaf-n1t1-fix` 等（不删）。
+
+### 5 下一版任务（按顺序）
+1. **3.8.3 家族**（PR #60，`docs/research_v41_clan.md` + `docs/research_v22.md` §14）
+2. **3.8.4 时装 cos36**（`docs/research_v22.md` §15）：待开工
+3. **3.9.0 阵法** 完整发版（#59 rt + `zf39_dng` 破阵 / `Dng.roomTrap`；`docs/research_v22.md` §11）
+4. **3.9.1 loan**（`docs/research_v22.md` §16 天道小贷 loan42）
+5. **3.9.2 main40 主线**（`docs/research_story40_main.md`）
+- 3.9.0 为何后放：UI 虽已可见，破阵/机关房/即时战加成未齐，不宜当作完整阵法版宣传。
+
+### 6 交接注意
+- 模块规则：新功能一律新 `www/js/*.js` + index 顺序加载 + 包一层；**不改 game.js / talk.js / data.js / ui.js 等核心**；不手改生成物。
+- 老存档：`wbx2_*`、`G.v===2`；新字段 `G.i40` / `G.zf39` / `G.t39` 等惰性兜底。
+- **包装顺序**：`zf39_ui` 先于 `items40`（二者都包 `UI.useItem`）；clan41 必须在 items40 之后。
+- 弹卡 / toast：守 #53 `NPC37.storyBlock`；寻路守卫 `R && R.player && R.player.nav`。
+- HD 包：CI 按 `hd-assets.json`；签名只在 CI，证书 SHA-256 `436bf922…29dc` 不能换。
+- 本机多 AI：Chrome 忙则只跑 node；独立 worktree；**不要用过期的 `/workspace/game`**。
+
 ## 交接 notes · v3.8.1（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.8.1「称号」**，`VERSION`=3.8.1，tag `v3.8.1` → commit `e6354ca`（`3.8.1：VERSION + CHANGELOG`；其下 `e844809` #45 merge、`fa37924` canEnter null guard、`ba99f2c` merge main、`c53af17` Chain37.doneCount）。
