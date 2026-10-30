@@ -1,3 +1,34 @@
+## 交接 notes · loan42 #64 审出修复（2026-10-30 21:2x，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 分支 `openworld-wip` cherry-pick：`bbef66f`（源自 `loan42` `bbfcbb4`）；PR #64 头已推至 `bbfcbb4`。
+- 稳定版仍为 **v3.8.3**；本提交未改 VERSION / 未合 main / 未发版。
+
+### 2 本版做了什么 / 刻意没做什么
+- 修奥拉夫 #64 审查 1×High · 3×Medium · 1×Low（研究员定稿）：
+  - **HIGH**：提前还清 +25 仅当本笔 `l.crossed`（至少跨过一次年结算 sync）；利息 alone 不加；每年最多一次（`crEarlyY`）。
+  - **MED1**：`repayOverdue` 先合计再扣，不够则一分不动。
+  - **MED2**：无逾期统一 `_clearSquadIfNoOd`；`trySquad` amt≤0 清旗 return null。
+  - **MED3**：`squadRun` od+1 后 od≥2 立刻 `transfer`。
+  - **LOW**：`Talk._loan42` 防重入。
+- 改动文件：`www/js/loan42.js`、`test/loan42_unit.js`（110 项）。
+- 刻意没做：第 2 轮催收 UI / 开发者页签 / 页测 / L12 挂机 / L13 仿真（仍延后）。
+
+### 3 测试结果
+- `loan42_unit` **110/110**；`clan41` 70；`items40` 152；`validate22` errors []
+- `stage3_*` / `chain37` 78 / `npc37` 80 / events 54 / `pf38` 34 / `tit39` / `zf39*` 全过；无 Chrome。
+
+### 4 遗留问题
+- PR #64 待奥拉夫复审；第 2 轮 UI/页测仍 OPEN。
+
+### 5 下一版任务（按顺序）
+- 等 #64 复审通过；洞府 `dongfu43`（research §17）可并行规格落地。
+
+### 6 交接注意
+- 未碰核心文件；老档惰性不变；`LOAN42.off` 仍可用。
+
+---
+
 ## 开放世界线 · cherry-pick loan42 第1轮 + 合 main v3.8.3（2026-10-30 21:06 UTC+8，Grok Bot）
 - `openworld-wip` 普通 merge `origin/main`（v3.8.3 / #60+#59+#61 + docs `0883baf`）：`8ba40ac`。冲突：`index` 保留 `zf39_rt`/`zf39_dng` 并接 `clan41`；`PROGRESS` 保留开放世界历史 + main 交接（不截断）。
 - cherry-pick PR #64 `loan42` `5d2bbb0` → `9cd7fba`：`www/js/loan42.js` + `test/loan42_unit.js`；`stage3_chain` allowlist；index：`…zf39_dng→clan41→loan42→audio32`。
