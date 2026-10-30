@@ -46,7 +46,7 @@ const ev = (c, s) => vm.runInContext(s, c);
   let c = box(false); const IT = ev(c, 'ITEMS'), I40 = ev(c, 'ITEMS40'), GIFTS = ev(c, 'GIFTS'), NPCS = ev(c, 'NPCS'), AS = c.ASSETS, I = ev(c, 'Items40');
   const ids = Object.keys(I40);
   ok(ids.length === 60 && ids.every(k => k.startsWith('i40_')), '60 个 id 全部 i40_ 前缀');
-  ok(Object.keys(IT).length === 91 && Object.keys(IT).filter(k => !k.startsWith('i40_')).length === 31, 'ITEMS 总数 = 31 + 60');
+  const baseN = Object.keys(IT).filter(k => !k.startsWith('i40_')).length; ok(ids.length === 60 && Object.keys(IT).length === baseN + 60 && baseN >= 31, 'ITEMS 总数 = 非i40(' + baseN + ') + 60 i40（基线≥31，开放世界线可含 zf39 道具）');
   ok(ids.filter(k => I40[k].t === 'gift').length === 20 && ids.filter(k => I40[k].t === 'quest').length === 15 && ids.filter(k => !['gift', 'quest'].includes(I40[k].t)).length === 25, '分类 25 / 20 / 15');
   ok(ids.every(k => AS.icons.f[I40[k].ic]), '全部图标存在于图集');
   ok(I.GIFTS.every(g => GIFTS.includes(g)) && GIFTS.length === 26, 'GIFTS = 原 6 + 20');
@@ -54,7 +54,7 @@ const ev = (c, s) => vm.runInContext(s, c);
   const bad = []; I.GIFTS.forEach(g => I40[g].love.concat(I40[g].hate).forEach(x => { if (x !== 'kin' && !NPCS[x]) bad.push(g + ':' + x); })); ok(!bad.length, '礼物 love/hate 引用的 NPC 都存在' + (bad.length ? ' ' + bad : ''));
   ok(ev(c, "DevTabs.some(t => t.key === 'items40')"), '开发者面板注册「道具40」Tab');
   const idxs = SCRIPTS.indexOf('js/items40.js'); ok(idxs > SCRIPTS.indexOf('js/chain37.js') && idxs > SCRIPTS.indexOf('js/fam37.js') && idxs > SCRIPTS.indexOf('js/lg36.js'), 'index.html：items40 在 3.7 模块之后加载');
-  ok(SCRIPTS.indexOf('js/profile38.js') >= 0 && idxs > SCRIPTS.indexOf('js/profile38.js') && idxs > SCRIPTS.indexOf('js/zf39.js'), 'index.html：items40 在 profile38 / zf39 之后');
+  ok(SCRIPTS.indexOf('js/profile38.js') >= 0 && idxs > SCRIPTS.indexOf('js/profile38.js') && idxs > SCRIPTS.indexOf('js/zf39.js') && (SCRIPTS.indexOf('js/zf39_ui.js') < 0 || idxs > SCRIPTS.indexOf('js/zf39_ui.js')), 'index.html：items40 在 profile38 / zf39(/ui) 之后');
   // ============ 老存档兼容 ============
   let G = newG(c); delete G.i40; const v0 = G.v;
   ok(ev(c, "Game.roll(1.1,'qiyu')") === true && ev(c, "Game.roll(-1,'qiyu')") === false && !G.i40, '老档：Game.roll 行为不变，不偷偷建 G.i40');
