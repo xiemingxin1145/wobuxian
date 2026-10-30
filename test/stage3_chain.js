@@ -332,7 +332,7 @@ const mk = (o) => Object.assign({ debt: 8888, stone: 500, aff: {}, flags: {} }, 
   const sbBody = srcSB.slice(srcSB.indexOf('BOSS_NAME:'), srcSB.indexOf('BRK_PENALTY'));
   ok(sbBody.length > 300 && !/G\.(stone|inv|eqs|eq|exp|items?)\b|\.give\(|\.addItem\(|\.gain\(|Game\./.test(sbBody), '讨债令只记 flags：结算代码不碰灵石/物品/装备/修为，不调 Game.give 等正式发奖');
   const tokFiles = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && /s3b_token/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
-  ok(tokFiles.join(',') === 'dev_openworld.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'stage3_encounter_draft.js', '只有 stage3（与开发者入口注释）提到 s3b_token：' + tokFiles.join(','));
+  ok(tokFiles.join(',') === 'dev_openworld.js,loan42.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'dev_openworld.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'loan42.js,stage3_encounter_draft.js' || tokFiles.join(',') === 'stage3_encounter_draft.js', 's3b_token 仅 stage3/开发者入口/loan42（§16 催收抵扣）：' + tokFiles.join(','));
   const tokCallers = require('fs').readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'stage3_encounter_draft.js' && /TOKEN_NAME|bountyTokenEarned|tokenCount/.test(require('fs').readFileSync(path.join(jsDir, f), 'utf8')));
   ok(tokCallers.join(',') === 'dev_openworld.js', '只有 dev_openworld.js 引用讨债令相关接口：' + tokCallers.join(','));
   const de6 = require('fs').readFileSync(path.join(jsDir, 'dev_openworld.js'), 'utf8');
