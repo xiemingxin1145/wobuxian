@@ -715,7 +715,7 @@
     /**
      * 弹催收三选一卡并执行（当场还款 / 应战→Game.fight / 跑）。
      * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 下次再试。
-     * §16.6：灵石不够时「当场还款」🔒 灰掉不可点（同 life34 赔礼）；卡弹出后即记 _squadDoneY（当年最多 1 次）。
+     * §16.6：灵石不够时「当场还款」🔒 灰掉不可点（同 life34 赔礼）；卡真正弹出（card()!==-1）后才记 _squadDoneY（当年最多 1 次）。
      */
     async offerSquad(G, info) {
       if (this.off) return null;
@@ -743,6 +743,8 @@
           TEXT42.squadOpts[2]
         ];
         idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
+        // card() 返回 -1 表示卡未弹出：不记年，留 squad=1 下一张图再试
+        if (idx === -1 && !shown) return { blocked: true, notShown: true };
         // 卡成功弹出后即记年（含点灰项重弹 / 战 / 跑 / 关），当年不再刷
         if (!shown) {
           shown = true;
