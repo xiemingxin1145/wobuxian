@@ -1,8 +1,20 @@
+## 开放世界线 · loan42 deathTransfer 真死后结算 + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 loan42-mk：`Game.die` 先调内层，仅 wasAlive&&G.dead 后 `deathTransfer`；main40 拦截 newdao/auditor 时债/贷不动。`keepFnMarks` 保留 `_main40`/`_mem45`。
+- 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（拦截/真死/三标记）。未碰核心。
+- `git merge origin/main`（含 #72 memory45 / #71 sweep44 R1）；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
 ## 开放世界线 · loan42 标记修复 _main40 共存（2026-10-30 23:49 UTC+8，Grok Bot）
 - 分支 loan42-mk（自 origin/main）：`DOMContentLoaded` 重 hook `enterMap`/`die` 时保留已有 `_main40` 等标记（`keepFnMarks`），避免冲掉 main40 外层标志；`L42._hook` 可重入单测。
 - 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（+7：双标记存活/调用链/不重包）。未碰核心。
 - node：loan42_squad **91/91**；loan42 **110**；test/*.js **20/20**；validate22 errors []。未跑 Chrome。
 - 下一步：开 PR→main；合 openworld-wip。
+
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R1 审修 M1/M2（2026-10-30 23:36 UTC+8，Grok Bot）
+- 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
+- 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
+- node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
+- 下一步：合 openworld-wip；等奥拉夫再审 / R2 接线。
 
 ## 交接 notes · v3.9.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
