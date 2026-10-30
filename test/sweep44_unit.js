@@ -400,6 +400,35 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   ok(!r1.ok && r1.reason === 'noap' && G.ap === 1 && G.sw44.n === 0, 'AP 不足 ×N 拒绝');
 
 
+  // ---- §18.6-8：自动任务/挂机期间不扫荡 ----
+  c = box2();
+  G = mkG({ ap: 5, stone: 100, exp: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  ok(SW2.autoOn() === false, '无 AUTO/AFK 时 autoOn=false');
+  const snapA = () => JSON.stringify({ ap: G.ap, n: G.sw44.n, tot: G.sw44.tot, stone: G.stone, eqs: (G.eqs || []).length, inv: G.inv || {} });
+  R(c, 'var AUTO = { on: "main" }; var AFK = { on: false };');
+  let befA = snapA();
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1);');
+  ok(!r1.ok && r1.reason === 'auto' && snapA() === befA, '自动任务中 go 拒绝 auto、不花 AP/不计数/不发奖');
+  R(c, 'AUTO.on = null; AFK.on = true;');
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { confirm: false });');
+  ok(!r1.ok && r1.reason === 'auto' && snapA() === befA, '挂机 AFK 中 go 拒绝 auto');
+  R(c, 'AFK.on = false;');
+  ok(SW2.autoOn() === false, '关掉后 autoOn=false');
+  // 扫荡按钮/确认选项都不能被 ux23 AUTO.pick 当安全项自动点（SAFE 前缀、且不是唯一选项）
+  {
+    const ux = fs.readFileSync(path.join(ROOT, 'www/js/ux23.js'), 'utf8');
+    const mS = ux.match(/^const SAFE = (\/.*\/);$/m);
+    ok(!!mS, 'ux23 SAFE 正则可读');
+    if (mS) {
+      const SAFE = vm.runInNewContext(mS[1]);
+      const T = R(c, 'Sweep44').TEXT || R(c, 'TEXT44') || {};
+      const labs = [T.btn1, String(T.btnN || '').replace('{n}', '2'), T.confirm_ok, T.confirm_no].filter(Boolean);
+      ok(labs.length === 4, '读到 4 个扫荡相关按钮文案');
+      ok(labs.every(x => !SAFE.test(String(x).trim())), '扫荡按钮/确认选项均不匹配 AUTO SAFE 前缀');
+    }
+  }
+
   console.log(`\n${n - fails}/${n} passed, ${fails} failed`);
   process.exit(fails);
 })().catch(e => { console.error(e); process.exit(1); });
