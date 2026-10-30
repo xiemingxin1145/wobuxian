@@ -1,3 +1,11 @@
+## 开放世界线 · 奥拉夫 #58 审查修复（2026-10-30 19:35 UTC+8，Grok Bot）
+- 自 PR #58 / `zf39-ui` cherry-pick `fecbfcf` → `abc8554`：修战斗胜利阵道升级 toast 缺失 + `winXp` 缺 `war` NPE。
+- `ZF39.winXp` 返回 `{add,ups}`（不再丢 `addXp` 的 ups）；`(Z.war||[])` 惰性兜底；`zf39_ui` `Game.fight` 包装 `announceXp(wr.add, wr.ups)`。
+- 改动：`www/js/zf39.js`、`www/js/zf39_ui.js`、`test/zf39_unit.js`、`test/zf39_ui_unit.js`。未碰核心文件。
+- node：zf39_unit 121、zf39_ui_unit 60、zf39_hook 20、validate22 / chain37 / pf38 / stage3_* / items40 等应绿。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/58#issuecomment-6521620608
+- 下一步：破阵 UI / rt27 / 洞府阵挂点 / 页面门禁（Chrome 协调后）。
+
 # 我不仙 进度清单（2026-10-17 Grok 接管后）
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
