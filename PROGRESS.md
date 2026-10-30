@@ -4,6 +4,39 @@
 - node：sweep44 **94/94**；sweep44_ui **33/33**；test/*.js 全过。未跑 Chrome；页测仍待做（秘境面板扫荡按钮/回执卡/Dev「扫荡44」，以及开自动任务时点扫荡出 toast）。
 - 下一步：等奥拉夫审；3.9.4+3.9.5 待发版人整理发版。
 
+## 交接 notes · v3.9.5（2026-10-31，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `PENDING_TAG`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
+- **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.5
+- Release 资产：`wobuxian.apk` / `wobuxian-lite.apk`（大小与 versionCode 发版后补记；自 307 起由 CI `100+run_number` 递增）。
+- index 序：`…→loan42→main40→dongfu43→dongfu43_ui→memory45→sweep44→sweep44_ui→audio32`。
+
+### 2 本版做了什么 / 刻意没做什么
+- **3.9.4 sweep44**（#71 数据+逻辑 + #73 UI 接线/隐藏 `_once`）：秘境面板扫荡、年 cap、Dev「扫荡44」。
+- **3.9.5 memory45**（#72 + #75 中文地图名）：跨世似曾相识卡、微好感/顿悟上限、地点弱提示。
+- **#74**：loan42 仅真死后 `deathTransfer`；重 hook 保留 `_main40`/`_mem45`。
+- 刻意没做：未改核心四件套；BOSS 旁白等 §19 P2；不删分支。
+- 已知低风险：`dongfu43_ui` / `audio32` 重包 `enterMap` 未 `keepFnMarks`，检测上可能只见 `_loan42`（调用链一般仍在）。
+
+### 3 测试结果
+- node（合 #73 后）：validate22 **0**；sweep44 **87**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；其余 unit → **ALL PASS**。
+- 奥拉夫：#73 含页测 APPROVE；#72 已合。
+- CI：见 tag `v3.9.5`（发版后补）。
+
+### 4 遗留问题
+- Issue #12 OPEN；dungeon26 `clear[band]` 单层偏差（§18.7）；enterMap 标记链可能被后加载模块盖掉（低风险）。
+
+### 5 下一版任务（按顺序）
+1. P2 剩余 / memory45 BOSS 旁白与 tit39 `t_mem45`（可选）
+2. 其它 ROADMAP P2
+
+### 6 交接注意
+- 禁止改 `game.js`/`talk.js`/`data.js`/`ui.js`；老档 `G.v===2` 惰性字段。
+- 扫荡与似曾相识均守 `NPC37.storyBlock`/`B.on`。
+- HD：CI 拉 `assets-hd`；缺 APK 时从 artifact 手工 upload。
+
+---
+
 ## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
 - 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
 - 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
