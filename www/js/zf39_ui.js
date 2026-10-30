@@ -229,7 +229,7 @@
     return { ok: true, add: up.add, ups: up.ups, msg: `阵道 +${up.add}` };
   }
   function doWinXp(G, year) {
-    G = getG(G); if (!G || !Z.learned(G)) return 0;
+    G = getG(G); if (!G || !Z.learned(G)) return { add: 0, ups: [] };
     return Z.winXp(G, year);
   }
   function announceXp(add, ups) {
@@ -378,8 +378,8 @@
       const r = await _f.apply(this, arguments);
       try {
         if (r && r.res === 'win' && this.G) {
-          const add = doWinXp(this.G);
-          if (add) announceXp(add, []);
+          const wr = doWinXp(this.G);
+          if (wr && wr.add) announceXp(wr.add, wr.ups || []);
         }
       } catch (e) { console.warn('[zf39ui] winXp', e); }
       return r;
