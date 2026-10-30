@@ -722,9 +722,11 @@
     /**
      * 弹催收三选一卡并执行（当场还款 / 应战→Game.fight / 跑）。
      * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 / sqPend 下次再试。
-     * §16.6（研究员确认）：卡真正弹出（card()!==-1）时只写 G.loan42.sqPend={y,tier,amt}；
-     * 玩家选定 还/战/跑 后才记 _squadDoneY 并清 marker。存档重进 / 下张图若有 marker 则复弹同 tier/amt。
+     * §16.6（研究员确认）：卡真正弹出（card()!==-1）时只写 G.loan42.sqPend={y,tier,amt,oi}；
+     * oi=开场文案下标（首次弹出时 roll 写入；复弹/读档复用，老档无 oi 则补抽一次并写入）。
+     * 玩家选定 还/战/跑 后才记 _squadDoneY 并清 marker。存档重进 / 下张图若有 marker 则复弹同 tier/amt/开场。
      * card()=-1：不记年、不写 marker。跨年仍有 marker：仍复弹同一张（结案时按当前 G.year 记 _squadDoneY）。
+     * 存档仍走 wbx2_*、G.v===2；oi 惰性字段，不升版本。
      */
     async offerSquad(G, info) {
       if (this.off) return null;
@@ -733,13 +735,19 @@
       const amt = info.amt | 0;
       const S = this.peek(G);
       const opens = TEXT42.squadOpen || ['催收上门。'];
-      let open = opens[0];
-      try {
-        // rng 选开场白
-        let oi = 0;
-        for (let i = 1; i < opens.length; i++) if (this.roll(1 / (i + 1))) oi = i;
-        open = opens[oi];
-      } catch (e) {}
+      const nOpen = opens.length || 1;
+      let oi = 0;
+      const pend0 = S && S.sqPend && typeof S.sqPend === 'object' ? S.sqPend : null;
+      if (pend0 && pend0.oi != null && Number.isFinite(+pend0.oi)) {
+        // 复弹 / 读档：复用已存开场下标
+        oi = Math.max(0, Math.min(nOpen - 1, pend0.oi | 0));
+      } else {
+        // 首次（或老档无 oi）：Game.roll 回退 Math.random 抽一次
+        try {
+          for (let i = 1; i < nOpen; i++) if (this.roll(1 / (i + 1))) oi = i;
+        } catch (e) {}
+      }
+      const open = opens[oi] || opens[0];
       // §16.6 灵石够才可点「当场还款」：不够则 🔒 灰置，点了 toast 后重弹卡（卡不关死，只可战/跑）
       let idx = -1;
       let shown = false;
@@ -754,14 +762,14 @@
         idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
         // card() 返回 -1 表示卡未弹出：不记年、不写 marker，留 squad=1 下一张图再试
         if (idx === -1 && !shown) return { blocked: true, notShown: true };
-        // 卡成功弹出：只写 pending（存档命名空间 G.loan42.sqPend），选定前不烧年
+        // 卡成功弹出：只写 pending（存档命名空间 G.loan42.sqPend），选定前不烧年；含 oi
         if (!shown) {
           shown = true;
           if (S) {
             const tier = (info.tier != null && Number.isFinite(+info.tier))
               ? +info.tier
               : ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
-            S.sqPend = { y: G.year | 0, amt: amt | 0, tier };
+            S.sqPend = { y: G.year | 0, amt: amt | 0, tier, oi: oi | 0 };
           }
         }
         if (idx === 0 && !canPay) {
@@ -802,8 +810,8 @@
     },
     /**
      * 进入有怪地图时尝试刷催收（每年最多 1 次，60%）。
-     * 若 G.loan42.sqPend 仍在（卡已弹未选定 / 存档重进），跳过 roll 与 _squadDoneY，复弹同 amt/tier；
-     * 跨年仍复弹同一张（不重抽金额）。无逾期应还则清幽灵旗与 marker。
+     * 若 G.loan42.sqPend 仍在（卡已弹未选定 / 存档重进），跳过 roll 与 _squadDoneY，复弹同 amt/tier（开场 oi 由 offerSquad 复用）；
+     * 跨年仍复弹同一张（不重抽金额/开场）。无逾期应还则清幽灵旗与 marker。
      */
     trySquad(G, mapId) {
       if (this.off) return null;
