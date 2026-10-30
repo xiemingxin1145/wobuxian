@@ -1,3 +1,11 @@
+## 开放世界线 · cherry-pick loan42 第1轮 + 合 main v3.8.3（2026-10-30 21:06 UTC+8，Grok Bot）
+- `openworld-wip` 普通 merge `origin/main`（v3.8.3 / #60+#59+#61 + docs `0883baf`）：`8ba40ac`。冲突：`index` 保留 `zf39_rt`/`zf39_dng` 并接 `clan41`；`PROGRESS` 保留开放世界历史 + main 交接（不截断）。
+- cherry-pick PR #64 `loan42` `5d2bbb0` → `9cd7fba`：`www/js/loan42.js` + `test/loan42_unit.js`；`stage3_chain` allowlist；index：`…zf39_dng→clan41→loan42→audio32`。
+- §16 数据+核心逻辑（征信/借还/sync/逾期转尾款/寿元抵押/催收结算/无债之身/Talk.extra 最小入口）；弹窗守 #53；未碰核心文件；未跑 Chrome。
+- node：loan42 **70/70**；clan41 **70/70**；items40 / validate22 / stage3_* / chain37 / npc37* / pf38 / tit39 / zf39* 应绿。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/64
+- 下一步：催收开战 UI / DevPanel 小贷42 / 页测；或等奥拉夫审 #64。
+
 ## 开放世界线 · cherry-pick zf39_dng Medium 触底破阵超量回血（2026-10-30 20:53 UTC+8，Grok Bot）
 - 自 PR #61 `zf39-dng` cherry-pick `ad3c638` → `32aa370`：陷阱触底后破阵还原按扣前气血，禁止名义 dmg 超量回血。
 - 改动：`www/js/zf39_dng.js`、`test/zf39_dng_unit.js`。`restoreHp(G, preHp, keptDmg)` + `armHpWatch`/`preTrapHp`；repro hp10−50→1 成功后回 10（非 51）。
