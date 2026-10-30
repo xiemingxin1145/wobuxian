@@ -2,7 +2,7 @@
 - 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
 - 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
 - node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
-- wip 普通 merge：。下一步：等奥拉夫再审 / R2 接线。
+- wip 普通 merge：`2556279`。下一步：等奥拉夫再审 / R2 接线。
 
 ## 开放世界线 · 3.9.4 秘境扫荡 sweep44 第 1 轮（data+logic）（2026-10-30 23:30 UTC+8，Grok Bot）
 - 分支 `sweep44`（基于 origin/main）：`www/js/sweep44.js` + `test/sweep44_unit.js`；PR #71。
