@@ -1031,13 +1031,17 @@
       if (typeof Game !== 'undefined' && Game.die && !Game.die._loan42) {
         const _die = Game.die;
         Game.die = async function (kind) {
+          // 先调内层 die：main40 可能拦截 newdao/auditor（不置 dead）。
+          // 仅当死前存活且死后 G.dead 才 deathTransfer，避免拦截路径改债/清贷。
+          const wasAlive = !!(this.G && !this.G.dead);
+          const ret = await _die.apply(this, arguments);
           try {
-            if (!L42.off && this.G && this.G.loan42) {
+            if (!L42.off && wasAlive && this.G && this.G.dead && this.G.loan42) {
               const tr = L42.deathTransfer(this.G);
               if (tr && tr.amt > 0) L42.toast(L42.fmt(TEXT42.deathTransfer, { amt: tr.amt }), '#ff9a9a');
             }
           } catch (e) { console.warn('[loan42] die', e); }
-          return _die.apply(this, arguments);
+          return ret;
         };
         Game.die._loan42 = 1;
         keepFnMarks(_die, Game.die); // 保留 _main40

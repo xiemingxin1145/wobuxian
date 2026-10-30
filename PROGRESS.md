@@ -1,3 +1,14 @@
+## docs: PROGRESS — openworld-wip re-merge sweep44-r2 + loan42-mk after main/#72（2026-10-31 00:12 UTC+8，Grok Bot）
+- 普通 merge：`sweep44-r2`（rndRange→Game.roll + #72 memory45 index）+ `loan42-mk`（deathTransfer 真死后 + keepFnMarks `_main40`/`_mem45`）入 openworld-wip。
+- index：`dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`。未碰核心；未跑 Chrome；未 force。
+- node（合入后）：loan42_squad **105**；loan42 **110**；sweep44 **87**；sweep44_ui **33**；memory45 **53**；validate22 []；test/*.js 全过。
+
+## 开放世界线 · loan42 deathTransfer 真死后结算 + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 loan42-mk：`Game.die` 先调内层，仅 wasAlive&&G.dead 后 `deathTransfer`；main40 拦截 newdao/auditor 时债/贷不动。`keepFnMarks` 保留 `_main40`/`_mem45`。
+- 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（拦截/真死/三标记）。未碰核心。
+- `git merge origin/main`（含 #72 memory45 / #71 sweep44 R1）；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
 ## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
 - 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
 - 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
