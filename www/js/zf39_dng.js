@@ -58,12 +58,59 @@
     const m = /气血\s*-\s*(\d+)/.exec(String(body || ''));
     return m ? (+m[1] | 0) : 0;
   }
-  function restoreHp(G, dmg) {
-    G = getG(G); if (!G || !dmg) return 0;
+  function parseTrapAfterHp(body) {
+    const m = /（\s*(\d+)\s*\//.exec(String(body || ''));
+    return m ? (+m[1] | 0) : null;
+  }
+
+  // Snapshot HP before trap damage (dungeon26 clamps with Math.max(1, hp - dmg)).
+  let hpWatchPre = null;
+  function armHpWatch(G) {
+    G = G || getG();
+    if (!G || G.__zf39HpArm) return G;
+    let cur = Math.round(+G.hp || 0);
+    hpWatchPre = cur;
+    try {
+      Object.defineProperty(G, 'hp', {
+        configurable: true,
+        enumerable: true,
+        get() { return cur; },
+        set(v) {
+          const nv = Math.round(+v);
+          if (Number.isFinite(nv) && nv < cur) hpWatchPre = cur;
+          if (Number.isFinite(nv)) cur = nv;
+        },
+      });
+      G.__zf39HpArm = 1;
+    } catch (e) {}
+    return G;
+  }
+  function preTrapHp(G, body, dmg) {
+    G = getG(G);
+    const after = Math.round((G && G.hp) || 0);
+    dmg = Math.max(0, Math.round(+dmg || 0));
+    // Unambiguous: dungeon did not clamp to 1 → pre = after + nominal dmg.
+    if (after > 1) return after + dmg;
+    // Clamped (after === 1): prefer live snapshot if it matches dungeon formula.
+    if (hpWatchPre != null && Math.max(1, hpWatchPre - dmg) === after) return hpWatchPre;
+    try {
+      if (W.__zf39DngPreHp != null && Number.isFinite(+W.__zf39DngPreHp)) return +W.__zf39DngPreHp | 0;
+    } catch (e) {}
+    const shown = parseTrapAfterHp(body);
+    if (shown != null && shown > 1) return shown + dmg;
+    // Last resort (should not hit once watch is armed): treat nominal as actual lost.
+    return after + dmg;
+  }
+  // Restore to pre-trap HP, optionally keeping reduced actual damage. Never exceed preHp / mhp; floor at 1.
+  function restoreHp(G, preHp, keptDmg) {
+    G = getG(G); if (!G) return 0;
+    if (preHp == null || !Number.isFinite(+preHp)) return 0;
     let mhp = 999999;
     try { const g = gm(); if (g && typeof g.stats === 'function') mhp = (g.stats().mhp) || mhp; } catch (e) {}
-    const before = G.hp;
-    G.hp = Math.min(mhp, (G.hp || 0) + dmg);
+    keptDmg = Math.max(0, Math.round(+keptDmg || 0));
+    const before = G.hp || 0;
+    const target = Math.max(1, Math.min(mhp, Math.min(+preHp, +preHp - keptDmg)));
+    G.hp = target;
     return G.hp - before;
   }
   function applyDmg(G, dmg) {
@@ -230,8 +277,10 @@
 
   async function interceptTrapCard(body, por) {
     const G = getG();
+    armHpWatch(G);
     const dmg = parseTrapDmg(body);
-    restoreHp(G, dmg);
+    const preHp = preTrapHp(G, body, dmg);
+    restoreHp(G, preHp, 0);
     const choice = await offerChoice(G);
     if (choice !== 0) {
       applyDmg(G, dmg);
@@ -301,9 +350,9 @@
   }
 
   const API = {
-    parseTrapDmg, restoreHp, applyDmg, failDmg, zwsReward, giveZws,
+    parseTrapDmg, parseTrapAfterHp, preTrapHp, restoreHp, applyDmg, failDmg, zwsReward, giveZws,
     shouldOffer, isTrapTitle, settleOk, settleFail, playPuzzle, puzzleUI, showCard,
-    bandOf, storyBlock, canToast, roomTrap: roomTrapImpl, interceptTrapCard,
+    bandOf, storyBlock, canToast, roomTrap: roomTrapImpl, interceptTrapCard, armHpWatch,
   };
   W.ZF39Dng = API;
   Z.dng = API;
@@ -312,6 +361,15 @@
     if (typeof Dng !== 'undefined' && Dng && !Dng.roomTrap) Dng.roomTrap = roomTrapImpl;
     else if (W.Dng && !W.Dng.roomTrap) W.Dng.roomTrap = roomTrapImpl;
   } catch (e) {}
+  try { armHpWatch(getG()); } catch (e) {}
+  try {
+    const dng = (typeof Dng !== 'undefined' && Dng) || W.Dng;
+    if (dng && typeof dng.start === 'function' && !dng._zf39StartArm) {
+      const _start = dng.start.bind(dng);
+      dng.start = function () { try { armHpWatch(getG()); } catch (e) {} return _start.apply(this, arguments); };
+      dng._zf39StartArm = 1;
+    }
+  } catch (e) {}
 
   if (typeof UI === 'undefined' || typeof UI.card !== 'function') return;
   if (W.__zf39Dng) return;
@@ -319,6 +377,7 @@
   const _card = UI.card.bind(UI);
   UI._zf39DngCard = _card;
   UI.card = function (title, text, por, opts, extra) {
+    try { armHpWatch(getG()); } catch (e) {}
     if (isTrapTitle(title) && shouldOffer(getG())) {
       const self = this;
       const run = () => interceptTrapCard(text, por);
