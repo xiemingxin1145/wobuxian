@@ -44,9 +44,9 @@
 
 ## 交接 notes · v3.9.1（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.9.1「阵法 · 天道小贷」**，`VERSION`=3.9.1，tag `v3.9.1` →（VERSION bump commit）；其下 `d05bb2a` #65 merge、此前 #64 / #58 / #59 / #61、v3.8.4。
+- 版本：**v3.9.1「阵法 · 天道小贷」**，`VERSION`=3.9.1，tag `v3.9.1` → commit `fd7a36d`；其下 `d05bb2a` #65 merge、此前 #64 / #58 / #59 / #61、v3.8.4。
 - **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.1
-- Release 资产：CI HD+lite；versionCode 自 298 递增。发版后填字节数。
+- Release 资产：`wobuxian.apk` 372,308,719 B（≈372MB）、`wobuxian-lite.apk` 84,152,271 B（≈84MB）；versionCode **301**；Latest 已指向 v3.9.1。
 
 ### 2 本版做了什么 / 刻意没做什么
 - **3.9.0 阵法**一并发号：zf39 UI（洞府学炼布）、zf39_rt 即时战、zf39_dng 秘境破阵（早先已合 main）。
@@ -57,7 +57,7 @@
 ### 3 测试结果
 - node（合 main 后）：validate22 0；loan42 **110/110**；loan42_squad **71/71**；cos36 53；clan41 70；items40 152；zf39_* / 其余 unit → **22/22 PASS**。
 - 奥拉夫：#65 页测已过；无 high/medium。
-- CI（tag v3.9.1）：发版后填。
+- CI（tag v3.9.1，run 41072361706）：build ✅、emulator API30/34 ✅。
 
 ### 4 遗留问题
 - PR #66 `dongfu43` 第 1 轮（进行中，勿动）；Issue #12 OPEN；催收卡文案重抽（low）。
