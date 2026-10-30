@@ -1,7 +1,7 @@
-// ======================= 3.9.1 天道小贷 loan42（规格 docs/research_v22.md §16）第 1 轮 =======================
-// 新模块：数据 + 核心逻辑（额度/征信/借还/计息/逾期转尾款/寿元抵押/无债之身）；Talk.extra 最小入口。
-// 存档 G.loan42 惰性；LOAN42.off=true 整系统隐藏。不改 game.js/talk.js/data.js/ui.js/systems21 本体（只包装）。
-// rng：Game.roll(p,'loan42') → Math.random；弹卡/toast 守 NPC37.storyBlock + B.on（#53）。
+// ======================= 3.9.1 天道小贷 loan42（规格 docs/research_v22.md §16）第 2 轮 =======================
+// 第1轮：数据+核心逻辑（额度/征信/借还/sync/逾期转尾款/寿元抵押/无债之身/Talk.extra）。
+// 第2轮：催收小分队开战（包 Game.fight，#53 storyBlock/B.on，rng=Game.roll 回退）；角色面板征信行；DevPanel「小贷42」。
+// 存档 G.loan42 惰性；LOAN42.off=true 整系统隐藏。不改 game.js/talk.js/data.js/ui.js/systems21/dev_entry_v25/dev341 本体。
 // 加载：index 在 clan41 之后、audio32 之前（外层于 mingge33，转入尾款不吃 VIP 30% 折扣）。
 'use strict';
 (function (W) {
@@ -559,7 +559,9 @@
       await this.card(p.title, p.body, 'i:bill', ['好']);
     },
 
-    // ---- 催收小分队（核心结算；开战 UI 本轮最小） ----
+    // ---- 催收小分队（§16.6；第2轮：弹卡+包 Game.fight 开战） ----
+    SQUAD_MON: 'loan42_sq',
+    SQUAD_MUL: { hp: 1.8, atk: 1.3, def: 1.2 },
     squadFee(G) { return Math.round(this.N(G) * 0.1); },
     squadOdAmt(G) {
       const S = this.peek(G); if (!S) return 0;
@@ -569,6 +571,43 @@
       G = this.G(G);
       const v = Number(G && G.flags && G.flags.s3b_token);
       return Number.isFinite(v) && v > 0;
+    },
+    /** 注册 MONS.loan42_sq = collector × (hp1.8/atk1.3/def1.2)；不改 data.js */
+    ensureSquadMons() {
+      try {
+        if (typeof MONS === 'undefined' || !MONS) return false;
+        const base = MONS.collector || { n: '讨债鬼', spr: 'mon_collector', el: '金', hp: 1, atk: 1, def: 0.9, spd: 1.1, sk: ['atk', 'freeload'], drop: ['coin', 'yd'] };
+        const M = this.SQUAD_MUL;
+        const id = this.SQUAD_MON;
+        MONS[id] = Object.assign({}, base, {
+          n: base.n || '讨债鬼',
+          spr: base.spr || 'mon_collector',
+          el: base.el || '金',
+          hp: (base.hp != null ? base.hp : 1) * M.hp,
+          atk: (base.atk != null ? base.atk : 1) * M.atk,
+          def: (base.def != null ? base.def : 0.9) * M.def,
+          spd: base.spd != null ? base.spd : 1.1,
+          sk: (base.sk && base.sk.slice) ? base.sk.slice() : ['atk', 'freeload'],
+          drop: (base.drop && base.drop.slice) ? base.drop.slice() : ['coin', 'yd']
+        });
+        return true;
+      } catch (e) { return false; }
+    },
+    pickSquadName() {
+      const names = TEXT42.squadNames || ['催收小分队'];
+      const n = names.length || 1;
+      let idx = 0;
+      try {
+        const g = (typeof Game !== 'undefined' && Game) || W.Game;
+        if (g && typeof g.roll === 'function') {
+          for (let i = 1; i < n; i++) {
+            if (g.roll(1 / (i + 1), 'loan42')) idx = i;
+          }
+        } else {
+          idx = Math.floor(Math.random() * n);
+        }
+      } catch (e) { idx = Math.floor(Math.random() * n); }
+      return names[Math.max(0, Math.min(n - 1, idx | 0))];
     },
     squadPayNow(G) {
       G = this.G(G); const S = this.peek(G); if (!S) return { ok: false };
@@ -592,6 +631,7 @@
       for (const l of xfer) this.transfer(G, l, []);
       S.squad = 0; // 本年不再刷
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       this._clearSquadIfNoOd(S);
       return { ok: true, transferred: xfer.length };
     },
@@ -605,6 +645,7 @@
       if (this.roll(0.15)) { loot.xyf = 1; try { if (typeof Game !== 'undefined' && Game.give) Game.give('xyf', 1); } catch (e) { G.inv = G.inv || {}; G.inv.xyf = (G.inv.xyf || 0) + 1; } }
       S.squad = 0;
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       // 欠款/逾期不变
       return loot;
     },
@@ -624,15 +665,151 @@
       this.bumpCr(S, -20);
       // squad 保持，明年还来
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       return { fee, paid, debtAdd, token };
     },
-    /** 进入有怪地图时尝试刷催收（每年最多 1 次，60%） */
+    /** 开战：3 只 loan42_sq，solo+noflee；经 Game.fight（外包套标记 loan42Squad） */
+    async startSquadFight(G) {
+      G = this.G(G); if (!G) return null;
+      this.ensureSquadMons();
+      const name = this.pickSquadName();
+      try {
+        if (typeof MONS !== 'undefined' && MONS && MONS[this.SQUAD_MON]) MONS[this.SQUAD_MON].n = name;
+      } catch (e) {}
+      const S0 = this.peek(G);
+      const pend = S0 && S0.sqPend;
+      const tier = (pend && pend.tier != null && Number.isFinite(+pend.tier))
+        ? +pend.tier
+        : ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
+      const opts = {
+        elite: true, solo: true, noflee: true,
+        adds: [this.SQUAD_MON, this.SQUAD_MON],
+        loan42Squad: true,
+        tier
+      };
+      try {
+        if (typeof Game !== 'undefined' && Game && typeof Game.fight === 'function') {
+          return await Game.fight(this.SQUAD_MON, opts);
+        }
+      } catch (e) { console.warn('[loan42] startSquadFight', e); }
+      return null;
+    },
+    /** 胜/败结算卡（由 Game.fight 包装在 r.res 后调用；也可单测直调） */
+    async applySquadFightResult(G, res) {
+      G = this.G(G); if (!G) return null;
+      if (res === 'win') {
+        const loot = this.squadWin(G) || { stone: 0 };
+        const extra = [];
+        if (loot.yd) extra.push('玉简×1');
+        if (loot.xyf) extra.push('仙缘符×1');
+        const body = TEXT42.squadWin + `\n灵石 +${loot.stone}` + (extra.length ? '　' + extra.join('、') : '');
+        await this.card('催收小分队', body, 'mon_collector', ['好']);
+        return { res: 'win', loot };
+      }
+      // lose / flee / 其它：按败结算
+      let useToken = false;
+      if (this.hasToken(G) && this.canPopup()) {
+        const c = await this.card('催收小分队', TEXT42.squadLose.replace('{fee}', String(this.squadFee(G))) + '\n' + TEXT42.squadToken + '？', 'mon_collector', [TEXT42.squadToken, '认了']);
+        useToken = (c === 0);
+      }
+      const lose = this.squadLose(G, useToken) || { fee: 0 };
+      const msg = lose.token
+        ? (TEXT42.squadToken + '。征信 −20。')
+        : this.fmt(TEXT42.squadLose, { fee: lose.fee });
+      await this.card('催收小分队', msg, 'mon_collector', ['唉']);
+      return { res: 'lose', lose };
+    },
+    /**
+     * 弹催收三选一卡并执行（当场还款 / 应战→Game.fight / 跑）。
+     * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 / sqPend 下次再试。
+     * §16.6（研究员确认）：卡真正弹出（card()!==-1）时只写 G.loan42.sqPend={y,tier,amt}；
+     * 玩家选定 还/战/跑 后才记 _squadDoneY 并清 marker。存档重进 / 下张图若有 marker 则复弹同 tier/amt。
+     * card()=-1：不记年、不写 marker。跨年仍有 marker：仍复弹同一张（结案时按当前 G.year 记 _squadDoneY）。
+     */
+    async offerSquad(G, info) {
+      if (this.off) return null;
+      G = this.G(G); if (!G || !info || !info.trigger) return null;
+      if (this.storyBlock() || !this.canPopup()) return { blocked: true };
+      const amt = info.amt | 0;
+      const S = this.peek(G);
+      const opens = TEXT42.squadOpen || ['催收上门。'];
+      let open = opens[0];
+      try {
+        // rng 选开场白
+        let oi = 0;
+        for (let i = 1; i < opens.length; i++) if (this.roll(1 / (i + 1))) oi = i;
+        open = opens[oi];
+      } catch (e) {}
+      // §16.6 灵石够才可点「当场还款」：不够则 🔒 灰置，点了 toast 后重弹卡（卡不关死，只可战/跑）
+      let idx = -1;
+      let shown = false;
+      for (;;) {
+        const canPay = amt <= 0 || (G.stone | 0) >= amt;
+        const payLabel = this.fmt(TEXT42.squadOpts[0], { amt });
+        const opts = [
+          canPay ? payLabel : ('🔒 ' + payLabel),
+          TEXT42.squadOpts[1],
+          TEXT42.squadOpts[2]
+        ];
+        idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
+        // card() 返回 -1 表示卡未弹出：不记年、不写 marker，留 squad=1 下一张图再试
+        if (idx === -1 && !shown) return { blocked: true, notShown: true };
+        // 卡成功弹出：只写 pending（存档命名空间 G.loan42.sqPend），选定前不烧年
+        if (!shown) {
+          shown = true;
+          if (S) {
+            const tier = (info.tier != null && Number.isFinite(+info.tier))
+              ? +info.tier
+              : ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
+            S.sqPend = { y: G.year | 0, amt: amt | 0, tier };
+          }
+        }
+        if (idx === 0 && !canPay) {
+          this.toast('灵石不足，还不成');
+          continue;
+        }
+        break;
+      }
+      if (idx === 0) {
+        const r = this.squadPayNow(G);
+        if (S) { S._squadDoneY = G.year | 0; if (S.sqPend) delete S.sqPend; }
+        if (r && r.ok) {
+          this.toast('已还清逾期 ' + (r.amt | 0), '#9aff9a');
+          await this.card('催收小分队', '讨债鬼点了点头，收起单子走了。', 'mon_collector', ['好']);
+        } else {
+          this.toast('灵石不足，还不成');
+        }
+        try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) {}
+        return { choice: 'pay', r };
+      }
+      if (idx === 1) {
+        const fr = await this.startSquadFight(G);
+        // 若 fight 包装未跑（无 Game.fight），本地补结算
+        if (fr && fr._loan42Handled) return { choice: 'fight', fr };
+        if (fr && fr.res) await this.applySquadFightResult(G, fr.res);
+        else if (!fr) await this.applySquadFightResult(G, 'lose');
+        try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) {}
+        return { choice: 'fight', fr };
+      }
+      if (idx === 2) {
+        this.squadRun(G);
+        await this.card('催收小分队', TEXT42.squadRun, 'mon_collector', ['好']);
+        try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) {}
+        return { choice: 'run' };
+      }
+      // 关/无效：保留 sqPend，不记 _squadDoneY → 下张图 / 读档复弹
+      return { choice: 'none', idx };
+    },
+    /**
+     * 进入有怪地图时尝试刷催收（每年最多 1 次，60%）。
+     * 若 G.loan42.sqPend 仍在（卡已弹未选定 / 存档重进），跳过 roll 与 _squadDoneY，复弹同 amt/tier；
+     * 跨年仍复弹同一张（不重抽金额）。无逾期应还则清幽灵旗与 marker。
+     */
     trySquad(G, mapId) {
       if (this.off) return null;
       G = this.G(G); const S = this.peek(G); if (!S || S.squad !== 1) return null;
       const amt0 = this.squadOdAmt(G);
-      if (amt0 <= 0) { S.squad = 0; return null; } // 无逾期应还：清幽灵旗，不触发
-      if ((S._squadDoneY | 0) === (G.year | 0)) return null;
+      if (amt0 <= 0) { S.squad = 0; if (S.sqPend) delete S.sqPend; return null; } // 无逾期应还：清幽灵旗，不触发
       if (this.storyBlock()) return null;
       try {
         if (typeof R !== 'undefined' && R && R.player && R.player.nav) return null;
@@ -642,8 +819,30 @@
         if (typeof MAPINFO !== 'undefined' && mapId && MAPINFO[mapId]) hasMons = !!(MAPINFO[mapId].mons && MAPINFO[mapId].mons.length);
       } catch (e) {}
       if (!hasMons) return null;
+      // pending：卡曾弹出未选定（含读档 / 跨年）→ 复弹，不 roll、不看 _squadDoneY
+      if (S.sqPend && typeof S.sqPend === 'object') {
+        const pendAmt = (S.sqPend.amt != null) ? (S.sqPend.amt | 0) : amt0;
+        return {
+          trigger: true,
+          amt: pendAmt,
+          tier: S.sqPend.tier,
+          pending: true,
+          names: TEXT42.squadNames
+        };
+      }
+      if ((S._squadDoneY | 0) === (G.year | 0)) return null;
       if (!this.roll(0.6)) return { deferred: true }; // 下一张图再判
       return { trigger: true, amt: amt0, names: TEXT42.squadNames };
+    },
+    /** 角色面板行文案；无贷款且无 G.loan42 时返回 null */
+    panelRowText(G) {
+      G = this.G(G); if (!G || this.off) return null;
+      const S = this.peek(G); if (!S) return null;
+      const n = (S.L && S.L.length) || 0;
+      const amt = n ? S.L.reduce((a, l) => a + this.earlyDue(l), 0) : 0;
+      let t = this.fmt(TEXT42.panelRow, { n, amt, cr: S.cr, tier: this.tierName(S.cr) });
+      if (this.isD0(G)) t += ' · 无债之身';
+      return t;
     },
 
     // ---- 最小 UI：Talk.extra 窗口 ----
@@ -798,8 +997,8 @@
             if (!L42.off && this.G) {
               L42.sync(this.G, { quiet: true });
               await L42._flushCard();
-              // 催收触发本轮只记状态，完整弹卡留后续轮；逻辑函数已就绪
-              L42.trySquad(this.G, id);
+              const sq = L42.trySquad(this.G, id);
+              if (sq && sq.trigger) await L42.offerSquad(this.G, sq);
             }
           } catch (e) { console.warn('[loan42] enterMap', e); }
           return r;
@@ -818,6 +1017,56 @@
           return _die.apply(this, arguments);
         };
         Game.die._loan42 = 1;
+      }
+    } catch (e) {}
+
+    // Game.fight 包装：loan42Squad 胜/败按 §16.6 结算（不改 battle.js/game.js）
+    try {
+      if (typeof Game !== 'undefined' && Game.fight && !Game.fight._loan42) {
+        const _f = Game.fight;
+        Game.fight = async function (mon, opts) {
+          opts = opts || {};
+          const tagged = !!(opts && opts.loan42Squad);
+          const r = await _f.apply(this, arguments);
+          try {
+            if (tagged && !L42.off && this.G) {
+              await L42.applySquadFightResult(this.G, (r && r.res) || 'lose');
+              if (r && typeof r === 'object') r._loan42Handled = 1;
+            }
+          } catch (e) { console.warn('[loan42] fight', e); }
+          return r;
+        };
+        Game.fight._loan42 = 1;
+      }
+    } catch (e) {}
+
+    // UI.p_char：角色面板小贷征信行（有 wrap 钩子才注入）
+    try {
+      if (typeof UI !== 'undefined' && UI.p_char && !UI.p_char._loan42) {
+        const _pc = UI.p_char;
+        UI.p_char = function (b, re) {
+          const r = _pc.apply(this, arguments);
+          try {
+            if (!L42.off && typeof Game !== 'undefined' && Game.G && b && b.appendChild) {
+              const txt = L42.panelRowText(Game.G);
+              if (txt) {
+                let row = null;
+                try { row = (typeof h === 'function') ? h('div', 'loan42row', txt) : null; } catch (e) {}
+                if (!row) {
+                  row = (typeof document !== 'undefined' && document.createElement)
+                    ? document.createElement('div') : null;
+                  if (row) { row.className = 'loan42row'; row.textContent = txt; }
+                } else {
+                  // h() 用 innerHTML；文案无用户输入，安全
+                  row.innerHTML = txt;
+                }
+                if (row) b.appendChild(row);
+              }
+            }
+          } catch (e) { console.warn('[loan42] p_char', e); }
+          return r;
+        };
+        UI.p_char._loan42 = 1;
       }
     } catch (e) {}
 
@@ -845,4 +1094,88 @@
   } else {
     hook();
   }
+
+  // DevPanel「小贷42」（dev_openworld / clan41 同款；不改 dev_entry_v25 / dev341）
+  (function dev42() {
+    const reg = () => {
+      const render = (box, ctx) => {
+        try {
+          const G = (typeof Game !== 'undefined' && Game.G) || null;
+          if (!G) { box.innerHTML = '<p class="hint">未开局</p>'; return; }
+          const S = L42.ensure(G);
+          const dump = JSON.stringify(S, null, 0).slice(0, 280);
+          box.innerHTML = `<p class="hint">征信 ${S.cr}（${L42.tierName(S.cr)}）· ${S.L.length} 笔 · squad=${S.squad} · 额度 ${L42.quota(G)}</p>` +
+            `<p class="hint" style="word-break:break-all;font-size:11px;opacity:.85">${dump}${(JSON.stringify(S).length > 280) ? '…' : ''}</p>` +
+            ['cr+:+100征信', 'cr-:-100征信', 'bt:借白条', 'fq:借分期', 'sy:借寿元贷',
+              'od:强制逾期1年', 'xfer:强制转尾款', 'sq:刷催收小分队', 'clr:清空贷款', 'fight:立刻催收开战'].map(x => {
+              const [a, n] = x.split(':');
+              return `<button class="opt" data-a="${a}">${n}</button>`;
+            }).join('');
+          box.onclick = async (e) => {
+            const t = e.target.closest && e.target.closest('button[data-a]');
+            const a = t && t.dataset && t.dataset.a; if (!a) return;
+            const G2 = Game.G; if (!G2) return;
+            const S2 = L42.ensure(G2);
+            if (a === 'cr+') { L42.bumpCr(S2, 100); ctx && ctx.toast && ctx.toast('征信 ' + S2.cr); }
+            else if (a === 'cr-') { L42.bumpCr(S2, -100); ctx && ctx.toast && ctx.toast('征信 ' + S2.cr); }
+            else if (a === 'bt' || a === 'fq' || a === 'sy') {
+              G2.realm = Math.max(G2.realm | 0, L42.PROD[a].realm);
+              const max = L42.prodMax(a, G2);
+              const r = L42.borrow(G2, a, Math.max(1, max || 100), false);
+              ctx && ctx.toast && ctx.toast(r.ok ? ('借到 ' + r.net) : ('借不成:' + (r.msg || '')));
+            } else if (a === 'od') {
+              if (!S2.L.length) { const max = L42.prodMax('fq', G2) || 100; L42.borrow(G2, 'fq', max, false); }
+              const l = S2.L[0]; if (l) { l.od = Math.max(1, (l.od | 0) + 1); l.due = Math.max(l.due | 0, L42.earlyDue(l)); S2.squad = 1; }
+              ctx && ctx.toast && ctx.toast('逾期 ' + (l && l.od));
+            } else if (a === 'xfer') {
+              if (!S2.L.length) { ctx && ctx.toast && ctx.toast('无贷款'); }
+              else { L42.transfer(G2, S2.L[0], []); ctx && ctx.toast && ctx.toast('已转尾款'); }
+            } else if (a === 'sq') {
+              S2.squad = 1; S2._squadDoneY = 0; if (S2.sqPend) delete S2.sqPend;
+              if (!S2.L.some(l => (l.od | 0) > 0)) {
+                if (!S2.L.length) { G2.realm = Math.max(G2.realm | 0, 2); L42.borrow(G2, 'fq', L42.prodMax('fq', G2) || 100, false); }
+                if (S2.L[0]) { S2.L[0].od = 1; S2.L[0].due = L42.earlyDue(S2.L[0]); }
+              }
+              ctx && ctx.toast && ctx.toast('squad=1');
+            } else if (a === 'clr') {
+              S2.L = []; S2.squad = 0; if (S2.sqPend) delete S2.sqPend; S2._squadDoneY = 0; ctx && ctx.toast && ctx.toast('已清空');
+            } else if (a === 'fight') {
+              S2.squad = 1; S2._squadDoneY = 0; if (S2.sqPend) delete S2.sqPend;
+              if (!S2.L.some(l => (l.od | 0) > 0)) {
+                if (!S2.L.length) { G2.realm = Math.max(G2.realm | 0, 2); L42.borrow(G2, 'fq', L42.prodMax('fq', G2) || 100, false); }
+                if (S2.L[0]) { S2.L[0].od = 1; S2.L[0].due = L42.earlyDue(S2.L[0]); }
+              }
+              await L42.offerSquad(G2, { trigger: true, amt: L42.squadOdAmt(G2) });
+            }
+            ctx && ctx.save && ctx.save();
+            if (ctx && ctx.rerender) ctx.rerender();
+            else render(box, ctx);
+          };
+        } catch (err) { box.innerHTML = '<p class="hint">小贷42 面板错误</p>'; console.warn('[loan42] dev', err); }
+      };
+      if (typeof window !== 'undefined' && window.DevPanel && typeof DevPanel.registerTab === 'function') {
+        DevPanel.registerTab('loan42', '小贷42', render);
+        return true;
+      }
+      // 兜底：DevTabs（dev_openworld 同款），等 dev341 扫描
+      try {
+        const tabs = (window.DevTabs = window.DevTabs || []);
+        if (!tabs.some(t => t && (t.key === 'loan42' || t.id === 'loan42'))) {
+          tabs.push({ key: 'loan42', id: 'loan42', name: '小贷42', render });
+        }
+        return true;
+      } catch (e) { return false; }
+    };
+    if (typeof window !== 'undefined') {
+      if (!reg()) setTimeout(reg, 500);
+      try {
+        if (typeof document !== 'undefined' && document.head && !document.getElementById('loan42-css')) {
+          const css = document.createElement('style');
+          css.id = 'loan42-css';
+          css.textContent = '.loan42row{margin-top:8px;padding:6px 8px;border-radius:8px;background:rgba(80,120,60,.12);border:1px solid rgba(160,200,100,.35);color:#c8e8a0;font-size:12px;line-height:1.35}';
+          document.head.appendChild(css);
+        }
+      } catch (e) {}
+    }
+  })();
 })(typeof window !== 'undefined' ? window : globalThis);
