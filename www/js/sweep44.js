@@ -61,8 +61,21 @@
   const yr = G => (typeof G.year === 'number' ? G.year : (G.age || 0));
   const fill = (s, o) => String(s).replace(/\{(\w+)\}/g, (m, k) => (o && o[k] !== undefined ? o[k] : m));
 
-  // 连续随机：优先 Math.random（Game.roll 是布尔掷骰）
-  const rndRange = (a, b) => a + Math.random() * (b - a);
+  // 连续 [a,b)：有 Game.roll 时用其二进制展开近似 U[0,1)，否则 Math.random
+  const rndRange = (a, b) => {
+    try {
+      const g = Gm();
+      if (g && typeof g.roll === 'function') {
+        let u = 0, bit = 0.5;
+        for (let i = 0; i < 16; i++) {
+          if (g.roll(0.5, 'sweep44')) u += bit;
+          bit *= 0.5;
+        }
+        return a + u * (b - a);
+      }
+    } catch (e) {}
+    return a + Math.random() * (b - a);
+  };
   // 布尔掷骰：Game.roll → Math.random
   const roll = (p, kind) => {
     try {

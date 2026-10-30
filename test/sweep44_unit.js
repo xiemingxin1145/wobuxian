@@ -311,6 +311,26 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
   ok(R(c, 'Game.rolls').some(x => x[1] === 'sweep44'), '材料 pick 走 Game.roll(..., sweep44)');
 
+  // ---- rndRange 走 Game.roll(0.5,'sweep44') 二进制展开；无 roll 时 Math.random 回退 ----
+  c = box2();
+  G = mkG({ ap: 4, stone: 0, realm: 1 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, 'Game.rolls = []');
+  await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  const bitRolls = R(c, 'Game.rolls').filter(x => x[0] === 0.5 && x[1] === 'sweep44');
+  ok(bitRolls.length >= 16, 'rndRange 经 Game.roll(0.5,sweep44)（≥16 bit）');
+  const T0 = 1.15 + 0.15;
+  const loR = Math.round(100 * Math.pow(1.75, T0) * 0.85);
+  const hiR = Math.round(100 * Math.pow(1.75, T0) * 1.15);
+  ok(G.stone >= loR && G.stone <= hiR, `rndRange+Game.roll 灵石仍在 [${loR},${hiR}]（得 ${G.stone}）`);
+  // Math.random 回退
+  c = box2();
+  G = mkG({ ap: 4, stone: 0, realm: 1 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, 'Game.roll = undefined');
+  await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(G.stone >= loR && G.stone <= hiR && G.ap === 3, '无 Game.roll 时 rndRange Math.random 回退仍发奖');
+
   // ---- listMax ----
   c = box2();
   G = mkG({ realm: 1 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');

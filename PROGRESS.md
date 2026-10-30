@@ -1,3 +1,9 @@
+## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
+- 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
+- `git merge origin/main`（#72 memory45）：index 序 `dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
 ## docs: PROGRESS — openworld-wip merge sweep44-r2 + loan42-mk（2026-10-30 23:52 UTC+8）
 - 普通 merge：`sweep44-r2`（#73）+ `loan42-mk`（#74）入 openworld-wip。
 - #71 sweep44 已在 sweep44 分支 `f914b42` 合过 main（PROGRESS 双保留）。
