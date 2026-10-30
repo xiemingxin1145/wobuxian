@@ -13,6 +13,7 @@
     locked_realm: '境界不足。外包员说这档秘境的保险你买不起。',
     cap: '今年的外包额度用完了。讨债司：“明年请早，工位有限。”',
     noap: '行动力不够。外包按次计费，计费单位是你的一季光阴。',
+    auto: '自动任务/挂机中不接外包单。先停下自动，再亲自签合同。',
     btn1: '扫荡 ×1',
     btnN: '扫荡 ×{n}',
     confirm: '委托讨债司外包代扫【{b}】{n} 次？\n消耗行动力 {n}，不战斗、不受伤、不会失败。',
@@ -306,6 +307,13 @@
     },
 
 
+    // ux23 的 AUTO（自动任务/挂机 idle）或 AFK 开着时为 true；缺省安全返回 false
+    autoOn() {
+      try { if (typeof AUTO !== 'undefined' && AUTO && AUTO.on) return true; } catch (e) {}
+      try { if (typeof AFK !== 'undefined' && AFK && AFK.on) return true; } catch (e) {}
+      return false;
+    },
+
     _useAP(G, n) {
       n = n | 0;
       if (n <= 0) return true;
@@ -321,6 +329,7 @@
 
     /**
      * 扫荡 b 档 times 次。opts.silent 跳过弹卡；opts.confirm===false 跳过确认。
+     * opts.test===true 为单测覆盖：允许在 autoOn 时仍走逻辑（silent 默认仍守 autoOn）。
      * 返回 { ok, reason?, outs, sum }；弹卡受 storyBlock/B.on/off 约束。
      */
     async go(G, b, times, opts) {
@@ -338,7 +347,11 @@
       if (S.n + times > CAP) return { ok: false, reason: 'cap', msg: TEXT44.cap };
       if (!Number.isFinite(G.ap) || G.ap < times) return { ok: false, reason: 'noap', msg: TEXT44.noap };
 
-      // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。silent 留给逻辑层单测。
+      // §18.6-8：自动任务/挂机期间不扫荡。silent 也守，除非 opts.test 显式覆盖（逻辑层单测）。
+      const bypassAuto = !!opts.test;
+      if (!bypassAuto && this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
+
+      // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。
       if (!opts.silent) {
         if (!this.canPopup()) return { ok: false, reason: 'blocked' };
         if (opts.confirm !== false) {
@@ -346,11 +359,17 @@
           const ch = await this.card(TEXT44.title, conf, 'i:chest', [TEXT44.confirm_ok, TEXT44.confirm_no]);
           // -1 / 非 0：拒收或取消 → 提前返回，不花 AP、不计数
           if (ch !== 0) return { ok: false, reason: ch === 1 ? 'cancel' : 'blocked' };
+          // 确认卡打开期间可能被切到自动/挂机 → 确认后再查一次，仍拒则不花 AP
+          if (!bypassAuto && this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
         }
       }
 
       const outs = [];
       for (let i = 0; i < times; i++) {
+        // ×N 每一轮再查：中途开自动则停后续（已完成保留、不再扣 AP/计数）
+        if (!bypassAuto && this.autoOn()) {
+          return { ok: false, reason: 'auto', msg: TEXT44.auto, outs };
+        }
         if (!this._useAP(G, 1)) return { ok: false, reason: 'noap', msg: TEXT44.noap, outs };
         const one = once(G, b);
         if (!one) return { ok: false, reason: 'once', outs };

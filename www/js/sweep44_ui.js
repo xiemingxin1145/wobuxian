@@ -151,6 +151,7 @@
       b = b | 0; n = Math.max(1, n | 0);
       try {
         const r = await S.go(G, b, n); // 确认卡 + 代扫回执 TEXT44
+        if (r && r.reason === 'auto' && r.msg) { try { if (typeof UI !== 'undefined' && UI.toast) UI.toast(r.msg); } catch (e) {} }
         if (typeof re === 'function') re();
         return r;
       } catch (e) {
