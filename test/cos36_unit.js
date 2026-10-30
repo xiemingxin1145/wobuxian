@@ -181,6 +181,14 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) <= e;
   ok(ev(c, 'Object.keys(COSTUMES).length') >= 11, 'C10 图鉴时装总数 ≥11');
   ev(c, "Game.G.costume='taozhai'; Game.G.cos36w={guan:'taozhai',yi:'taozhai',pei:'taozhai',lv:'taozhai'}");
   ok(ev(c, "Game.playerSpr()") === 'cos_tianjia_m', 'C10 缺 taozhai 图 → 回退 tianjia');
+  // haveTz 守卫：未兑换时 fragToSilk 不可
+  c = box(); newG(c); ev(c, "Game.give('wb33_frag',3)");
+  ok(ev(c, 'COS36.fragToSilk()') === false && ev(c, '(Game.G.inv.wb33_frag||0)') === 3, 'fragToSilk：未有 taozhai 时拒绝且不扣碎片');
+  ok(ev(c, "T.toasts.some(t=>/讨债司制服|先兑换/.test(t))"), 'fragToSilk：提示先兑换');
+  // 兑换后再转丝
+  ev(c, "Game.give('wb33_frag',5); COS36.exchangeTaozhai(); Game.give('wb33_frag',2)");
+  ok(ev(c, 'COS36.fragToSilk()') === true && ev(c, '(Game.G.inv.wb33_frag||0)') === 0 && ev(c, '(Game.G.inv.cos36_silk||0)') >= 4, 'fragToSilk：已有 taozhai 时碎片×2→丝');
+
   ok(ev(c, 'COS36.exchangeTaozhai()') === false, 'C10 再兑换失败（已有）');
 
   // —— C11 轮回保留 ——

@@ -320,6 +320,8 @@ const COS36 = {
   },
   fragToSilk() {
     const G = this.ensure(); if (!G) return false;
+    const haveTz = this.hasAll('taozhai') || !!(Game.meta && Game.meta.cos && Game.meta.cos.taozhai);
+    if (!haveTz) { this.toast('先兑换讨债司制服'); return false; }
     const n = (G.inv && G.inv.wb33_frag) || 0; if (n <= 0) { this.toast('没有多余碎片'); return false; }
     try { Game.take('wb33_frag', n); Game.give('cos36_silk', n * 2); } catch (e) { return false; }
     this.toast(`碎片×${n} → 霓裳丝×${n * 2}`, '#ffd23a');
