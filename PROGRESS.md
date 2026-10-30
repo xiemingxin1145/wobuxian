@@ -1,3 +1,9 @@
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R1 审修 M1/M2（2026-10-30 23:36 UTC+8，Grok Bot）
+- 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
+- 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
+- node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
+- 下一步：合 openworld-wip；等奥拉夫再审 / R2 接线。
+
 ## 交接 notes · v3.9.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.9.3「主线 · 洞府」**，`VERSION`=3.9.3，tag `v3.9.3` → commit `54bd685`；其下 merge #69 `dd3b1cd`（main40）、#70 loan42、#68/#66 洞府、v3.9.1。
