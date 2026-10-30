@@ -43,6 +43,19 @@
 - HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载；签名只在 CI，证书 SHA-256 `436bf922…29dc` 不能换。
 - 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`；各自独立 worktree；**不要用过期的 `/workspace/game`**。
 
+## 3.8.2 道具 items40 · 续推（rebase 进 main 前，2026-10-30）
+- PR #55：`items40_unit` 密信换绑避开 mentor flake；`chance()` 优先 Game.roll；`autoToast` 守 #53。
+- 加载序目标：profile38→tit39→zf39→zf39_hook→zf39_ui→items40（clan41 槽位其后）。
+
+## 3.8.2 道具 items40 · 修奥拉夫 #55 审查（2026-10-30 19:36 UTC+8，Grok Bot）
+- 修 PR #55 行内评论（未改 game.js 等核心文件；未碰 zf39-ui 工作区）：
+  1. **Medium 转运珠 VIP 偷吃**：`Game.roll` 的 luck 只在 `Chain37.yearTick` 门闩内消耗；VIP `yearEnd` 的 `roll(0.3,'qiyu')` 不再清 luck。回归：vip=1 + luck=1 + random0.99 → yearTick 入口 luck 仍 1，风声必中。
+  2. **Low 逆鳞文案**：交龙宫卡「业力+10」→「业力−10」（§13.6 `karma-10` / 代码 `karma-=10`）。
+- 改动文件：`www/js/items40.js`、`test/items40_unit.js`；本 note。
+- node：items40_unit **152/152**；validate22 errors []；chain37 78、npc37 80、npc37_events 54、pf38 34、zf39 118、zf39_hook 20、stage3_* 全过。未跑 Chrome。
+- 下一步：奥拉夫复审；cherry-pick 进 openworld-wip；页测仍待。
+
+
 ## 交接 notes · v3.8.0（2026-10-24，Grok Bot）
 
 ### 1 当前版本 / 最新提交
@@ -126,6 +139,12 @@
 - 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；**当前渲到哪一批：待确认**。
 - HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源；更新用 `tools/make_hd_bundle.sh upload`。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
 - 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`，忙就等；只杀自己的进程；各自用独立 worktree。
+
+## 开发记录 · 3.8.2 道具 items40（2026-10-24，Grok Bot；开发中，非发版交接 note）
+- 分支 `items40`，PR #55（未合、未发版；发版顺序 3.8.0 #50 → 3.8.1 #45 → 3.8.2）。规格 `docs/research_v40_items.md` + `docs/research_v22.md` §13（§13 优先）。
+- 新文件 `www/js/items40.js`（index 在 chain37 后）+ `test/items40_unit.js`；60 个 `i40_` 道具全登记，`use:'i40'` 分派器、战斗道具、窥心类（PF38）、送礼重写（爱/憎/月冷却）、12 个剧情道具获得/交付（「⚑」选项）、商店 6 追加 + 10 新店、采药/秘境/路遇掉落、DevPanel「道具40」；存档 `G.i40` 惰性兜底，不升 `G.v`。
+- 6 个 3.8.3 道具只登记不投放；PF38 不存在时窥心/秘密类不进商店不掉落。偏差（掌心雷自动打最低血、非伙伴 NPC 送礼入口、红线/送子瓶放广寒宫等）见 PR #55 描述。
+- 测试（17:50–17:57 UTC+8）：items40_unit 141/141、validate22 0 错、jsscan33 0 错、controls 0 失败、human23 13/13、chain37/npc37/npc37_events/fam37/route37/dlg37 unit 全过；human_olaf 未跑。
 
 ## 交接 notes · v3.7.4（2026-10-24，Grok Bot）
 
