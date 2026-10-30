@@ -2460,3 +2460,180 @@ MAPS43 = [dict(
 - P2 #16「前世记忆继承」：仍无独立规格。部分已被 legacy26（`Game.newLife` 继承道统遗惠）和 profile38 前世页覆盖，下一轮研究员先核对这两处再决定是补规格还是标 🟡。
 - P2 #16「秘境副本（扫荡）」：dungeon26 已有，「扫荡」仍无代码也无规格。
 - P2 #17「每日福利」：`daily33.js`（3.3.0）已做离线友好版本，应标 ✅；「阵法」= §11 zf39（3.9.0 进行中），应标 🔧；「拍卖行」= `market25.js` 聚宝阁拍卖已在 2.5 实装，应标 ✅。
+
+---
+
+## 18. 【2026-10-30 22:4x 研究员】P2 #16 遗留 · 秘境扫荡 `sweep44.js`「讨债司外包·秘境代扫」完整规格 + 数值 + 文案包（可直接抄）
+
+> 起因：§17.10 已记，P2 #16 七个系统里「秘境副本」的**扫荡**半边既无代码也无规格。`dungeon26.js`（v2.6）的多层秘境本身已上线：进入 0 行动力、每层 3 间密室 + 层守关、3~5 层随机、全程不存盘。玩家通关一次后，后面每次都要点 15~25 下重复流程——这正是 `design_feedback_v23.md` §E.1 #2 说的「首通后可扫荡（消耗 1 行动力直接结算）」。本节给出完整规格；**不改 dungeon26 本体**，新文件 `sweep44.js` 以包裹方式接入，建议版本 **3.9.3**（排在 §17 dongfu43 / 3.9.2 之后）。
+
+### 18.0 代码核对（origin/main `fd7a36d`，v3.9.1）
+
+| 项 | 现状（文件:行） | 对规格的影响 |
+|---|---|---|
+| 秘境分档 | `dungeon26.js:12-18` `BANDS[0..4]`（练气~化神，`tier` 1.15~5.15）；`bandOf(realm)` = `clamp(realm-1,0,4)` | 扫荡按档进行，档号沿用 0~4 |
+| 运行态 | `Dng.run = {band,tier,maxFloor,floor,doneRooms,needRooms,bossDone,loot,over}`，`Dng.start()` / `Dng.exit(silent)`（`dungeon26.js:29-50`） | 扫荡**合成一个已打完的 run** 再调 `Dng.exit(true)`，让下面两个包裹自动结算（见 18.3） |
+| 通关记录 | `G.dungeon = {floor,best,clear:{}}`；⚠ `clear[band]=1` 在**任意一层**守关被击破时就写入（`dungeon26.js:152`），不是「全部通关」；`best` 是全档共用的最深层数 | **不能用 `clear` 判断首通**。扫荡另记 `G.sw44.full[band]`（18.1⑥），并给老档一条宽松迁移 |
+| 通关钩子 ① | `shenqi36.js:220` 包 `Dng.exit`：`ok = r && !r.over && r.bossDone && r.floor >= r.maxFloor` 时给神器碎晶 `sqj` 1–3 | 合成 run 满足 `ok` ⇒ 扫荡自动拿碎晶，不用重写 |
+| 通关钩子 ② | `items40.js:348` `hookDng` 同条件，按 `I.P.dazuo/yaocao/jianpei` 几率掉 3.8.2 道具 | 同上，自动生效 |
+| 面板 | `UI.p_dungeon26`（`dungeon26.js:164-219`），未进入/已结束时显示「踏入秘境 / 离开」 | 在「踏入秘境」下方追加扫荡区块（18.4）；包裹面板函数，不改原文 |
+| 入口 | 阿离、落魄剑仙对话的「⚔ 探索秘境」（`Talk.extra`）；剑冢剑碑 `dungeon26.enter('jianzhong')`（`maps26.js:53`） | 入口不变，扫荡只在面板里 |
+| 行动力 | `Game.useAP(n)`（`game.js:515`，不足时自带 toast）；`apMax = 4 + apBonus + 天赋树 + 摸鱼`（`game.js:44`） | 每次扫荡 1 AP |
+| 战斗奖励公式 | `game.js:198`：小怪修为 `yearExp*0.1*系数`（精英 ×2.5、BOSS ×8），灵石 `6*POW(tier)`（精英 ×3） | 18.2 的期望值按这个公式推 |
+| 自动任务 | `ux23.js:265` `SAFE/UNSAFE` | 扫荡按钮不加 SAFE 前缀；自动任务/挂机**不扫荡**（会花 AP） |
+
+### 18.1 规则（以本节为准）
+
+1. **解锁**：某一档秘境**全部层数通关**一次（走到 `finish`「结算出秘境」）后，该档开放扫荡。称为「首通」。
+2. **可扫的档**：所有已首通、且 `档号 ≤ 当前境界档` 的档都能扫（低档可以扫，奖励按低档算）。还没首通当前档时，面板提示去打当前档，但已首通的低档照样能扫。
+3. **消耗**：每次扫荡 **1 行动力**；不扣血、不进战斗、不会失败。
+4. **次数**：每个游戏年最多 **3 次**（所有档合计），`G.used` 清空时不受影响，以 `G.sw44.y`（年份）判断，跨年自动重置。
+5. **一键多次**：面板提供「扫荡 ×1」和「扫荡 ×N」（N = min(本年剩余次数, 当前 AP)，N≥2 时才显示）；×N 一次结算、只弹一张汇总卡。
+6. **存档**：`G.sw44 = { full:{}, y:0, n:0, tot:0 }`——`full[band]=1` 首通标记，`y` 上次扫荡年，`n` 本年已扫次数，`tot` 累计次数（给称号用）。惰性兜底，不升 `G.v`。
+   - **首通记录**：包 `Dng.exit`，在 `ok` 条件成立（同 shenqi36）且 `!r.sweep` 时写 `G.sw44.full[r.band]=1`。
+   - **老档迁移**（一次性，`G.sw44` 不存在时）：对每个 `G.dungeon.clear[b]===1` 的档，若 `G.dungeon.best >= 3`，记 `full[b]=1`。宽松但无害：老玩家多半真打通过；最坏情况是多给一档低风险扫荡。
+7. **境界掉档**（坐化转世、借贷降境之类导致 `realm` 变小）：已首通但高于当前档的，面板显示为灰色「境界不足」，不能扫。
+8. **不新增货币和道具**：只发灵石、修为、已有装备（`Game.randEq`）、各档 `BANDS[b].loot` 里的已有材料，加两个通关钩子自带的碎晶和 3.8.2 道具。
+
+### 18.2 数值（每次扫荡，档 b，`T = BANDS[b].tier + 0.15`）
+
+**推导**：手动一次 4 层（期望）大约给：灵石 ≈ 190·POW(T)，修为 ≈ 2.0·yearExp，装备 ≈ 8 件（守关 4 件保底稀有度 3），材料 ≈ 2 件。手动 0 AP，但要 15~25 次点击、有败退风险。扫荡 1 AP、零风险，所以拿**一部分**：
+
+| 奖励 | 公式 | 约占手动的 | 说明 |
+|---|---|---|---|
+| 灵石 | `round(100 * POW(T) * rnd(0.85, 1.15))` | ~53% | 练气档 ≈ 230，金丹 ≈ 790，化神 ≈ 2190 |
+| 修为 | `Game.addExp(Game.yearExp() * 0.6, true)` | ~30% | 比打坐（0.35/AP）和练剑（0.3/AP）高，但需要先首通；不吃 `cultMult` 以外的额外倍率 |
+| 装备 | 2 件：`randEq(T, 1)` + `randEq(T + 0.5, 2)` | 件数 25%、保底稀有度降一档 | 手动守关保底 3，扫荡最高保底 2 ⇒ 想要稀有度 3 以上保底还得手打 |
+| 材料 | `Game.give(pick(BANDS[b].loot), 1)` ×2 | ~100% | 材料便宜，给足 |
+| 神器碎晶 | shenqi36 钩子自带 1–3 | 100% | 每年 3 次上限 ⇒ 每年最多 9 个，对比世界 BOSS 2 个/次、神器任务每环 5 个，不冲垮 |
+| 3.8.2 道具 | items40 钩子自带几率 | 100% | 千年蒲团等「持有即生效」道具重复掉落时按 items40 原逻辑处理，扫荡不另管 |
+
+**低档扫荡**：用低档自己的 `T`，自然更少；不额外打折。
+
+**年度上限的意义**：3 次 × 1 AP = 4 点 AP 里最多花 3 点。一年全扫的收益（化神档）≈ 6600 灵石 + 1.8 yearExp + 6 件装备，和「一年挂机打怪」同量级，不会让手动和其他玩法失去意义。
+
+**天道小贷联动（§16 loan42）**：扫荡**不**计入「借贷期间的打工还款」，也不触发催收卡；loan42 只读 `G.stone`，扫荡加灵石即可正常还款。
+
+### 18.3 实现草图（`www/js/sweep44.js`，加载在 `dungeon26.js`、`shenqi36.js`、`items40.js` 之后）
+
+```js
+'use strict';
+// 3.9.3 秘境扫荡 sweep44（research_v22 §18）。不改 dungeon26；合成已通关 run → Dng.exit(true) 触发 shenqi36/items40 钩子。
+(function () {
+  if (!window.Dng || !window.UI) return;
+  const T = window.TEXT44 = { /* 18.5 文案包 */ };
+  const CAP = 3, BANDS_N = ['练气秘境', '筑基秘境', '金丹秘境', '元婴秘境', '化神秘境'];
+  const TIER = [1.15, 2.15, 3.15, 4.15, 5.15];
+  const LOOT = [['herb','lz','coin','scroll'], ['lz','yd','coin','scroll','peach'], ['yd','lz','peach','pjd','coin'],
+                ['yd','pjd','xsd','peach','scroll'], ['xsd','pjd','peach','coin','scroll']]; // 与 BANDS[b].loot 一致；若 dungeon26 以后导出 BANDS，改为直接读
+  const curBand = G => Math.max(0, Math.min(4, (G.realm | 0) - 1));
+  function st(G) {
+    if (!G.sw44) {
+      G.sw44 = { full: {}, y: 0, n: 0, tot: 0 };
+      const d = G.dungeon; if (d && d.clear && (d.best | 0) >= 3) for (const b in d.clear) if (d.clear[b] === 1) G.sw44.full[b] = 1;
+    }
+    if (G.sw44.y !== G.year) { G.sw44.y = G.year; G.sw44.n = 0; }
+    return G.sw44;
+  }
+  // 首通记录
+  const _ex = Dng.exit; Dng.exit = function () {
+    const r = this.run, G = Game.G;
+    const ok = r && !r.over && r.bossDone && r.floor >= r.maxFloor && !r.sweep;
+    const res = _ex.apply(this, arguments);
+    if (ok && G) { const S = st(G); if (!S.full[r.band]) { S.full[r.band] = 1; UI.toast(T.unlock.replace('{b}', BANDS_N[r.band]), '#ffe680'); } }
+    return res;
+  };
+  // 单次结算（不弹卡，返回明细）
+  function once(b) {
+    const G = Game.G, t = TIER[b] + 0.15, out = { st: 0, exp: 0, eq: [], it: [] };
+    out.st = Math.round(100 * POW(t) * rnd(0.85, 1.15)); G.stone += out.st;
+    out.exp = Game.addExp(Game.yearExp() * 0.6, true);
+    out.eq.push(Game.randEq(t, 1), Game.randEq(t + 0.5, 2));
+    for (let i = 0; i < 2; i++) { const k = pick(LOOT[b]); Game.give(k, 1); out.it.push(k); }
+    Dng.run = { band: b, tier: t, maxFloor: 3, floor: 3, doneRooms: 3, needRooms: 3, bossDone: true, loot: [], over: false, sweep: 1 };
+    Dng.exit(true); // shenqi36 碎晶 + items40 掉落在这里发
+    return out;
+  }
+  window.Sweep44 = {
+    st, curBand,
+    can(G, b) { const S = st(G); return !!S.full[b] && b <= curBand(G) && S.n < CAP && G.ap >= 1; },
+    async go(b, times) { /* 校验 → for 循环 useAP(1)+once(b)，S.n++，S.tot++ → 汇总卡（18.5 card）带 eq 列表 */ },
+  };
+  // 面板：包 UI.p_dungeon26，只在未进入/已结束状态追加扫荡区块（18.4）
+  const _p = UI.p_dungeon26; UI.p_dungeon26 = function (b, re) {
+    const r = _p.apply(this, arguments); const run = Dng.run; if (run && !run.over) return r;
+    /* 追加 .sw44 区块；按钮 data-sw="b:n"；点击 → Sweep44.go → re() */
+    return r;
+  };
+})();
+```
+
+要点：
+- `Dng.run` 合成后立刻 `Dng.exit(true)` 置空，**不会**让面板以为正在探索；`exit` 里 `G.dungeon.floor = max(...)` 会被写成 3，无害。
+- `Dng.exit` 在 `exit(true)` 时不弹 toast，但会切 BGM 回当前地图——扫荡在地图上点面板，切回本图 BGM 无感。
+- 汇总卡的装备用 `UI.card(..., { eq: [...] })` 原生展示，和宝箱卡一致。
+- 随机数一律走 `rnd/pick/Game.randEq`，开发者面板「必掉」作弊 `Game.roll(...,'drop')` 对 items40 钩子照常生效。
+
+### 18.4 面板区块（追加在「⚔ 踏入秘境」按钮之后）
+
+```
+—— 讨债司外包 · 秘境代扫 ——        本年剩余 2/3 次　行动力 3
+[练气秘境] 已首通   [扫荡 ×1] [扫荡 ×2]
+[筑基秘境] 已首通   [扫荡 ×1] [扫荡 ×2]
+[金丹秘境] 未首通（当前档）——先亲自打通一次
+[元婴秘境] 🔒 境界不足
+```
+- 只列到 `max(当前档, 已首通最高档)`，再多显示一行 🔒 作为预告。
+- 次数用完：按钮置灰，行尾小字 `T.cap`；AP 不足：置灰，小字 `T.noap`。
+- 区块标题下一行随机一句 `T.flavor`（每次打开面板换一句）。
+
+### 18.5 文案包 `TEXT44`（可直接抄）
+
+```js
+const TEXT44 = {
+  title: '讨债司外包 · 秘境代扫',
+  unlock: '【{b}】已首通！讨债司外包部门来电：以后这片秘境可以交给我们代扫了（每次 1 行动力）。',
+  locked_first: '先亲自打通一次。外包也要看你的通关截图。',
+  locked_realm: '境界不足。外包员说这档秘境的保险你买不起。',
+  cap: '今年的外包额度用完了。讨债司：“明年请早，工位有限。”',
+  noap: '行动力不够。外包按次计费，计费单位是你的一季光阴。',
+  btn1: '扫荡 ×1',
+  btnN: '扫荡 ×{n}',
+  confirm: '委托讨债司外包代扫【{b}】{n} 次？\n消耗行动力 {n}，不战斗、不受伤、不会失败。',
+  confirm_ok: '签外包合同',
+  confirm_no: '我再想想',
+  card_title: '代扫回执',
+  card_body: '讨债司外包员擦着汗回来，递上一张回执：\n\n【{b}】× {n} 次\n灵石 +{st}　修为 +{exp}\n材料：{it}\n装备：{eqn} 件（见下）\n\n回执背面印着：“本服务不含守关遗宝保底。想要好东西，请亲自下场。”',
+  card_ok: '签收',
+  flavor: [
+    '外包员甲：“秘境我们熟，三层还是五层都一个价。”',
+    '外包员乙：“打怪？不打怪。我们跟守关的是老同事，打个招呼就过。”',
+    '外包员丙：“遗宝我们不拿，拿了要入账，入账要交税，交税要找天道。”',
+    '“讨债司外包部门，专业代扫，童叟无欺，概不赊账——尤其不赊给你。”',
+    '外包员甲：“上次有个修士让我们代扫元婴秘境，我们回来时他已经化神了。”',
+    '外包员乙：“你问我们为什么不自己修仙？修仙要还贷，打工不用。”',
+  ],
+  title_unlock: { id: 't_sw44', n: '外包大户', d: '累计委托秘境代扫 30 次。', fl: '讨债司年会上，你的名字被念了三遍。' },
+  first_hint: '（秘境首通后，可以在这里委托讨债司外包代扫。）',
+};
+```
+
+> 称号 `t_sw44` 走 tit39 已有的条件注册方式（`G.sw44.tot >= 30`）；若 tit39 只支持固定条件表，则这一条推迟到 tit39 下次扩表，不阻塞扫荡本体。
+
+### 18.6 验收（给奥拉夫的触控用例建议，Grok Bot 实现时自取）
+
+1. 新档练气：打秘境只过第 1 层守关后撤离 → 面板**不**出现「已首通」（验证没用 `clear`）；全部通关 → toast `unlock`，面板出现「扫荡 ×1」。
+2. 扫荡 ×1：AP −1、灵石增加量在 `100·POW(1.3)·[0.85,1.15]` 内（≈ 176–238）、`G.eqs` +2、背包材料 +2；碎晶 +1~3；本年剩余 2/3。
+3. 同年扫满 3 次后按钮置灰显示 `cap`；过年后恢复 3/3。
+4. AP=1 时 ×N 按钮不显示；AP=0 时 ×1 置灰显示 `noap`。
+5. 扫荡后面板仍是「未进入」状态，可正常「踏入秘境」手打，手打全通也照常结算（碎晶只发一次，不重复）。
+6. 老档（`clear:{0:1,1:1}`, `best:4`）首次打开面板：练气、筑基均为已首通；`best:2` 的老档则都未首通。
+7. 金丹玩家扫练气档：奖励按练气 `T`；境界降回筑基后金丹档显示「境界不足」。
+8. 自动任务/挂机期间不触发扫荡；loan42 借贷中扫荡不弹催收卡。
+9. `node test/validate22.js` 0 错；`jsscan33` 打开秘境面板 0 pageerror；`human23`/`human_olaf` 不回退。
+
+### 18.7 ROADMAP 状态更正（只记录，不改 ROADMAP；由 Grok Bot 下次改状态列时一并处理）
+
+- P2 #16「秘境副本（扫荡）」：副本本体 = `dungeon26.js` v2.6 ✅；扫荡规格见**本节 §18**，建议 3.9.3。另附一个小 bug 供参考：`dungeon26.js:152` 在单层守关被击破时就写 `G.dungeon.clear[band]=1`，面板「已通关层数档」会偏高——不影响扫荡（扫荡另记首通），修不修由 Grok Bot 决定。
+- P2 #16「前世记忆继承」：已核对，**部分已实装**——`legacy26.js:85-99` 封剑道统让来世出生带寿元 +20、修为 +5%；`Game.meta` 的 META_PERKS 跨世加成；`daily33` 签到也存 `Game.meta` 跨世不丢。缺的是「记忆」本身（来世保留上一世解锁的图鉴/奇遇/NPC 好感印象、触发『似曾相识』对话）。建议 ROADMAP 标 🟡，下一轮研究员可补一份 `memory45` 小规格（只做跨世「似曾相识」文案 + 少量好感初值，不碰数值平衡）。
+- 至此 P2 #16 七项里：灵宠派遣、一键连炼 ✅（v3.5）；借贷 §16、洞府地图 §17、秘境扫荡 §18 都已有规格；宗门大比、前世记忆（剩余部分）仍待规格。
