@@ -1,3 +1,14 @@
+## 开放世界线 · 3.9.3 洞府 dongfu43 第 2 轮（地图/卡片接线）（2026-10-30 22:5x UTC+8，Grok Bot）
+- 分支 dongfu43-r2（基于 dongfu43 / main #66）：www/js/dongfu43_ui.js + test/dongfu43_ui_unit.js + art/mapdefs43.py + www/index.html（loan42→dongfu43→dongfu43_ui→audio32）+ test/dongfu43_unit.js（index 断言改第 2 轮已接入）。
+- 接线（只包装，不碰核心）：MAPINFO.dongfu（不进 MAP_ORDER）+ AS.maps 占位（sect 投影/图集，props=§17.2）；包 Acts.cave 入口卡 / makeMarks 洞府覆盖 / enterMap 年事+居民 / refreshNpcs / Talk.npc df_ / UI.p_travel 置顶回洞府；挂机/自动任务/NPC37.idle 洞府屏蔽；DevPanel/DevTabs「洞府43」（含无视门槛传送）。
+- 存档仍 G.df43 惰性、不升 G.v；弹卡守 #53 storyBlock/B.on；rng=Game.roll 回退。
+- node：dongfu43 **145/145**；dongfu43_ui **46/46**；loan42 110；clan41 70；items40 152；validate22 []；其余 test/*.js 全过。未跑 Chrome。
+- 依赖 PR #66（已合 main）。页测仍延后（进图/居民精灵/Blender 底图/挂机灰钮精修）。
+- 下一步：页测 §17.9；合 openworld-wip；等奥拉夫审。
+
+---
+
+
 ## 交接 notes · 3.8.4 时装进行中（cos36 分支，未发版）
 
 ### 1 当前版本 / 最新提交
