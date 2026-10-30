@@ -93,7 +93,12 @@ const Items40 = {
   HATE: { mentor: '“拿走拿走，看着就想起我那些债主。”', sister: '“你送这个给我？我看起来像那种人吗？”', lengyue: '“俗物。”（冷月仙子连眼皮都没抬）', elder: '“年轻人，心思要放在修炼上。”', mom: '“乱花钱！这得多少灵石？下回不许买了。”', merchant: '“这玩意儿我铺子里有一百个，进价三文。”', danlao: '“甜食伤丹田，拿走。”', sumei: '“啧，这么正经的东西，送错人了吧。”', aoxiao: '“不好玩！我要会动的！”', guzhu: '“雷劈过的东西，药性全毁了。”' },
   HATE_DEF: '“……你是故意的吧？”',
   CONTRACT: '立契人：落魄剑仙（签名潦草，疑似用剑划的）。\n承建：天道营造司。标的：本世界（含山川、灵脉、凡人若干、蚊子不计）。\n尾款：飞升尾款捌仟捌佰捌拾捌灵石整，按年三分计息，利滚利，滚到天荒地老为止。\n担保人：________（这一栏的墨迹比别处新，写的是你的生辰八字）。\n备注：担保人若已转世，债随魂走。若魂也没了，债随名字走。若名字也改了——天道会找到你的。',
-  rnd: () => Math.random(),
+  rnd() { return Math.random(); },
+  // 概率：优先走 Game.roll（吃 luck 作弊），否则 Math.random
+  chance(p, kind) {
+    try { if (typeof Game !== 'undefined' && typeof Game.roll === 'function') return Game.roll(p, kind || 'drop'); } catch (e) { }
+    return this.rnd() < p;
+  },
   G() { return typeof Game !== 'undefined' ? Game.G : null; },
   pf() { return typeof PF38 !== 'undefined' && PF38 && typeof PF38.reveal === 'function' ? PF38 : null; },
   ensure(G) {
@@ -110,6 +115,11 @@ const Items40 = {
   nm(id) { const N = typeof NPCS !== 'undefined' && NPCS[id]; return N ? N.n : (id === 'mentor' ? '落魄剑仙' : id); },
   short(id) { return String(this.nm(id)).split('·').pop(); },
   toast(s, c) { try { UI.toast(s, c); } catch (e) { } },
+  // 自动弹 toast：尊重 #53 NPC37.storyBlock（序章/新手指引/战斗中不弹）
+  autoToast(s, c) {
+    try { if (typeof NPC37 !== 'undefined' && NPC37.storyBlock && NPC37.storyBlock()) return; } catch (e) { }
+    this.toast(s, c);
+  },
   lock(s) { this.toast('🔒 ' + s, '#ffb08a'); return false; },
   rel(id, d) { try { if (typeof Life34 !== 'undefined' && Life34.rel) Life34.rel(id, d); } catch (e) { } },
   relOf(id) { try { const L = typeof Life34 !== 'undefined' && Life34.st && Life34.st(); return (L && L.rel && L.rel[id]) || 0; } catch (e) { return 0; } },
@@ -334,18 +344,18 @@ if (typeof window !== 'undefined') { window.Items40 = Items40; window.ITEMS40 = 
   // ---- 静心丹：下一次打坐 ×2 ----
   if (typeof Acts !== 'undefined' && Acts.mat) { const _mat = Acts.mat; Acts.mat = async function (m, bonus) { const G = Game.G; const S = G && G.i40; if (!S || !S.dz) return _mat.apply(this, arguments); const ap0 = G.ap; const r = await _mat.call(this, m, (bonus || 1) * 2); if (ap0 > 0 && G.ap === 0) { S.dz = 0; I.toast('静心丹药力化开，修为翻倍', '#9affd0'); } return r; }; }
   // ---- 野花：采药 15% ----
-  if (typeof Acts !== 'undefined' && Acts.herb) { const _hb = Acts.herb; Acts.herb = async function () { const G = Game.G; const ap0 = G ? G.ap : 0; const r = await _hb.apply(this, arguments); try { if (G && G.ap < ap0 && I.rnd() < I.P.huaduo) { Game.give('i40_huaduo'); I.toast('顺手摘了一束野花', '#ffb0c0'); } } catch (e) { } return r; }; }
+  if (typeof Acts !== 'undefined' && Acts.herb) { const _hb = Acts.herb; Acts.herb = async function () { const G = Game.G; const ap0 = G ? G.ap : 0; const r = await _hb.apply(this, arguments); try { if (G && G.ap < ap0 && I.chance(I.P.huaduo, 'drop')) { Game.give('i40_huaduo'); I.autoToast('顺手摘了一束野花', '#ffb0c0'); } } catch (e) { } return r; }; }
   // ---- 秘境通关掉落 ----
-  const hookDng = () => { const D = window.Dng; if (!D || !D.exit || D._i40) return; D._i40 = 1; const _ex = D.exit; D.exit = function () { const r = this.run; const ok = r && !r.over && r.bossDone && r.floor >= r.maxFloor; const res = _ex.apply(this, arguments); try { if (ok && Game.G) { const got = []; if (I.rnd() < I.P.dazuo) got.push('i40_dazuo'); if (I.rnd() < I.P.yaocao) got.push('i40_yaocao'); if (I.rnd() < I.P.jianpei) got.push('i40_jianpei'); got.forEach(k => Game.give(k)); if (got.length) I.toast('秘境深处还拾得：' + got.map(k => ITEMS[k].n).join('、'), '#ffd23a'); } } catch (e) { } return res; }; };
+  const hookDng = () => { const D = window.Dng; if (!D || !D.exit || D._i40) return; D._i40 = 1; const _ex = D.exit; D.exit = function () { const r = this.run; const ok = r && !r.over && r.bossDone && r.floor >= r.maxFloor; const res = _ex.apply(this, arguments); try { if (ok && Game.G) { const got = []; if (I.chance(I.P.dazuo, 'drop')) got.push('i40_dazuo'); if (I.chance(I.P.yaocao, 'drop')) got.push('i40_yaocao'); if (I.chance(I.P.jianpei, 'drop')) got.push('i40_jianpei'); got.forEach(k => Game.give(k)); if (got.length) I.autoToast('秘境深处还拾得：' + got.map(k => ITEMS[k].n).join('、'), '#ffd23a'); } } catch (e) { } return res; }; };
   hookDng();
   // ---- 密信：路遇结算后 5% ----
-  const hookNPC = () => { if (typeof NPC37 === 'undefined' || !NPC37.resolve || NPC37._i40) return; NPC37._i40 = 1; const _rs = NPC37.resolve; NPC37.resolve = async function (scene) { const r = await _rs.apply(this, arguments); try { const P = I.pf(); const G = Game.G; const id = scene && scene.id; if (r && r.ok && P && G && !G.dead && id && P.secs(id)[0] && !P.has(id, 'sec0') && I.rnd() < I.P.mixin) { const S = I.ensure(G); Game.give('i40_mixin'); S.mixin.push(id); I.toast(`${I.short(id)}掉了一封密信`, '#c8a0ff'); } } catch (e) { } return r; }; };
+  const hookNPC = () => { if (typeof NPC37 === 'undefined' || !NPC37.resolve || NPC37._i40) return; NPC37._i40 = 1; const _rs = NPC37.resolve; NPC37.resolve = async function (scene) { const r = await _rs.apply(this, arguments); try { const P = I.pf(); const G = Game.G; const id = scene && scene.id; if (r && r.ok && P && G && !G.dead && id && P.secs(id)[0] && !P.has(id, 'sec0') && I.chance(I.P.mixin, 'drop')) { const S = I.ensure(G); Game.give('i40_mixin'); S.mixin.push(id); I.autoToast(`${I.short(id)}掉了一封密信`, '#c8a0ff'); } } catch (e) { } return r; }; };
   hookNPC();
   // ---- 年结算：延期还款单（利息减半） ----
   const _ye = Game.yearEnd; Game.yearEnd = async function () {
     const G = this.G; const S = G && G.i40; const y0 = G && G.year; const d0 = G ? (G.debt || 0) : 0; const rate = 0.03 + ((G && G.fam37 && G.fam37.rate) || 0);
     const r = await _ye.apply(this, arguments);
-    try { if (G && S && !G.dead && G.year !== y0 && S.half === y0 && d0 > 0) { const save = Math.floor(Math.ceil(d0 * rate) / 2); S.half = -1; if (save > 0) { G.debt = Math.max(0, (G.debt || 0) - save); I.toast(`延期还款单生效：利息减半（省 ${save}）`, '#9aff9a'); } } } catch (e) { }
+    try { if (G && S && !G.dead && G.year !== y0 && S.half === y0 && d0 > 0) { const save = Math.floor(Math.ceil(d0 * rate) / 2); S.half = -1; if (save > 0) { G.debt = Math.max(0, (G.debt || 0) - save); I.autoToast(`延期还款单生效：利息减半（省 ${save}）`, '#9aff9a'); } } } catch (e) { }
     return r;
   };
   // ---- 转运珠：luck 只在 Chain37.yearTick 风声掷骰时消耗（VIP yearEnd 的 roll(0.3,'qiyu') 不得偷吃） ----
@@ -361,7 +371,7 @@ if (typeof window !== 'undefined') { window.Items40 = Items40; window.ITEMS40 = 
     const _cmy = FAM37.canMarry; FAM37.canMarry = function (G, id) { G = G || this.G(); const S = G && G.i40; if (S && S.match) { this.ensure(G); return !!this.T.fam.spouse[id] && !G.fam37.sp && (G.aff[id] || 0) >= 80 && this.relOf(id) >= 40; } return _cmy.apply(this, arguments); };
     const _mr = FAM37.marry; FAM37.marry = function () { const r = _mr.apply(this, arguments); try { const G = Game.G; if (r && G && G.i40 && G.i40.match) { G.i40.match = 0; I.toast('月老红线化作一缕红光，系在了你们腕上', '#ffc0e0'); } } catch (e) { } return r; };
     const _fy = FAM37.famYear; FAM37.famYear = async function (rnd) { const G = this.G(); const F = G && this.ensure(G); const n0 = F ? F.kids.length : 0; const r = await _fy.apply(this, arguments);
-      try { const S = G && G.i40; if (S && S.birth >= 0 && S.birth === (G.year || 0) - 1) { S.birth = -1; if (F.kids.length === n0 && F.sp && (rnd || I.rnd)() < I.P.songzi) { const k = this.birth(rnd); if (k) I.toast(`送子观音显灵！子嗣【${k.n}】降生（${this.lgN(k.lg)}）`, '#ffc0e0'); } } } catch (e) { console.warn('items40 songzi', e); } return r; };
+      try { const S = G && G.i40; if (S && S.birth >= 0 && S.birth === (G.year || 0) - 1) { S.birth = -1; if (F.kids.length === n0 && F.sp && (rnd ? rnd() : I.rnd()) < I.P.songzi) { const k = this.birth(rnd); if (k) I.autoToast(`送子观音显灵！子嗣【${k.n}】降生（${this.lgN(k.lg)}）`, '#ffc0e0'); } } } catch (e) { console.warn('items40 songzi', e); } return r; };
   }
   // ---- PF38（3.8.0）钩子：现在或 load 后 ----
   I.hookPF();

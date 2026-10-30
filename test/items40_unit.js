@@ -61,6 +61,12 @@ const ev = (c, s) => vm.runInContext(s, c);
   const cm0 = ev(c, 'Game.cultMult()'); ok(cm0 > 0, '老档：cultMult 正常');
   G.debt = 10000; await ev(c, 'Game.yearEnd()'); ok(G.year === 11 && G.debt >= 10300 && !G.dead, '老档：过年欠款照常 3% 计息，无报错（' + G.debt + '）');
   G.i40 = { cnt: [], yr: 'x', mixin: 3 }; const S0 = I.ensure(G); ok(S0.v === 1 && !Array.isArray(S0.cnt) && typeof S0.yr === 'object' && Array.isArray(S0.mixin) && S0.half === -1 && S0.birth === -1 && G.v === v0 && v0 === 2, 'ensure 修复坏字段；G.v 仍为 2');
+  ev(c, 'Math.random = () => 0.01'); ok(I.chance(0.05, 'drop') === true, 'chance：走 Game.roll（rnd 0.01 < 0.05）');
+  ev(c, 'Math.random = () => 0.9'); ok(I.chance(0.05, 'drop') === false, 'chance：走 Game.roll（rnd 0.9 不中）');
+  ev(c, 'Math.random = Object.getPrototypeOf(Math).random');
+  ev(c, 'T.toasts.length = 0'); I.toast('玩家动作 toast'); ok(ev(c, 'T').toasts.includes('玩家动作 toast'), 'toast：玩家动作始终弹出');
+  ev(c, "NPC37.storyBlock = () => 'prologue'"); ev(c, 'T.toasts.length = 0'); I.autoToast('序章不弹'); ok(!ev(c, 'T').toasts.includes('序章不弹'), 'autoToast：storyBlock 为真时不弹（#53）');
+  ev(c, 'NPC37.storyBlock = function () { return null; }'); ev(c, 'T.toasts.length = 0'); I.autoToast('放行 toast'); ok(ev(c, 'T').toasts.includes('放行 toast'), 'autoToast：storyBlock 放行时弹出');
   // ============ 使用效果 ============
   const use = async k => { const n0 = G.inv[k] || 0; await ev(c, `UI.useItem(${JSON.stringify(k)})`); return n0 - (G.inv[k] || 0); };
   const T = ev(c, 'T'); const lastToast = () => T.toasts[T.toasts.length - 1] || '';
