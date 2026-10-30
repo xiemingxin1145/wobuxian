@@ -328,6 +328,23 @@ async function drain(c, expr) {
     ok(run(c4, "LOAN42.trySquad(Game.G,'market')") === null, 'M2 关后同年不再刷');
   }
 
+  // ---- M3 奥拉夫 low：card() 返回 -1（卡未弹出）→ 不记 _squadDoneY，下一张图仍可弹 ----
+  {
+    const c = box();
+    seedOd(c, 1);
+    c.UI._cardIdx = -1;
+    const r = await drain(c, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(r && r.blocked === true, 'M3 card=-1 返回 blocked');
+    ok((c.Game.G.loan42._squadDoneY | 0) !== (c.Game.G.year | 0), 'M3 card=-1 不记 _squadDoneY');
+    ok(c.Game.G.loan42.squad === 1, 'M3 card=-1 保留 squad=1');
+    c.Game.roll = () => true;
+    const t = run(c, "LOAN42.trySquad(Game.G,'market')");
+    ok(t && t.trigger === true, 'M3 下一张有怪图仍可触发');
+    c.UI._cardIdx = 2;
+    await drain(c, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(c.Game.G.loan42._squadDoneY === (c.Game.G.year | 0), 'M3 之后真弹出才记年');
+  }
+
   console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
   process.exitCode = fails;
 })().catch(e => { console.error(e); process.exitCode = 1; });
