@@ -77,7 +77,7 @@ const R = (c, s) => vm.runInContext(s, c);
 const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
 
 (async () => {
-  // ---- 导出 / 文案包 / 不进 index ----
+  // ---- 导出 / 文案包 / index 接线（R2）----
   let c = box2();
   ok(!!R(c, 'SHI46') && !!R(c, 'Shi46') && !!R(c, 'TEXT_SHI46'), 'SHI46 / Shi46 / TEXT_SHI46 导出');
   ok(R(c, 'SHI46.TEXT.meta.ver') === '3.9.6', 'TEXT ver 3.9.6');
@@ -85,7 +85,10 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   ok(R(c, 'TEXT_SHI46.tiandao.length') >= 4, '7 tiandao≥4');
   const roundTrip = JSON.parse(JSON.stringify(R(c, 'TEXT_SHI46')));
   ok(roundTrip.meta.id === 'TEXT_SHI46' && roundTrip.ui.sec.indexOf('亲传') >= 0, '7 TEXT_SHI46 JSON 往返');
-  ok(!SCRIPTS.includes('js/shi46.js'), '本轮不进 index.html');
+  ok(SCRIPTS.includes('js/shi46.js') && SCRIPTS.includes('js/shi46_ui.js'), 'index 含 shi46.js + shi46_ui.js');
+  ok(SCRIPTS.indexOf('js/shi46.js') < SCRIPTS.indexOf('js/shi46_ui.js')
+    && SCRIPTS.indexOf('js/shi46_ui.js') < SCRIPTS.indexOf('js/audio32.js'),
+    '脚本序 shi46 → shi46_ui → audio32');
 
   // ---- 常量 ----
   const S0 = R(c, 'SHI46');
