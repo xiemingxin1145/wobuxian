@@ -275,12 +275,15 @@ ok(SCRIPTS.indexOf('js/loan42.js') > SCRIPTS.indexOf('js/zf39_hook.js'), 'loan42
   c.Game.G.flags.s3b_token = 2; c.Game.G.stone = 5000;
   const lose2 = run(c, 'LOAN42.squadLose(Game.G,true)');
   ok(lose2.token && c.Game.G.flags.s3b_token === 1 && c.Game.G.stone === 5000, 'L10 有令可抵误工费');
-  // 跑：od+1
+  // 跑：od+1；已 od=1 → 变 2 立刻转尾款（§16.6 加速）
   c.Game.G.loan42.L = [{ id: 'L1', t: 'fq', p0: 1040, p: 780, r: 0.11, y0: 10, n: 4, left: 3, due: 400, od: 1, ins: 50 }];
-  run(c, 'LOAN42.squadRun(Game.G)');
-  ok(c.Game.G.loan42.L[0].od === 2 && c.Game.G.loan42.squad === 0, 'L10 跑：逾期笔 od+1，本年不刷');
+  const debtRun0 = c.Game.G.debt;
+  const runR = run(c, 'LOAN42.squadRun(Game.G)');
+  ok(runR && runR.transferred === 1 && !c.Game.G.loan42.L.length && c.Game.G.loan42.squad === 0
+    && c.Game.G.debt === debtRun0 + Math.ceil((780 + 50) * 1.2), 'L10 跑：od1→2 立刻转尾款、本年不刷');
   // 胜：欠款不变
-  c.Game.G.loan42.L[0].od = 1; c.Game.G.loan42.squad = 1;
+  c.Game.G.loan42.L = [{ id: 'L1', t: 'fq', p0: 1040, p: 780, r: 0.11, y0: 10, n: 4, left: 3, due: 400, od: 1, ins: 50 }];
+  c.Game.G.loan42.squad = 1;
   const debtX = c.Game.G.debt; const odX = c.Game.G.loan42.L[0].od;
   run(c, 'Math.random=()=>0.99'); // 不掉落
   const win = run(c, 'LOAN42.squadWin(Game.G)');
@@ -368,8 +371,165 @@ ok(SCRIPTS.indexOf('js/loan42.js') > SCRIPTS.indexOf('js/zf39_hook.js'), 'loan42
 // ---- 包装标记 ----
 {
   const c = box();
-  ok(run(c, '!!Game.yearEnd._loan42 && !!Game.seclude._loan42 && !!Game.enterMap._loan42 && !!Game.die._loan42 && !!Sys._loan42'), 'yearEnd/seclude/enterMap/die/Sys.bonus 已包装');
+  ok(run(c, '!!Game.yearEnd._loan42 && !!Game.seclude._loan42 && !!Game.enterMap._loan42 && !!Game.die._loan42 && !!Sys._loan42 && !!Talk._loan42'), 'yearEnd/seclude/enterMap/die/Sys.bonus/Talk.extra 已包装');
 }
+
+// ---- 奥拉夫 PR#64 回归：High 征信刷分 / MED1 原子还逾期 / MED2 squad 残留 / MED3 跑加速 / LOW Talk 防重入 ----
+{
+  // HIGH：12 次借满立刻还 → 征信不变、K 仍 2
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 10, stone: 100000, debt: 100 });
+  const cr0 = 600;
+  for (let i = 0; i < 12; i++) {
+    const max = run(c, "LOAN42.prodMax('fq',Game.G)");
+    const b = run(c, "LOAN42.borrow(Game.G,'fq'," + max + ',false)');
+    ok(b.ok, 'HIGH 第' + (i + 1) + '次借 ok');
+    const id = c.Game.G.loan42.L[0].id;
+    const r = run(c, "LOAN42.repayLoan(Game.G,'" + id + "')");
+    ok(r.ok && (r.cr | 0) === 0, 'HIGH 第' + (i + 1) + '次同年还无 +25');
+  }
+  ok(c.Game.G.loan42.cr === cr0, 'HIGH 12 循环后征信仍 ' + cr0 + ' 实得 ' + c.Game.G.loan42.cr);
+  ok(run(c, 'LOAN42.KOf(Game.G)') === 2, 'HIGH K 仍为 2');
+}
+{
+  // HIGH：仅有利息、未跨年结算 → 不算 +25（防 ins 刷分）
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 10, stone: 100000, debt: 100 });
+  run(c, "LOAN42.borrow(Game.G,'fq',1040,false)");
+  c.Game.G.loan42.L[0].ins = 200; // 伪造利息，无 crossed
+  delete c.Game.G.loan42.L[0].crossed;
+  const cr0 = c.Game.G.loan42.cr;
+  const id = c.Game.G.loan42.L[0].id;
+  const r = run(c, "LOAN42.repayLoan(Game.G,'" + id + "')");
+  ok(r.ok && (r.cr | 0) === 0 && c.Game.G.loan42.cr === cr0, 'HIGH 仅利息无 sync 不加征信');
+}
+{
+  // 更稳：手工造 crossed，不依赖 sync 扣款
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 11, stone: 100000, debt: 100 });
+  run(c, 'LOAN42.ensure(Game.G)');
+  c.Game.G.loan42.y = 11;
+  c.Game.G.loan42.L = [
+    { id: 'L1', t: 'fq', p0: 500, p: 500, r: 0.11, y0: 10, n: 4, left: 4, due: 0, od: 0, ins: 0, crossed: 1 },
+    { id: 'L2', t: 'fq', p0: 500, p: 500, r: 0.11, y0: 10, n: 4, left: 4, due: 0, od: 0, ins: 0, crossed: 1 }
+  ];
+  const cr0 = c.Game.G.loan42.cr;
+  const r1 = run(c, "LOAN42.repayLoan(Game.G,'L1')");
+  ok(r1.ok && r1.cr === 25 && c.Game.G.loan42.cr === cr0 + 25, 'HIGH 跨 sync 提前还 +25');
+  const r2 = run(c, "LOAN42.repayLoan(Game.G,'L2')");
+  ok(r2.ok && (r2.cr | 0) === 0 && c.Game.G.loan42.cr === cr0 + 25, 'HIGH 同年第二笔提前还不加（每年最多一次）');
+}
+{
+  // MED1：两笔逾期、石只够第一笔 → 原子失败、两笔都还在
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 12, stone: 450, debt: 100 });
+  run(c, 'LOAN42.ensure(Game.G)');
+  c.Game.G.loan42.y = 12;
+  c.Game.G.loan42.L = [
+    { id: 'L1', t: 'fq', p0: 1040, p: 780, r: 0.11, y0: 10, n: 4, left: 3, due: 400, od: 1, ins: 50 },
+    { id: 'L2', t: 'fq', p0: 1040, p: 780, r: 0.11, y0: 10, n: 4, left: 3, due: 600, od: 1, ins: 50 }
+  ];
+  c.Game.G.loan42.squad = 1;
+  const snap = JSON.stringify(c.Game.G.loan42.L);
+  const stone0 = c.Game.G.stone;
+  const r = run(c, 'LOAN42.repayOverdue(Game.G)');
+  ok(r && r.ok === false && (r.paid | 0) === 0 && c.Game.G.stone === stone0, 'MED1 不够总额 → ok:false paid:0 石不动');
+  ok(JSON.stringify(c.Game.G.loan42.L) === snap && c.Game.G.loan42.L.every(l => l.od === 1), 'MED1 两笔逾期状态不变');
+}
+{
+  // MED2：sync 付清逾期后 squad=0；repayLoan 清唯一逾期后 squad=0；trySquad amt<=0 no-op
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 10, stone: 100000, debt: 100 });
+  run(c, "LOAN42.borrow(Game.G,'fq',500,false)");
+  c.Game.G.loan42.L[0].r = 0.11;
+  c.Game.G.stone = 0;
+  c.Game.G.year = 11; // 跨年才计息逾期
+  run(c, 'LOAN42.sync(Game.G,{quiet:true})');
+  ok(c.Game.G.loan42.squad === 1 && c.Game.G.loan42.L[0].od === 1, 'MED2 预备：逾期 squad=1');
+  // 次年有钱 sync 付清
+  c.Game.G.year = 12; c.Game.G.stone = 100000;
+  run(c, 'LOAN42.sync(Game.G,{quiet:true})');
+  ok(c.Game.G.loan42.squad === 0 && !(c.Game.G.loan42.L[0] && c.Game.G.loan42.L[0].od > 0), 'MED2 sync 清逾期后 squad=0');
+
+  // repayLoan 清唯一逾期笔
+  const c2 = box();
+  c2.Game.G = mkG({ realm: 2, year: 12, stone: 100000, debt: 100 });
+  run(c2, 'LOAN42.ensure(Game.G)');
+  c2.Game.G.loan42.y = 12; c2.Game.G.loan42.squad = 1;
+  c2.Game.G.loan42.L = [{ id: 'L1', t: 'fq', p0: 500, p: 500, r: 0.11, y0: 10, n: 4, left: 3, due: 400, od: 1, ins: 50, crossed: 1 }];
+  run(c2, "LOAN42.repayLoan(Game.G,'L1')");
+  ok(c2.Game.G.loan42.squad === 0 && !c2.Game.G.loan42.L.length, 'MED2 repayLoan 清逾期后 squad=0');
+
+  // trySquad 幽灵：squad=1 但无逾期 amt=0 → null 且清旗
+  const c3 = box();
+  c3.Game.G = mkG({ realm: 2, year: 12, stone: 1000, debt: 100 });
+  run(c3, 'LOAN42.ensure(Game.G)');
+  c3.Game.G.loan42.squad = 1; c3.Game.G.loan42.y = 12; c3.Game.G.loan42.L = [];
+  run(c3, 'Math.random=()=>0'); // 若误入会 100% 触发；应先被 amt<=0 挡住
+  const ts = run(c3, "LOAN42.trySquad(Game.G,'market')");
+  ok(ts === null && c3.Game.G.loan42.squad === 0, 'MED2 trySquad amt<=0 → null 且 squad=0');
+}
+{
+  // MED3：跑加速 — od=1 跑后立刻 transfer；对照 od 仍 0 的笔不动
+  const c = box();
+  c.Game.G = mkG({ realm: 2, year: 12, stone: 1000, debt: 100 });
+  run(c, 'LOAN42.ensure(Game.G)');
+  c.Game.G.loan42.y = 12; c.Game.G.loan42.squad = 1;
+  c.Game.G.loan42.L = [
+    { id: 'L1', t: 'fq', p0: 1040, p: 780, r: 0.11, y0: 10, n: 4, left: 3, due: 400, od: 1, ins: 50 },
+    { id: 'L2', t: 'bt', p0: 200, p: 200, r: 0.15, y0: 11, n: 2, left: 2, due: 0, od: 0, ins: 0 }
+  ];
+  const debt0 = c.Game.G.debt;
+  run(c, 'LOAN42.squadRun(Game.G)');
+  ok(!c.Game.G.loan42.L.find(l => l.id === 'L1') && c.Game.G.loan42.L.length === 1 && c.Game.G.loan42.L[0].id === 'L2',
+    'MED3 仅逾期笔被转走，未逾期保留');
+  ok(c.Game.G.debt === debt0 + Math.ceil((780 + 50) * 1.2), 'MED3 转尾款金额 ×1.2');
+}
+{
+  // LOW：Talk.extra 防重入 — hook 两次不加双入口
+  const c = box();
+  c.Game.G = mkG({ realm: 2 });
+  const n1 = run(c, "Talk.extra('merchant').filter(x=>String(x[0]).includes('小贷')).length");
+  run(c, 'LOAN42.off=false');
+  // 直接再调内部 hook：通过重新执行包装条件
+  run(c, `(function(){
+    if (typeof Talk !== 'undefined' && !Talk._loan42) {
+      Talk._loan42 = 1;
+      const _ex = Talk.extra;
+      Talk.extra = function(id){
+        const out = _ex ? (_ex.apply(this, arguments) || []) : [];
+        if (!LOAN42.off && LOAN42.canShowEntry(Game.G, id)) {
+          const label = LOAN42.entryLabel(id);
+          if (label) out.push([label, async function(){}]);
+        }
+        return out;
+      };
+    }
+  })()`);
+  // 模拟「无守卫时」会双包：验证守卫已立，二次注入被跳过
+  ok(run(c, '!!Talk._loan42'), 'LOW Talk._loan42 守卫已立');
+  const n2 = run(c, "Talk.extra('merchant').filter(x=>String(x[0]).includes('小贷')).length");
+  ok(n1 === 1 && n2 === 1, 'LOW hook 重入后仍仅 1 个小贷入口 得 ' + n1 + '/' + n2);
+  // 若强行清守卫再包一次，会双入口——对照证明守卫必要
+  run(c, 'Talk._loan42=0');
+  run(c, `(function(){
+    if (typeof Talk !== 'undefined' && !Talk._loan42) {
+      Talk._loan42 = 1;
+      const _ex = Talk.extra;
+      Talk.extra = function(id){
+        const out = _ex ? (_ex.apply(this, arguments) || []) : [];
+        if (!LOAN42.off && LOAN42.canShowEntry(Game.G, id)) {
+          const label = LOAN42.entryLabel(id);
+          if (label) out.push([label, async function(){}]);
+        }
+        return out;
+      };
+    }
+  })()`);
+  const n3 = run(c, "Talk.extra('merchant').filter(x=>String(x[0]).includes('小贷')).length");
+  ok(n3 === 2, 'LOW 对照：清守卫后再包会出现双入口（' + n3 + '）');
+}
+
 
 console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
 process.exitCode = fails;
