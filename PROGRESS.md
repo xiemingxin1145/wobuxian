@@ -4,6 +4,42 @@
 - node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
 - 下一步：合 openworld-wip；等奥拉夫再审 / R2 接线。
 
+## 交接 notes · v3.9.3（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.9.3「主线 · 洞府」**，`VERSION`=3.9.3，tag `v3.9.3` → commit `54bd685`；其下 merge #69 `dd3b1cd`（main40）、#70 loan42、#68/#66 洞府、v3.9.1。
+- **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.3
+- Release 资产：`wobuxian.apk` 372,397,273 B（≈372MB）、`wobuxian-lite.apk` 84,240,825 B（≈84MB）；versionCode **307**（自 301 经 CI `100+run_number` 递增）；Latest 已指向 v3.9.3。
+- index 序：`…→clan41→loan42→main40→dongfu43→dongfu43_ui→audio32`。
+
+### 2 本版做了什么 / 刻意没做什么
+- **3.9.2 main40**（#69）：化神软引导、渡劫圆满 gate、结局分支（karma/route/chain/fam）、q_ev3 猜拳、摊牌记忆、Dev 跳转、挡旧三选一、UNSAFE；奥拉夫 M1–M3/L1–L5 已修。
+- **3.9.3 dongfu43**（#66 第1轮 + #68 第2轮/审修）：可进洞府地图、年事/居民/旅行入口、DevPanel；不升 `G.v`。
+- **#70**：催收卡复弹复用开场白下标。
+- 刻意没做：**3.9.4 秘境扫荡 sweep44**（交开放世界开发 bot）；未修 loan42 `DOMContentLoaded` 重 hook 盖掉 `_main40` 标记（低风险，调用链仍到 main40）；不删分支。
+
+### 3 测试结果
+- node（合 main 后 /workspace/main40）：validate22 **0**；main40 **73/73**；dongfu43 **145/145**；dongfu43_ui **56/56**；loan42 **110**；loan42_squad **84**；其余 `*_unit` + good_rel_cap → **ALL PASS**。
+- 奥拉夫：#69 含页测已 APPROVE；#68 审修已合。
+- CI（tag v3.9.3，run 41080795154）：build ✅、emulator API30/34 ✅；Release Latest ✅。
+
+### 4 遗留问题
+- **3.9.4 sweep44** 进行中（开放世界开发 bot）；Issue #12 OPEN。
+- 已知低风险：loan42 在 `DOMContentLoaded` 再 hook `enterMap`/`die` 时可能冲掉 `_main40` 标记（功能链一般仍在，标记仅供检测）。
+- dungeon26 单层写 `clear[band]` 偏差（扫荡另记首通，§18.7）。
+
+### 5 下一版任务（按顺序）
+1. **3.9.4 秘境扫荡 sweep44**（`docs/research_v22.md` §18）— 开放世界开发 bot
+2. 前世记忆「似曾相识」小规格 memory45（ROADMAP 🟡）
+3. 其余 P2
+
+### 6 交接注意
+- **禁止改** `game.js` / `talk.js` / `data.js` / `ui.js`；包装模块后加载。
+- 老档 `wbx2_*` / `G.v===2`；main40 / dongfu43 / loan42 均惰性字段。
+- 洞府不进 `MAP_ORDER`；挂机/自动任务在洞府内应屏蔽。
+- HD 包：CI 从 `assets-hd` release 拉高清资源；缺 APK 时从 workflow artifact 手工 `gh release upload`。
+
+---
+
 ## 开放世界线 · 3.9.3 洞府 dongfu43 R2 奥拉夫审修（2026-10-30 23:08 UTC+8，Grok Bot）
 - 分支 dongfu43-r2 / PR #68：修 M1 df43_sign 叠 mark（clearResidents 清 sign；spawn 幂等）+ L1 Acts.cave 包装原实现 + L2 storyBlock 下 onEnterHome 仍 n++ + L3 亲传 label 不裸露 ah（NPCS 缺省回落「亲传」）。
 - 改动：www/js/dongfu43_ui.js、www/js/dongfu43.js、test/dongfu43_ui_unit.js。未碰核心。
