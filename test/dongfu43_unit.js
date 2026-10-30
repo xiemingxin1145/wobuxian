@@ -271,6 +271,29 @@ ok(DF.TEXT.enter.length === 3 && DF.TEXT.auto_block.includes('挂机'), '进门/
   G8.ap = 2; ok(D8.harvest(G8, () => 0.5).ok && G8.ap === 1, 'L6：正常 ap 仍可采');
 }
 
+// L7：mouse 默认 -1 不可用真值判断（year=0 误发 / mouse=0 漏发）
+{
+  const c9 = box(); const R9 = s => vm.runInContext(s, c9);
+  const G9 = mkG({ year: 0, cave: { zl: 0, field: 2, forge: 0 }, ap: 3, inv: {} }); R9('Game').G = G9; const D9 = R9('DF43'); D9.st(G9);
+  ok(G9.df43.mouse === -1, 'L7：未设 mouse 默认 -1');
+  const h0 = D9.harvest(G9, () => 0.5);
+  ok(h0.ok && G9.inv.herb === 1 && !(h0.got && h0.got.herb > 1), 'L7：year=0 未设 mouse 手采不加灵草×3');
+}
+{
+  const c10 = box(); const R10 = s => vm.runInContext(s, c10);
+  const G10 = mkG({ year: 0, cave: { zl: 0, field: 2, forge: 0 }, ap: 3, inv: {} }); R10('Game').G = G10; const D10 = R10('DF43');
+  D10.st(G10).mouse = 0; // year=0 放田鼠
+  ok(G10.df43.mouse === 0, 'L7：year=0 记 mouse=0');
+  const hY0 = D10.harvest(G10, () => 0.5);
+  ok(hY0.ok && G10.inv.herb === 1, 'L7：记 mouse 当年手采不加×3');
+  G10.year = 1; G10.ap = 1;
+  const hY1 = D10.harvest(G10, () => 0.5);
+  ok(hY1.ok && G10.inv.herb === 5 && hY1.got.herb === 4, 'L7：mouse=0 于 year=1 手采追加灵草×3（1+3）');
+  G10.year = 2; G10.ap = 1;
+  const hY2 = D10.harvest(G10, () => 0.5);
+  ok(hY2.ok && G10.inv.herb === 6 && hY2.got.herb === 1, 'L7：再下一年不再追加（无双发）');
+}
+
 // 不进 index（第 1 轮）
 const HTML = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
 ok(!HTML.includes('dongfu43.js'), '第 1 轮未接入 index.html（零运行时影响）');

@@ -132,7 +132,7 @@
       if (!Number.isFinite(G.ap) || G.ap < 1) return { ok: false, msg: TEXT43.apShort };
       G.ap = Math.max(0, G.ap - 1); D.hv = yr(G);
       const got = this.harvestYield(f, r);
-      if (D.mouse && D.mouse === yr(G) - 1) got.herb = (got.herb || 0) + 3; // df_mouse 放它一马：下一年手采追加灵草×3
+      if (D.mouse >= 0 && D.mouse === yr(G) - 1) got.herb = (got.herb || 0) + 3; // df_mouse 放它一马：下一年手采追加灵草×3（mouse 默认 -1，不可用真值判断）
       const parts = [];
       for (const id in got) if (got[id] > 0) { give(G, id, got[id]); parts.push(`${ITEM_N[id] || id}×${got[id]}`); }
       return { ok: true, got, msg: fill(TEXT43.harvest, { got: parts.join('、') }) };
