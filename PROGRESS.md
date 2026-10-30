@@ -1,3 +1,10 @@
+## 开放世界线 · cherry-pick items40 奥拉夫 #55 修复（2026-10-30 19:37 UTC+8，Grok Bot）
+- 自 PR #55 `items40` cherry-pick `92447df`：转运珠 luck 仅 `Chain37.yearTick` 消耗（VIP `roll(0.3,'qiyu')` 不偷吃）；逆鳞交龙宫文案「业力−10」。
+- 改动：`www/js/items40.js`、`test/items40_unit.js`。未碰核心文件 / zf39-ui 工作区。
+- node：items40_unit **152/152**；validate22 []；chain37/npc37/pf38/zf39*/stage3_* 全过。未跑 Chrome。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/55#issuecomment-6521684973
+- 下一步：奥拉夫复审 #55；页测仍待。
+
 ## 开放世界线 · 奥拉夫 #58 审查修复（2026-10-30 19:35 UTC+8，Grok Bot）
 - 自 PR #58 / `zf39-ui` cherry-pick `fecbfcf` → `abc8554`：修战斗胜利阵道升级 toast 缺失 + `winXp` 缺 `war` NPE。
 - `ZF39.winXp` 返回 `{add,ups}`（不再丢 `addXp` 的 ups）；`(Z.war||[])` 惰性兜底；`zf39_ui` `Game.fight` 包装 `announceXp(wr.add, wr.ups)`。
@@ -60,7 +67,6 @@
 - 低模预览页 `www/prototypes/lowpoly_box/` 下拉增加「散修」选项，仍为离线预览，不接入正式加载链。
 - 更新 `docs/openworld_upgrade.md` 记录本步（已修复此前截断）。
 - 下一步：可继续加 1 个 NPC 样例（如宗门弟子），或把低模接入即时战试炼场做对比手感。
-
 ## 交接 notes · v3.8.0（2026-10-24，Grok Bot）
 
 ### 1 当前版本 / 最新提交

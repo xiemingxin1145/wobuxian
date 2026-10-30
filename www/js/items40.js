@@ -2,7 +2,7 @@
 // ======================= 3.8.2 道具 items40（规格 docs/research_v40_items.md + docs/research_v22.md §13；§13 优先） =======================
 // 60 个 i40_ 道具：25 可使用 / 20 礼物 / 15 剧情。只追加 ITEMS / GIFTS / SHOPS，接入全部为包装：
 //   UI.useItem（use:'i40' 分派器）、Talk.gift（重写送礼：爱/憎/每月 1 次，保留 life34 好感同步）、Talk.extra（剧情道具获得/交付「⚑」选项、非伙伴 NPC 送礼入口）、
-//   Talk.npc（翠花荷包自动给）、Game.yearEnd（延期还款单）、Game.roll（转运珠）、Game.cultMult（千年蒲团）、Acts.mat（静心丹）、Acts.herb（野花掉落）、
+//   Talk.npc（翠花荷包自动给）、Game.yearEnd（延期还款单）、Game.roll + Chain37.yearTick（转运珠，仅风声消耗）、Game.cultMult（千年蒲团）、Acts.mat（静心丹）、Acts.herb（野花掉落）、
 //   Dng.exit（秘境掉落）、NPC37.resolve（密信掉落）、FAM37.canMarry/marry/famYear（月老红线/送子瓶）、PF38.ss/reveal（养神丹/逆鳞，3.8.0 合入后生效）、
 //   UI.renderBB + doAction + calcDmg + startBattle（战斗道具）、UI.shop（假秤砣举报后钱多多 9 折）。
 // 不改 game.js/talk.js/data.js/ui.js。存档：G.i40 惰性兜底（不升 G.v）；老存档无 G.i40 时一切行为同旧版。
@@ -248,7 +248,7 @@ const Items40 = {
       give: [{ npc: 'ali', x: '⚑ 把当票还给她', eff: 'aff:ali:20', pre: (G, I) => { I.reveal('ali', 'sec1'); }, txt: '阿离接过当票，第九条尾巴从当铺的方向飘了回来，乖乖缠在她腰上。“……谢谢。”' }] },
     { k: 'i40_nilin', get: null,
       give: [{ npc: 'aoxiao', x: '⚑ 还给她', eff: 'aff:aoxiao:30;karma+5', txt: '敖小乐把逆鳞贴在胸口，眼圈一下就红了。' },
-        { npc: 'taizi', x: '⚑ 交给龙宫', eff: null, extra: (G, I) => { G.stone = (G.stone || 0) + 10000 * I.R(G); G.karma = (G.karma || 0) - 10; G.aff.aoxiao = 0; I.rel('aoxiao', -40); return `灵石+${10000 * I.R(G)}，业力+10，敖小乐与你反目`; }, txt: '龙宫太子收下逆鳞，赏了你一大箱灵石。远处，敖小乐再也没回头看你。' }] },
+        { npc: 'taizi', x: '⚑ 交给龙宫', eff: null, extra: (G, I) => { G.stone = (G.stone || 0) + 10000 * I.R(G); G.karma = (G.karma || 0) - 10; G.aff.aoxiao = 0; I.rel('aoxiao', -40); return `灵石+${10000 * I.R(G)}，业力−10，敖小乐与你反目`; }, txt: '龙宫太子收下逆鳞，赏了你一大箱灵石。远处，敖小乐再也没回头看你。' }] },
     { k: 'i40_diya', get: { npc: 'elder', x: '⚑ 翻一翻旧档', can: G => !!G.flags.pf_elder_mortgage && G.sect === 'qingyun', msg: '藏经阁最底层的抽屉里，压着一纸抵押书' },
       give: [{ npc: 'elder', x: '⚑ 还给掌门', eff: 'contrib+50', pre: (G, I) => { I.reveal('elder', 'sec1'); }, txt: '掌门接过抵押书，长叹一声：“这件事，就烂在你我心里吧。”' },
         { npc: 'xianguan', x: '⚑ 递给讨债司', eff: null, extra: (G, I) => { const d = I.debtPct(G, 0.10); G.aff.elder = 0; I.rel('elder', -50); if (G.sect === 'qingyun') G.contrib = 0; return `欠款−${d}，掌门与你反目${G.sect === 'qingyun' ? '，宗门贡献清零' : ''}`; }, txt: '记账童子眼睛一亮：“青云宗的灵脉？好好好，你的账可以缓缓。”' }] },
@@ -358,8 +358,12 @@ if (typeof window !== 'undefined') { window.Items40 = Items40; window.ITEMS40 = 
     try { if (G && S && !G.dead && G.year !== y0 && S.half === y0 && d0 > 0) { const save = Math.floor(Math.ceil(d0 * rate) / 2); S.half = -1; if (save > 0) { G.debt = Math.max(0, (G.debt || 0) - save); I.autoToast(`延期还款单生效：利息减半（省 ${save}）`, '#9aff9a'); } } } catch (e) { }
     return r;
   };
-  // ---- 转运珠 ----
-  const _roll = Game.roll; Game.roll = function (p, kind) { const S = this.G && this.G.i40; if (kind === 'qiyu' && S && S.luck) { S.luck = 0; return true; } try { return _roll.apply(this, arguments); } catch (e) { return Math.random() < p; } };
+  // ---- 转运珠：luck 只在 Chain37.yearTick 风声掷骰时消耗（VIP yearEnd 的 roll(0.3,'qiyu') 不得偷吃） ----
+  I._luckQiyu = 0;
+  const _roll = Game.roll; Game.roll = function (p, kind) { const S = this.G && this.G.i40; if (kind === 'qiyu' && S && S.luck && I._luckQiyu) { S.luck = 0; return true; } try { return _roll.apply(this, arguments); } catch (e) { return Math.random() < p; } };
+  if (typeof Chain37 !== 'undefined' && Chain37.yearTick) {
+    const _yt = Chain37.yearTick; Chain37.yearTick = async function (G) { I._luckQiyu = 1; try { return await _yt.apply(this, arguments); } finally { I._luckQiyu = 0; } };
+  }
   // ---- 千年蒲团（持有即生效） ----
   const _cm = Game.cultMult; Game.cultMult = function () { const v = _cm.apply(this, arguments); try { if (this.G && this.has('i40_dazuo')) return v * 1.10; } catch (e) { } return v; };
   // ---- 月老红线 / 送子观音瓶（fam37） ----

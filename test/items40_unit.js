@@ -87,8 +87,21 @@ const ev = (c, s) => vm.runInContext(s, c);
   G.exp = 0; G.realm = 1; G.i40.dz = 0; ev(c, 'Math.random = () => 0.5'); const g1 = await matGain(); G.i40.dz = 1; const g2 = await matGain();
   ok(g1 > 0 && Math.abs(g2 / g1 - 2) < 0.05 && G.i40.dz === 0, `静心丹：打坐修为 ×2（${g1} → ${g2}），打坐后效果用掉`);
   G.i40.dz = 1; G.ap = 3; Tc().script.push(o => o.length - 1); await ev(c, 'Acts.mat({})'); ok(G.i40.dz === 1, '静心丹：选「算了」不消耗药效'); G.realm = 2;
-  ev(c, "Game.give('i40_xingyun',1)"); await use2('i40_xingyun'); ok(ev(c, "Game.roll(-1,'qiyu')") === true && ev(c, "Game.roll(-1,'qiyu')") === false, '转运珠：下一次 qiyu 必中，仅一次');
-  ok(ev(c, "Game.roll(-1,'drop')") === false, '转运珠：不影响其它 kind');
+  ev(c, "Game.give('i40_xingyun',1)"); await use2('i40_xingyun'); ok(G.i40.luck === 1, '转运珠：使用后 luck=1');
+  ok(ev(c, "Game.roll(-1,'qiyu')") === false && G.i40.luck === 1, '转运珠：非 Chain37.yearTick 的 qiyu 不消耗 luck（防 VIP 偷吃）');
+  ok(ev(c, "Game.roll(-1,'drop')") === false && G.i40.luck === 1, '转运珠：不影响其它 kind');
+  // yearTick 风声才消耗：random=0.99 本会失败，luck 强制命中
+  G.debt = 10000; G.realm = 2; G.dead = false; ev(c, 'Chain37.root(Game.G).ch = {}');
+  ev(c, 'Math.random = () => 0.99'); await ev(c, 'Chain37.yearTick(Game.G)');
+  ok(G.i40.luck === 0 && !!ev(c, "Chain37.st('c37_1', Game.G).offer"), '转运珠：yearTick 风声必中并消耗 luck');
+  // VIP yearEnd 复现（奥拉夫 #55）：vip=1 + luck=1 + random0.99 → yearTick 入口 luck 仍为 1，风声拿到
+  G.flags.vip = 1; I.ensure(G).luck = 1; G.debt = 10000; G.realm = 2; G.dead = false;
+  ev(c, 'Chain37.root(Game.G).ch = {}');
+  ev(c, 'var __luckAtTick = -1; (function(){ const _yt = Chain37.yearTick; Chain37.yearTick = async function (G) { __luckAtTick = (G && G.i40 && G.i40.luck) || 0; try { return await _yt.apply(this, arguments); } finally { Chain37.yearTick = _yt; } }; })()');
+  await ev(c, 'Game.yearEnd()');
+  ok(ev(c, '__luckAtTick') === 1, '转运珠 VIP 复现：yearTick 入口 luck 仍为 1（未被 VIP roll(0.3,qiyu) 偷吃）');
+  ok(G.i40.luck === 0 && !!ev(c, "Chain37.st('c37_1', Game.G).offer"), '转运珠 VIP 复现：yearEnd 后风声仍触发、luck 耗尽');
+  G.flags.vip = 0;
   const cmA = ev(c, 'Game.cultMult()'); ev(c, "Game.give('i40_dazuo',2)"); const cmB = ev(c, 'Game.cultMult()'); ok(Math.abs(cmB / cmA - 1.1) < 1e-9, '千年蒲团：持有 cultMult ×1.10，多个不叠加');
   ok(!I40.i40_dazuo.use, '千年蒲团：无「使用」按钮（passive）');
   // 延期还款单
@@ -238,7 +251,8 @@ const ev = (c, s) => vm.runInContext(s, c);
     PF.reveal('mentor', 'sec0'); G.stone = 100000; const opt = ev(c, "Talk.extra('xianguan').find(x => x[0].startsWith('⚑ 打听断剑下落'))"); ok(!!opt && /900灵石/.test(opt[0]), '断剑残片：秘密①后记账童子处出现（300×(1+境界)）');
     await opt[1](); const atk0 = G.atkBonus; G.aff.mentor = 0; await ev(c, "Talk.extra('mentor').find(x => x[0] === '⚑ 把断剑交给他')[1]()"); ok(PF.has('mentor', 'sec1') && G.aff.mentor === 15 && Math.abs(G.atkBonus - atk0 - 0.02) < 1e-9, '断剑残片：交给剑仙 → 秘密② + aff15 + 攻击+2%');
     PF.reveal('aoxiao', 'sec1'); ok(G.inv.i40_nilin === 1, '逆鳞：揭示敖小乐秘密② 时自动获得');
-    G.aff.aoxiao = 50; const st0 = G.stone; await ev(c, "Talk.extra('taizi').find(x => x[0] === '⚑ 交给龙宫')[1]()"); ok(G.stone === st0 + 30000 && G.aff.aoxiao === 0 && !G.inv.i40_nilin, '逆鳞：交给龙宫 灵石+10000×(1+境界)、敖小乐好感清零');
+    G.aff.aoxiao = 50; G.karma = 50; const st0 = G.stone; Tp().cards.length = 0; await ev(c, "Talk.extra('taizi').find(x => x[0] === '⚑ 交给龙宫')[1]()"); ok(G.stone === st0 + 30000 && G.karma === 40 && G.aff.aoxiao === 0 && !G.inv.i40_nilin, '逆鳞：交给龙宫 灵石+10000×(1+境界)、karma−10、敖小乐好感清零');
+    ok(Tp().cards.some(x => /业力−10/.test(x.x)), '逆鳞：交龙宫卡文案「业力−10」与 karma-=10 / §13.6 一致');
     PF.reveal('xianguan', 'sec0'); await ev(c, "Talk.extra('xianguan').find(x => x[0] === '⚑ 他抽屉里的册子')[1]()"); G.debt = 10000; G.aff.xianguan = 0; await ev(c, "Talk.extra('xianguan').find(x => x[0] === '⚑ 还给他')[1]()"); ok(G.aff.xianguan === 25 && G.debt === 9500, '坏账名单：还给记账童子 aff+25、欠款−5%');
     PF.reveal('lengyue', 'sec0'); await ev(c, "Talk.extra('lengyue').find(x => x[0] === '⚑ 问冰封之人')[1]()"); G.aff.lengyue = 0; await ev(c, "Talk.extra('lengyue').find(x => x[0] === '⚑ 把玉放回冰棺')[1]()"); ok(G.aff.lengyue === 20 && G.flags.i40_ly_jade, '冰心玉：放回冰棺 aff+20、flag');
     G.aff.cuihua = 130; PF.reveal('cuihua', 'sec0'); G.aff.cuihua = 130; Tp().script.push(o => o.length - 1); await ev(c, "Talk.npc('cuihua')"); ok(G.inv.i40_cuihuabao === 1, '七个荷包：aff≥120 且知晓秘密① → 对话时自动给');
