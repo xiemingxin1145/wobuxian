@@ -44,9 +44,9 @@
 
 ## 交接 notes · v3.8.4（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.8.4「时装」**，`VERSION`=3.8.4，tag `v3.8.4` → commit（VERSION bump）；其下 `5d57ddc` #63 merge、`e2bdb54`/`bb5858e` haveTz 守卫。
+- 版本：**v3.8.4「时装」**，`VERSION`=3.8.4，tag `v3.8.4` → commit `4efbf13`；其下 `5d57ddc` #63 merge、`e2bdb54`/`bb5858e` haveTz 守卫。
 - **是 Latest**（非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.4
-- Release 资产：CI 打 HD + lite；versionCode 由 CI 自 293 起继续递增（100+run_number）。发版后填字节数。
+- Release 资产：`wobuxian.apk` 372,292,343 B（≈372MB，HD）、`wobuxian-lite.apk` 84,135,895 B（≈84MB）；versionCode **298**（自 293 递增）；固定链接已指向 v3.8.4。
 
 ### 2 本版做了什么 / 刻意没做什么
 - **cos36 时装**（#63）：11 套冠/衣/佩/履混搭、set2/set4、霓裳坊、讨债司制服兑换、账号级拥有 `Game.meta.cos36`、本世穿戴 `G.cos36w`；新文件 `www/js/cos36.js`；index：`profile38 → cos36 → tit39 → … → clan41 → loan42`。
@@ -56,7 +56,7 @@
 ### 3 测试结果
 - node：`cos36_unit` **53/53**；validate22 **0 错**；loan42 110、clan41 70、items40 152。
 - 奥拉夫页测（合入前）：panels21 PASS、multilife 3×300 干净、human_olaf **21/22**（T4 flake，main 亦有，无关）。
-- CI（tag v3.8.4）：发版后填。
+- CI（tag v3.8.4，run 41071422298）：APK 构建成功；发布步骤曾 HTTP 500，已用同批 artifact 手动 `gh release create --latest` 补齐。
 
 ### 4 遗留问题
 - PR #65（进行中，勿动）；Issue #12 OPEN；loan42 第 2 轮（团伙战 UI / DevPanel / 页测）未发版。分支不删。
