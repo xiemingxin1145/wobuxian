@@ -1,3 +1,14 @@
+## 开放世界线 · cherry-pick loan42 §16.6 M1+M2（#65 奥拉夫 Medium）（2026-10-30 21:40 UTC+8，Grok Bot）
+- 自 PR #65 `loan42-r2` cherry-pick `94f237c` → `1be6d88`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
+- **M1**：灵石不够时「当场还款」`🔒` 灰置；点了 toast 后重弹卡（不关死），只可战/跑（同 life34 赔礼）。
+- **M2**：催收卡成功弹出后即 `_squadDoneY=year`（含灰还/战/跑/关），当年不再刷。
+- 未碰核心文件；未跑 Chrome。
+- node：loan42_unit **110/110**；loan42_squad **49/49**；clan41 70；items40 152；validate22 []；stage3_* / chain37 78 / npc37 80 / events 54 / pf38 34 / tit39 / zf39* 全过。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/65#issuecomment-6524216013
+- 下一步：等奥拉夫复审 #65 M1+M2；页测仍延后。
+
+---
+
 ## 开放世界线 · cherry-pick loan42 第2轮（催收开战+面板+DevPanel）（2026-10-30 21:29 UTC+8，Grok Bot）
 - 自 PR #65 `loan42-r2` cherry-pick `76dbb73` → `36bdcda`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
 - 基于 main #64 已合 `50088f4`。关键：`trySquad` 触发后 `offerSquad` 弹三选一并包 `Game.fight`（loan42Squad；3×collector×hp1.8/atk1.3/def1.2）；#53 storyBlock/B.on；rng=`Game.roll` 回退。胜/败/跑/当场还款按 §16.6。`UI.p_char` 征信行；DevPanel/DevTabs「小贷42」。
