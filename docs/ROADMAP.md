@@ -77,7 +77,7 @@
 | 3.8.0 | ✅ 已发布（2026-10-24，Latest = v3.8.0 `f2468b7`，含 #51 讨债令抵扣） | 人物详情面板 · `docs/research_v38_profile.md` |
 | 3.8.1 | ✅ 已发布（2026-10-30，Latest = v3.8.1 `e6354ca`，含 #45 称号 + canEnter null guard） | 称号 tit39 · `docs/research_v39_titles.md` |
 | 3.8.2 | ✅ 已发布（2026-10-30，含 #55 道具 + #58 阵法 UI；热修 **v3.8.2.1**） | 道具 · `docs/research_v40_items.md` + `docs/research_v22.md` §13 |
-| 3.8.2.1 | ✅ 已发布（2026-10-30，Latest = v3.8.2.1，#62 items40 Game.roll/storyBlock 补齐） | 道具热修 · PR #62 |
+| 3.8.2.1 | ✅ 已发布（2026-10-30，Latest = v3.8.2.1 `54af7da`，#62 items40 Game.roll/storyBlock 补齐） | 道具热修 · PR #62 |
 | 3.8.3 | 🔧 开发中（PR #60 clan41） | 家族深化 · `docs/research_v41_clan.md` + `docs/research_v22.md` §14 |
 | 3.8.4 | ⬜ 待开工 | 时装部位与套装 cos36 · `docs/research_v22.md` §15 |
 | 3.9.0 | 🔧 UI 已合 main（#58）；完整发版待 #59 rt / zf39_dng 破阵与 `Dng.roomTrap` | 阵法 zf39 · `docs/research_v22.md` §11 |

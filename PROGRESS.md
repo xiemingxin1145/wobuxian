@@ -4,9 +4,9 @@
 
 ## 交接 notes · v3.8.2.1（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.8.2.1「道具热修」**，`VERSION`=3.8.2.1，tag `v3.8.2.1` →（发版提交后填）；其下 `feb3004` #62 merge、`54e3509` chance/autoToast。
+- 版本：**v3.8.2.1「道具热修」**，`VERSION`=3.8.2.1，tag `v3.8.2.1` → commit `54af7da`；其下 `feb3004` #62 merge、`54e3509` chance/autoToast。
 - **是 Latest**（非预发布；四段 versionName 可行：CI 用 tag 去 `v` 作 versionName，versionCode 仍 = 100+run_number）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.2.1
-- Release 资产：发版后更新。
+- Release 资产：`wobuxian.apk` 372,128,524 B（≈372MB）、`wobuxian-lite.apk` 83,972,072 B（≈84MB）；Latest 已指向 v3.8.2.1。
 
 ### 2 本版做了什么 / 刻意没做什么
 - **#62**：补齐 #55 终稿漏合——`chance()`→`Game.roll`（野花/秘境/密信）；`autoToast` 守 #53；送子瓶兑底。仅 `items40.js` + `items40_unit.js`（152/152）。
