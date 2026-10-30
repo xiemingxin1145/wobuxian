@@ -1,3 +1,13 @@
+## 开放世界线 · cherry-pick loan42 sqPend（#65 奥拉夫 Medium · 选定后才记年）（2026-10-30 22:24 UTC+8，Grok Bot）
+- 自 PR #65 `loan42-r2` cherry-pick `d81c08b` → `33b091e`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
+- **规则**：卡弹出写 `G.loan42.sqPend={y,tier,amt}`；还/战/跑后才 `_squadDoneY` 并清 marker；存档重进/下张图有 marker 则复弹同 tier/amt（跳过 roll）；`card()=-1` 不写 marker；跨年仍复弹同一张（结案按当前 year）。
+- 未碰核心文件；未跑 Chrome；未 push main。
+- node：loan42_unit **110/110**；loan42_squad **71/71**；clan41 70；items40 152；validate22 []；stage3_* / chain37 78 / npc37 80 / events 54 / pf38 34 / tit39 / zf39* 全过；cos36 仓库无此文件跳过。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/65#issuecomment-6525131715
+- 下一步：等奥拉夫复审 #65 pending 语义；页测仍延后。
+
+---
+
 ## 开放世界线 · 3.9.3 洞府 dongfu43 第 1 轮（数据+纯逻辑）+ 合 main（2026-10-30 22:3x UTC+8，开放世界开发 bot）
 - `openworld-wip` 普通 merge `origin/main`（#64 loan42 第 1 轮已合 `50088f4`）：`796720f`；`www/js/loan42.js` add/add 冲突取 wip（wip = main + #65 第 2 轮 + M1/M2/low 修复，逐行核对 main→wip 只有第 2 轮改动）。
 - 新 PR 分支 `dongfu43`（基于 origin/main）→ cherry-pick 进 wip：`www/js/dongfu43.js` + `test/dongfu43_unit.js`。
