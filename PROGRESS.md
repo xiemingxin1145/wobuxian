@@ -1,3 +1,13 @@
+## 开放世界线 · 3.9.6 shi46 R1 review 修（PR #77）（2026-10-31 00:40 UTC+8，Grok Bot）
+- 分支 `shi46` @ worktree：修奥拉夫 COMMENT（M1/M2/L1/L2）+ §20.9.9a。
+- **M1**：`visitY` 同时闸 `allyOptFor`（同年隐藏回访）与 `thank`（`visit_cap` 拒刷 aff/herb）；助战仍用 `fightY`。
+- **M2**：`Talk.extra` 上层 `undefined`/非数组 → 归一 `[]` 再拼。
+- **L1**：`Game.die` 先跑内层，仅 `aliveBefore && G.dead` 后遗憾 toast（同 mem45/#74）；`keepFnMarks`。
+- **L2**（`docs/research_v22.md` §20.4.1 @ main `fc66bcc`）：放养设定当年 `n` 不清零、cap 仍 3；跨年后 `freeCut=1` → cap=2（不是 0）。代码注释引用 §20.4.1。
+- 文件：`www/js/shi46.js`、`test/shi46_unit.js`、`docs/research_v22.md`、`PROGRESS.md`。未碰核心四件套；未进 index；无 Chrome。
+- node：shi46 **104/104**；validate22 errors []；test/*.js **29/29**。
+- 下一步：合入 openworld-wip；等奥拉夫再审 #77；R2 index+面板 DOM。
+
 ## 开放世界线 · 3.9.6 亲传功课·出师 shi46 第 1 轮（data+logic）（2026-10-31 00:30 UTC+8，Grok Bot）
 - 分支 `shi46`（基于 origin/main f685885+）：`www/js/shi46.js` + `test/shi46_unit.js`；PR #77。
 - **规则**：惰性 `G.shi46`（mood/功课年封顶/年终督导/出师 ally/回访）；`TEXT_SHI46`；功课 ≤3/年（放养 2）×1 AP；出师门槛 lv8/功法2/心境70/好感80；助战 1 次/年；`SHI46.off`；rng=`Game.roll`→`Math.random`；弹卡守 `#53` storyBlock/B.on；`keepFnMarks`；公开 API 无 unguarded 内部。仍 `wbx2_*` / `G.v===2`。
