@@ -121,7 +121,14 @@ const ev = (c, s) => vm.runInContext(s, c);
   G.i40.birth = G.year - 1; await F.famYear((() => { const q = [0.9, 0.9, 0.1]; return () => q.length ? q.shift() : 0.9; })()); ok(G.fam37.kids.length === 1, '送子观音瓶：原 30% 没中时再掷 40% 中 → 降生');
   G.partner = null; G.fam37.sp = null; ev(c, "Game.give('i40_songzi',1)"); ok(await use2('i40_songzi') === 0 && /道侣/.test(toast()), '送子观音瓶：无道侣不消耗');
   // 3.8.3 道具 / 战斗道具 / 无 PF38
-  for (const k of I.CLAN) ev(c, `Game.give('${k}',1)`); let cl = 0; for (const k of I.CLAN) cl += await use2(k); ok(I.CLAN.length === 6 && cl === 0 && /3\.8\.3/.test(toast()), '6 个 3.8.3 道具：使用不消耗，提示尚未开放');
+  for (const k of I.CLAN) ev(c, `Game.give('${k}',1)`);
+  const t0 = Tc().toasts.length; let cl = 0; for (const k of I.CLAN) cl += await use2(k);
+  const clanJoined = Tc().toasts.slice(t0).join('\n');
+  if (SCRIPTS.indexOf('js/clan41.js') >= 0) {
+    ok(I.CLAN.length === 6 && !/尚未开放/.test(clanJoined) && cl >= 1, '6 个 3.8.3 道具：clan41 已接管（不再「尚未开放」，族谱等可消耗）');
+  } else {
+    ok(I.CLAN.length === 6 && cl === 0 && /3\.8\.3/.test(toast()), '6 个 3.8.3 道具：使用不消耗，提示尚未开放');
+  }
   for (const k of ['i40_poxie', 'i40_dunfu', 'i40_leifu']) ev(c, `Game.give('${k}',1)`); let bu = 0; for (const k of ['i40_poxie', 'i40_dunfu', 'i40_leifu']) bu += await use2(k); ok(bu === 0 && /战斗中才能用/.test(toast()), '战斗符：背包里使用不消耗');
   for (const k of I.PF) ev(c, `Game.give('${k}',1)`); let pu = 0; for (const k of I.PF) pu += await use2(k); ok(pu === 0 && /3\.8\.0/.test(toast()), '无 PF38：窥心/养神丹使用不消耗，提示未开放');
   ev(c, "Game.give('i40_huiyuan',1)"); G.hp = 1; ok(await use2('i40_huiyuan') === 1 && G.hp > 1, '回元散：背包里回血（use:heal）');

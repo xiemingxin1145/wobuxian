@@ -48,9 +48,78 @@
 - PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/58#issuecomment-6521620608
 - 下一步：破阵 UI / rt27 / 洞府阵挂点 / 页面门禁（Chrome 协调后）。
 
+## 交接 notes · 3.8.3 家族深化进行中（clan41 分支，未发版）
+
+### 1 当前版本 / 最新提交
+- 稳定版仍为 **v3.8.1**；本分支实现 3.8.3，未改 VERSION / 未发版 / 未合 main。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新文件 `www/js/clan41.js`（包 fam37 / yearEnd / Sys.bonus / newLife / lifeMax / UI.p_fam37 / UI.useItem / DevPanel）；`www/index.html` 在 tit39 后加载；`test/clan41_unit.js`。
+- 已做：立族、10 级、12 族产年结（不乘境界）、10 族规（互斥/槽位/冷却）、子嗣境界、婚配/世家联姻（c41_sp）、21 族事、6 家族道具接入、轮回 best。
+- 未做/待页测：human_olaf / panels21 / multilife / jsscan33（Chrome 被奥拉夫占用，本轮仅 node）；与 PR #55 items40 合入后需确认 index 顺序为 items40 → clan41。
+- 未碰：game.js/talk.js/data.js/ui.js、items40.js、zf39_ui.js、zf39_rt.js。
+
+### 3 测试结果
+- `node test/clan41_unit.js` 51/51；`node test/validate22.js` 0 错；tit39/pf38/chain37/zf39/zf39_hook/npc37/npc37_events/good_rel_cap 均绿。
+- 页测未跑（保留给奥拉夫）。
+
+### 4–6
+- 见 PR「3.8.3 家族」；下一版仍按 ROADMAP。老档 `wbx2_*` / `G.v===2`；`G.clan41` 惰性兜底。
+
+---
+
 # 我不仙 进度清单（2026-10-17 Grok 接管后）
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
+
+## 交接 notes · v3.8.3（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.3「家族」**，`VERSION`=3.8.3，tag `v3.8.3` → commit `0ac62a2`；其下含 #60 clan41、#38 human_olaf、#59 zf39_rt（不发号）、发版后另合 #61 zf39_dng（不发号）、v3.8.2.1/#62。
+- **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.3
+- Release 资产：`wobuxian.apk` 372,202,443 B（≈372MB）、`wobuxian-lite.apk` 84,045,995 B（≈84MB）；Latest 已指向 v3.8.3。
+
+### 2 本版做了什么 / 刻意没做什么
+- **clan41 家族**（#60）：立族/10 级、族产、族规、子嗣境界、联姻、21 族事、6 家族道具；`www/js/clan41.js`；index：`…→zf39_ui→items40→zf39_rt→zf39_dng→clan41`（#61 热修后合入）。
+- **#59 zf39_rt**：即时战 rtMult，属 3.9.0，**未**单独立项发版。
+- **#38**：human_olaf N1/T1 站位 flake 测试修正。
+- **items40_unit**：有 clan41 时不再断言「尚未开放」。
+- 刻意没做：3.8.4 时装未开工；#61 已合 main 但不进 3.8.3 发号（属 3.9.0）。
+
+### 3 测试结果
+- node：validate22 0；items40 **152/152**；clan41 **70/70**；zf39_dng **64/64**；zf39_rt **33/33**；zf39_ui 60 / zf39 121 / hook 20；其余 unit 全过（#61 合入后 19/19）。
+- **jsscan33**：21 maps，**errors []**，exit 0（本轮 Chrome 空闲已跑）。
+- 奥拉夫：#60 页测已过；#59 已审。
+
+### 4 遗留问题
+- Issue #12 OPEN。#61 已合。分支不删。
+
+### 5 下一版任务（按顺序）
+1. **3.8.4 时装** §15 → **3.9.0 阵法**完整发版（UI+rt+dng 已合 main，待整理发号/验收）→ **3.9.1 loan** §16 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17
+
+### 6 交接注意
+- 包装序：`zf39_ui → items40 → zf39_rt → zf39_dng → clan41`（clan41 抢回 useItem 最外层）；不改核心文件；HD/签名同前。
+
+## 交接 notes · v3.8.2.1（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.2.1「道具热修」**，`VERSION`=3.8.2.1，tag `v3.8.2.1` → commit `54af7da`；其下 `feb3004` #62 merge、`54e3509` chance/autoToast。
+- **是 Latest**（非预发布；四段 versionName 可行：CI 用 tag 去 `v` 作 versionName，versionCode 仍 = 100+run_number）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.2.1
+- Release 资产：`wobuxian.apk` 372,128,524 B（≈372MB）、`wobuxian-lite.apk` 83,972,072 B（≈84MB）；Latest 已指向 v3.8.2.1。
+
+### 2 本版做了什么 / 刻意没做什么
+- **#62**：补齐 #55 终稿漏合——`chance()`→`Game.roll`（野花/秘境/密信）；`autoToast` 守 #53；送子瓶兑底。仅 `items40.js` + `items40_unit.js`（152/152）。
+- 刻意没做：未合 #59/#60/#61（#59 热修发版后另合、不发号）。
+
+### 3 测试结果
+- node：validate22 0 错；items40 **152/152**；zf39_ui 60 / zf39 121 / zf39_hook 20；其余 unit 套件全过 → **16/16 PASS**。未开浏览器。
+
+### 4 遗留问题
+- PR #59 `zf39-rt`（发版后合入 main，属 3.9.0，不单独立项发版）、#60 clan41、#61、#38；Issue #12 OPEN。不删分支。
+
+### 5 下一版任务（按顺序）
+1. **3.8.3 家族**（#60）→ **3.8.4 时装** §15 → **3.9.0 阵法**完整发版（#59 + zf39_dng）→ **3.9.1 loan** §16 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17
+
+### 6 交接注意
+- 同 v3.8.2：index `zf39_ui → items40`（#59 合入后为 `… → items40 → zf39_rt`）；不改核心文件；Chrome 忙只跑 node。
 
 ## 交接 notes · v3.8.2（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交

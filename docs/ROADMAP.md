@@ -76,10 +76,14 @@
 | 3.7.5 | ✅ 已发布（2026-10-24，Latest = v3.7.5 `a16b119`） | 奇遇链 chain37 · 规格 `docs/research_v22.md` §12（+ `research_story37.md` §4、`research_story37_text2.md` §三；数据 `fam37.js` `TEXT37B.chains`） |
 | 3.8.0 | ✅ 已发布（2026-10-24，Latest = v3.8.0 `f2468b7`，含 #51 讨债令抵扣） | 人物详情面板 · `docs/research_v38_profile.md` |
 | 3.8.1 | ✅ 已发布（2026-10-30，Latest = v3.8.1 `e6354ca`，含 #45 称号 + canEnter null guard） | 称号 tit39 · `docs/research_v39_titles.md` |
-| 3.8.2 | ✅ 已发布（2026-10-30，Latest = v3.8.2 `28bd81b`，含 #55 道具 + #58 阵法 UI 合入未单独立项） | 道具 · `docs/research_v40_items.md` + `docs/research_v22.md` §13 |
-| 3.8.3 | 🔧 开发中（PR #60 clan41） | 家族深化 · `docs/research_v41_clan.md` + `docs/research_v22.md` §14 |
+| 3.8.2 | ✅ 已发布（2026-10-30，含 #55 道具 + #58 阵法 UI；热修 **v3.8.2.1**） | 道具 · `docs/research_v40_items.md` + `docs/research_v22.md` §13 |
+| 3.8.2.1 | ✅ 已发布（2026-10-30，Latest = v3.8.2.1 `54af7da`，#62 items40 Game.roll/storyBlock 补齐） | 道具热修 · PR #62 |
+| 3.8.3 | ✅ 已发布（2026-10-30，Latest = v3.8.3 `0ac62a2`，含 #60 家族 + #59/#61 阵法轮次合入未单独立项 + #38 测试） | 家族深化 · `docs/research_v41_clan.md` + `docs/research_v22.md` §14 |
 | 3.8.4 | ⬜ 待开工 | 时装部位与套装 cos36 · `docs/research_v22.md` §15 |
-| 3.9.0 | 🔧 UI 已合 main（#58）；完整发版待 #59 rt / zf39_dng 破阵与 `Dng.roomTrap` | 阵法 zf39 · `docs/research_v22.md` §11 |
+| 3.9.0 | 🔧 UI+#59 rt+#61 dng 已合 main；完整发版/验收待整理 | 阵法 zf39 · `docs/research_v22.md` §11 |
+| 3.9.1 | ⬜ 待开工 | 天道小贷 loan42 · `docs/research_v22.md` §16 |
+| 3.9.2 | ⬜ 待开工 | 主线终局补完 main40 · `docs/research_story40_main.md` |
+| 3.9.3 | ⬜ 待开工 | 洞府可进入地图 dongfu43 · `docs/research_v22.md` §17 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
 | v2.5+ | 🟡 阶段 1/2 已签收并合入 `main`（合并提交 `61d2eba`）；阶段 3 未验收、未合并 | 阶段 1 仅是离线低模模型/预览，没有导入正式游戏资源；阶段 2 为 `www/prototypes/encounter/` 独立浏览器练习页，主人已签收最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372`。精确快照 CDP 合成触摸复测 8/8，浏览器/page/console/HTTP 错误 0；不是实体触屏或真机，也没有接入正式地图/战斗/存档。CI build-153 成功：HD APK 278,378,225 B、lite APK 47,716,509 B；相对 v2.3.0 稳定包各增加 37,164 B。HD APK 在 API 30/34 模拟器安装启动，自动试玩有推进；API 34 截图出现 Android 系统 Pixel Launcher 无响应对话框，游戏进程本身无 FATAL/ANR/JS 错误。预发布不替换稳定版 latest。未验收的阶段 3 债务事件代码仍在隔离工作区，未合入 `main`。 |
