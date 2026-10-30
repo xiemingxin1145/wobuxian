@@ -254,6 +254,80 @@ async function drain(c, expr) {
     ok(c.Game.rolls.some(r => r[0] === 0.6 && r[1] === 'loan42'), 'R2 trySquad 经 Game.roll(,loan42)');
   }
 
+  // ---- M1 §16.6：灵石不够 →「当场还款」🔒 灰掉；点了不关死，可改选战/跑 ----
+  {
+    const c = box();
+    seedOd(c, 1);
+    c.Game.G.stone = 1; // 远低于 overdue 400
+    // 第一次点灰掉的还款(0)，第二次选跑(2)
+    let nAsk = 0;
+    const seq = [0, 2];
+    c.UI.card = async function (t, x, p, o) {
+      c.cards.push({ t, x, o: (o || []).slice() });
+      const i = seq[Math.min(nAsk, seq.length - 1)];
+      nAsk++;
+      return i;
+    };
+    const r = await drain(c, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:LOAN42.squadOdAmt(Game.G)})');
+    const first = c.cards[0];
+    ok(first && first.o && String(first.o[0]).startsWith('🔒') && String(first.o[0]).includes('当场还款'),
+      'M1 灵石不足：当场还款选项 🔒 灰置');
+    ok(first.o[1] === '应战' && first.o[2] === '跑', 'M1 仍保留应战/跑');
+    ok(nAsk >= 2, 'M1 点灰项后重弹卡（不关死）');
+    ok(c.toasts.some(t => String(t).includes('灵石不足')), 'M1 点灰项 toast 灵石不足');
+    ok(r && r.choice === 'run', 'M1 改选跑可执行');
+    ok(c.Game.G.loan42._squadDoneY === (c.Game.G.year | 0), 'M1 弹卡后即记 _squadDoneY');
+    // 灵石够时不加 🔒
+    const c2 = box();
+    seedOd(c2, 1);
+    c2.Game.G.stone = 100000;
+    c2.UI._cardIdx = 0;
+    await drain(c2, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:LOAN42.squadOdAmt(Game.G)})');
+    ok(c2.cards[0] && !String(c2.cards[0].o[0]).startsWith('🔒'), 'M1 灵石够：当场还款不加 🔒');
+  }
+
+  // ---- M2 §16.6：当年最多 1 次 — 卡一旦弹出即 _squadDoneY（含灰项/关/跑）----
+  {
+    const c = box();
+    seedOd(c, 1);
+    c.Game.G.stone = 1;
+    // 只点一次灰项还款后改选应战：模拟「失败还款」路径的同年封锁
+    let nAsk = 0;
+    c.UI.card = async function (t, x, p, o) {
+      c.cards.push({ t, x, o: (o || []).slice() });
+      // 首张三选一：先点灰还，再点应战；后续结算卡随便
+      if (String(t).includes('催收') && o && o.length >= 3) {
+        const i = nAsk === 0 ? 0 : 1;
+        nAsk++;
+        return i;
+      }
+      nAsk++;
+      return 0;
+    };
+    c.Game._fightRes = 'lose';
+    c.Math.random = () => 0.99;
+    await drain(c, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(c.Game.G.loan42._squadDoneY === 12, 'M2 弹卡后 _squadDoneY=year（含灰还→战）');
+    c.Game.roll = function () { return true; };
+    const again = run(c, "LOAN42.trySquad(Game.G,'market')");
+    ok(again === null, 'M2 同年 trySquad 不再触发（即使 roll 必中）');
+    // 跑：同样记年
+    const c3 = box();
+    seedOd(c3, 1);
+    c3.UI._cardIdx = 2;
+    await drain(c3, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(c3.Game.G.loan42._squadDoneY === (c3.Game.G.year | 0), 'M2 跑亦记 _squadDoneY');
+    // choice none（关）：卡已弹也记年
+    const c4 = box();
+    seedOd(c4, 1);
+    c4.UI._cardIdx = 99; // 非 0/1/2
+    const r4 = await drain(c4, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(r4 && r4.choice === 'none', 'M2 非三选返回 none');
+    ok(c4.Game.G.loan42._squadDoneY === (c4.Game.G.year | 0), 'M2 关/无效选择亦记 _squadDoneY');
+    c4.Game.roll = () => true;
+    ok(run(c4, "LOAN42.trySquad(Game.G,'market')") === null, 'M2 关后同年不再刷');
+  }
+
   console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
   process.exitCode = fails;
 })().catch(e => { console.error(e); process.exitCode = 1; });

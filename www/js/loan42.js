@@ -715,12 +715,14 @@
     /**
      * 弹催收三选一卡并执行（当场还款 / 应战→Game.fight / 跑）。
      * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 下次再试。
+     * §16.6：灵石不够时「当场还款」🔒 灰掉不可点（同 life34 赔礼）；卡弹出后即记 _squadDoneY（当年最多 1 次）。
      */
     async offerSquad(G, info) {
       if (this.off) return null;
       G = this.G(G); if (!G || !info || !info.trigger) return null;
       if (this.storyBlock() || !this.canPopup()) return { blocked: true };
       const amt = info.amt | 0;
+      const S = this.peek(G);
       const opens = TEXT42.squadOpen || ['催收上门。'];
       let open = opens[0];
       try {
@@ -729,12 +731,29 @@
         for (let i = 1; i < opens.length; i++) if (this.roll(1 / (i + 1))) oi = i;
         open = opens[oi];
       } catch (e) {}
-      const opts = [
-        this.fmt(TEXT42.squadOpts[0], { amt }),
-        TEXT42.squadOpts[1],
-        TEXT42.squadOpts[2]
-      ];
-      const idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
+      // §16.6 灵石够才可点「当场还款」：不够则 🔒 灰置，点了 toast 后重弹卡（卡不关死，只可战/跑）
+      let idx = -1;
+      let shown = false;
+      for (;;) {
+        const canPay = amt <= 0 || (G.stone | 0) >= amt;
+        const payLabel = this.fmt(TEXT42.squadOpts[0], { amt });
+        const opts = [
+          canPay ? payLabel : ('🔒 ' + payLabel),
+          TEXT42.squadOpts[1],
+          TEXT42.squadOpts[2]
+        ];
+        idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
+        // 卡成功弹出后即记年（含点灰项重弹 / 战 / 跑 / 关），当年不再刷
+        if (!shown) {
+          shown = true;
+          if (S) S._squadDoneY = G.year | 0;
+        }
+        if (idx === 0 && !canPay) {
+          this.toast('灵石不足，还不成');
+          continue;
+        }
+        break;
+      }
       if (idx === 0) {
         const r = this.squadPayNow(G);
         if (r && r.ok) {
@@ -742,7 +761,6 @@
           await this.card('催收小分队', '讨债鬼点了点头，收起单子走了。', 'mon_collector', ['好']);
         } else {
           this.toast('灵石不足，还不成');
-          // 不够则仍可再遇（squad 保持）；本卡结束
         }
         try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) {}
         return { choice: 'pay', r };
