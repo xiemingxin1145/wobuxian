@@ -11,6 +11,7 @@ const near = (a, b, e) => Math.abs(a - b) <= (e || 1e-9);
 
 ok(/zf39_rt\.js/.test(INDEX), 'index.html 加载 zf39_rt.js');
 ok(INDEX.indexOf('zf39_ui.js') < INDEX.indexOf('zf39_rt.js'), 'zf39_rt.js 在 zf39_ui.js 之后');
+if (/items40\.js/.test(INDEX)) ok(INDEX.indexOf('items40.js') < INDEX.indexOf('zf39_rt.js'), '有 items40 时 zf39_rt 在其后（wrap 最外）');
 ok(!/RealtimeBattle/.test(RT), 'zf39_rt.js 不引用 RealtimeBattle（避免污染 battle_rt_proto 引用白名单）');
 
 const FAKE = `
