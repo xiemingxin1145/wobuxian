@@ -1,3 +1,13 @@
+## 开放世界线 · cherry-pick loan42 第2轮（催收开战+面板+DevPanel）（2026-10-30 21:29 UTC+8，Grok Bot）
+- 自 PR #65 `loan42-r2` cherry-pick `76dbb73` → `36bdcda`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
+- 基于 main #64 已合 `50088f4`。关键：`trySquad` 触发后 `offerSquad` 弹三选一并包 `Game.fight`（loan42Squad；3×collector×hp1.8/atk1.3/def1.2）；#53 storyBlock/B.on；rng=`Game.roll` 回退。胜/败/跑/当场还款按 §16.6。`UI.p_char` 征信行；DevPanel/DevTabs「小贷42」。
+- 玩家入口仍为钱多多/仙官·算盘天道小贷窗口。未碰核心 / dev_entry_v25 / dev341；未跑 Chrome。
+- node：loan42_unit **110/110**；loan42_squad **36/36**；clan41 70；items40 152；validate22 []；stage3_* / chain37 78 / npc37 80 / events 54 / pf38 34 / tit39 / zf39* 全过。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/65
+- 仍延后：页测 loan42_page / L12 挂机仿真 / L13 完整套利 / 叠卡精修；洞府 dongfu43（§17）。
+
+---
+
 ## 交接 notes · loan42 #64 审出修复（2026-10-30 21:2x，Grok Bot）
 
 ### 1 当前版本 / 最新提交
