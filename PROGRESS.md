@@ -1,3 +1,12 @@
+## 开放世界线 · cherry-pick zf39_rt 奥拉夫 #59 修复（2026-10-30 19:54 UTC+8，Grok Bot）
+- 自 PR #59 `zf39-rt` cherry-pick `cefd87b` → `7b56507`：北斗 crit 仅 `isPlayer`；外包 `ZF39.rtRoll` 判暴击。
+- 改动：`www/js/zf39_rt.js`、`test/zf39_rt_unit.js`。未碰核心文件；未跑 Chrome。
+- Medium：`side===0` 非主角不再吃北斗 +crit（对齐 §11.4 / `ZF39.apply`）；锋矢 out 仍给 side0 全体。
+- Low：压制内层 Math.random，wrap 内 `rtRoll`→`Game.roll(p,'zf39')`；单测补 repro + Game.rolls。
+- node：zf39_rt **33/33**（含 items40 顺序断言）；zf39_unit 121、hook 20、ui 60；items40 **152/152**；validate22 []；battle_rt_proto / chain37 78 / pf38 34 / stage3_* 全过。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/59#issuecomment-6522036367
+- 下一步：破阵 UI / 洞府阵挂点 / 页面门禁；或等奥拉夫复审 #58+#59。
+
 ## 开放世界线 · cherry-pick zf39 即时战 rtMult（2026-10-30 19:46 UTC+8，Grok Bot）
 - 自 PR #59 `zf39-rt`（基于 `zf39-ui`）cherry-pick：即时战套用布阵 `ZF39.rtMult`。
 - 新增 `www/js/zf39_rt.js`：包 `calcDmg`，仅 `RT27.on` 时乘 out/inc、临时加 crit；回合制不叠；老档惰性。
