@@ -466,6 +466,33 @@ async function drain(c, expr) {
       'M5 无 Game.roll 时 Math.random 回退仍写 oi');
   }
 
+
+  // ---- marker fix：DOMContentLoaded 重 hook 不得冲掉 main40 的 _main40 ----
+  {
+    const c = box();
+    // 模拟 main40 先包：enterMap/die 仅有 _main40，无 _loan42
+    c.Game.enterMap = async function (id) { this._map = id; this._main40ran = (this._main40ran || 0) + 1; };
+    c.Game.enterMap._main40 = 1;
+    c.Game.die = async function (kind) { this.G.dead = true; this.G.ending = kind; this._main40died = 1; };
+    c.Game.die._main40 = 1;
+    // 其余钩子已有 _loan42（首次加载），仅 enterMap/die 会再包
+    ok(typeof c.LOAN42._hook === 'function', 'L42._hook 可重入');
+    c.LOAN42._hook();
+    ok(!!c.Game.enterMap._loan42, '重 hook 后 enterMap._loan42');
+    ok(!!c.Game.enterMap._main40, '重 hook 后仍保留 enterMap._main40');
+    ok(!!c.Game.die._loan42, '重 hook 后 die._loan42');
+    ok(!!c.Game.die._main40, '重 hook 后仍保留 die._main40');
+    // 调用链：loan42 外层 → main40 stub
+    c.Game.G = { v: 2, year: 1, age: 20, realm: 1, stone: 0, debt: 0, ap: 4, loan42: null, inv: {}, flags: {} };
+    await c.Game.enterMap('market');
+    ok(c.Game._main40ran === 1, '重 hook 后仍调用到原 _main40 包装');
+    // 已有 _loan42 时再 hook 不重复包（标记仍在）
+    const em1 = c.Game.enterMap;
+    c.LOAN42._hook();
+    ok(c.Game.enterMap === em1 && c.Game.enterMap._loan42 && c.Game.enterMap._main40,
+      '已包装时再 hook 不重包且双标记仍在');
+  }
+
   console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
   process.exitCode = fails;
 })().catch(e => { console.error(e); process.exitCode = 1; });

@@ -1,3 +1,9 @@
+## 开放世界线 · loan42 标记修复 _main40 共存（2026-10-30 23:49 UTC+8，Grok Bot）
+- 分支 loan42-mk（自 origin/main）：`DOMContentLoaded` 重 hook `enterMap`/`die` 时保留已有 `_main40` 等标记（`keepFnMarks`），避免冲掉 main40 外层标志；`L42._hook` 可重入单测。
+- 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（+7：双标记存活/调用链/不重包）。未碰核心。
+- node：loan42_squad **91/91**；loan42 **110**；test/*.js **20/20**；validate22 errors []。未跑 Chrome。
+- 下一步：开 PR→main；合 openworld-wip。
+
 ## 交接 notes · v3.9.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.9.3「主线 · 洞府」**，`VERSION`=3.9.3，tag `v3.9.3` → commit `54bd685`；其下 merge #69 `dd3b1cd`（main40）、#70 loan42、#68/#66 洞府、v3.9.1。
