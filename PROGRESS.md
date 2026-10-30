@@ -6,6 +6,24 @@
 - node：qing47 **63/63**；validate22 **errors []**；sweep44 **101**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；dongfu43 **145**；dongfu43_ui **56**；其余 `*_unit` + good_rel_cap + stage3/battle_rt/lowpoly → **ALL PASS**（24 文件 unit 批 + 5 额外 js）。未跑 Chrome / 页测待奥拉夫。
 - 下一步：开 PR→main；等奥拉夫审。
 
+## 开放世界线 · 3.9.6 shi46 R1 review 修（PR #77）（2026-10-31 00:40 UTC+8，Grok Bot）
+- 分支 `shi46` @ worktree：修奥拉夫 COMMENT（M1/M2/L1/L2）+ §20.9.9a。
+- **M1**：`visitY` 同时闸 `allyOptFor`（同年隐藏回访）与 `thank`（`visit_cap` 拒刷 aff/herb）；助战仍用 `fightY`。
+- **M2**：`Talk.extra` 上层 `undefined`/非数组 → 归一 `[]` 再拼。
+- **L1**：`Game.die` 先跑内层，仅 `aliveBefore && G.dead` 后遗憾 toast（同 mem45/#74）；`keepFnMarks`。
+- **L2**（`docs/research_v22.md` §20.4.1 @ main `fc66bcc`）：放养设定当年 `n` 不清零、cap 仍 3；跨年后 `freeCut=1` → cap=2（不是 0）。代码注释引用 §20.4.1。
+- 文件：`www/js/shi46.js`、`test/shi46_unit.js`、`docs/research_v22.md`、`PROGRESS.md`。未碰核心四件套；未进 index；无 Chrome。
+- node：shi46 **104/104**；validate22 errors []；test/*.js **29/29**。
+- 下一步：合入 openworld-wip；等奥拉夫再审 #77；R2 index+面板 DOM。
+
+## 开放世界线 · 3.9.6 亲传功课·出师 shi46 第 1 轮（data+logic）（2026-10-31 00:30 UTC+8，Grok Bot）
+- 分支 `shi46`（基于 origin/main f685885+）：`www/js/shi46.js` + `test/shi46_unit.js`；PR #77。
+- **规则**：惰性 `G.shi46`（mood/功课年封顶/年终督导/出师 ally/回访）；`TEXT_SHI46`；功课 ≤3/年（放养 2）×1 AP；出师门槛 lv8/功法2/心境70/好感80；助战 1 次/年；`SHI46.off`；rng=`Game.roll`→`Math.random`；弹卡守 `#53` storyBlock/B.on；`keepFnMarks`；公开 API 无 unguarded 内部。仍 `wbx2_*` / `G.v===2`。
+- 本轮**不进** index.html / 面板 DOM 追加留给第 2 轮。未碰核心文件；未跑 Chrome；未 push main。
+- node：shi46 **80/80**；validate22 errors []；其余 test/*.js 全过（29/29）。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/77 （`f8db58e` / feat `1f6bd8a`）
+- wip 普通 merge：见 openworld-wip。
+- 下一步：第 2 轮 index 接线 + `UI.p_legacy26` 区块；等奥拉夫审 #77。
 ## 开放世界线 · sweep44 确认卡/×N 中途 autoOn 再查（MEDIUM）（2026-10-31 00:25 UTC+8，Grok Bot）
 - 分支 sweep44-auto（已 `git merge origin/main`，PROGRESS 双保留；index 序沿用 main：`…→memory45→sweep44→sweep44_ui→audio32`）。
 - MEDIUM：`Sweep44.go` 原先只在确认卡前查 `autoOn()`；确认卡打开期间若切到 AUTO/AFK，确认后仍会扣 AP、计数、发奖。现：确认后再查一次（拒则不花 AP）；×N 每轮迭代再查（中途开自动停后续、已完成保留）；`silent` 默认也守 `autoOn`，仅 `opts.test===true` 可覆盖（逻辑层单测）。
