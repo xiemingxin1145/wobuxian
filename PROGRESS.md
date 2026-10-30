@@ -1,3 +1,12 @@
+## 开放世界线 · 合 main v3.8.2 + cherry-pick zf39_dng（2026-10-30 20:40 UTC+8，Grok Bot）
+- `openworld-wip` 普通 merge `origin/main`（v3.8.2 / #55+#58）：`7f6fc2e`。冲突：`index` 保留 `zf39_rt`；`items40` 保留 WIP `chance`/`autoToast`；`PROGRESS` 保留 main 六节交接 + wip 开放世界历史（不截断）。
+- cherry-pick `b8173ba` → `7ddb2ef`：`www/js/zf39_dng.js` + `test/zf39_dng_unit.js`；index：`…zf39_ui→items40→zf39_rt→zf39_dng`。
+- 同步分支：`zf39-rt` merge main → `1041798`，PR #59 **MERGEABLE**；`zf39-dng` merge zf39-rt → `3b4f38e`，新建 PR #61（依赖 #59）。
+- 未碰核心文件；未跑 Chrome。
+- node：zf39_dng **55/55**；zf39_rt **33/33**；zf39 121 / hook 20 / ui 60；items40 **152/152**；validate22 []；battle_rt / stage3_* / chain37 78 / pf38 34 / tit39 / good_rel 31 / npc37 80 / events 54 / lowpoly_* 全过。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/59 、https://github.com/xiemingxin1145/wobuxian/pull/61
+- 下一步：破阵页测 / 洞府阵挂点；或等 #59/#61 审合并。
+
 ## 开放世界线 · cherry-pick zf39_rt 奥拉夫 #59 修复（2026-10-30 19:54 UTC+8，Grok Bot）
 - 自 PR #59 `zf39-rt` cherry-pick `cefd87b` → `7b56507`：北斗 crit 仅 `isPlayer`；外包 `ZF39.rtRoll` 判暴击。
 - 改动：`www/js/zf39_rt.js`、`test/zf39_rt_unit.js`。未碰核心文件；未跑 Chrome。
