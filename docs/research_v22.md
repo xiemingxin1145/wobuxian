@@ -2637,3 +2637,305 @@ const TEXT44 = {
 - P2 #16「秘境副本（扫荡）」：副本本体 = `dungeon26.js` v2.6 ✅；扫荡规格见**本节 §18**，建议 3.9.3。另附一个小 bug 供参考：`dungeon26.js:152` 在单层守关被击破时就写 `G.dungeon.clear[band]=1`，面板「已通关层数档」会偏高——不影响扫荡（扫荡另记首通），修不修由 Grok Bot 决定。
 - P2 #16「前世记忆继承」：已核对，**部分已实装**——`legacy26.js:85-99` 封剑道统让来世出生带寿元 +20、修为 +5%；`Game.meta` 的 META_PERKS 跨世加成；`daily33` 签到也存 `Game.meta` 跨世不丢。缺的是「记忆」本身（来世保留上一世解锁的图鉴/奇遇/NPC 好感印象、触发『似曾相识』对话）。建议 ROADMAP 标 🟡，下一轮研究员可补一份 `memory45` 小规格（只做跨世「似曾相识」文案 + 少量好感初值，不碰数值平衡）。
 - 至此 P2 #16 七项里：灵宠派遣、一键连炼 ✅（v3.5）；借贷 §16、洞府地图 §17、秘境扫荡 §18 都已有规格；宗门大比 = `sects25.js` 已实装；只剩前世记忆（「似曾相识」部分）待规格。
+
+## 19. 【2026-10-30 23:3x 研究员】前世记忆继承补完 `memory45.js`「似曾相识」（建议 3.9.5）
+
+> 起因：§18.7 已核对——P2 #16「前世记忆继承」**数值半边已实装**（`legacy26` 封剑道统、`META_PERKS`、`Game.meta` 成就/时装/签到等），缺的是「记忆」本身：来世再遇见前世的友人/仇敌/债主/道侣/师徒时，没有『似曾相识』对话与轻量余波。本节只补这一块；**不改** `game.js` / `talk.js` / `data.js` / `ui.js`，新文件 `www/js/memory45.js` 全包装接入。建议排期：**3.9.5**（排在 §18 秘境扫荡 sweep44 / 3.9.4 之后；独立于洞府/小贷，不依赖未合 PR）。
+
+### 19.1 代码核对（origin/main 现网，对照 §18.7）
+
+| 项 | 现状（文件:行） | 对规格的影响 |
+|---|---|---|
+| 跨世存档 | `game.js:10-11` `loadMeta`/`saveMeta` → `wbx2_meta`；默认 `{ pts, perks, lives, endings, achs, best }` | 记忆写进 `Game.meta.mem45`，惰性字段，**不升** `G.v` |
+| 投胎 | `game.js:25-40` `newLife`：清空本世 `G`（含 `aff:{}`、`partner:null`），`meta.lives++`；`perk()` 把 `meta.perks` 折成初始灵石/寿元/修为等 | 本世好感/恩怨**不**自动继承；只能读 meta 里的「印象快照」再轻推一把 |
+| 结局结算 | `game.js:354-362` `die`：写 `endings`/`pts`/`best`，删 `wbx2_save` | **快照时机**：包 `Game.die` 开头（`G.dead` 置位前）从本世 `G` 抄人情账进 `meta.mem45` |
+| META_PERKS | `data.js` `META_PERKS`（前世勤快/存款/宿慧等）；`game.js:14,28,31` 投胎时生效 | 已是数值继承；memory45 **不再**叠大额属性，只做对话+微好感/一次顿悟 |
+| 道统遗惠 | `legacy26.js:85-99` 包 `newLife`：若 `meta.daotong.sealed` → `lifeBonus+20`、`cultBonus+0.05`；封剑写 `meta.daotong`（`legacy26.js:182-186`） | 已覆盖「修为遗惠」；memory45 不碰道统 |
+| 时装账号仓 | `systems21.js:88,95` / `cos36.js`：`Game.meta.cos` 永久拥有；`cos36.js:597-610` 投胎可沿用本世穿戴 | 外观跨世；与「似曾相识」无关 |
+| 家族最高级 | `clan41.js:1137-1160` `meta.clan41Best` + 投胎 toast | 只提示旧族名，无 NPC 对话 |
+| 日课/签到 | `daily33.js`：`Game.meta.d33` 跨世不丢 | 已跨世；不纳入记忆文案 |
+| 称号读 meta | `tit39.js:8`/`T39.compile` 条件可读 `M.endings`；`systems21.js:53-65` 旧 `TITLES` 读 `meta.achs`/`lives`/`gacha` | 称号跨世判定已有；memory45 可另挂一个「似曾相识」小称号条件（见 19.5），非阻塞 |
+| 本世恩怨 | `life34.js:25` `G.life34.rel`；`Life34.rel` 钳位 ±100（`:63`）；友≥40 / 仇≤−40（`:50`） | **快照源 A**：`L.rel` |
+| 本世好感 | `game.js:29` `G.aff`；`Game.apply` `aff:`（`game.js:264`）钳位 0–150；life34 半额同步 `L.rel`（`life34.js:136-146`） | **快照源 B**：`G.aff`（与 rel 取较强关系类型） |
+| 道侣/弟子 | `G.partner`；`G.apprentice`（legacy26）；`G.dis36[]`（fam37） | **快照源 C**：强制类型 `dao` / `di` |
+| 师父印象 | 主线师父 `mentor` 固定；无「拜 NPC 为师」通用字段（NPC 互拜师在 `npc37` 新闻 `baishi`） | **快照源 D**：对 `mentor`（及可选 `mentor2`）若 `aff≥60` 或 `L.rel≥40` 记 `shi` |
+| 路遇/债事计数 | `npc37.js:18` `G.npc37={rel,tie,st,yc,ev,q}`；`ev` 含 `debt`（`:36-37`） | 可用于 `debtor`/`creditor` 弱推断；无单独「谁欠谁」表 → 规格自建规则（19.3） |
+| 触发守卫 | `NPC37.storyBlock`（`npc37.js:124-128`）：序章 / 教程 `!meta.tut23` / `B.on`；idle 亦看 `B.on`（`:105`） | 似曾相识弹卡**必须**同样守卫，避免冲主线/战斗 |
+| 随机 | `game.js:110` `Game.roll(p, kind)`（尊重开发者 luck 类作弊） | 触发概率一律 `Game.roll(..., 'qiyu')`；禁止裸 `Math.random` 作门闩 |
+| 对话扩展点 | 既有模块普遍包 `Talk.extra`（legacy26 / fam37 / chain37 / cos36 / loan42 / end30） | memory45 包 `Talk.extra`：对已登记前世印象的 NPC 注入一行「似曾相识」选项；另包 `Game.interactEnt` 作「靠近自动一次」弱触发（可关） |
+| 开发者面板 | `DevPanel.registerTab`（loan42/cos36/clan41 同款） | 注册「记忆45」，仅 `#dev` / 开发者模式 |
+| index 序 | `…→dongfu43→dongfu43_ui→audio32→update→main`（现网） | `memory45.js` 放在 `dongfu43_ui.js` 之后、`audio32.js` 之前（或 sweep44 之后）；需能看见 `Talk`/`NPC37`/`Life34`/`Game` |
+
+**结论（与 §18.7 一致）**：跨世「变强/收藏/签到/道统」已齐；跨世「人情记忆 → 对话」为零。本节只补后者。
+
+### 19.2 设计目标
+
+1. **体验**：新开一世后，玩家再遇到前世结过善缘/恶缘/债缘/道侣/师徒的 NPC（以及少量去过的地图、打过的 BOSS 名），会冒出一句「似曾相识」——可只听一句旁白，也可点开一张**可选**小卡片（应 / 路过 / 讨债梗）。
+2. **数值克制**：奖励只有（a）一次性好感初值偏移；（b）一世一次的微修为顿悟；（c）对仇敌可选的「破绽印象」战斗小费（有上限）。**禁止**跨世复制整表 `G.aff` / `L.rel`，禁止减尾款、加行动力、送神装。
+3. **叙事口吻**：继续「天道讨债」冷幽默——孟婆、讨债司、纸鹤账单可以吐槽「跨世通讯录」，但不破坏主线严肃节点（序章/摊牌/结局选项仍由 `storyBlock` / `UNSAFE` 挡住）。
+4. **老档兼容**：没有 `meta.mem45` = 功能静默；第一次死亡/坐化后才开始积累。`MEM45.off=true` 时整模块隐藏，行为与未装载一致。
+
+### 19.3 数据与模块边界
+
+#### 19.3.1 账号级（跨世）`Game.meta.mem45`
+
+```js
+Game.meta.mem45 = {
+  v: 1,
+  // 人情印象：最多 24 条；超出时按 |w| 弱者淘汰
+  npcs: {
+    // id: { t:'friend'|'foe'|'debtor'|'creditor'|'dao'|'shi'|'di', w:权重-100..100, n:'显示名快照', life:写入时的 meta.lives }
+  },
+  places: { /* mapId: 1, 最多 12 */ },
+  bosses: { /* monId/bossFlag: 1, 最多 8 */ },
+  tot: 0,          // 累计触发「似曾相识」次数（称号用）
+  lastSnap: 0      // 上次快照时的 Date.now()，防抖
+};
+```
+
+惰性：`ensureMeta()` 在读时 `Game.meta.mem45 = Game.meta.mem45 || { v:1, npcs:{}, places:{}, bosses:{}, tot:0, lastSnap:0 }`；缺字段补齐。**不写进** `loadMeta` 的 Object.assign 默认表（避免改 `game.js`）。
+
+#### 19.3.2 本世运行态 `G.mem45`（随存档，死档清空无妨）
+
+```js
+G.mem45 = {
+  v: 1,
+  y: 0, n: 0,     // 当前年、本年已触发次数
+  fired: {},      // npcId → 1，本世该 NPC 只触发一次
+  placeFired: {}, // mapId → 1
+  bossFired: {},  // bossKey → 1
+  insight: 0,     // 1 = 已领一世一次顿悟
+  auto: 1         // 1=允许靠近弱触发；Dev 可关
+};
+```
+
+#### 19.3.3 快照算法 `MEM45.snapshot(G)`（包在 `Game.die` 最前）
+
+对每个候选 NPC id：
+
+| 优先级 | 条件 | 类型 `t` | 权重 `w` |
+|---|---|---|---|
+| 1 | `G.partner === id` | `dao` | `+max(80, aff, rel)` |
+| 2 | `G.apprentice === id` 或 `dis36` 含 id | `di` | `+max(70, aff, rel)` |
+| 3 | `id==='mentor'||id==='mentor2'` 且 `(aff≥60\|\|rel≥40)` | `shi` | `+max(60, aff, rel)` |
+| 4 | `rel ≤ -40` 或 `aff` 曾战败标记（无则仅 rel） | `foe` | `-max(40, \|rel\|)` |
+| 5 | `rel ≥ 40` 或 `aff ≥ 60` | `friend` | `+max(rel, aff/2)` |
+| 6 | 弱债：`npc37.ev.debt≥1` 且对本 id 有过 `stone` 往来启发式（见下） | `debtor`/`creditor` | ±35 |
+
+**债缘启发式（无独立账本时的保守规则）**：若 `L.rel[id]∈[10,39]` 且本世日志/`G.log` 无法可靠解析，则**跳过**债缘，避免误伤；仅当 `G.npc37.tie[id]` 未来若被其它模块写入 `{debt:正负}` 时读取——当前主线代码 `tie` 多为空对象，故 **v1 以 friend/foe/dao/shi/di 为主**，`debtor`/`creditor` 文案包先备好，DevPanel 可手工注入测试。
+
+地图：`Object.keys(G.visited||{})` 里非 `village` 的，按访问记入 `places`（封顶 12）。  
+BOSS：`Object.keys(G.bosses||{})` 与主线旗 `flags.boss_*` 合并，封顶 8。
+
+写入后 `Game.saveMeta()`。同一毫秒重复 `die` 用 `lastSnap` 防抖。
+
+#### 19.3.4 模块 `www/js/memory45.js`（只包装）
+
+```text
+包装：
+  Game.die        → 开头 snapshot
+  Game.newLife    → ensure G.mem45；不自动改 aff
+  Talk.extra      → 对 meta.mem45.npcs[id] 且本世未 fired 注入选项「✦ 似曾相识」
+  Game.enterMap   → 地点弱触发（toast/一句旁白，不强制卡）
+  Game.interactEnt→ 可选靠近弱触发（先 roll，再卡；storyBlock 则跳过）
+  DevPanel.registerTab('mem45','记忆45', ...)
+不包装 / 不改：
+  game.js 正文、talk.js、data.js、ui.js、NPC37.storyBlock 实现（只调用）
+```
+
+常量开关：`window.MEM45 = { off:false, YEAR_CAP:3, AFF_CAP:12, INSIGHT_EXP:0.08, AUTO_P:0.35, TALK_P:1 }`。
+
+### 19.4 触发规则
+
+1. **前提**：`!MEM45.off` 且 `meta.mem45.npcs[id]` 存在；本世 `!G.mem45.fired[id]`；本年 `G.mem45.n < YEAR_CAP`。
+2. **守卫**：若 `NPC37.storyBlock && NPC37.storyBlock()` 返回真，或 `B && B.on`，**不弹卡、不 toast**（与 npc37 路遇一致）。自动任务/挂机：选项文案**不以** `SAFE` 白名单前缀开头；不进入 `ux23` 自动点选（玩家手动）。
+3. **Talk.extra 入口**（主路径）：选项「✦ 似曾相识」；点开后 `Game.roll(TALK_P,'qiyu')`（默认 1=必出）。展示 `UI.card`：正文从 `TEXT_MEM45[t]` 池抽 1 句（`{n}` 替换），三选一（应 / 路过 / 讨债梗）。选完：
+   - 标记 `fired[id]=1`，`n++`，`meta.mem45.tot++`，`saveMeta`；
+   - 按 19.5 发放微奖励；
+   - toast `TEXT_MEM45.toast.fired`。
+4. **靠近弱触发**（辅路径，`G.mem45.auto`）：`interactEnt` 时若尚未 fired 且 `Game.roll(AUTO_P,'qiyu')`，只 `UI.toast` 一句 generic/对应类型，**不发奖励**，不记 fired（避免抢走卡片）；同一 NPC 每日（按 `G.year`）最多弱提示 1 次（`G.mem45.weak[id]=year`）。
+5. **地点**：进图时若 `places[mapId]` 且未 `placeFired`，`Game.roll(0.4,'qiyu')` → 一句 `TEXT_MEM45.place` toast，记 placeFired；**无数值**。
+6. **BOSS**：首次对话/开战面板标题旁可追加一句（若模块能接到 `UI.card` 包则做；否则仅 Dev 可测）——v1 **允许只做 NPC + 地点**，BOSS 文案先入库，接线标「P2 可延后」但不删文案。
+7. **一年封顶**：`YEAR_CAP=3`（所有 NPC 卡片合计）；达上限后选项隐藏或置灰显示 `toast.cap_year`。
+8. **每 NPC 一世一次**：`fired` 不可清除（除 DevPanel）。
+
+### 19.5 数值（有上限，打不破平衡）
+
+| 触发选择 | 效果 | 上限 / 备注 |
+|---|---|---|
+| 应（opt_yes）+ friend/dao/shi/di | `G.aff[id] += +8..+12`（按 `\|w\|` 插值） | 单次 ≤ `AFF_CAP`(12)；且使 aff≤150（走现有 apply 逻辑或直接写后 clamp） |
+| 应 + foe | `G.aff[id] = max(0, aff-6)` **或** 给 `G.mem45.foeHint[id]=1`（下次与其战斗暴击 +3% 一次，打完清） | 二选一：仇敌默认给 foeHint，不双叠；暴击小费单次战斗 |
+| 应 + debtor | aff +6，并 `Game.give` 无；可选 toast 讨债梗 | 不发灵石（防刷） |
+| 应 + creditor | aff +4；若 `G.stone≥20` 可自选「还 20 灵石」换 +8（卡片第四按钮仅 creditor） | 还石可选，不强制 |
+| 路过（opt_no） | 无数值，只 fired | — |
+| 讨债梗（opt_joke） | aff +2（任何类型），额外抽一句 `tiandao` toast | — |
+| 一世顿悟 | 若 `!insight` 且本次为 dao/shi **或** `\|w\|≥80` 的 friend：`Game.addExp(Game.yearExp()*INSIGHT_EXP, true)`，`insight=1` | `INSIGHT_EXP=0.08`（约 1/12 年修为）；绝不叠加 cultBonus 永久值 |
+| 地点 / BOSS 旁白 | 0 | — |
+
+校准目标：一世触发满 3 次「应」≈ 最多 +36 好感分散在 3 人 + 至多 0.08 yearExp——远低于送一次礼物/打一次奇遇链；与 `legacy26` 寿元+20、修为+5% **正交**。
+
+称号（可选，不阻塞）：`t_mem45`「似曾相识」——`M.mem45 && M.mem45.tot>=10`；若 tit39 需改表则留给下次扩表，memory45 只维持 `tot` 计数。
+
+### 19.6 文案包 `TEXT_MEM45`（可直接抄；已用 `JSON.parse` 校验）
+
+```js
+const TEXT_MEM45 = {
+  "meta": {
+    "id": "TEXT_MEM45",
+    "ver": "3.9.5",
+    "module": "memory45.js",
+    "title": "似曾相识·前世记忆继承补完",
+    "basedOn": [
+      "research_v22.md§18.7",
+      "legacy26",
+      "life34",
+      "npc37",
+      "Game.meta"
+    ]
+  },
+  "toast": {
+    "snap": "轮回殿的书吏抄下了你今生的人情账……来世或许会梦到。",
+    "cap_year": "今年的似曾相识已经够多了。孟婆说：记太多会噎着。",
+    "off": "记忆45 已关闭（MEM45.off）。",
+    "fired": "【似曾相识】与{n}的前世余波已了结。"
+  },
+  "generic": [
+    "你看见{n}的侧脸，心里忽然一软——像在哪儿见过。",
+    "风里有一缕熟悉的味道。{n}抬头看你，也愣了一瞬。",
+    "你脱口叫出半个名字，又咽回去。{n}：“……你认识我？”",
+    "讨债司路过的纸鹤掉下一片灰，上面隐约写着：{n}·旧档未清。",
+    "你梦里走过这条路。醒过来，{n}就站在路中央。"
+  ],
+  "friend": [
+    "{n}远远招手，又停住：“奇怪，总觉得该请你喝过酒。”",
+    "{n}塞给你半块糕：“别问为什么。我做多了。”",
+    "{n}：“你这眼神……像欠我人情的那种熟人。”",
+    "你与{n}对视三息，同时笑了。笑完又一起尴尬。",
+    "{n}拍拍你肩：“下辈子见——哦，这不就是。”"
+  ],
+  "foe": [
+    "{n}目光一冷：“脸生。手熟。”",
+    "{n}摸了摸剑柄：“上辈子没砍完的，这辈子可以再约。”",
+    "你看见{n}，脚底发凉。对方也皱眉：“欠条呢？……算了，先欠着。”",
+    "{n}冷笑：“孟婆汤对你无效？对我也一样。”",
+    "空气里像有未结的梁子。{n}：“别站那么近。我怕手比脑子快。”"
+  ],
+  "debtor": [
+    "{n}摸出三枚灵石，又缩回去：“我……是不是该还你什么？”",
+    "{n}：“梦见自己欠人一顿酒。你看着像债主。”",
+    "讨债鬼从{n}身边飘过，对你点头如打招呼。{n}背后发凉。",
+    "{n}塞给你一包草药：“利息？当我孝敬——别问前世。”",
+    "{n}小声：“上辈子你是不是借我走过夜路？我总想谢你。”"
+  ],
+  "creditor": [
+    "{n}看着你，像在算账：“你这辈子……打算先还哪一笔？”",
+    "{n}递来一张空白欠条：“习惯了。你填数就行。”",
+    "你下意识想掏灵石。{n}：“哦？条件反射还在？”",
+    "{n}：“别紧张。我这辈子还不催你——除非你主动提。”",
+    "风吹起{n}衣摆，露出半截旧账本。你忽然想躲进草丛。"
+  ],
+  "dao": [
+    "{n}看你的眼神太熟，熟到像一起看过同一轮月。",
+    "{n}低声：“红线……是不是打过死结？怎么又碰上了。”",
+    "你想叫一声“道侣”，舌尖发涩。{n}耳尖却红了。",
+    "{n}：“别用那种眼神。我还没结亲——至少这辈子还没。”",
+    "月色很好。{n}偏过头：“你是不是……梦到过我？”"
+  ],
+  "shi": [
+    "{n}下意识摆出指点的架势，又收住：“咳，面生。”",
+    "{n}：“你站姿像我带过的徒弟。可惜我不收拖欠学费的。”",
+    "你想行礼，膝盖先动了。{n}：“……起来。这辈子还没拜呢。”",
+    "{n}递来一壶劣酒：“师父不喝这个。我只是路过。”",
+    "剑意一闪。{n}盯着你：“谁教你握剑的？别说是我。”"
+  ],
+  "di": [
+    "{n}看见你，腰杆一挺，像要听训——随即满脸困惑。",
+    "{n}：“师……啊不，道友。我怎么想叫你师傅？”",
+    "你脱口：“功课做完了吗？”{n}：“啊？我还没拜师啊！”",
+    "{n}摸出半卷残页：“梦见有人传我剑诀。字迹像你。”",
+    "{n}：“这辈子换我罩着你？……开玩笑的。大概。”"
+  ],
+  "place": [
+    "你踏进{map}，脚步自己慢了半拍——像回来过。",
+    "{map}的风带着旧尘。你想起一张没还完的人情账。",
+    "路牌歪着，你却知道该往哪拐。{map}像在点头。"
+  ],
+  "boss": [
+    "你看见{n}的虚影，脊背发凉。账本翻页声在耳边。",
+    "{n}（记忆里的劲敌）留下一句余音：“下辈子，利息加倍。”",
+    "擂台旧痕还在。你对{n}的名字有一种莫名的胜负欲。"
+  ],
+  "tiandao": [
+    "天道客服弹窗：检测到前世人情残留。是否一键清除？【清除失败：权限不足】",
+    "讨债司提示：跨世记忆不计入征信，但计入尴尬值。",
+    "孟婆加班留言：汤喝了也会做梦的人，请自觉少来轮回殿排队。",
+    "天道：“你以为轮回能销账？人情账比灵石账难清。”",
+    "纸鹤账单背面印小字：似曾相识服务费已减免——本次免费，下次再说。",
+    "天兵甲：“又一个带前世通讯录投胎的。”天兵乙：“记仇的那种最麻烦。”"
+  ],
+  "choice": {
+    "title": "似曾相识",
+    "ask": "{line}\n\n（前世与【{n}】的缘分残留。可轻轻应一声，或当作路过。）",
+    "opt_yes": "轻声应：“……好像见过。”",
+    "opt_no": "当作路过",
+    "opt_joke": "“你是不是也欠天道钱？”",
+    "after_yes": "对方眼神柔了一瞬。世界像把旧账翻到了夹缝里。",
+    "after_no": "你把那一缕记忆按回心底。风继续吹。",
+    "after_joke": "{n}愣住，随即骂笑：“……你还是这么欠抽。”"
+  },
+  "bonus": {
+    "aff": "好感初值{sgn}{v}（一次）",
+    "insight": "顿悟余波：修为 +{v}（一世一次）",
+    "hint": "你隐约记得对方的破绽（下次与其战斗暴击倾向微升，已达上限则跳过）"
+  },
+  "dev": {
+    "tab": "记忆45",
+    "hint": "跨世似曾相识（Game.meta.mem45）。仅开发者模式。"
+  }
+};
+```
+
+> 列表台词合计 ≥30 句（generic/friend/foe/debtor/creditor/dao/shi/di/place/boss/tiandao）。实现时 `const TEXT_MEM45 = /* 上表 */` 或 `JSON.parse(\`...\`)` 均可；单测用 `JSON.parse(JSON.stringify(TEXT_MEM45))` 兜底。
+
+### 19.7 DevPanel「记忆45」（仅开发者模式）
+
+`DevPanel.registerTab('mem45', '记忆45', render)`，与 loan42/cos36 同款：
+
+- 展示：`npcs` 条数、`tot`、本年 `n/YEAR_CAP`、`insight`、`off` 状态；JSON 截断预览。
+- 按钮：`注入友人(mentor)` / `注入仇敌(aotian)` / `注入道侣(lengyue)` / `注入弟子(cuihua)` / `注入债户` / `注入债主` / `清空 mem45` / `重置本世 fired` / `强制弹卡(当前选中 NPC)` / `开关 auto` / `开关 off`。
+- 注入只写 `meta.mem45.npcs[id]`，便于奥拉夫不跑完整一世。
+
+### 19.8 验收用例（≥8；node + 页测给奥拉夫）
+
+**node（`test/memory45_unit.js`，Grok Bot 实现时自写）**
+
+1. 无 `meta.mem45` 时 `ensure` 出默认结构；`MEM45.off=true` 时 `Talk.extra` 不注入选项。
+2. 构造 `G`：`partner='lengyue'`, `aff.lengyue=90` → `snapshot` 后 `meta.mem45.npcs.lengyue.t==='dao'`；超过 24 人时弱权重被淘汰。
+3. `foe`：`life34.rel.aotian=-50` → 快照类型 `foe`；`friend`：`rel.cuihua=55` → `friend`。
+4. 触发后 `fired` 置位，同年第 4 次被 `YEAR_CAP` 拒绝；跨年 `y` 变化后 `n` 归零可再触发。
+5. `NPC37.storyBlock` 返回 `'prologue'`/`'battle'` 或 `B.on=true` 时 `canFire` 为 false。
+6. `Game.roll` 被调用（stub 计数）；奖励 aff 增量 ≤ `AFF_CAP`；顿悟仅一次。
+7. `TEXT_MEM45` 经 `JSON.parse` 往返；每个类型池长度 ≥1；`tiandao.length≥4`。
+8. 老档：只有 `wbx2_meta` 无 mem45 字段时读写不抛；`saveMeta` 后再次 `ensure` 字段仍在。
+
+**页测（奥拉夫 / Playwright，建议）**
+
+9. `#dev` 开局 → 记忆45 注入友人 mentor → 进村点剑仙 → 见「✦ 似曾相识」→ 选「应」→ 好感上升且选项消失。
+10. 序章未结束（`storyBlock`）时即使注入也不出卡；战斗中不出卡。
+11. `multilife` 烟测：一世结道侣后坐化 → 新世再遇该 NPC 仍可出卡（需 Dev 加速）。
+
+门禁：`node test/validate22.js` 0 错；相关 unit 全绿；不回归 `human_olaf` / `panels21`。
+
+### 19.9 缺口与风险
+
+1. **无真实「谁欠谁」账本**：`debtor`/`creditor` 依赖未来 `npc37.tie` 或对话 flag；v1 以五类（友/仇/道侣/师/徒）为主，债缘靠 Dev 注入验收文案。若强行用灵石流水猜，误伤率高——已写明跳过。
+2. **快照只在 `die`**：若玩家清档 / 不经 `die` 直接删 `wbx2_save`，本世人情丢失（与现有 meta 其它字段一致）。可选后续在「轮回殿确认」按钮再 snapshot 一次。
+3. **Talk.extra 链顺序**：memory45 应尽量靠后加载，以免被 end30「大结局」选项挤掉；注入用 `out.push` 而非 `unshift`，优先级低于主线/奇遇链。
+4. **自动任务**：选项无 SAFE 前缀；仍须确认 ux23 不会误点「似曾相识」（奥拉夫页测盯一次）。
+5. **文案重复感**：同一类型多 NPC 共用池，靠 `{n}` 区分；若主人嫌重复，可再扩池，不改数值。
+6. **与 main40 摊牌记忆句**：`main40` G5 是主线合同摊牌专用，不与 mem45 抢 `mentor` 主线对话；mem45 只走 `Talk.extra` 附加项，主线 `Talk.mainTalk` 不拦截。
+7. **存档体积**：24 NPC × 短字段 ≪ 1KB，远低于 localStorage 实务上限；仍设硬顶防被其它 bot 误写成流水账。
+8. **ROADMAP**：P2 #16「前世记忆继承」在 memory45 落地后可由 Grok Bot 标 ✅；本节只写规格，不改 ROADMAP 文件。
+
+---
+

@@ -1,3 +1,13 @@
+## docs: PROGRESS — openworld-wip merge sweep44-r2 + loan42-mk（2026-10-30 23:52 UTC+8）
+- 普通 merge：`sweep44-r2`（#73）+ `loan42-mk`（#74）入 openworld-wip。
+- #71 sweep44 已在 sweep44 分支 `f914b42` 合过 main（PROGRESS 双保留）。
+
+## 开放世界线 · loan42 标记修复 _main40 共存（2026-10-30 23:49 UTC+8，Grok Bot）
+- 分支 loan42-mk（自 origin/main）：`DOMContentLoaded` 重 hook `enterMap`/`die` 时保留已有 `_main40` 等标记（`keepFnMarks`），避免冲掉 main40 外层标志；`L42._hook` 可重入单测。
+- 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（+7：双标记存活/调用链/不重包）。未碰核心。
+- node：loan42_squad **91/91**；loan42 **110**；test/*.js **20/20**；validate22 errors []。未跑 Chrome。
+- 下一步：开 PR→main；合 openworld-wip。
+
 ## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R2 UI 接线（2026-10-30 23:49 UTC+8，Grok Bot）
 - 分支 sweep44-r2（自 origin/sweep44 @ f914b42，已合 main 解 #71 冲突）。依赖 PR #71。
 - 改动：`www/js/sweep44.js`（`_once` 收进闭包，公开 `Sweep44._once === undefined`）；新 `www/js/sweep44_ui.js`（包 `UI.p_dungeon26` 扫荡区块：本年剩余/AP/档行/TEXT44 确认+回执；DevPanel「扫荡44」；tit39 `t_sw44` 尽力挂 TITLES + tit39Deferred；finish 全通 exit 解锁 / retreat 不解锁）；`www/index.html`（dongfu43_ui→sweep44→sweep44_ui→audio32）；`test/sweep44_unit.js`；新 `test/sweep44_ui_unit.js`。未碰核心。
