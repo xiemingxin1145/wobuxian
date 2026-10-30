@@ -1050,3 +1050,4 @@
 - 测试（纯 node，未跑 Chrome）：zf39_hook_unit 20/20、zf39_unit 118/118、chain37_unit 78/78、npc37_unit 80/80、npc37_events_unit 54/54、pf38_unit 34/34、stage3_chain / stage3_life34 / stage3_token_offset 全过、validate22 0 错。
 - 待跑页面测试（需空闲 Chrome，请群里协调）：jsscan33.py、pf38_page.py、dev_openworld_page.py、human23。
 - 下一步：洞府「阵法」面板 UI（学/炼/布阵）+ 战胜 winXp 接入；rt27 即时战套 rtMult；dungeon26 Dng.roomTrap 破阵（先确认接口）；开发者 Tab「阵法39」；页面测试。
+- 2026-10-30 21:5x 小贷42 #65 奥拉夫 low：offerSquad 中 card()=-1（卡未弹出）不再记 _squadDoneY，留 squad=1 下张有怪图再试；storyBlock 延后仍不占次数。loan42-r2 4fd4de9，cherry-pick 至 openworld-wip。新增 loan42_squad_unit M3；loan42 110/110、loan42_squad 54/54、validate22 0 错、clan41/items40/stage3_*/chain37/npc37/pf38/tit39/zf39* 全过（纯 node，未跑 Chrome）。
