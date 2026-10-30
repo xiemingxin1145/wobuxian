@@ -16,7 +16,11 @@ function box(withPF) {
     navigator: { userAgent: '' }, performance: { now: () => 0 }, requestAnimationFrame() {}, addEventListener() {}, location: { hash: '', search: '' }, Image: function () {}, Audio: function () {}, MutationObserver: function () { this.observe = () => {}; }, innerWidth: 412, innerHeight: 915, devicePixelRatio: 1 };
   c.window = c; vm.createContext(c);
   for (const s of SCRIPTS) {
-    if (withPF && s === 'js/items40.js' && PF_SRC) { try { vm.runInContext(PF_SRC, c, { filename: 'profile38.js' }); } catch (e) { } }
+    // withPF=false：跳过 profile38，模拟 3.8.0 未合入（gate / 窥心类静默）
+    if (!withPF && /js\/profile38\.js$/.test(s)) continue;
+    if (withPF && s === 'js/items40.js' && PF_SRC && !SCRIPTS.includes('js/profile38.js')) {
+      try { vm.runInContext(PF_SRC, c, { filename: 'profile38.js' }); } catch (e) { }
+    }
     try { vm.runInContext(fs.readFileSync(path.join(W, s), 'utf8'), c, { filename: s }); } catch (e) { }
   }
   vm.runInContext(`
@@ -218,7 +222,10 @@ const ev = (c, s) => vm.runInContext(s, c);
     const N37p = ev(c, 'NPC37'); c.Math.random = () => 0; const sc = { id: 'merchant', map: 'market', ch: [{ x: 'a', fx: {} }] }; N37p.st().q.push(sc); await N37p.resolve(sc, 0); delete c.Math.random;
     ok(G.inv.i40_mixin === 1 && G.i40.mixin[0] === 'merchant', '密信：路遇 5% 掉落，绑定当时 NPC');
     ok(await usep('i40_mixin') === 1 && PF.has('merchant', 'sec0') && !PF.has('merchant', 'sec1') && G.flags.pf_qian_scale, '密信：揭示的是秘密①（sec0，I7）');
-    ev(c, "Game.give('i40_mixin',1)"); G.i40.mixin.push('merchant'); await usep('i40_mixin'); ok(G.i40.mixin.length === 0, '密信：绑定 NPC 已知晓 → 换一个随机有秘密①的 NPC');
+    ev(c, "Game.give('i40_mixin',1)"); G.i40.mixin.push('merchant');
+    // 固定随机：不要抽到 mentor（否则会提前揭示秘密①，干扰下一段断剑入口）
+    c.Math.random = () => 0.99; await usep('i40_mixin'); delete c.Math.random;
+    ok(G.i40.mixin.length === 0 && !PF.has('mentor', 'sec0'), '密信：绑定 NPC 已知晓 → 换一个随机有秘密①的 NPC（避开剑仙）');
     // 剧情：断剑 / 逆鳞 / 坏账 / 冰心 / 荷包
     ok(!ev(c, "Talk.extra('xianguan').some(x => /断剑/.test(x[0]))"), '断剑残片：未知剑仙秘密①不出现');
     PF.reveal('mentor', 'sec0'); G.stone = 100000; const opt = ev(c, "Talk.extra('xianguan').find(x => x[0].startsWith('⚑ 打听断剑下落'))"); ok(!!opt && /900灵石/.test(opt[0]), '断剑残片：秘密①后记账童子处出现（300×(1+境界)）');

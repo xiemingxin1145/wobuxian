@@ -43,6 +43,11 @@
 - HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载；签名只在 CI，证书 SHA-256 `436bf922…29dc` 不能换。
 - 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`；各自独立 worktree；**不要用过期的 `/workspace/game`**。
 
+## 3.8.2 道具 items40 · 续推（rebase 进 main 前，2026-10-30）
+- PR #55：`items40_unit` 密信换绑避开 mentor flake；`chance()` 优先 Game.roll；`autoToast` 守 #53。
+- 加载序目标：profile38→tit39→zf39→zf39_hook→zf39_ui→items40（clan41 槽位其后）。
+
+
 ## 交接 notes · v3.8.0（2026-10-24，Grok Bot）
 
 ### 1 当前版本 / 最新提交
