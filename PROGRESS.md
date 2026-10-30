@@ -2,6 +2,28 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 交接 notes · v3.8.2.1（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.2.1「道具热修」**，`VERSION`=3.8.2.1，tag `v3.8.2.1` →（发版提交后填）；其下 `feb3004` #62 merge、`54e3509` chance/autoToast。
+- **是 Latest**（非预发布；四段 versionName 可行：CI 用 tag 去 `v` 作 versionName，versionCode 仍 = 100+run_number）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.2.1
+- Release 资产：发版后更新。
+
+### 2 本版做了什么 / 刻意没做什么
+- **#62**：补齐 #55 终稿漏合——`chance()`→`Game.roll`（野花/秘境/密信）；`autoToast` 守 #53；送子瓶兑底。仅 `items40.js` + `items40_unit.js`（152/152）。
+- 刻意没做：未合 #59/#60/#61（#59 热修发版后另合、不发号）。
+
+### 3 测试结果
+- node：validate22 0 错；items40 **152/152**；zf39_ui 60 / zf39 121 / zf39_hook 20；其余 unit 套件全过 → **16/16 PASS**。未开浏览器。
+
+### 4 遗留问题
+- PR #59 `zf39-rt`（发版后合入 main，属 3.9.0，不单独立项发版）、#60 clan41、#61、#38；Issue #12 OPEN。不删分支。
+
+### 5 下一版任务（按顺序）
+1. **3.8.3 家族**（#60）→ **3.8.4 时装** §15 → **3.9.0 阵法**完整发版（#59 + zf39_dng）→ **3.9.1 loan** §16 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17
+
+### 6 交接注意
+- 同 v3.8.2：index `zf39_ui → items40`（#59 合入后为 `… → items40 → zf39_rt`）；不改核心文件；Chrome 忙只跑 node。
+
 ## 交接 notes · v3.8.2（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.8.2「道具」**，`VERSION`=3.8.2，tag `v3.8.2` → commit `28bd81b`（`3.8.2：VERSION + CHANGELOG`；其下 `4a0fae8` #55 merge、`0cdc5f4` 清截图噪音、`1894d0f` #58 merge）。
