@@ -1,8 +1,8 @@
 ## 交接 notes · v3.9.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.9.3「主线 · 洞府」**，`VERSION`=3.9.3，tag `v3.9.3` → commit `a12c7ca`；其下 merge #69 `dd3b1cd`（main40）、#70 loan42、#68/#66 洞府、v3.9.1。
+- 版本：**v3.9.3「主线 · 洞府」**，`VERSION`=3.9.3，tag `v3.9.3` → commit `54bd685`；其下 merge #69 `dd3b1cd`（main40）、#70 loan42、#68/#66 洞府、v3.9.1。
 - **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.3
-- Release 资产：`wobuxian.apk` / `wobuxian-lite.apk`（大小与 versionCode 见发版后补记；自 301 起由 CI `100+run_number` 递增）。
+- Release 资产：`wobuxian.apk` 372,397,273 B（≈372MB）、`wobuxian-lite.apk` 84,240,825 B（≈84MB）；versionCode **307**（自 301 经 CI `100+run_number` 递增）；Latest 已指向 v3.9.3。
 - index 序：`…→clan41→loan42→main40→dongfu43→dongfu43_ui→audio32`。
 
 ### 2 本版做了什么 / 刻意没做什么
@@ -14,7 +14,7 @@
 ### 3 测试结果
 - node（合 main 后 /workspace/main40）：validate22 **0**；main40 **73/73**；dongfu43 **145/145**；dongfu43_ui **56/56**；loan42 **110**；loan42_squad **84**；其余 `*_unit` + good_rel_cap → **ALL PASS**。
 - 奥拉夫：#69 含页测已 APPROVE；#68 审修已合。
-- CI：见 tag `v3.9.3` workflow（发版后补 run 号）。
+- CI（tag v3.9.3，run 41080795154）：build ✅、emulator API30/34 ✅；Release Latest ✅。
 
 ### 4 遗留问题
 - **3.9.4 sweep44** 进行中（开放世界开发 bot）；Issue #12 OPEN。

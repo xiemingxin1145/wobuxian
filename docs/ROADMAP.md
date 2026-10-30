@@ -83,7 +83,7 @@
 | 3.9.0 | ✅ 已随 v3.9.1 发布（2026-10-30，#58 UI + #59 rt + #61 dng） | 阵法 zf39 · `docs/research_v22.md` §11 |
 | 3.9.1 | ✅ 已发布（2026-10-30，Latest = v3.9.1 `fd7a36d`，#64+#65 loan42） | 天道小贷 loan42 · `docs/research_v22.md` §16 |
 | 3.9.2 | ✅ 已随 v3.9.3 发布（2026-10-30，#69 main40） | 主线终局补完 main40 · `docs/research_story40_main.md` |
-| 3.9.3 | ✅ 已发布（2026-10-30，Latest = v3.9.3，#66+#68 洞府 + #69 main40 + #70 loan42） | 洞府可进入地图 dongfu43 · `docs/research_v22.md` §17；同版合入 3.9.2 main40 |
+| 3.9.3 | ✅ 已发布（2026-10-30，Latest = v3.9.3 `54bd685`，#66+#68 洞府 + #69 main40 + #70 loan42，versionCode 307） | 洞府可进入地图 dongfu43 · `docs/research_v22.md` §17；同版合入 3.9.2 main40 |
 | 3.9.4 | 🔧 进行中（开放世界开发 bot · sweep44） | 秘境扫荡 sweep44 · `docs/research_v22.md` §18 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
