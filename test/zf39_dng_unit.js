@@ -92,12 +92,28 @@ async function main() {
     const D = c.ZF39Dng;
     ok(D.parseTrapDmg('气血 -37（100/200）') === 37, 'parseTrapDmg 37');
     ok(D.parseTrapDmg('无') === 0, 'parseTrapDmg 无 = 0');
+    ok(D.parseTrapAfterHp('气血 -37（100/200）') === 100, 'parseTrapAfterHp 100');
     ok(D.failDmg(100) === 120, 'failDmg ×1.2');
     const G = c.Game.G; G.hp = 160;
-    D.restoreHp(G, 40);
-    ok(G.hp === 200, 'restoreHp 回到满血');
+    D.restoreHp(G, 200, 0);
+    ok(G.hp === 200, 'restoreHp 回到满血（按 preHp）');
     D.applyDmg(G, 50);
     ok(G.hp === 150, 'applyDmg 扣 50');
+    // 触底 clamp：名义 dmg=50、扣前 10 → 扣后 1；还原必须回 10 而非 51
+    G.hp = 1;
+    D.restoreHp(G, 10, 0);
+    ok(G.hp === 10, 'restoreHp clamp repro：回 preHp=10 不超量');
+    // 未触底
+    G.hp = 160;
+    D.restoreHp(G, 200, 0);
+    ok(G.hp === 200, 'restoreHp 非 clamp：回 preHp=200');
+    // 部分减伤：pre=100，保留实际伤害 30 → 70；不超过 pre/mhp
+    G.hp = 1;
+    D.restoreHp(G, 100, 30);
+    ok(G.hp === 70, 'restoreHp 部分减伤：pre-kept=70');
+    G.hp = 1;
+    D.restoreHp(G, 100, 200);
+    ok(G.hp === 1, 'restoreHp 部分减伤超额：钳到 1');
   }
 
   // 已学硬闯：拦截 → 选项 → 再扣血
@@ -129,6 +145,36 @@ async function main() {
     ok(G.zf39.xp > xp0, '破阵成功：阵道经验增加');
     ok((G.inv.zws39 || 0) >= 1, '破阵成功：阵纹石 ≥1');
     ok(c.UI.cards.some(x => x.title === '破阵成功'), '破阵成功卡');
+  }
+
+  // Medium 回归：低血量触底后破阵成功不得超量回血（hp10 dmg50 → 回 10 非 51）
+  {
+    const c = box();
+    const G = c.Game.G;
+    c.ZF39.ensure(G); G.zf39.lv = 2; G.zf39.xp = c.ZF39.need(2);
+    c.ZF39Dng.armHpWatch(G);
+    G.hp = 10;
+    G.hp = Math.max(1, G.hp - 50); // dungeon26 clamp → 1，snapshot=10
+    ok(G.hp === 1, 'repro 前置：扣后 hp=1');
+    c.Game.rollRet = true;
+    c.UI._nextChoice = 0;
+    await c.UI.card('触发陷阱', '气血 -50（1/200）', 'i:sk_poison', ['咬牙继续']);
+    ok(G.hp === 10, '破阵成功 clamp：hp 回到 10 不超量成 51');
+    ok(c.UI.cards.some(x => x.title === '破阵成功'), 'clamp repro 破阵成功卡');
+  }
+
+  // Medium 回归：非触底路径仍按 pre=after+dmg 还原
+  {
+    const c = box();
+    const G = c.Game.G;
+    c.ZF39.ensure(G); G.zf39.lv = 2; G.zf39.xp = c.ZF39.need(2);
+    c.ZF39Dng.armHpWatch(G);
+    G.hp = 200;
+    G.hp = Math.max(1, G.hp - 40); // → 160
+    c.Game.rollRet = true;
+    c.UI._nextChoice = 0;
+    await c.UI.card('触发陷阱', '气血 -40（160/200）', 'i:sk_poison', ['咬牙继续']);
+    ok(G.hp === 200, '破阵成功非 clamp：回到扣前 200');
   }
 
   // settleOk / settleFail 直接测
