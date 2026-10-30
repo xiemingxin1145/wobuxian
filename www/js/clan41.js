@@ -1,7 +1,7 @@
 // ======================= 3.8.3 家族深化 clan41（规格 docs/research_v41_clan.md + docs/research_v22.md §14；§14 优先） =======================
 // 新模块，包裹 fam37（不改 fam37.js 本体）。存档 G.clan41 惰性兜底，不升 G.v；G.fam37 / G.heir / G.apprentice 语义不动。
 // 接入：Game.yearEnd / UI.p_fam37 / FAM37.birth / Sys.bonus / Game.newLife / UI.useItem / DevPanel；注册 NPCS.c41_sp 与 FAM37.SP_LG.c41_sp；KID_MAX getter。
-// 依赖：fam37（必需）；route37 / items40 / profile38 可缺省。加载顺序：fam37 之后、items40 之后（若有）、zf39 之前。
+// 依赖：fam37（必需）；route37 / items40 / profile38 可缺省。加载顺序：须在 items40 之后（index 放 audio32 前）；useItem 包装顺序无关（会抢回最外层）。
 'use strict';
 const TEXT41 = JSON.parse(JSON.stringify({
   lv: [
@@ -27,7 +27,7 @@ const TEXT41 = JSON.parse(JSON.stringify({
     { id: 'lingchi', n: '灵兽池', cost: 9000, d: '灵宠经验+100/年', yield: 'petexp:100', lvReq: 3, upMax: 3 },
     { id: 'wuguan', n: '武馆', cost: 7000, d: '家主攻击+1%/级；声望+30/年', yield: 'rep:30;compAtk:0.01', lvReq: 4, upMax: 3 },
     { id: 'citang', n: '宗祠', cost: 15000, d: '声望+80/年；族规可多选 1 条', yield: 'rep:80;ruleSlot:1', lvReq: 5, upMax: 3 },
-    { id: 'fangshi', n: '坊市铺面', cost: 20000, d: '灵石+1000/年；受市场年景浮动 ±30%', yield: 'stone:1000;var:0.3', lvReq: 6, upMax: 3 },
+    { id: 'fangshi', n: '坊市铺面', cost: 20000, d: '灵石+1000/年；受市场年景浮动 ±30%', yield: 'var:0.3;stone:1000', lvReq: 6, upMax: 3 },
     { id: 'dongtian', n: '洞天福地', cost: 60000, d: '族人修炼+8%，寿元+5%', yield: 'clanCult:0.08;life:0.05', lvReq: 8, upMax: 3 }
   ],
   rules: [
@@ -156,11 +156,24 @@ const C41 = {
     if (C.zupuUsed == null) C.zupuUsed = 0;
     if (C.lianhun == null) C.lianhun = 0;
     if (!C.grandBy || typeof C.grandBy !== 'object') C.grandBy = {};
+    if (C.pendingEv === undefined) C.pendingEv = null;
     return C;
   },
   pick(a, rnd) { rnd = rnd || Math.random; return a[Math.floor(rnd() * a.length)]; },
   fill(s, o) { if (!s) return ''; return String(s).replace(/\{(\w+)\}/g, (_, k) => (o && o[k] != null ? o[k] : '')); },
   toast(s, c) { try { if (typeof UI !== 'undefined' && UI.toast) UI.toast(s, c || '#ffd27a'); } catch (e) {} },
+  // 序章/新手指引/战斗中不弹族事卡（对齐 NPC37.storyBlock + B.on）
+  busy() {
+    try { if (typeof NPC37 !== 'undefined' && NPC37.storyBlock && NPC37.storyBlock()) return true; } catch (e) {}
+    try { if (typeof B !== 'undefined' && B && B.on) return true; } catch (e) {}
+    return false;
+  },
+  tryFlush(G) {
+    G = G || this.G(); const C = this.ensure(G); if (!C || !C.pendingEv || this.busy()) return false;
+    const id = C.pendingEv.id; C.pendingEv = null;
+    Promise.resolve().then(() => this.runEvent(G, id)).catch(e => console.warn('clan41 flush', e));
+    return true;
+  },
   news(G, s) {
     const C = this.ensure(G); if (!C) return;
     C.log.unshift({ y: G.year || 0, s }); C.log.length = Math.min(C.log.length, 24);
@@ -361,9 +374,11 @@ const C41 = {
       const P = this.propDef(id); if (!P) continue;
       rep += 5 * L;
       const parts = (P.yield || '').split(';');
+      // 先扫 var:（与 token 顺序无关；坊市 stone 在 var 前写也会生效）
       let localVar = 1;
+      for (const tk of parts) if (tk.startsWith('var:')) { localVar = 1 + varY; break; }
       for (const tk of parts) {
-        if (tk.startsWith('var:')) { localVar = 1 + varY; continue; }
+        if (tk.startsWith('var:')) continue;
         if (tk.startsWith('rate:')) { rateWant = Math.min(rateWant, parseFloat(tk.slice(5)) || 0); continue; } // 当铺 −0.02，不乘 L
         if (tk.startsWith('ruleSlot:')) continue;
         if (tk.startsWith('ev:')) { const mm = tk.match(/^ev:([\w]+):([\d.]+)/); if (mm && Math.random() < +mm[2]) robbed = mm[1]; continue; }
@@ -600,10 +615,10 @@ const C41 = {
     const fee = this.dowry(famId);
     if ((G.stone || 0) < fee) { this.toast('聘礼不足（需' + fee + '）'); return false; }
     G.stone -= fee;
-    // 消耗月老红线
+    // 先算成功率（含月老红线 +30%），再消耗红线；否则 UI 显示 ~0.9、实际掷 ~0.65
+    const rate = this.marryRate(G, famId, who);
     const usedRed = !!(G.i40 && G.i40.match === 1);
     if (usedRed) G.i40.match = 0;
-    const rate = this.marryRate(G, famId, who);
     C.matchB = 0; C.lianhun = 0;
     const ok = Math.random() < rate;
     const ask = this.fill(this.pick(TEXT41.marry.lines.ask), { fam: F.n, who: this.makeSpouseName(famId).split('·').pop(), age: 18, k: isPlayer ? (G.name || '你') : G.fam37.kids[kidIdx].n });
@@ -727,11 +742,7 @@ const C41 = {
         } else if (p[1] === 'stone') G.stone = (G.stone || 0) + (+p[2] || 0);
       }
     }
-    // 尚武：劫镖「亲自去追」不开打
-    if (e.fight && this.has('shangwu') && ctx && ctx.evId === 'c41_robbed') {
-      // applyEff 可能已开打；尽量补灵石
-      G.stone = (G.stone || 0) + 300;
-    }
+    // 尚武劫镖的「不开打、直接 300」在 runEvent 里删 fight 并保留 stoneRaw:300，此处不再加
     return out;
   },
   async runEvent(G, forcedId, rnd) {
@@ -783,6 +794,12 @@ const C41 = {
       else if (typeof FAM37 !== 'undefined' && FAM37.canEff && !FAM37.canEff(G, eff)) label = '🔒' + label;
       return label;
     });
+    // 序章/指引/战斗：不弹卡，记下 pending 待空闲再弹
+    if (this.busy()) {
+      C.pendingEv = { id: E.id, y: G.year || 0 };
+      try { console.warn('clan41 defer event', E.id); } catch (e) {}
+      return { id: E.id, deferred: 1 };
+    }
     let c = 0;
     if (typeof UI !== 'undefined' && UI.card) c = await UI.card('族事', this.fill(E.t, o), 'npc_girl', opts);
     if (c < 0 || c >= E.ch.length) c = 0;
@@ -795,9 +812,9 @@ const C41 = {
     };
     if (locked(c)) { c = E.ch.findIndex((_, i) => !locked(i)); if (c < 0) return null; }
     const eff = E.ch[c][1] || {};
-    // 尚武劫镖：亲自去追 → 去掉 fight，直接 stoneRaw
+    // 尚武劫镖：亲自去追 → 不开打，保留选项原有 stoneRaw:300（勿再 +300，否则合计 600）
     let useEff = Object.assign({}, eff);
-    if (E.id === 'c41_robbed' && c === 0 && this.has('shangwu')) { delete useEff.fight; useEff.stoneRaw = (useEff.stoneRaw || 0) + 300; }
+    if (E.id === 'c41_robbed' && c === 0 && this.has('shangwu')) { delete useEff.fight; if (useEff.stoneRaw == null) useEff.stoneRaw = 300; }
     await this.applyClanEff(G, useEff, { kid, famId, evId: E.id });
     // matchmaker 挑灵根：30% 掉联姻帖
     if (E.id === 'c41_matchmaker' && c === 1 && Math.random() < 0.3 && typeof Game !== 'undefined' && Game.give && typeof ITEMS !== 'undefined' && ITEMS.i40_lianhun)
@@ -810,6 +827,7 @@ const C41 = {
   async yearStep(G) {
     G = G || this.G(); const C = this.ensure(G); if (!C || !C.on || !G || G.dead) return;
     const step = async (name, fn) => { try { await fn(); } catch (e) { console.warn('clan41', name, e); } };
+    await step('flush', async () => { if (C.pendingEv && !this.busy()) { const id = C.pendingEv.id; C.pendingEv = null; await this.runEvent(G, id); } });
     await step('divorce', () => {
       if (C.spInfo && G.partner !== 'c41_sp') {
         const fam = C.spInfo.fam; C.fams[fam] = Math.max(-100, (C.fams[fam] || 0) - 60);
@@ -1195,26 +1213,27 @@ const C41 = {
     };
     UI.p_fam37._c41 = 1;
   }
-  // 包 useItem：家族道具（在 items40 之后加载时覆盖其「尚未开放」）
-  if (UI.useItem && !UI.useItem._c41) {
-    const _u = UI.useItem;
-    UI.useItem = async function (k) {
+  // 包 useItem：须在 items40 之外层，拦截 6 个家族道具，避免「尚未开放」且不消耗。
+  // 顺序无关：若 items40 后加载把我们盖住，setTimeout / 再次 install 会重新抢回最外层。
+  C41._wrapGen = C41._wrapGen || 0;
+  C41.installUseItemWrap = function () {
+    if (typeof UI === 'undefined' || !UI.useItem) return false;
+    if (UI.useItem._c41Mark === C41._wrapGen && C41._wrapGen > 0) return true;
+    const _u = UI.useItem; const gen = ++C41._wrapGen;
+    const w = async function (k) {
       try {
         if (C41.CLAN_ITEMS.indexOf(k) >= 0) {
           const ok = C41.useItem(k);
           if (ok && typeof Game !== 'undefined' && Game.save) Game.save();
-          if (ok) return;
-          // 未成功：若是「尚未开放」类，已 toast；不交给 items40 再 toast
-          // 但对非家族原因的失败（如差块数）也已 toast；直接 return 避免 items40 的「尚未开放」
-          const G = Game.G;
-          if (G && G.inv && G.inv[k]) return; // 仍持有 → 我们处理过了
-          return;
+          return; // 成败都已 toast，不再交给 items40 的「尚未开放」
         }
       } catch (e) { console.warn('clan41 useItem', e); }
       return _u.apply(this, arguments);
     };
-    UI.useItem._c41 = 1;
-  }
+    w._c41 = 1; w._c41Mark = gen; UI.useItem = w; return true;
+  };
+  C41.installUseItemWrap();
+  try { setTimeout(() => C41.installUseItemWrap(), 0); setTimeout(() => C41.installUseItemWrap(), 100); } catch (e) {}
   // CSS
   try {
     const css = document.createElement('style');

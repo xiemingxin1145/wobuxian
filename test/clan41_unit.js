@@ -253,6 +253,80 @@ const base = (o) => Object.assign({
   try { await run(c, 'C41.yearStep(Game.G)'); } catch (e) { threw = true; console.log(e); }
   ok(!threw && run(c, 'Game.G.clan41.yr===5'), 'yearStep 完整跑通');
 
+
+  // ========== 奥拉夫 PR #60 五条回归 ==========
+  // R1 月老红线：先算 rate 再消耗 match
+  c = box(base({ fam37: { v: 1, sp: null, kids: [{ n: '张小满', lg: 'san', born: 1, age: 18, wed: -1, nodes: {} }], rate: 0, log: [], ev: {} }, partner: null, stone: 50000, i40: { match: 1 } }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.lv=3;');
+  const rateWith = run(c, 'C41.marryRate(Game.G,"wang",{lg:"san",kidIdx:0})');
+  ok(rateWith >= 0.85, 'R1a 有红线时 marryRate ≥0.85（含 +0.3） rate=' + rateWith);
+  run(c, 'Math.random=()=>0.99;'); // 故意失败路径也会消耗；我们测 propose 内顺序
+  // 直接测 propose 内：rate 计算时 match 仍为 1
+  c = box(base({ fam37: { v: 1, sp: null, kids: [{ n: '张小满', lg: 'san', born: 1, age: 18, wed: -1, nodes: {} }], rate: 0, log: [], ev: {} }, partner: null, stone: 50000, i40: { match: 1 } }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.lv=3;');
+  // 拦截：记录 marryRate 被调用时的 match 值
+  run(c, `var seenMatch=[]; var _mr=C41.marryRate.bind(C41); C41.marryRate=function(){seenMatch.push(Game.G.i40&&Game.G.i40.match); return _mr.apply(this,arguments);};`);
+  run(c, 'Math.random=()=>0;'); // 必成
+  await run(c, 'C41.propose(Game.G,"wang",0)');
+  ok(run(c, 'seenMatch[0]===1'), 'R1b propose 算 rate 时 match 仍为 1（先算后消耗）');
+  ok(run(c, 'Game.G.i40.match===0'), 'R1c 掷点后红线已消耗');
+
+  // R2 useItem 顺序无关：模拟 items40 后加载盖住我们，再 installUseItemWrap 抢回
+  c = box(base({ inv: { i40_jiapu: 1 }, fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei' }));
+  run(c, `
+    var blocked=[];
+    // 模拟 items40 外层：家族道具 toast 尚未开放且不调用内层
+    var inner=UI.useItem;
+    UI.useItem=async function(k){ if(C41.CLAN_ITEMS.indexOf(k)>=0){ blocked.push(k); toasts.push('家族谱系尚未开放（3.8.3）'); return false; } return inner.apply(this,arguments); };
+    C41.installUseItemWrap();
+  `);
+  await run(c, 'UI.useItem("i40_jiapu")');
+  ok(run(c, 'Game.G.clan41.on===1 && !Game.G.inv.i40_jiapu && blocked.length===0'), 'R2 抢回最外层后族谱可立族并消耗，不进尚未开放');
+
+  // R3 尚武劫镖亲自去追 = 300 非 600
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei', stone: 0 }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.props.biaoju=1; Game.G.clan41.rules=["shangwu"]; Math.random=()=>0;');
+  // UI.card 返回 0 = 亲自去追
+  await run(c, 'C41.runEvent(Game.G,"c41_robbed")');
+  ok(run(c, 'Game.G.stone===300'), 'R3 尚武劫镖亲自去追得 300 灵石 stone=' + run(c, 'Game.G.stone'));
+
+  // R4 坊市 var 浮动真正乘到灵石（hashYear 极值时 toast 与数额一致）
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei', realm: 6 }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.lv=6; Game.G.clan41.props={fangshi:1}; Game.G.stone=0;');
+  // 找一个 varY <= -0.2 的年份
+  run(c, `
+    var yBad=null, yGood=null;
+    for(var y=1;y<5000;y++){ var v=C41.hashYear(y)*0.6-0.3; if(yBad==null&&v<=-0.2)yBad=y; if(yGood==null&&v>=0.2)yGood=y; if(yBad&&yGood)break; }
+    Game.G.year=yBad; C41.settleProps(Game.G); var sBad=Game.G.stone;
+    Game.G.stone=0; Game.G.year=yGood; C41.settleProps(Game.G); var sGood=Game.G.stone;
+    // 基线 1000×yieldMul(1.3 for lv6)=1300，再 ×(1+varY)
+    var mul=C41.yieldMul(Game.G.clan41);
+    var vBad=C41.hashYear(yBad)*0.6-0.3, vGood=C41.hashYear(yGood)*0.6-0.3;
+    var expBad=Math.round(1000*mul*(1+vBad)), expGood=Math.round(1000*mul*(1+vGood));
+  `);
+  ok(run(c, 'sBad===expBad && sBad < Math.round(1000*mul)'), 'R4a 坏年景灵石乘 var（' + run(c, 'sBad+"/"+expBad') + '）');
+  ok(run(c, 'sGood===expGood && sGood > Math.round(1000*mul)'), 'R4b 好年景灵石乘 var（' + run(c, 'sGood+"/"+expGood') + '）');
+  ok(run(c, 'TEXT41.props.find(p=>p.id==="fangshi").yield.indexOf("var:") < TEXT41.props.find(p=>p.id==="fangshi").yield.indexOf("stone:")'), 'R4c yield 字串 var 在 stone 前');
+
+  // R5 族事卡：storyBlock / B.on 时 defer，不弹 UI.card
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [{ n: '张小满', lg: 'san', born: 1, age: 10, nodes: {} }], rate: 0, log: [], ev: {} }, partner: 'sumei' }));
+  run(c, 'C41.found(Game.G); var NPC37={storyBlock:()=>"prologue"}; var B={on:false};');
+  const cards0 = run(c, 'cards.length');
+  const r5 = await run(c, 'C41.runEvent(Game.G,"c41_harvest")');
+  ok(run(c, 'cards.length===' + cards0), 'R5a storyBlock 时不弹族事卡');
+  ok(run(c, 'Game.G.clan41.pendingEv && Game.G.clan41.pendingEv.id==="c41_harvest"'), 'R5b 记入 pendingEv');
+  ok(run(c, '!Game.G.clan41.ev.c41_harvest'), 'R5c defer 不记 ev 次数（待真正结算）');
+  // B.on 也 defer
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei' }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.props.biaoju=1; var B={on:true};');
+  await run(c, 'C41.runEvent(Game.G,"c41_robbed")');
+  ok(run(c, 'Game.G.clan41.pendingEv && Game.G.clan41.pendingEv.id==="c41_robbed"'), 'R5d B.on 时 defer 劫镖');
+  // 解除后 yearStep flush
+  run(c, 'B.on=false; Math.random=()=>0;');
+  await run(c, 'C41.yearStep(Game.G)');
+  ok(run(c, '!Game.G.clan41.pendingEv && Game.G.clan41.ev.c41_robbed>=1'), 'R5e 空闲 yearStep 刷出 pending 并结算');
+
+
   console.log(`${n - fails}/${n} PASS`);
   process.exit(fails);
 })().catch(e => { console.error(e); process.exit(1); });
