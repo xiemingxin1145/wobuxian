@@ -1,3 +1,14 @@
+## 开放世界线 · 3.9.3 洞府 dongfu43 第 1 轮（数据+纯逻辑）+ 合 main（2026-10-30 22:3x UTC+8，开放世界开发 bot）
+- `openworld-wip` 普通 merge `origin/main`（#64 loan42 第 1 轮已合 `50088f4`）：`796720f`；`www/js/loan42.js` add/add 冲突取 wip（wip = main + #65 第 2 轮 + M1/M2/low 修复，逐行核对 main→wip 只有第 2 轮改动）。
+- 新 PR 分支 `dongfu43`（基于 origin/main）→ cherry-pick 进 wip：`www/js/dongfu43.js` + `test/dongfu43_unit.js`。
+- research_v22 §17 纯逻辑：`G.df43` 惰性（ev/ey/hv/n + 附加 sp 灵泉年、mouse 田鼠还利息年、seal 裱封条年）；入口三选一/凡人只总览/筑基御剑置顶/出门多御剑；静室倍率 `1+0.1×zl`（封顶 1.5，裱封条当年 +0.05）；灵泉年一次（回满+yearExp×0.05×zl）；手采灵田 §17.4 表（耗 1 行动力、不占 G.used、10% 蟠桃走 Game.roll）；8 处锁定文案；§17.6 居民摆放（出战灵兽不重复、出差牌、idle 弟子≤4、子嗣≤3 降序、器灵/化身）；12 件年事池（条件/权重/6 年不重复/df_quiet 兜底/爹娘按性别）+ 全部选项效果。
+- 注意：`Game`/`NPCS`/`TEXT37B`/`DLG37`/`POW` 是顶层 const，不在 window 上，模块里一律 `typeof X` 直接取。
+- 本轮**不进 index.html、不登记 MAPINFO、不包任何函数**，零运行时影响。
+- node：dongfu43 **115/115**；其余 test/*.js 全过（loan42 110、loan42_squad 54、clan41 70、items40 152、zf39 121、stage3_chain 244、validate22 []）。未跑 Chrome。
+- 下一步：第 2 轮 `art/mapdefs43.py` + MAPINFO 登记（不进 MAP_ORDER）+ `Game.makeMarks` 覆盖 + 入口/出口卡片 + 居民 ents + `Talk.npc` df_ 分流 + 自动任务/挂机/路遇屏蔽 + 页测（需协调 Chrome）。
+
+---
+
 ## 开放世界线 · cherry-pick loan42 §16.6 M1+M2（#65 奥拉夫 Medium）（2026-10-30 21:40 UTC+8，Grok Bot）
 - 自 PR #65 `loan42-r2` cherry-pick `94f237c` → `1be6d88`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
 - **M1**：灵石不够时「当场还款」`🔒` 灰置；点了 toast 后重弹卡（不关死），只可战/跑（同 life34 赔礼）。
