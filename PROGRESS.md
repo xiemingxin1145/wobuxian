@@ -2,6 +2,15 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 开放世界线 · 追兵头子佩挂点修复 + 门禁（2026-10-30 10:23 UTC+8，Grok Bot）
+- 合入：`git pull --rebase=merges` 已最新；`openworld-wip` 落后 origin/main 1 提交（`fc7f19d` #57 squash）→ 普通 merge `4c56659`，无冲突；分支未 detached。
+- 修复：`test/lowpoly_attach.js` 失败根因——「追兵头子」(`touzi`) 部件名 `armor`/`helmet` 不在 GARMENT/HEADISH，导致 `sockets.pei === null`。仅改 `www/js/lowpoly_extra_chars.js`：`armor→robe`、`helmet→hat`（对齐催债使者等样例）；未碰核心文件。
+- 修复提交：`dc43fb7` fix(openworld): 追兵头子低模补齐佩挂点（armor→robe、helmet→hat）。
+- Chrome：开跑前/各项后 `ps aux | grep -iE 'chrom|playwright'` 均无人占用；串行单跑，结束无残留进程需杀。
+- 页面门禁（串行）：jsscan33 errors [] ✅；pf38_page FAILS [] ✅；dev_openworld_page EXIT 0 ✅；human23 首轮 11/13（#4 追踪栏寻路→剑仙对话、#5 对话按钮，已知时序 flake）→ 重跑 **13/13** ✅。
+- 全部 node 单测 + validate22：battle_rt_proto / chain37_unit 78/78 / good_rel_cap 31/31 / lowpoly_attach ALL PASS / lowpoly_box ALL PASS / npc37_events_unit 54/54 / npc37_unit 80/80 / pf38_unit 34/34 / stage3_chain / stage3_life34 / stage3_token_offset 14 / zf39_hook_unit 20/20 / zf39_unit 118/118 全过；validate22 errors []。
+- 下一步：阵法面板 UI / rt27 / 破阵（沿第三十九轮）；或把低模接入即时战试炼场对比手感。
+
 ## 开放世界线 · 低模样例小步（2026-10-29，Grok）
 
 - 在 `www/js/lowpoly_extra_chars.js` 新增「追兵头子」Cube 低模样例（黑甲红瞳、头盔状、手持长刃、腰挂令牌钱袋，身形壮硕，贴合天道通缉头子主题）。
