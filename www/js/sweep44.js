@@ -329,6 +329,7 @@
 
     /**
      * 扫荡 b 档 times 次。opts.silent 跳过弹卡；opts.confirm===false 跳过确认。
+     * opts.test===true 为单测覆盖：允许在 autoOn 时仍走逻辑（silent 默认仍守 autoOn）。
      * 返回 { ok, reason?, outs, sum }；弹卡受 storyBlock/B.on/off 约束。
      */
     async go(G, b, times, opts) {
@@ -346,21 +347,29 @@
       if (S.n + times > CAP) return { ok: false, reason: 'cap', msg: TEXT44.cap };
       if (!Number.isFinite(G.ap) || G.ap < times) return { ok: false, reason: 'noap', msg: TEXT44.noap };
 
-      // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。silent 留给逻辑层单测。
+      // §18.6-8：自动任务/挂机期间不扫荡。silent 也守，除非 opts.test 显式覆盖（逻辑层单测）。
+      const bypassAuto = !!opts.test;
+      if (!bypassAuto && this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
+
+      // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。
       if (!opts.silent) {
-        // §18.6-8：自动任务/挂机期间不扫荡（会花 AP）；不花 AP、不计数
-        if (this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
         if (!this.canPopup()) return { ok: false, reason: 'blocked' };
         if (opts.confirm !== false) {
           const conf = fill(TEXT44.confirm, { b: BANDS_N[b], n: times });
           const ch = await this.card(TEXT44.title, conf, 'i:chest', [TEXT44.confirm_ok, TEXT44.confirm_no]);
           // -1 / 非 0：拒收或取消 → 提前返回，不花 AP、不计数
           if (ch !== 0) return { ok: false, reason: ch === 1 ? 'cancel' : 'blocked' };
+          // 确认卡打开期间可能被切到自动/挂机 → 确认后再查一次，仍拒则不花 AP
+          if (!bypassAuto && this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
         }
       }
 
       const outs = [];
       for (let i = 0; i < times; i++) {
+        // ×N 每一轮再查：中途开自动则停后续（已完成保留、不再扣 AP/计数）
+        if (!bypassAuto && this.autoOn()) {
+          return { ok: false, reason: 'auto', msg: TEXT44.auto, outs };
+        }
         if (!this._useAP(G, 1)) return { ok: false, reason: 'noap', msg: TEXT44.noap, outs };
         const one = once(G, b);
         if (!one) return { ok: false, reason: 'once', outs };

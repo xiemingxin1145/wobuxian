@@ -1,3 +1,10 @@
+## 开放世界线 · sweep44 确认卡/×N 中途 autoOn 再查（MEDIUM）（2026-10-31 00:25 UTC+8，Grok Bot）
+- 分支 sweep44-auto（已 `git merge origin/main`，PROGRESS 双保留；index 序沿用 main：`…→memory45→sweep44→sweep44_ui→audio32`）。
+- MEDIUM：`Sweep44.go` 原先只在确认卡前查 `autoOn()`；确认卡打开期间若切到 AUTO/AFK，确认后仍会扣 AP、计数、发奖。现：确认后再查一次（拒则不花 AP）；×N 每轮迭代再查（中途开自动停后续、已完成保留）；`silent` 默认也守 `autoOn`，仅 `opts.test===true` 可覆盖（逻辑层单测）。
+- 改动：`www/js/sweep44.js`、`test/sweep44_unit.js`（对抗：确认中途开自动不变档；×N 中途开自动只完成 1 次；silent 拒 auto / test 覆盖）。未碰核心、未改 ux23/sweep44_ui。
+- node：sweep44 **101/101**；sweep44_ui **33/33**；memory45 **58**；loan42 **110**；loan42_squad **105**；test/*.js **28/28**；validate22 **errors []**。未跑 Chrome。
+- 下一步：push → 合 openworld-wip；等奥拉夫审。
+
 ## 开放世界线 · sweep44 自动任务/挂机不扫荡（§18.6-8）（2026-10-31 00:35 UTC+8，开放世界开发 bot）
 - 分支 sweep44-auto（自 origin/main 784b792）：`Sweep44.go` 非 silent 路径在 ux23 `AUTO.on` 或 `AFK.on` 时先拒 `reason:'auto'`（不花 AP、不计数、不发奖），新增 `Sweep44.autoOn()`（缺 AUTO/AFK 安全返回 false）和 `TEXT44.auto` 文案；`sweep44_ui` 点扫荡被拒时 toast 该文案。
 - 改动：`www/js/sweep44.js`、`www/js/sweep44_ui.js`、`test/sweep44_unit.js`（+7：autoOn 缺省/AUTO/AFK 拒绝不变档/扫荡按钮与确认选项不匹配 ux23 SAFE）。未碰核心、未改 ux23。

@@ -429,6 +429,51 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     }
   }
 
+  // ---- 对抗：确认卡打开期间开自动 → 确认后仍拒，不花 AP/不计数/不发奖 ----
+  c = box2();
+  G = mkG({ ap: 5, stone: 100, exp: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, `var AUTO = { on: null }; var AFK = { on: false };
+    UI.card = async function(t, x, p, o, e) {
+      this.cards.push({ t, x, p, o, e });
+      AUTO.on = 'main'; // 确认卡仍开着时切到自动任务
+      return 0; // 玩家仍点确认
+    };`);
+  const snapB = () => JSON.stringify({ ap: G.ap, n: G.sw44.n, tot: G.sw44.tot, stone: G.stone, eqs: (G.eqs || []).length, inv: G.inv || {} });
+  let befB = snapB();
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1);');
+  ok(!r1.ok && r1.reason === 'auto' && snapB() === befB, '确认中途开自动：确认后仍拒 auto、AP/计数/奖励不变');
+  ok(R(c, 'UI.cards').length >= 1, '确认卡确实弹出过');
+
+  // ---- 对抗：×N 中途开自动 → 停后续，已完成保留、不再扣 AP ----
+  c = box2();
+  G = mkG({ ap: 5, stone: 0, exp: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, `var AUTO = { on: null }; var AFK = { on: false }; var _apN = 0;
+    Game.useAP = function(n) {
+      n = n || 1;
+      if (!this.G || this.G.ap < n) return false;
+      this.G.ap -= n; _apN++;
+      if (_apN >= 1) AUTO.on = 'main'; // 第 1 次扣 AP 后开自动 → 后续轮次应停
+      return true;
+    };`);
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 3, { confirm: false });');
+  ok(!r1.ok && r1.reason === 'auto', '×N 中途开自动 → reason auto');
+  ok((r1.outs || []).length === 1 && G.sw44.n === 1 && G.ap === 4, '×N 中途开自动：只完成 1 次、AP-1、停后续');
+  ok(G.stone > 0, '已完成那次仍发了奖励');
+
+  // ---- silent 也守 autoOn；opts.test 才可覆盖 ----
+  c = box2();
+  G = mkG({ ap: 5, stone: 100, exp: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, 'var AUTO = { on: "main" }; var AFK = { on: false };');
+  const snapC = () => JSON.stringify({ ap: G.ap, n: G.sw44.n, tot: G.sw44.tot, stone: G.stone });
+  let befC = snapC();
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(!r1.ok && r1.reason === 'auto' && snapC() === befC, 'silent 默认也拒 auto、不变档');
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true, test: true });');
+  ok(r1.ok && G.ap === 4 && G.sw44.n === 1, 'opts.test 覆盖下 silent 可测逻辑');
+
   console.log(`\n${n - fails}/${n} passed, ${fails} failed`);
   process.exit(fails);
 })().catch(e => { console.error(e); process.exit(1); });
