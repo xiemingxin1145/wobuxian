@@ -3711,3 +3711,345 @@ const TEXT_QING47 = {
 
 ---
 
+## 22. 【2026-10-31 00:4x 研究员】3.9.8 拍卖行 `auc48.js`（天道拍卖行）
+
+### 22.0 选题说明（接 §20 候补② / §21 已占 47 号）
+
+**坊市 / 交易 / 拍卖 / 货币 代码审计（origin/main · `www/js`）：**
+
+| 已有 | 位置 | 结论 |
+|---|---|---|
+| 坊市地图 | `data.js` `MAPINFO.market`「云来坊市」；NPC `merchant` 钱多多、`yaopu` 药铺 | 有逛的地方 |
+| 商店购买 | `ui.js` `UI.shop` + `SHOPS`；货币 **`G.stone`（灵石）** | ✅ 买消耗品/材料；非拍卖 |
+| 区域声望×物价 | `market25.js` `G.renown`、`buyMod()` 接入商店售价 | ✅ 浅层经济 |
+| **聚宝阁拍卖（浅）** | `market25.js`：`Talk.extra('merchant')`→`UI.panel('auction')`；入场费 10；AI 抬价≤4 轮；寄卖 60% 成交；拍品池 9 种丹符 | **半成品**：无定期开拍、无年帽、无存档防重掷、用 `Math.random`/`rnd` 而非 `Game.roll`、无赌货/捡漏、无小贷联动、`Talk.extra` 未规范化非数组上游 |
+| 仙缘符 | `systems21.js` `ITEMS.xyf`；抽卡专用 | ≠ 拍场货币 |
+| 尾款/债务 | `G.debt`；`loan42.js` 天道小贷（借还/逾期/催收/`sqPend`） | ✅ 可联动垫资；**拍场未接** |
+| 礼物/剧情物 | `items40.js` 可送可卖叙事；坊市有卖礼物 | 与拍场无状态机 |
+| 龙宫/鬼市拍卖文案 | content22 / events 公告级搞笑 | **无玩法模块** |
+| `auc*.js` / 号段 | **无 `auc48.js`**；§20 曾暂名 `auc47.js`，§21 已占用 `qing47` | 本节用 **48** |
+
+**已有 vs 缺什么：**
+
+- **已有**：灵石经济、商店、浅聚宝阁竞价/寄卖、声望折扣、小贷与 `sqPend` 范式、包装惯例（`keepFnMarks` / `storyBlock` / `B.on`）。
+- **缺**：`G.auc48` 状态机；**定期开拍**；可玩循环（竞价·NPC 对手·寄拍·捡漏/赌货·小贷垫资）；反刷年帽；存档防重掷 pending；事件监听不叠加；`Talk.extra` 非数组→`[]`；`TEXT_AUC48`；Dev「拍卖48」；AUTO/SAFE 约定（尤其选项**不得**以「开始」开头）。
+
+§20 候补②原写 `auc47.js`；§21 已占 47 → **3.9.8 模块名 `auc48.js`**。不改 `market25.js` 正文：浅拍保留为兼容入口；本模块以包装叠加深化场。
+
+**3.9.8 选定：`auc48.js`「天道拍卖行 · 聚宝阁深化」。**
+
+---
+
+> 起因：P2 #17「拍卖行」长期停在 v2.5 浅聚宝阁——能点几下，但没有季节节奏、没有赌货张力、没有和负债玩法咬合。本节按 §20/§21 同级规格补闭环；**只包装**，货币仍用 `G.stone`，随机一律 `Game.roll`，催收/垫资只**调用** `loan42` 公开 API。建议版本 **3.9.8**。
+
+### 22.1 代码核对（origin/main · v3.9.7 线）
+
+| 项 | 现状 | 对规格的影响 |
+|---|---|---|
+| 浅拍 | `market25.js` 全文 ~130 行；`UI.p_auction` / `UI.titles.auction` | **不改文件**；`auc48` 可包 `UI.p_auction` 顶部加「去天道拍卖行」或并行 `Talk.extra` 注入 `🏛 天道拍卖行`→`UI.panel('auc48')` |
+| 货币 | `G.stone`；成就 `rich`/`richer`/`tycoon` | 成交只动灵石；不发明第二货币 |
+| 小贷 | `loan42.js`：`canBorrow`/`borrow`/`hasOverdue`/`repayOverdue`；`G.loan42.sqPend`（§16.6） | 垫资前 `canBorrow`；逾期则限制高价或弹还贷提示；**不改** loan 公式 |
+| 物品 | `ITEMS[k].p>0` 可估价；`Game.give`/`take` | 寄拍过滤剧情 `quest`/无价；赌货开出用现有 id |
+| 守卫 | `NPC37.storyBlock`；`B.on`；`UI.modal` | 开拍鼓/竞价卡/赌货卡/年结均 `canPopup` |
+| 随机 | `Game.roll(p,kind)` | 抬价是否跟、寄拍成交、赌货档、开拍是否本岁，一律 `kind='qiyu'`；**禁止**拍场逻辑里直接 `Math.random` |
+| AUTO | `ux23.js` `SAFE` 含前缀 `开始`；`UNSAFE` 含 `交易`/`借` 等 | 见 22.1b |
+| 包装 | `keepFnMarks`（loan42/shi46/qing47） | 包 `Talk.extra`/`yearEnd`/`enterMap`/`newLife`/`UI.p_auction`（若包）时复制既有 `_m25`/`_loan42`/`_qing47` 等 |
+| index | `…→qing47.js→audio32.js`（若尚无 qing 则接 `sweep44_ui` 后） | `auc48.js` 放在 **qing47 之后、`audio32` 之前**（无 qing 则 shi46/sweep 后） |
+| 存档版本 | 各模块惰性键；`G.v===2` 老档 | **不升 `G.v`**；缺 `G.auc48` 时 `ensure` 补默认 |
+
+#### 22.1b AUTO / SAFE /「开始」陷阱
+
+- **不要**把举牌/寄拍/赌货/垫资加进全局 `SAFE`。
+- `SAFE` 已匹配以「**开始**」开头的选项（挂机「开始挂机」等）→ **拍场所有选项文案禁止以「开始」开头**（含「开始竞价」「开始赌货」），否则挂机/自动任务可能误点花大钱。
+- `UNSAFE` 已含「交易」「借」：按钮避免单独使用这些词作可点标签；垫资用「去小贷窗口看看」，成交收束用已在 SAFE 的「好」「收下」「知道了」「……」。
+- 验收：遍历 `TEXT_AUC48` 一切玩家可点短标签，不以「开始」起首；可自动集合 ⊆ `{好,继续,收下,知道了,……}`。
+- **禁止**为省事改 `ux23.js`。
+
+### 22.2 设计目标
+
+1. **可玩循环**：每 `GAP=3` 年一场季拍（开拍鼓）→ 本场 3–5 件明拍 + 1 席赌货 → 玩家可举牌/一口价/寄拍/捡漏；NPC 对手按 `Game.roll` 决定是否跟价。
+2. **与浅拍共存**：不删 `market25`；深化场才有年帽、pending、小贷、赌货。
+3. **负债咬合**：逾期小贷 → 限制一口价与高价硬举，并给出还贷/垫资岔路（调 loan42）。
+4. **数值克制**：年帽+AP+手续费+赌货期望略负；不产神装必出；防存档重进重掷。
+5. **老档**：无键=未启用外观；第一次进拍场 `ensure`；`AUC48.off=true` 整模块隐藏；`G.v===2` 只补默认字段。
+
+### 22.3 数据与模块边界
+
+#### 22.3.1 本世存档 `G.auc48`（惰性，不升 `G.v`）
+
+```js
+G.auc48 = {
+  v: 1,
+  yOpen: 0,          // 本场开拍年；0=尚未开过
+  nextY: 0,          // 下场计划年（ensure 时按 GAP 对齐）
+  feePaid: 0,        // 本场是否已扣入场笺
+  lots: [],          // [{id,item,base,cur,rival,aiCeil,done,won}] 本场明拍（开拍写入，落槌前不重掷）
+  leak: null,        // {price, opened} 本场赌货席
+  y: 0,              // 年帽计数年
+  nBid: 0, nCon: 0, nLeak: 0,
+  dealY: 0,          // 本岁成交笔数（年结展示）
+  pend: null,        // 防重掷：见 22.4.7（对齐 §16.6 sqPend）
+  lastToastY: 0
+};
+```
+
+账号级可选：`Game.meta.auc48 = { totDeal:0, totLeakGood:0, totCon:0 }`——惰性。
+
+#### 22.3.2 模块 `www/js/auc48.js`
+
+```text
+包装：
+  Talk.extra        → merchant（及可选 suanpan）注入「🏛 天道拍卖行」；
+                      上游非数组一律归一成 []；keepFnMarks
+  Game.yearEnd      → 到年则开拍鼓 / 年结一行；可弹 pend 复牌；keepFnMarks
+  Game.enterMap     → market/longgong/guishi 时若 pend 且 canPopup 则复牌
+  Game.newLife      → 清 G.auc48；meta 统计保留
+  UI.p_auction      →（可选）顶部追加「前往天道拍卖行」按钮；不改 market25 源文件
+  DevPanel.registerTab('auc48','拍卖48')
+只读调用：
+  NPC37.storyBlock、B.on、Game.roll、Game.give/take、ITEMS、MAPINFO、
+  Loan42.canBorrow / hasOverdue / borrow（若存在；否则垫资入口隐藏）
+不改：
+  game.js / talk.js / data.js / ui.js / market25.js / loan42.js 正文
+```
+
+常量：
+
+```js
+AUC48 = {
+  off: false,
+  GAP: 3, FEE: 15, LOTS: 4, AP_BID: 1, AP_CON: 1, AP_LEAK: 1,
+  BID_CAP: 5, CON_CAP: 2, LEAK_CAP: 1,
+  RAISE: 1.28, BUYOUT: 1.85, AI_CEIL: [1.15, 1.55],
+  CON_FEE: 0.10, CON_OK: 0.55, CON_MUL: [1.0, 1.45],
+  LEAK_PRICE_MUL: 0.45, LEAK_GOOD: 0.22, LEAK_MID: 0.45,
+  OD_BID_MUL: 0.9,   // 有逾期且 cur>stone*OD_BID_MUL 时强制垫资/放弃岔路
+  GIFT_REN: 3
+};
+```
+
+`canPopup()`：`!off && Game.G && !NPC37.storyBlock?.() && !(typeof B!=='undefined' && B.on) && !UI.modal`。
+
+`ensure(G)`：任意老档（含 `G.v===2`）缺键则补上表默认；`nextY===0` 时按 `GAP` 对齐到最近可开拍年。
+
+### 22.4 规则（以本节为准）
+
+1. **定期开拍**：当 `G.year >= nextY` 且 `canPopup()`，在 `yearEnd` 尾或首次进 `market` 弹开拍鼓（一年最多一次）→ 生成 `lots`（境界过滤池 + `Game.roll` 抽 `LOTS` 件不重复）与 `leak` 标价 → 写 `yOpen=year`、`nextY=year+GAP`、`feePaid=0`。生成结果**写入存档**，中途读档不重抽。
+2. **入场笺**：本场首次举牌/开赌货/寄拍前扣 `FEE`；不足则只读浏览。
+3. **竞价**：
+   - 条件：lot 未 `done`、`nBid<BID_CAP`、`G.ap≥AP_BID`、`canPopup`。
+   - 扣 AP → 展示当前价与对手（`rivals` 池写入 `lot.rival`）→「再加到 next」/「不跟了」/一口价。
+   - NPC：玩家跟价后，若 `cur < aiCeil` 且 `Game.roll(0.62,'qiyu')` 则再抬 `RAISE`；否则放弃，玩家成交（扣石、`Game.give`；若存在 `Market25` 声望 API 则 +`GIFT_REN`）。
+   - 放弃或最终付不起 → lot `done`，不给物品。
+4. **寄拍**：`nCon<CON_CAP`、AP、可售物（`p>0` 非 quest）→ 扣 AP+手续 → `take` → `roll(CON_OK)` 成交按 `CON_MUL` 得石，否则流拍（**初版不退物**，与浅拍一致；P2 可改）。
+5. **捡漏/赌货**：每场一席；年帽 1；扣标价+AP → 三匣同概率 → good/mid/bad 发奖；期望略负。
+6. **负债联动 loan42**：
+   - `hasOverdue(G)`：禁止一口价；`cur > stone` 或 `cur > stone*OD_BID_MUL` 时出垫资卡：`canBorrow` 通过可 `borrow` 后续举；否则只能放弃。
+   - 无 `Loan42` 则隐藏垫资；**不改**其征信/利息公式，不手写 `G.loan42` 内部字段。
+7. **存档防重掷（`pend` ≈ §16.6 `sqPend`）**：
+   - 拍场卡成功弹出前写 `G.auc48.pend={kind,y,lotId?,cur?,paid?}`；选定前不置 `done`、不重复扣已标记 `paid` 的费用。
+   - 读档/切图：有 `pend` 则跳过 roll/重生成，复同价同文案；选定后 `delete pend`；关闭无效则保留。
+8. **反刷**：年帽跨年归零；AP；GAP；pending；Dev 必胜只动 `Game.roll('qiyu')`。
+9. **监听不叠加**：面板按钮只用 `el.onclick=…`（赋值覆盖）；包装用 `_auc48` 旗，已包则跳过；禁止在 `re()` 路径 `addEventListener` 无旗堆积。
+10. **Talk.extra 归一**：
+
+```js
+const prev = _ex ? _ex.apply(this, arguments) : [];
+const out = Array.isArray(prev) ? prev.slice() : [];
+// push 「🏛 天道拍卖行」…
+return out;
+```
+
+11. **开关**：`AUC48.off` 时不注入、不弹鼓；`pend` 保留待开回后再复。
+
+### 22.5 数值表
+
+| 项 | 数值 | 说明 |
+|---|---|---|
+| 开拍间隔 | 3 年 | 与年度事件错峰 |
+| 本场明拍 | 4 件 | 境界过滤池 |
+| 入场笺 | 15 灵石 | 略高于浅拍 10 |
+| 举牌/寄拍/赌货年帽 | 5 / 2 / 1 | 各耗 1 AP |
+| NPC 再抬概率 | 0.62 | 达 aiCeil 必停 |
+| 寄拍成交率 | 0.55 | 手续 10% |
+| 赌货 good/mid/bad | 0.22 / 0.45 / 0.33 | 期望略负 |
+| 逾期限制 | 禁一口价；不足则垫资岔路 | 调 loan42 |
+
+目标手感：三年盼一场；一场内可点完；赌货有故事；欠债玩家有「拆东墙」戏，而非无脑刷石。
+
+### 22.6 面板布局（`UI.titles.auc48` / `UI.p_auc48`）
+
+```
+—— 天道拍卖行 ——
+本季拍场 · 第 24 年　　下场开拍：再过 2 年
+灵石 12,480　入场笺已付
+本年 举牌 1/5　寄拍 0/2　赌货 0/1
+
+本场拍品
+【破境丹】估价 3,000　当前 2,160　对手：龙宫采购办  [🔨 举牌竞价]
+【养神符】…  [🔨 举牌竞价]
+…
+
+[📦 寄拍一件]  [🎲 赌货席（捡漏）]  [💸 问小贷能不能垫]
+（有逾期时顶栏红字 od_warn）
+```
+
+未开拍 / `off`：显示 `empty`。若包了浅拍面板：顶栏链到本面板。
+
+### 22.7 文案包 `TEXT_AUC48`（可直接抄；已 `JSON.parse` 校验）
+
+```js
+const TEXT_AUC48 = {
+  "meta": {
+    "id": "TEXT_AUC48",
+    "ver": "3.9.8",
+    "module": "auc48.js",
+    "title": "天道拍卖行·聚宝阁深化",
+    "basedOn": [
+      "research_v22.md§20",
+      "research_v22.md§21",
+      "market25.auction",
+      "loan42",
+      "items40",
+      "ux23.SAFE"
+    ]
+  },
+  "ui": {
+    "sec": "天道拍卖行",
+    "season": "本季拍场 · 第 {y} 年",
+    "next": "下场开拍：再过 {n} 年（每 {gap} 年一场）",
+    "open_now": "本场正在进行 · 拍品 {n}/{cap}",
+    "stone": "灵石 {s}",
+    "fee": "入场笺 {f} 灵石（本场一次）",
+    "bid_btn": "🔨 举牌竞价",
+    "buyout_btn": "💰 一口价买断",
+    "consign_btn": "📦 寄拍一件",
+    "leak_btn": "🎲 赌货席（捡漏）",
+    "loan_btn": "💸 问小贷能不能垫",
+    "cap_bid": "本年举牌已满（{n}/{cap}）",
+    "cap_consign": "本年寄拍已满（{n}/{cap}）",
+    "cap_leak": "本年赌货已满（{n}/{cap}）",
+    "noap": "行动力不够。逛拍场也要花半日。",
+    "nostone": "灵石不够。钱多多朝你翻白眼。",
+    "closed": "本场已落槌。下次开拍见。",
+    "empty": "拍卖行未开张（未到开拍年，或 AUC48.off）。可先去坊市钱多多处看旧聚宝阁。",
+    "hint": "竞价与寄拍耗行动力；赌货有风险。逾期小贷在身时，拍行会限制高价举牌。",
+    "od_warn": "你名下有逾期小贷。高价举牌前请先还清，或接受「催收优先受偿」条款。",
+    "entry_talk": "🏛 天道拍卖行",
+    "legacy_hint": "（旧）聚宝阁浅拍仍在 market25；本行是 3.9.8 深化场。"
+  },
+  "open": {
+    "title": "开拍鼓",
+    "banner": "聚宝阁传来三声鼓：第 {y} 年季拍开场。\n天道备注：成交额的百分之三记入「市场管理费」，不开发票。",
+    "toast": "拍卖行开张了。钱多多换上了假笑。"
+  },
+  "bid": {
+    "title": "竞价·{name}",
+    "ask": "【{n}】起拍 {start}，当前价 {cur}。\n估价约 {base}。\n对手：{rival}\n还举吗？",
+    "opt_raise": "再加到 {next}",
+    "opt_pass": "不跟了",
+    "opt_buyout": "一口价 {buy}（直接落槌）",
+    "win": "木槌落下。【{n}】归你，成交 {price} 灵石。\n天道会计在远处记了一笔。",
+    "lose": "对手把价抬到 {price}，你没跟。\n拍品落入【{rival}】袖中。",
+    "bust": "口袋比脸干净。对手笑了一下，拍品走了。",
+    "rivals": [
+      "散修·爱砍价",
+      "讨债小鬼（公款）",
+      "龙宫采购办",
+      "阴三娘的马仔",
+      "天道体验官（匿名）",
+      "一位戴斗笠的债主"
+    ]
+  },
+  "consign": {
+    "title": "寄拍",
+    "ask": "选择寄拍物品（收 {fee}% 手续费；流拍费不退）：",
+    "cancel": "算了",
+    "sold": "【{n}】拍出 {got} 灵石（已扣手续 {fee}）。买家留下一句：「值。」",
+    "pass": "【{n}】流拍。手续费 {fee} 灵石已扣。钱多多：「行情不好。」",
+    "none": "背包里没有可寄拍之物（需有标价且非剧情锁）。"
+  },
+  "leak": {
+    "title": "赌货席",
+    "ask": "三只封条木匣，任选一只。标价 {price} 灵石。\n可能是好货，也可能是「天道体验装」。\n打开前不可退。",
+    "opt_a": "左边那只（封条有爪印）",
+    "opt_b": "中间那只（封条写着「非卖品」又划掉）",
+    "opt_c": "右边那只（封条是催收函背面）",
+    "cancel": "不敢赌",
+    "good": "打开！里面是【{n}】！捡漏成功。天道备注：统计上你仍亏。",
+    "mid": "打开。是【{n}】，不好不坏。钱多多：「运气一般。」",
+    "bad": "打开。一张「感谢参与赌货席」礼券……和一撮灰。\n灵石已扣。灰可以留作纪念。"
+  },
+  "loan": {
+    "title": "垫资？",
+    "ask": "当前价 {cur}，你还差 {gap} 灵石。\n要不要走一趟天道小贷？（调用 loan42，不改其公式）",
+    "opt_go": "去小贷窗口看看",
+    "opt_no": "算了，不跟了",
+    "blocked": "小贷窗口：逾期未清或征信不够，不垫拍场款。",
+    "ok": "小贷到账。你可以继续举牌——也多了一笔要还的。"
+  },
+  "year": {
+    "title": "拍场年结",
+    "line": "本岁拍场：成交 {deal} 笔，寄拍 {con}，赌货 {leak}。\n天道抽成已从你看不见的地方拿走。",
+    "opt_ok": "知道了"
+  },
+  "tiandao": [
+    "天道备注：拍卖行成交记入「市场活跃度」。活跃度越高，明年利息宣传越响。",
+    "讨债司市场科：贵客若拍下催收函真迹，可享逾期提醒个性化彩铃。",
+    "孟婆：赌货席的灰，轮回殿回收价为零。",
+    "纸鹤：「恭喜成交。附件：拍品来源合法性免责声明（很长）。」",
+    "钱多多：「我只是代办。假货？那是天道质检的事。」"
+  ],
+  "dev": {
+    "tab": "拍卖48",
+    "hint": "天道拍卖行（G.auc48）。仅开发者模式。标签勿加 SAFE 前缀。"
+  },
+  "toast": {
+    "off": "拍卖48 已关闭（AUC48.off）。",
+    "blocked": "此刻不宜开拍（序章/战斗/教程中）。",
+    "pend_restore": "检测到未决拍场选择，按存档续锤（不重抽）。",
+    "farm_cap": "本年份额用尽。留给别的散修一点汤喝。"
+  }
+};
+```
+
+### 22.8 DevPanel「拍卖48」（仅开发者模式）
+
+`DevPanel.registerTab('auc48', '拍卖48', …)`：
+
+- 显示 yOpen / nextY / nBid / nCon / nLeak / pend / lots 摘要 / meta.totDeal
+- 按钮：`强制开拍`、`清空年帽`、`补灵石+50000`、`模拟举牌胜`、`模拟流拍`、`打开赌货 good/bad`、`挂逾期小贷（调 loan42）`、`清 pend`、`开关 off`
+- 标签固定「拍卖48」，**禁止**写成「开始拍卖48」（SAFE 前缀陷阱）
+- 不改 `dev341.js` 正文
+
+### 22.9 验收（≥8；node + 页测）
+
+**node `test/auc48_unit.js`**
+
+1. `off=true` 不注入 Talk、不开拍；无 `G.auc48` 时 `ensure` 不抛；`G.v===2` 老档补默认。
+2. 开拍写入 `lots.length===LOTS` 与 `leak`；再 `ensure`/模拟读档 **不改变** lots（防重掷）。
+3. 举牌：AP−1、`nBid`+1；调用 `Game.roll`；胜则扣石给物；同年第 6 次拒绝。
+4. 寄拍：手续费与成交/流拍分支；年帽 2；无合适物品走 `none`。
+5. 赌货：三档路径；`nLeak` 年帽 1；标价不足拒绝。
+6. `pend`：弹出竞价卡后写入；模拟读档复牌且不再 roll 生成；选定后清除。
+7. `hasOverdue` 时一口价拒绝；垫资走 `canBorrow` 桩。
+8. `Talk.extra`：上游 `null`/`undefined`/非数组时输出仍为数组；预打 `_qing47`/`_loan42` 再包后 `keepFnMarks` 仍在。
+9. `TEXT_AUC48` JSON 往返；`tiandao.length≥4`；`bid.rivals.length≥6`；**所有可点短标签不以「开始」起首**。
+10. 面板 `re()` 两次后 onclick 仍单次触发（计数桩，证明监听未叠加）。
+
+**页测（奥拉夫）**
+
+11. `#dev`→拍卖48 强制开拍→坊市钱多多见「天道拍卖行」→举牌/寄拍/赌货各走一遍；战斗/序章无卡；挂机不代选高价；断线读档复同一拍品价；`human_olaf` 不回退。
+
+### 22.10 缺口与风险
+
+1. **与 market25 双入口**：文案写明深浅；深化场独立 `feePaid`，不自动开浅拍、不双扣入场费。
+2. **寄拍不退物**：跟浅拍「狠」；若过虐，P2 改流拍退物并同步验收 4。
+3. **loan42 缺席**：垫资隐藏，竞价仍可玩。
+4. **包装序**：须在 market25、loan42、qing47（若有）之后，才能包到最终 `Talk.extra`/`UI.p_auction`。
+5. **「开始」SAFE 陷阱**：文案与 Dev 名已规避；后人加选项须回归验收 9。
+6. **UNSAFE「交易」**：入口不用「交易」作按钮字；用「天道拍卖行」「举牌竞价」。
+7. **不写 ROADMAP**：发版时改状态列；本节只建议 3.9.8。
+8. **神装/神器**：初版拍品池沿用浅拍级丹符材料 + 常见物；不进 shenqi 核心。
+
+---
