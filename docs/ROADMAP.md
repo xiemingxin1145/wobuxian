@@ -78,8 +78,8 @@
 | 3.8.1 | ✅ 已发布（2026-10-30，Latest = v3.8.1 `e6354ca`，含 #45 称号 + canEnter null guard） | 称号 tit39 · `docs/research_v39_titles.md` |
 | 3.8.2 | ✅ 已发布（2026-10-30，含 #55 道具 + #58 阵法 UI；热修 **v3.8.2.1**） | 道具 · `docs/research_v40_items.md` + `docs/research_v22.md` §13 |
 | 3.8.2.1 | ✅ 已发布（2026-10-30，Latest = v3.8.2.1 `54af7da`，#62 items40 Game.roll/storyBlock 补齐） | 道具热修 · PR #62 |
-| 3.8.3 | ✅ 已发布（2026-10-30，Latest = v3.8.3 `0ac62a2`，含 #60 家族 + #59/#61 阵法轮次合入未单独立项 + #38 测试） | 家族深化 · `docs/research_v41_clan.md` + `docs/research_v22.md` §14 |
-| 3.8.4 | 🟡 PR 中 | 时装部位与套装 cos36 · `docs/research_v22.md` §15 · 分支 cos36 |
+| 3.8.3 | ✅ 已发布（2026-10-30，已发布 `0ac62a2`（其后 Latest → v3.8.4），含 #60 家族 + #59/#61 阵法轮次合入未单独立项 + #38 测试） | 家族深化 · `docs/research_v41_clan.md` + `docs/research_v22.md` §14 |
+| 3.8.4 | ✅ 已发布（2026-10-30，Latest = v3.8.4，#63 cos36） | 时装部位与套装 cos36 · `docs/research_v22.md` §15 |
 | 3.9.0 | 🔧 UI+#59 rt+#61 dng 已合 main；完整发版/验收待整理 | 阵法 zf39 · `docs/research_v22.md` §11 |
 | 3.9.1 | ⬜ 待开工 | 天道小贷 loan42 · `docs/research_v22.md` §16 |
 | 3.9.2 | ⬜ 待开工 | 主线终局补完 main40 · `docs/research_story40_main.md` |

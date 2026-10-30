@@ -42,6 +42,33 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 交接 notes · v3.8.4（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.4「时装」**，`VERSION`=3.8.4，tag `v3.8.4` → commit（VERSION bump）；其下 `5d57ddc` #63 merge、`e2bdb54`/`bb5858e` haveTz 守卫。
+- **是 Latest**（非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.4
+- Release 资产：CI 打 HD + lite；versionCode 由 CI 自 293 起继续递增（100+run_number）。发版后填字节数。
+
+### 2 本版做了什么 / 刻意没做什么
+- **cos36 时装**（#63）：11 套冠/衣/佩/履混搭、set2/set4、霓裳坊、讨债司制服兑换、账号级拥有 `Game.meta.cos36`、本世穿戴 `G.cos36w`；新文件 `www/js/cos36.js`；index：`profile38 → cos36 → tit39 → … → clan41 → loan42`。
+- **haveTz**：`fragToSilk()` 须已兑换讨债司制服（奥拉夫 low 建议）；单测 53 项。
+- 刻意没做：未动 #65；未改 game.js/talk.js/data.js/ui.js；不删分支。
+
+### 3 测试结果
+- node：`cos36_unit` **53/53**；validate22 **0 错**；loan42 110、clan41 70、items40 152。
+- 奥拉夫页测（合入前）：panels21 PASS、multilife 3×300 干净、human_olaf **21/22**（T4 flake，main 亦有，无关）。
+- CI（tag v3.8.4）：发版后填。
+
+### 4 遗留问题
+- PR #65（进行中，勿动）；Issue #12 OPEN；loan42 第 2 轮（团伙战 UI / DevPanel / 页测）未发版。分支不删。
+
+### 5 下一版任务（按顺序）
+1. **3.9.0 阵法**完整发版整理（UI+rt+dng 已合）→ **3.9.1 loan** 第 2 轮 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17；#65 按其自身规格。
+
+### 6 交接注意
+- 模块规则：只加新 `www/js/*.js` + 包一层；**不动** game.js / talk.js / data.js / ui.js。
+- 时装：拥有在 `Game.meta`（跨轮回），穿戴在 `G.cos36w`；`fragToSilk` / 兑换须 haveTz。
+- HD 包与签名同前；Chrome 忙则只跑 node。
+
 ## 交接 notes · v3.8.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.8.3「家族」**，`VERSION`=3.8.3，tag `v3.8.3` → commit `0ac62a2`；其下含 #60 clan41、#38 human_olaf、#59 zf39_rt（不发号）、发版后另合 #61 zf39_dng（不发号）、v3.8.2.1/#62。
