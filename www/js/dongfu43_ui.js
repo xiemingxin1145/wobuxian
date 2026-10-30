@@ -165,7 +165,7 @@
     async onEnterHome() {
       const D = DF(); const G = getG(); if (!D || !G || off()) return;
       try { this.toast(this.pick(D.TEXT.enter), '#9affd0'); } catch (e) { }
-      if (!this.canPopup()) return; // storyBlock 时 onEnter 也不 stamp（DF43.onEnter 自守）
+      // 始终走 DF43.onEnter：storyBlock 时仍 n++、不 stamp ey（奥拉夫 L2）；有年事再弹卡
       const inst = D.onEnter(G);
       if (inst) await this.playYearEvent(inst);
     },
@@ -173,13 +173,16 @@
     // ---- 居民摆放 ----
     clearResidents() {
       try {
-        if (typeof R === 'undefined' || !R || !R.ents) return;
-        R.ents = R.ents.filter(e => !(e && e._df43));
+        if (typeof R === 'undefined' || !R) return;
+        if (R.ents) R.ents = R.ents.filter(e => !(e && e._df43));
+        // 出差牌在 marks 上，必须一并清掉，否则 spawn/enter 叠 mark（奥拉夫 M1）
+        if (R.marks) R.marks = R.marks.filter(m => !(m && m._df43 && m.act === 'df43_sign'));
       } catch (e) { }
     },
     spawnResidents() {
       if (!this.isHome() || off()) return;
       const D = DF(); const G = getG(); if (!D || !G) return;
+      // 幂等：先清 ents + df43_sign，再摆（enterMap 经 refreshNpcs + 外层会调两次）
       this.clearResidents();
       const list = D.residents(G) || [];
       for (const r of list) {
@@ -202,10 +205,19 @@
           }
           if (!spr && r.kind === 'clone' && Gm() && typeof Gm().playerSpr === 'function') spr = Gm().playerSpr();
           if (!spr) spr = 'npc_disciple';
+          // 亲传/道侣：若 DF 层 label 仍是裸 id（如 ah），再从 NPCS 解析一次（奥拉夫 L3）
+          let label = r.label;
+          if ((r.kind === 'apprentice' || r.kind === 'spouse') && r.npc && typeof NPCS !== 'undefined') {
+            const nid = typeof r.npc === 'string' ? r.npc : (r.npc.npc || r.npc.id || '');
+            const N = nid && NPCS[nid];
+            if (N && N.n) label = String(N.n).split('·').pop();
+            else if (r.npc && typeof r.npc === 'object' && r.npc.n) label = String(r.npc.n).split('·').pop();
+            else if (!label || label === nid) label = '亲传';
+          }
           const ent = {
             kind: 'npc', id: r.id, spr, i: i + 0.5, j: j + 0.5, dir: 'S',
-            s: r.s != null ? r.s : 1, label: r.label, lc: '#9affd0',
-            alpha: r.a != null ? r.a : 1, _df43: 1, _dfKind: r.kind, _dfRef: r,
+            s: r.s != null ? r.s : 1, label, lc: '#9affd0',
+            alpha: r.a != null ? r.a : 1, _df43: 1, _dfKind: r.kind, _dfRef: Object.assign({}, r, { label }),
             home: [i, j], ai: (typeof npcAI === 'function' ? npcAI : null)
           };
           try {
@@ -353,7 +365,19 @@
   // ---- Acts ----
   function installActs() {
     if (typeof Acts === 'undefined' || !Acts) return;
-    Acts.cave = async function () { await UI43.entryCard(); };
+    // 包装原 Acts.cave（systems21 面板），off 或不适用时回落原实现（奥拉夫 L1）
+    if (!Acts.cave || !Acts.cave._df43) {
+      const _cave = typeof Acts.cave === 'function' ? Acts.cave : null;
+      Acts.cave = async function () {
+        if (off()) {
+          if (_cave) return await _cave.apply(this, arguments);
+          try { await UI.panel('cave'); } catch (e) { }
+          return;
+        }
+        await UI43.entryCard();
+      };
+      Acts.cave._df43 = 1;
+    }
     Acts.df43_exit = async function () { await UI43.exitCard(); };
     Acts.df43_book = async function () { try { await UI.panel('cave'); } catch (e) { } };
     Acts.df43_mat = async function (m) {

@@ -36,7 +36,7 @@ function box(extra) {
   const NPCS = { cuihua: { n: '翠花', spr: 'npc_girl', map: 'village' }, ah: { n: '青云·阿禾', spr: 'npc_disciple', map: 'sect' }, mom: { n: '娘', spr: 'npc_mom', map: 'village' } };
   const MONS = { slime: { n: '史莱姆', spr: 'mon_slime' }, wolf: { n: '狼', spr: 'mon_wolf' } };
   const R = { mapId: 'village', mode: 'map', marks: [], props: [], ents: [], player: { i: 10.5, j: 10.5, path: [] }, n: 22, M: { n: 22 } };
-  const Acts = { mat: async () => { calls.mats = (calls.mats || 0) + 1; }, incense: async () => {}, portal: async () => { calls.portals = (calls.portals || 0) + 1; }, cave: async () => {} };
+  const Acts = { mat: async () => { calls.mats = (calls.mats || 0) + 1; }, incense: async () => {}, portal: async () => { calls.portals = (calls.portals || 0) + 1; }, cave: async () => { calls.origCave = (calls.origCave || 0) + 1; } };
   const UI = {
     toast(m) { calls.toasts.push(String(m)); },
     hud() {},
@@ -275,6 +275,58 @@ return (async () => {
   G.cave.zl = 0; calls.cards.length = 0;
   await c.Acts.df43_spring();
   ok(calls.cards.some(x => /灵泉还没醒/.test(x.text)), '聚灵阵 0 灵泉锁定文案');
+
+  // ---- 奥拉夫 M1：df43_sign 不叠；重复 spawn / enterMap 后仍为 1 ----
+  R.mapId = 'dongfu'; R.ents = [];
+  // 清掉先前测试留下的 sign
+  R.marks = (R.marks || []).filter(m => !(m && m.act === 'df43_sign'));
+  c.DF43UI.spawnResidents();
+  const sign1 = R.marks.filter(m => m && m.act === 'df43_sign').length;
+  c.DF43UI.spawnResidents();
+  c.DF43UI.spawnResidents();
+  const sign3 = R.marks.filter(m => m && m.act === 'df43_sign').length;
+  ok(sign1 === 1 && sign3 === 1, 'M1：spawnResidents×3 后 df43_sign 仍为 1');
+  // enterMap 会 refreshNpcs + 外层 spawn（双调）
+  await Game.enterMap('dongfu');
+  const signEnter = R.marks.filter(m => m && m.act === 'df43_sign').length;
+  ok(signEnter === 1, 'M1：enterMap 双调 spawn 后 df43_sign 仍为 1');
+
+  // ---- 奥拉夫 L1：Acts.cave 包装原实现，off 时仍调用原 cave ----
+  ok(c.Acts.cave && c.Acts.cave._df43 === 1, 'L1：Acts.cave 带 _df43 包装标记');
+  calls.origCave = 0; calls.cards.length = 0;
+  const _offWas = c.DF43.off; c.DF43.off = true;
+  await c.Acts.cave();
+  ok(calls.origCave === 1, 'L1：DF43.off 时调用原 Acts.cave');
+  ok(calls.cards.length === 0, 'L1：off 时不弹入口卡');
+  c.DF43.off = _offWas;
+
+  // ---- 奥拉夫 L2：storyBlock 时 UI onEnterHome 仍 n++（走 DF43.onEnter）----
+  NPC37._b = 'prologue';
+  G.df43 = undefined; R.mapId = 'dongfu';
+  const nBefore = 0; // st 惰性初始化后 n=0，onEnterHome → onEnter → n++
+  calls.cards.length = 0;
+  await c.DF43UI.onEnterHome();
+  ok(c.DF43.st(G).n === nBefore + 1, 'L2：storyBlock 下 onEnterHome 仍 n++');
+  ok(c.DF43.st(G).ey === -1, 'L2：storyBlock 下不 stamp ey');
+  ok(!calls.cards.some(x => /年事|查封|漏水|无事/.test(x.title || '')), 'L2：storyBlock 下不弹年事卡');
+  NPC37._b = null;
+
+  // ---- 奥拉夫 L3：亲传 label 不裸露 ah ----
+  R.mapId = 'dongfu'; R.ents = [];
+  c.DF43UI.clearResidents();
+  c.DF43UI.spawnResidents();
+  const app = R.ents.find(e => e && e.id === 'df_app');
+  ok(!!app && app.label === '阿禾' && app.label !== 'ah', 'L3：亲传 label 为阿禾而非 ah');
+  // NPCS 缺省时回落「亲传」
+  {
+    const { c: c2, G: G2, R: R2 } = box({ G: { apprentice: 'no_such_npc' } });
+    R2.mapId = 'dongfu'; R2.ents = []; R2.marks = [];
+    // 同步 props
+    R2.props = c.R.props.slice();
+    c2.DF43UI.spawnResidents();
+    const app2 = R2.ents.find(e => e && e.id === 'df_app');
+    ok(!!app2 && app2.label === '亲传' && app2.label !== 'no_such_npc', 'L3：NPCS 缺失时 label 回落亲传');
+  }
 
   console.log(`\n${n - fails}/${n} passed`);
   process.exit(fails);
