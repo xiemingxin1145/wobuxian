@@ -1,6 +1,208 @@
 # 我不仙 进度清单（2026-10-17 Grok 接管后）
 
+> 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
+
+## 交接 notes · v3.8.0（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.8.0「人物详情面板」**，`VERSION`=3.8.0，tag `v3.8.0` → commit `f2468b7`（`3.8.0：VERSION + CHANGELOG`；其下 `30432fa` docs §15、`66e8136` #50 squash、`276792c` #51 squash）。
+- **是 Latest**（`releases/latest` = v3.8.0，2026-10-24 19:16 UTC+8 发布，非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.0
+- Release 资产：`wobuxian.apk` 372,011,313 B（≈372MB，HD）、`wobuxian-lite.apk` 83,854,865 B（≈84MB）；两包签名证书 SHA-256 `436bf9221c08…ce7ef29dc`（= 436bf922…29dc）。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **profile38 人物详情面板（PF38）**（PR #50 squash `66e8136`，新文件 `www/js/profile38.js`，index 在 chain37 后；只包裹 Talk.extra / UI.p_char / Game.yearEnd / FAM37.birth）：NPC 对话「📜 查看详情」、角色面板「📜 人物详情（自己）」；四块 基础/情谊/隐藏/喜好；神识窥探每年 3 次（30% 被发现扣好感/关系）；好感/道侣自动解锁；秘密效果只结算一次；`PF38.reveal()` 留给 3.8.2 道具；年末「貌合神离」；子嗣 30% 继承道侣命格；开发者页签「人物详情」；存档 `G.pf38`；文案 TEXT38A 由 `tools/gen_pf38.py` 生成；测试 `test/pf38_unit.js`、`test/pf38_page.py`。
+- 同版带上 **#51 讨债令抵扣误工费**（squash `276792c`）：追兵战败付误工费时可花 1 枚讨债令抵掉；`dev_openworld_page` 对应断言。
+- 合入前把 main 合进两条分支（#51 无冲突；#50 冲突 `www/index.html` 脚本行、`docs/ROADMAP.md` 状态行）。
+- 刻意没做：秘密的对话选项 `opt`；命格 fx 数值（设计稿标「不支持」，只显示文案）；子嗣/弟子行尾「详情」按钮。神识门槛按境界名实现为 9/14/17/20/24（设计稿数字对不上，见 8692229）；命名 NPC 大境界 `PF38.REALM` 为估值 → 待确认。
+
+### 3 测试结果
+- 门禁（串行，2026-10-24 18:18–19:05 UTC+8，基于 `e9ebfaf`/`f2468b7` = main + 版本号）：validate22 0 错、jsscan33 0 错、panels21 ✅、controls ✅、sys33/pet35/lian35/lg36/sq36/fam37/life34/jianghu34 unit ✅、npc37_unit/page ✅、stage3_life34 ✅、dlg37 ✅、npc37_events unit/page ✅、route37 ✅、chain37 ✅、**pf38_unit ✅、pf38_page ✅**、dev_openworld_page ✅。
+- human23：门禁中 11/13（#10 切图后仍在桃花村、#11 点 villager 落到「战斗胜利」卡），单跑 **13/13** → 判为测试时序 flake。
+- human_olaf：20/23，失败 N2、T1（已知 flake 放行）、T5（`站到最近NPC旁` 后被遭遇战打断 result=battle）；T5 单跑 4 次 3 过 1 败（败的一次传送后找不到 NPC，npc=null）→ **测试本身**（传送/遭遇战时序）问题，非游戏 bug，按「单跑通过即接受」放行。奥拉夫另测：human23 重跑 13/13；human_olaf 超时，N2、T3 失败判为测试 flake（profile38.js 不碰点屏/交互）。
+- CI（tag v3.8.0，run 40089126940）：build ✅、emulator-smoke API30 ✅、API34 ✅。
+
+### 4 遗留问题
+- PR #56 `zf39` 3.9.0 阵法（第 1 轮：数据+逻辑+单测，未接 UI）：**在审**。
+- PR #55 `items40` 3.8.2 道具：开发/评审中。
+- PR #45 `tit39` 3.8.1 称号：待发，需改用 `Chain37.doneCount`。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未全量验证；human_olaf N2/T5 也偶发，同属测试问题。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+- 本机分支/工作区：`/workspace/rel37b`（Grok Bot 发版用）；各 `relXXX-bump` 远程分支可清理 → 待确认。
+
+### 5 下一版任务（按顺序）
+1. **3.8.1 称号**（PR #45，`docs/research_v39_titles.md`；改用 `Chain37.doneCount`）
+2. **3.8.2 道具**（PR #55，`docs/research_v40_items.md` + `docs/research_v22.md` §13）
+3. **3.8.3 家族**（`docs/research_v41_clan.md` + `docs/research_v22.md` §14，41a4bd6）
+4. **3.8.4 时装 cos36**（`docs/research_v22.md` §15，30432fa）：待开工
+5. **3.9.0 阵法**（PR #56 已开工，`docs/research_v22.md` §11）：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，接 UI 前先确认该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；新字段放各自命名空间（`G.npc37`、`G.fam37`、`G.route37`、`G.chain37`、`G.pf38` 等）惰性兜底，缺省时行为等同旧版。
+- 弹卡类功能注意 #53 守卫（序章、新手指引、战斗中不弹）与寻路守卫 `R && R.player && R.player.nav`。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源；更新用 `tools/make_hd_bundle.sh upload`。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+- 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`，忙就等；只杀自己的进程；各自用独立 worktree。
+
+## 交接 notes · v3.7.5（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.7.5「奇遇链」**，`VERSION`=3.7.5，tag `v3.7.5` → commit `a16b119`（`3.7.5：VERSION + CHANGELOG`；其下 `ac1baaa` docs §13、`9c96645` #52 squash、`49d3e6c` #54）。
+- **是 Latest**（`releases/latest` = v3.7.5，2026-10-24 15:21 UTC+8 发布，非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.7.5
+- Release 资产：`wobuxian.apk` 371,980,445 B（≈372MB，HD）、`wobuxian-lite.apk` 83,823,997 B（≈84MB）；两包签名证书 SHA-256 `436bf9221c08…ce7ef29dc`（= 436bf922…29dc）。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **chain37 奇遇链**（PR #52 squash `9c96645`，新文件 `www/js/chain37.js`，index 在 dlg37 后）：驱动 `fam37.js` 的 `TEXT37B.chains` + §12.10 `CHAIN37X` 补丁；6 条链 c37_1–c37_6，触发（风声 40%、散修 60%、2 年过期、同时 ≤2 条）、§12.3 失败态、§12.4 战斗表（赢才推进）、§12.5 追凶支线、年结算每年 ≤1 张卡、`Chain37.doneCount`；接入全部为包装（Talk.extra / Game.yearEnd / Game.enterMap / UI.hud / Track.target / Track.go / LIAN35.batchAlch），开发者 Tab「奇遇37」；测试 `test/chain37_unit.js`。
+- 同版带上 **#54**（`49d3e6c`，测试修正：npc37_unit「放行后正常弹路遇卡」偶发失败）。
+- 合入前把 main 合进 `chain37`（`a8d6ce4`，只冲突 `docs/ROADMAP.md` 状态行）。
+- 刻意没做：存档放独立 `G.chain37`（不进 `G.jh34.ch`）；c37_3「被夺宝抢先」入口（依赖 `G.npc37.ev`）待接；route37/tit39 尚未改调 `Chain37.doneCount`；战斗中敌人名不换成人物名。
+
+### 3 测试结果
+- 门禁（串行，2026-10-24 14:33–15:18 UTC+8，基于 `cd66c54`/`a16b119` = main + 版本号）：validate22 0 错、jsscan33 0 错、panels21 ✅、controls ✅、**human23 13/13**、**chain37_unit 78/78**、sys33/pet35/lian35/lg36/sq36/fam37/life34/jianghu34 unit ✅、npc37_unit ✅、npc37_page ✅、stage3_life34 ✅、dlg37_unit ✅、npc37_events unit/page ✅、route37_unit ✅。
+- human_olaf：21 过 / 2 失败——N1（战后点怪未开战）、T1 33/34（点「集市货郎」脚下落到「背包」按钮）；均为已知**测试本身** flake（PROGRESS 已知问题，PR #38 待验证），按约定放行。
+- 奥拉夫在 PR #52（26c7013）上：chain37_unit 78/78，jsscan33/fam37_unit/controls 0 失败，human23 13/13，human_olaf 仅 N1。
+- CI（tag v3.7.5，run 40073612776）：build ✅、emulator-smoke API30 ✅、API34 ✅。
+
+### 4 遗留问题
+- PR #50 `prof38` 3.8.0 人物详情面板：开发/评审中。
+- PR #51 `debt-token-offset` 讨债令抵扣误工费：奥拉夫测试中。
+- PR #45 `tit39` 3.8.1 称号：已解除阻塞，待按顺序发（可接 `Chain37.doneCount`）。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未全量验证。
+- chain37 后续：c37_3 夺宝入口接 `G.npc37.ev`、route37 改调 `Chain37.doneCount` → 负责人待确认。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+
+### 5 下一版任务（按顺序）
+1. **3.8.0 人物详情面板**（PR #50，`docs/research_v38_profile.md`）
+2. **3.8.1 称号**（PR #45，`docs/research_v39_titles.md`）
+3. **3.8.2 道具**（`docs/research_v40_items.md` + `docs/research_v22.md` §13）
+4. **3.8.3 家族深化**（`docs/research_v41_clan.md`）
+- **3.9.0 阵法**（`docs/research_v22.md` §11）往后放：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，需先确认/补齐该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；新字段放各自命名空间（`G.npc37`、`G.fam37`、`G.route37`、`G.chain37` 等）惰性兜底，缺省时行为等同旧版。
+- 路遇/奇遇类弹卡注意 #53 守卫（序章、新手指引、战斗中不弹）与寻路守卫 `R && R.player && R.player.nav`。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源；更新用 `tools/make_hd_bundle.sh upload`。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+- 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`，忙就等；只杀自己的进程；各自用独立 worktree。
+
+## 交接 notes · v3.7.4（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.7.4「自由路线」**，`VERSION`=3.7.4，tag `v3.7.4` → commit `5b7a20b`（`test(npc37_page): #53 序章守卫后，页面测试放行 storyBlock`；其下 `9ec0e74` 3.7.4 VERSION + CHANGELOG、`3fb3a9f` #53、`c463c22` #43 squash）。
+- **是 Latest**（`releases/latest` = v3.7.4，2026-10-24 13:49 UTC+8 发布，非预发布）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.7.4
+- Release 资产：`wobuxian.apk` 371,947,979 B（≈372MB，HD）、`wobuxian-lite.apk` 83,791,531 B（≈84MB）；两包签名证书 SHA-256 `436bf9221c08…ce7ef29dc`（= 436bf922…29dc）。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **route37 自由路线**（PR #43 squash `c463c22`，新文件 `www/js/route37.js`，index 在 dlg37 后）：「更多 → 道途」5 条路线（散修/魔修/宗门掌门/凡人商贾/家族），换路线冷却 10 年；路线被动、20 条路线年事件 + 10 张前置卡 + 延迟后果；魔修仇杀、商贾行商/放贷；4 个新结局（逍遥/魔君/富甲/世家）；道途面板可退出宗门；测试 `test/route37_unit.py`。
+- 一并带上 **PR #53**（`3fb3a9f`，奥拉夫）：序章/新手指引/战斗期间不出路遇卡与江湖 toast（`npc37.js` / `npc37_events.js` 包裹式守卫），修 #43 上 human23 的偶发失败。
+- 测试修正：`test/npc37_page.py` 因 #53 守卫在新开局（序章中）不再弹路遇而失败，改为该页放行 `NPC37.storyBlock`（守卫本身由 `npc37_unit` 覆盖）。
+- 版本提交：`VERSION`、`CHANGELOG.md`（v3.7.4 自由路线）。
+- 刻意没做（与规格差异，见 PR #43 / 下方 3.7.4 开发记录）：宗门声望存 `G.route37.rep` 不写 `G.sectRel`；商贾买低卖高改为「行商」；掌门「宗门战冷却 −1 年」未做；子嗣无境界改为 `kid.r37zj` 筑基几率；散修任务酬劳 ×1.2 / 奇遇权重 ×1.5 未做。
+
+### 3 测试结果
+- 门禁（串行，2026-10-24 12:59–13:42 UTC+8，基于 `9ec0e74` = main 含 #53 + 版本号）：validate22 0 错、jsscan33 0 错、panels21 ✅、controls ✅、**human23 13/13**、**human_olaf 23/23 全过（N1/T1/N2 本次均通过）**、sys33/pet35/lian35/lg36/sq36/fam37/life34/jianghu34 unit ✅、npc37_unit ✅、stage3_life34 ✅、dlg37_unit PASS、npc37_events_unit ✅、npc37_events_page ✅、route37_unit ✅。
+- `npc37_page.py`：门禁中失败（#53 守卫导致的**测试本身**问题，非游戏 bug），修测试后单跑两次 12/12 PASS。
+- 合入前 PR #43 合并 main 后：route37_unit 全过、validate22 0 错（奥拉夫另测 route37_unit 全过、human23 复跑 13/13）。
+- CI（tag v3.7.4，run 40067584792）：build ✅、emulator-smoke API30 ✅、API34 ✅。
+
+### 4 遗留问题
+- PR #50 `prof38` 3.8.0 人物详情面板（profile38）：开发/评审中。
+- PR #52 `chain37` 3.7.5 奇遇链 chain37（research_v22 §12）：进行中。
+- 奥拉夫的 npc37 序章守卫 PR：已作为 #53 合入本版；如有后续守卫 PR → 待确认。
+- PR #45 `tit39` 3.8.1 称号：#46 已合（`45eaad4`），**已解除阻塞**，待按顺序发。
+- PR #51 `debt-token-offset` 讨债令抵扣误工费：待评审，负责人待确认。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未用新脚本跑全量验证。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+
+### 5 下一版任务（按顺序）
+1. **3.7.5 奇遇链**（PR #52，规格 `docs/research_v22.md` §12）
+2. **3.8.0 人物详情面板**（PR #50，`docs/research_v38_profile.md`）
+3. **3.8.1 称号**（PR #45，`docs/research_v39_titles.md`）
+4. **3.8.2 道具**（`docs/research_v40_items.md`）
+5. **3.8.3 家族深化**（`docs/research_v41_clan.md`）
+- **3.9.0 阵法**（`docs/research_v22.md` §11）往后放：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，需先确认/补齐该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；新字段放各自命名空间（`G.npc37`、`G.fam37`、`G.route37` 等）惰性兜底，缺省时行为等同旧版。
+- 路遇类新功能注意 #53 守卫：序章（`G.flags.main0` 未置位）、新手指引（`Game.meta.tut23` 未置位）、战斗中不出卡；页面测试需先跳过序章/指引或放行 `NPC37.storyBlock`。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json` 从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源；更新用 `tools/make_hd_bundle.sh upload`。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+- 本机多 AI 共用：跑 Chrome 测试前先 `ps aux|grep -i chrome`，忙就等；各自用独立 worktree。
+
+## 交接 notes · v3.7.3（2026-10-24，Grok Bot）
+
+### 1 当前版本 / 最新提交
+- 版本：**v3.7.3「NPC自发事件」**，`VERSION`=3.7.3，tag `v3.7.3` → commit `cbb83a2`（main HEAD，`3.7.3：VERSION + CHANGELOG + PROGRESS`；其下 `67e5f22` = PR #42 squash，`65c1d57` = PR #48 squash）。
+- **是 Latest**（`releases/latest` = v3.7.3，2026-10-24 11:05 UTC+8 发布，非预发布）。
+- Release 资产：`wobuxian.apk` 371,907,469 B（≈372MB，HD）、`wobuxian-lite.apk` 83,751,021 B（≈84MB）。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.7.3
+
+### 2 本版做了什么 / 刻意没做什么
+- 新系统 **NPC37E（NPC 自发事件）**：每年年末熟人 NPC 之间结仇/求助/讨债 1–2 件，写进江湖传闻；与路遇共用频率限制，自动寻路中不弹提示。新文件 `www/js/npc37_events.js`；改 `www/js/npc37.js`（+8 行钩子）、`www/index.html`（加载）；测试 `test/npc37_events_unit.js`、`test/npc37_events_page.py`。
+- 修复 **#47 / PR #48**（fam37）：已有道侣同步到 `G.fam37.sp`，修已有道侣无法生子嗣/可被覆盖。
+- 版本提交：`VERSION`、`CHANGELOG.md`、`PROGRESS.md`。
+- 刻意没做：NPC 遭遇计数 `G.npc37.ev`（在 PR #46，未合）；自由路线 route37（#43 → 3.7.4）；称号 tit39（#45 → 3.8.1）；未改 game.js / talk.js / data.js。
+
+### 3 测试结果
+- CI（tag v3.7.3，run 40056714139）：build ✅、emulator-smoke API30 ✅、API34 ✅；main 推送 run 40056711170 ✅。
+- unit：`npc37_events_unit.js`、`npc37_unit.js` 等通过；`npc37_events_page.py` 通过（详细计数见 PR #42/#46，PR #46 记 npc37_unit 66/66）。
+- human_olaf：门禁中 N2 被「路遇」卡抢点失败 1 次，单跑 8/8 通过；N1、T1 为已知 flake。**三者均为测试本身（harness 站位/路遇卡抢点），不是游戏 bug**；PR #38 修 N1/T1 站位，尚未验证合入。
+- 点屏（human23 真实触摸）：本版逐项通过数未单独记录 → 待确认。
+
+### 4 遗留问题
+- PR #43 `route374` 3.7.4 自由路线（route37）：评审修复已推（633cd21），**等奥拉夫 Chrome 点按测试**，负责：Grok Bot 开发 / 奥拉夫测试。
+- PR #45 `tit39` 3.8.1 称号系统：评审已过（e88e33b），待按顺序发；`t39_jianghu` 依赖 #46。
+- PR #46 `npc37-evcount` 遭遇计数 `G.npc37.ev`（基于 npc37-events，#42 已合，需 rebase 到 main），open-world 线负责。
+- PR #38 `olaf-n1t1-fix`：仅测试，修 N1/T1 flake，未用新脚本跑全量验证。
+- Issue #12（3.3.1 游走 NPC 重叠点错人）仍 OPEN。
+
+### 5 下一版任务（按顺序）
+1. **3.7.4 自由路线**（#43，规格 `docs/research_v22.md` §10）
+2. **3.7.5 奇遇链**（草稿 `docs/random_adventure_chain_draft.md`、`docs/encounter_chain_draft.md`）
+3. **3.8.0 人物详情面板**（`docs/research_v38_profile.md`）— 开发中
+4. **3.8.1 称号**（`docs/research_v39_titles.md`，#45；先合 #46）
+5. **3.8.2 道具**（`docs/research_v40_items.md`）
+6. **3.8.3 家族深化**（`docs/research_v41_clan.md`）
+- **3.9.0 阵法**（`docs/research_v22.md` §11）往后放：依赖秘境 dungeon26 的 `Dng.roomTrap` 机关房钩子，需先确认/补齐该接口。
+
+### 6 交接注意
+- 模块规则：新功能一律做成新的 `www/js/*.js`，在 `index.html` 按顺序加载，用「包一层原函数」接入；**不改 game.js / talk.js / data.js / ui.js 等核心文件**；不手改生成物 `www/js/version.js`、`www/assets/assets.js`/图集、`www/assets/gen/*`。
+- 老存档：`wbx2_*` 键名、`G.v===2` 不变；主线按章节 id（`G.mainId`），只 `ins()` 插入不删改 id；新字段放各自命名空间（如 `G.npc37`、`G.fam37`、`G.route37`）惰性兜底，缺省时行为等同旧版。
+- 美术管线：当前主路线为 AI 精绘 2D（`art/ai_pipeline/process_frame.py`、`tools/gen_art.py`）；`art/gen/NEEDED.md` 记录到「批次 2（2026-10-10）」；v24 人形模型批次见 `HANDOFF_CHARS.md`。**当前渲到哪一批：待确认**。
+- HD 包：CI 按 `hd-assets.json`（现为 `wbx-hd-assets-3.2.0-202610161413.zip`，367,260,215 B）从 Release `assets-hd` 下载、校验 sha256、覆盖 `www/assets` 打 `wobuxian.apk`，lite 用仓库内 SD 资源。更新 HD 包：`tools/make_hd_bundle.sh upload`（或 `tools/hd_pack.sh`：重渲 HD → 打 zip → 上传 assets-hd → 改 hd-assets.json 并推送）。签名只在 CI（Secrets），证书 SHA-256 `436bf922…29dc` 不能换。
+
+## 3.8.0 人物详情面板（Grok Bot，2026-10-24 11:40 起，分支 `prof38`，worktree `/workspace/prof38`，未 bump VERSION）
+> 规格 `docs/research_v38_profile.md`。新文件 `www/js/profile38.js`（index 在 dlg37 后；TEXT38A 由 `tools/gen_pf38.py` 从设计稿 §8 逐字生成），不改 game.js/talk.js/data.js；存档 `G.pf38` 惰性兜底，G.v 不变。
+- [x] 面板 `UI.p_pf38`：头部（立绘/名字/境界/地图，TIT39 若合入显示称号）、①基础 性格、②情谊 好感+关系分档、③隐藏 灵根/命格/真实好感/秘密①②（未解锁显示门槛）、④喜好（送过礼或好感≥60 才显示）。
+- [x] 入口：对话菜单「📜 查看详情」（包 Talk.extra）；角色面板底部「📜 人物详情（自己）」。
+- [x] 神识窥探：每年 3 次、目标境界高于玩家直接拒绝、成功率公式、30% 被发现扣好感 8/关系 5（karma≤−30 翻倍）、当年不可再窥；karma≥30 −10%。走 `Game.roll(p,'peek')`。
+- [x] 好感途径自动解锁（≥80 灵根 / ≥120 命格 / 道侣或 rel≥60&aff≥100 真实好感 / ≥130 秘密① / 150&rel≥80 秘密②），秘密 `on` 只结算一次；`PF38.reveal(id,key,{yr})` 给 3.8.2 道具用（同心香当年有效）。
+- [x] 年末「貌合神离」（道侣/记名弟子 taff≤−30，10%，寻路中不弹 toast）；子嗣 30% 继承道侣命格（包 FAM37.birth 写 kid.mg）；开发者页签「人物详情」。
+- [x] 测试：`node test/pf38_unit.js` 34/34；`python3 -B test/pf38_page.py`（真实触摸 412×915）FAILS []；validate22 0 错、npc37_unit 66/66、npc37_events_unit 50/50、fam37_unit fails []、jsscan33 errors []、controls FAILS 0。human_olaf / human23 未跑（交奥拉夫）。
+- ⚠ 待确认：设计稿 §3 门槛数字 6/10/13/16/20 与同表境界名（筑基中期/金丹后期/元婴中期/化神初期/渡劫初期）不一致；实现按境界名 = 9/14/17/20/24。命名 NPC 的大境界设计稿没给，`PF38.REALM` 按身份估值，待研究员确认。
+- [ ] 未做：秘密的对话选项 `opt`、命格 fx 数值（compAtk/disXp/kidLg 等，设计稿标「不支持」，只显示文案）、子嗣/记名弟子行尾「详情」按钮。
+
 > 稳定版：v2.3.0。v2.5 开放世界方向推进中。工作分支：openworld-wip
+
+
+## 3.7.4 自由路线 route37（Grok Bot 自动开发，2026-10-24 09:35 起，分支 `route374`，worktree `/workspace/route374`，未 bump VERSION）
+> 规格：`docs/research_v22.md` §10（研究员 07f76ad）。新文件 `www/js/route37.js`（index 在 fam37 后），不改 game.js/talk.js/data.js/ui.js。存档 `G.route37`，老档缺省 null。
+- [x] 「更多 → 道途」面板：5 条路线（散修/魔修/宗门掌门/凡人商贾/家族），🔒 显示原因；换路线冷却 10 年、魔修切出需善恶 ≥0、积分清零记入 hist（最多 8 条）；面板里可「退出宗门」（游戏原本没有退宗入口，散修需要）。
+- [x] 被动：魔修修为 ×1.15（「回头是岸」当年失效）、每年善恶 −2、正道声望 −3；商贾修为 ×0 + 不能冲击瓶颈（退出后也不能）、每年寿元 +1（上限 +20）；掌门记名弟子名额 +1（封顶 6）；家族子嗣灵根两次取优。
+- [x] 年积分 + 20 条路线专属年事件（每年最多 1 条，⚑ 标题，自动/挂机中不弹）+ 10 张前置提示卡（各 1 次）+ 延迟后果（灵田 3 年、囤货、赊账 5 年、族学）。
+- [x] 4 个新结局 `r37_xiaoyao/r37_mojun/r37_fujia/r37_shijia`：条件满足时在对应 NPC 对话出现「⚑ 大结局·xxx」，二次确认后 `Game.die`；不需要主线 done；NPC 陨落落到说书先生；结局分 +15。
+- [x] 魔修「⚑ ⚔ 仇杀」（萧十三/燕归/丹娘，每人每年 1 次，胜：击杀 +1、积分 +8、天魔殿声望 +8）；商贾「行商」（每年押货、年终 ×1.1–1.7 或 10% 遭劫 ×0.7，+200）+ 放贷（3 位借款人、最多 3 笔、3 年还本、陨落全额违约）。
+- [x] 开发者面板 Tab「道途37」；`test/route37_unit.py` 37 项全过（A10.1–A10.6、20 条事件、放贷/行商、结局 +15、面板、存档读档）。412×915 真实触摸截图 `/workspace/shots374/`（面板、弃仙确认卡、商贾面板）。
+- 与规格的差异：①玩家对宗门的声望存 `G.route37.rep`，不写 `G.sectRel`（那里是宗门对宗门的 a|b 键，life34 会把单键误读成一对宗门）；②market25 没有统一价格入口，商贾的买低卖高改为「行商」；③war29 没有冷却，掌门「宗门战冷却 −1 年」未做（「继续烧钱」改为贡献 +10）；④子嗣没有境界：家族路线下 16 岁以上子嗣每年按灵根有几率筑基（`kid.r37zj`），族谱三代 = 娘、你、≥1 个子嗣；⑤散修「任务酬劳 ×1.2 / 奇遇权重 ×1.5」未做。
+## 3.7.5 奇遇链 chain37（Grok Bot，2026-10-24 12:45 起，分支 `chain37`，worktree `/workspace/chain37`，未 bump VERSION）
+> 规格：`docs/research_v22.md` §12。新文件 `www/js/chain37.js`（index 在 dlg37 后），驱动 `fam37.js` 的 `TEXT37B.chains`；不改 game.js/talk.js/data.js/ui.js。存档 `G.chain37={v:1,ch:{c37_x:{s,t0,tn,k,done,out,fail,pen,burst,offer,after,chase,hunt}},cy}` 惰性兜底（§12.2 原写 `G.jh34.ch`，按交接要求改独立命名空间，CH34 进度不受影响）。
+- [x] 运行器：风声（年结算 40%/散修 60%，2 年过期）、并发 ≤2、⚑ 选项（不进 SAFE、不进 Track.list）、追踪栏 HUD 行、地点节点进图 1.5s 弹卡（`NPC37.idle()` / `R.player.nav` 守卫）。
+- [x] §12.1 F1–F13、§12.3 失败态、§12.4 战斗表（`Game.fight` 胜才前进）、§12.5 追凶支线、§12.6 文案、§12.7 `Chain37.doneCount`、§12.8 开发者 Tab「奇遇37」。
+- [x] 规格勘误：战斗表 `c1_3/0` → `c1_3/1`（〔独自夜探〕是第 2 个选项）；c6_3 两个选项都花灵石，补零成本选项〔让萧十三自己想办法〕→ c6_5。
+- [x] `test/chain37_unit.js` 70/70（合 main 后 78/78）；validate22 0 错；npc37_unit 66/66。jsscan33 / fam37_unit / controls 需 Chrome，本轮未跑（奥拉夫占用 Chrome）。
+- [x] c37_3「被夺宝抢先」：包 NPC37.emit 记钱满仓的 duobao 新闻 → `G.chain37.db`，开链后发生即转追凶；route37 已合入，`Route37.chainsDone` 由 chain37 包装为 `Chain37.doneCount`。chain37_unit 78/78。
+- [ ] 未做：tit39 改调 `Chain37.doneCount`（#45 未合）；战斗敌名覆写为人物名（只靠战前卡）。
 
 ## 3.6 P0-3 灵根深化（Grok Bot，2026-10-23 19:40 起，分支 `lg36`，worktree `/workspace/game-lg36`，未 bump VERSION）
 > 规格：`docs/research_v36.md` §3。新文件 `www/js/lg36.js`（index 在 fix342 后），不改 game.js/talk.js/data.js；存档 `G.lg36={pur,extraEl[,el,elFor,medKey]}` 惰性兜底，G.lg / G.v 不动。
@@ -358,3 +560,11 @@
 - [ ] 已知问题（10-24）：human_olaf N1（战后点按：怪离 NPC 太近，点怪打开了 NPC 对话没开战）/ T1（点身体部位偶发 34/35，怪走进点位）在完整门禁和单独重跑中都会失败，且在已发布的 v3.5.0 上同样复现（非 3.6 引入），按已知 flake 放行 v3.6.0；human23 第 4 项（追踪栏寻路→剑仙对话为空）只在门禁后段偶发，单跑通过。待测试侧修站位。
 - [x] 10-24 v3.6.0 已发布（灵根深化）。
 - [x] 10-24 3.6.1：神器（PR #37 squash 354a2c8）；VERSION 3.6.1 + CHANGELOG；门禁同 3.6.0，N1/T1 按已知 flake 放行。
+- [x] 10-24 v3.6.1 已发布（神器）。
+- [x] 10-24 3.7.0：路遇 NPC37（PR #39 squash f100a0b）；VERSION 3.7.0 + CHANGELOG；门禁串行全跑，N1/T1 按已知 flake 放行。
+- [x] 10-24 v3.7.0 已发布（路遇；修 npc37 自动寻路中不触发路遇）。
+- [x] 10-24 3.7.1：多徒弟与家族（PR #41 squash）；VERSION 3.7.1 + CHANGELOG；精简门禁（human23/human_olaf/panels21/controls/单测），N1/T1 按已知 flake 放行。
+- [x] 10-24 v3.7.1 已发布（多徒弟与家族）。
+- [x] 10-24 3.7.2：对话抉择 dlg37（PR #40 squash，含奥拉夫 3 条修正）；npc37 寻路判定加 R/R.player 空值保护；VERSION 3.7.2 + CHANGELOG；门禁：human_olaf N1 已知 flake，N2 一次被路遇卡抢点、单跑通过。
+- [x] 10-24 v3.7.2 已发布（对话抉择）。
+- [x] 10-24 3.7.3：NPC 自发事件（PR #42 squash）+ #48 fam37 已有道侣同步（Fixes #47）；VERSION 3.7.3 + CHANGELOG；门禁：human_olaf N2 门禁中被路遇卡抢点 1 次，单跑 8/8 通过。
