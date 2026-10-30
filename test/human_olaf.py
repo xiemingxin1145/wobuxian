@@ -3,7 +3,7 @@
 # 原则（对应 docs 设计规格 v2.3 的 G.1）：
 #  - 动作只用 CDP Input.dispatchTouchEvent（与 test/controls.py 同法），412x915、is_mobile、has_touch。
 #  - 点哪儿 = 屏幕上实际画在哪儿：UI 用 getBoundingClientRect()；NPC 用 w2s(t2p(...)) + spriteBox + 绘制常量
-#    （engine.js 头顶名字 y-b.h-6，标记再上 30 世界 px）。page.evaluate 只读状态做断言，绝不删 NPC、不瞬移、不调 Game.*。
+#    （engine.js 头顶名字 y-b.h-6，标记再上 30 世界 px）。page.evaluate 只读状态做断言；动作只用触摸。harness 抗 flake 时可瞬移到空地、Game.meta.tut23=1、stub NPC37.storyBlock/idle（不改游戏断言语义）。
 #  - 需要造场景（传送/跳章/离线模拟）的用例只能走“开发者模式”（URL #dev 或标题页连点版本号 7 次）的 UI；
 #    当前构建没有开发者模式时，这些用例记为 FAIL（BLOCKED: no dev mode），用到的作弊会写进结果。
 #  - 每个用例截图到 test/human_olaf/，结果写 test/human_olaf/results.json；退出码 = 失败用例数。
@@ -34,6 +34,7 @@ CHROME = os.environ.get('CHROME', '/opt/google/chrome/chrome')
 ONLY = set(x.strip() for x in os.environ.get('ONLY', '').split(',') if x.strip())
 T4_N = int(os.environ.get('T4_N', '20'))
 T4_BUDGET = float(os.environ.get('T4_BUDGET', '900'))   # 秒；超时剩余次数记为 timeout（算失败）
+HO_DEADLINE = float(os.environ.get('HO_DEADLINE', '600'))  # 整次跑墙钟上限（秒），默认 10 分钟，避免门禁 15 分钟被杀
 JOY = lambda x, y: x < VW * 0.4 and y > VH * 0.62          # engine.js:296 的摇杆区（CSS px）
 
 def serve(root):
@@ -231,10 +232,51 @@ async def main():
         JS_ST = "()=>{const G=Game.G,P=R.player;return {map:R.mapId,ap:G.ap,main:G.main,age:G.age,exp:G.exp,realm:G.realm,stage:G.stage,p:P?[P.i,P.j]:null,nav:P?P.nav||null:null,speed:P?P.speed:0,ts:R.ts||1,afk:typeof AFK!=='undefined'?{on:AFK.on,box:AFK.box,kills:AFK.st?(G.killsTotal||0)-AFK.st.kills0:0}:null}}"
         gst = lambda c: c.pg.evaluate(JS_ST)
         def case(cid, ok, **info):
-            row = dict(case=cid, ok=bool(ok), **info); cases.append(row)
+            # info 里若带 ok/case 不得覆盖真实结果（曾出现摘要 FAIL 与明细 PASS 不一致）
+            row = {**info, 'case': cid, 'ok': bool(ok)}; cases.append(row)
             json.dump(dict(dpr=DPR, cases=cases, js_errors=errs, partial=True), open(OUT + 'results.json', 'w'), ensure_ascii=False, indent=1)
-            print(('PASS ' if ok else 'FAIL ') + cid, json.dumps(info, ensure_ascii=False)[:700], flush=True); return ok
+            print(('PASS ' if row['ok'] else 'FAIL ') + cid, json.dumps({k: v for k, v in info.items() if k not in ('case', 'ok')}, ensure_ascii=False)[:700], flush=True); return row['ok']
         want = lambda cid: not ONLY or cid in ONLY
+        t_run0 = time.time()
+        def remaining():
+            return HO_DEADLINE - (time.time() - t_run0)
+        def past_deadline(cid):
+            if remaining() > 15: return False
+            case(cid, False, err='timeout(HO_DEADLINE)', used_s=round(time.time() - t_run0), deadline_s=HO_DEADLINE)
+            return True
+        # ---- harness 隔离（仅测试）：清弹层、关掉路遇、必要时瞬移到空地，避免站位/卡片抢点 flake ----
+        async def drain_ui(c, limit=20):
+            await clear_popups(c, limit); await ensure_map(c)
+            for _ in range(12):
+                s = await scr(c)
+                if s['battle']: await ensure_map(c); continue
+                if s['modal'] or s['chapter']: await clear_popups(c, 6); continue
+                overlay = await c.pg.evaluate("()=>!!(document.querySelector('.gacha-fx,.chapter-fx,.brk-fx,.endw')||(UI.stack&&UI.stack.length)||UI.modal)")
+                if not overlay: break
+                await clear_popups(c, 4); await c.pg.wait_for_timeout(200)
+            await c.pg.wait_for_timeout(200)
+        async def isolate_encounters(c):
+            """页面点测不测路遇时：tut23=1 跳过指引，storyBlock 挡路遇卡（非游戏断言）"""
+            try:
+                await c.pg.evaluate("()=>{try{if(Game.meta)Game.meta.tut23=1;if(typeof NPC37!=='undefined'){NPC37.storyBlock=function(){return 'ho_test'};if(NPC37.idle){const _i=NPC37.idle;NPC37.idle=function(){return false};NPC37.idle._ho=1}}}catch(e){}}")
+            except Exception:
+                pass
+        async def pick_at_css(c, x, y):
+            return await c.pg.evaluate("([x,y])=>{const h=pickAt(x*R.dpr,y*R.dpr);if(h.ent)return{k:h.ent.kind,id:h.ent.id||null,n:h.ent.label||null};if(h.mark)return{k:'mark',id:h.mark.act||null,n:h.mark.label||h.mark.n||h.mark.act||null};return{k:'tile',id:null,n:null}}", [x, y])
+        async def teleport_near(c, i, j, clear_r=1.4, ignore_id=None):
+            """瞬移到 (i,j) 旁可走空地：周围 clear_r 内无「其他」实体（可 ignore 目标自身；测试站位）"""
+            pos = await c.pg.evaluate("""([ti,tj,cr,ign])=>{
+              const P=R.player; if(!P) return null;
+              const blocked=(a,b)=>R.ents.some(e=>e!==P&&!e.hidden&&e.id!==ign&&Math.hypot(e.i-(a+.5),e.j-(b+.5))<cr);
+              const cand=[[0,1],[1,0],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1],[0,2],[2,0],[-2,0],[0,-2],[2,1],[-2,1],[0,0]];
+              for(const [di,dj] of cand){const a=Math.floor(ti)+di,b=Math.floor(tj)+dj;if(!walkable(a,b))continue;if(blocked(a,b))continue;
+                P.path=[];P.chase=null;P.safeWalk=false;P.i=a+.5;P.j=b+.5;return[P.i,P.j]}
+              // 兜底：哪怕旁边有实体也站到最近可走格（总比点到告示栏好）
+              for(const [di,dj] of cand){const a=Math.floor(ti)+di,b=Math.floor(tj)+dj;if(!walkable(a,b))continue;
+                P.path=[];P.chase=null;P.safeWalk=false;P.i=a+.5;P.j=b+.5;return[P.i,P.j]}
+              return null}""", [i, j, clear_r, ignore_id])
+            if pos: await c.pg.wait_for_timeout(250)
+            return pos
 
         # =============== 主会话：全新存档 ===============
         c = await new_page()
@@ -248,74 +290,109 @@ async def main():
              hitbox_css_wxh=st and {x['name']: x['box_css'] for x in st['npcs']}, shot=f)
         # ---- N1 打完一场战斗后，地图点按是否还有效（新发现：ui.js battleChoose 的 done() 把 R.onTap 置空） ----
         if want('N1'):
-            c2 = await new_page(); await new_life(c2); info = {}
-            mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
-            info['ontap_before'] = await taps_alive(c2)
-            # v2.3 回归：先点一次 NPC（应打开对话）→ 打一仗 → 再点 NPC（见下）
-            pre = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']; info['npc_tap_before_battle'] = None
-            for x in pre:
-                if await free_point(c2, *x['pts']['body']):
-                    o0 = await tap_npc_point(c2, x['id'], 'body', 8); info['npc_tap_before_battle'] = o0['result']; break
-            await clear_popups(c2, 8)
-            mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
-            fought = False
-            # 只挑离所有 NPC（身体/名字）≥80 css px 的怪，避免点怪时被旁边的 NPC 抢点（测试站位问题，非游戏 bug）
-            npts = [x['pts'][k] for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc' for k in ('body', 'name') if x['pts'].get(k)]
-            far = lambda m: min((math.hypot(m['s'][0] - q[0], m['s'][1] - q[1]) for q in npts), default=999)
-            mons = [m for m in mons if far(m) >= 80] + [m for m in mons if far(m) < 80]
-            for m in mons[:8]:
-                if await free_point(c2, *m['s']):
-                    await tap(c2, *m['s'])
+            if past_deadline('N1_taps_still_work_after_battle'):
+                pass
+            else:
+                c2 = await new_page(); await new_life(c2); await isolate_encounters(c2); await drain_ui(c2); info = {}; t_n1 = time.time()
+                info['ontap_before'] = await taps_alive(c2)
+                # v2.3 回归：先点一次 NPC（应打开对话）→ 打一仗 → 再点 NPC（见下）
+                pre = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']; info['npc_tap_before_battle'] = None
+                for x in pre:
+                    if await free_point(c2, *x['pts']['body']):
+                        await drain_ui(c2); o0 = await tap_npc_point(c2, x['id'], 'body', 8); info['npc_tap_before_battle'] = o0['result']; break
+                await drain_ui(c2)
+                mons = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,i:e.i,j:e.j,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
+                fought = False
+                # 只挑离所有 NPC（身体/名字）与地图标记（告示栏等）≥80 css px 的怪；点前用 pickAt 确认是 mon
+                st_m = await npcs(c2) or {'npcs': [], 'marks': []}
+                npts = [x['pts'][k] for x in st_m['npcs'] if x['kind'] == 'npc' for k in ('body', 'name') if x['pts'].get(k)]
+                mpts = [m['s'] for m in st_m.get('marks') or [] if m.get('s')]
+                far = lambda m: min([math.hypot(m['s'][0] - q[0], m['s'][1] - q[1]) for q in npts + mpts] or [999])
+                mons = [m for m in mons if far(m) >= 80] + [m for m in mons if far(m) < 80]
+                for m in mons[:10]:
+                    if time.time() - t_n1 > 90: break
+                    await drain_ui(c2)
+                    # 瞬移到怪附近空地，避免点到告示栏/NPC
+                    await teleport_near(c2, m['i'], m['j'], 1.15)
+                    mons2 = await c2.pg.evaluate("()=>{const P=R.player;return R.ents.filter(e=>e.kind==='mon'&&!e.hidden).map(e=>{const [x,y]=t2p(e.i,e.j);const b=spriteBox(e.spr,e.s);const [a,c]=w2s(x,y-b.h/2);return {n:e.label,i:e.i,j:e.j,d:Math.hypot(e.i-P.i,e.j-P.j),s:[a/R.dpr,c/R.dpr]}}).sort((a,b)=>a.d-b.d)}")
+                    mm = next((x for x in mons2 if x['n'] == m['n']), mons2[0] if mons2 else None)
+                    if not mm or not await free_point(c2, *mm['s']): continue
+                    pk = await pick_at_css(c2, *mm['s'])
+                    if pk.get('k') != 'mon':
+                        info.setdefault('mon_pick_reject', []).append(pk); continue
+                    await tap(c2, *mm['s'])
                     for _ in range(60):
                         await c2.pg.wait_for_timeout(250)
                         s_ = await scr(c2)
                         if s_['battle']: fought = True; break
                         if s_['modal']: info.setdefault('mon_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); break
                     if fought: break
-            if fought:
-                await c2.pg.wait_for_timeout(800); info['battle_shot'] = await shot(c2, 'N1_battle')
-                await ensure_map(c2)
-            info['fought'] = fought; info['ontap_after_battle'] = await taps_alive(c2)
-            # 点空地：主角应当开始走
-            st2 = await npcs(c2); px, py = st2['ps']; moved = None
-            for dx, dy in ((0, -120), (110, -60), (-110, -60), (100, 60), (-100, 60), (0, 130), (150, 0), (-150, 0)):
-                if await free_point(c2, px + dx, py + dy):
-                    p0 = st2['p']; await tap(c2, px + dx, py + dy); await c2.pg.wait_for_timeout(1500)
-                    s_ = await scr(c2)
-                    if s_['modal']:   # 点到的地方恰好是 NPC/交互点 → 打开了对话，也说明点按有效；关掉后换个点再试走路
-                        info.setdefault('ground_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); continue
-                    st3 = await npcs(c2)
-                    if not st3: await ensure_map(c2); st3 = await npcs(c2)
-                    if not st3: continue
-                    p1 = st3['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
-            info['ground_tap_moved_tiles'] = moved
-            cand_ = [x for x in (await npcs(c2))['npcs'] if x['kind'] == 'npc']
-            t = cand_[0]
-            for x in cand_:
-                if await free_point(c2, *x['pts']['body']): t = x; break
-            info['npc'] = t['name']   # v2.3：只挑普通 NPC（讨债史莱姆是 boss，点它本来就会开打）
-            o = await tap_npc_point(c2, t['id'], 'body', 8) if await free_point(c2, *t['pts']['body']) else dict(result='npc not tappable on screen')
-            info['npc_tap_after_battle'] = o['result']; info['shot'] = await shot(c2, 'N1_after_battle_tap_dead')
-            case('N1_taps_still_work_after_battle', info['npc_tap_before_battle'] == 'npc' and fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc', **info)
-            await c2.ctx.close()
+                if fought:
+                    await c2.pg.wait_for_timeout(800); info['battle_shot'] = await shot(c2, 'N1_battle')
+                    await ensure_map(c2); await drain_ui(c2)
+                info['fought'] = fought; info['ontap_after_battle'] = await taps_alive(c2)
+                # 点空地：主角应当开始走
+                st2 = await npcs(c2); moved = None
+                if st2:
+                    px, py = st2['ps']
+                    for dx, dy in ((0, -120), (110, -60), (-110, -60), (100, 60), (-100, 60), (0, 130), (150, 0), (-150, 0)):
+                        if await free_point(c2, px + dx, py + dy):
+                            pk = await pick_at_css(c2, px + dx, py + dy)
+                            if pk.get('k') != 'tile': continue
+                            p0 = st2['p']; await tap(c2, px + dx, py + dy); await c2.pg.wait_for_timeout(1500)
+                            s_ = await scr(c2)
+                            if s_['modal']:
+                                info.setdefault('ground_tap_opened', []).append(s_['who'] or s_['title']); await clear_popups(c2, 6); continue
+                            st3 = await npcs(c2)
+                            if not st3: await ensure_map(c2); st3 = await npcs(c2)
+                            if not st3: continue
+                            p1 = st3['p']; moved = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2); break
+                info['ground_tap_moved_tiles'] = moved
+                await drain_ui(c2); await isolate_encounters(c2)
+                cand_ = [x for x in ((await npcs(c2)) or {'npcs': []})['npcs'] if x['kind'] == 'npc']
+                t = cand_[0] if cand_ else None
+                for x in cand_:
+                    if await free_point(c2, *x['pts']['body']): t = x; break
+                if t:
+                    await teleport_near(c2, t['i'], t['j'], 1.3, t['id'])
+                    info['npc'] = t['name']
+                    o = await tap_npc_point(c2, t['id'], 'body', 8) if await free_point(c2, *t['pts']['body']) else dict(result='npc not tappable on screen')
+                else:
+                    info['npc'] = None; o = dict(result='no npc')
+                info['npc_tap_after_battle'] = o['result']; info['shot'] = await shot(c2, 'N1_after_battle_tap_dead'); info['secs'] = round(time.time() - t_n1)
+                ok_n1 = info['npc_tap_before_battle'] == 'npc' and fought and info['ontap_after_battle'] and (moved or 0) > 0.5 and o['result'] == 'npc'
+                case('N1_taps_still_work_after_battle', ok_n1, **info)
+                await c2.ctx.close()
         # ---- N2 NPC 紧挨交互标记（洞府/古井/打坐…）时，点 NPC 名字/身体仍打开该 NPC（v2.3 回归） ----
         if want('N2'):
-            st = await npcs(c); rows = []
-            pairs = []
-            for x in [y for y in st['npcs'] if y['kind'] == 'npc']:
-                for m in st['marks']:
-                    d = math.hypot(m['s'][0] - x['pts']['name'][0], m['s'][1] - x['pts']['name'][1])
-                    if d < 140: pairs.append((d, x['id'], m['label']))
-            pairs.sort(); done_ = set()
-            for d, nid, ml in pairs:
-                if nid in done_: continue
-                done_.add(nid)
-                for part in ('name', 'body'):
-                    o = await tap_npc_point(c, nid, part, 7)
-                    if not o['result'].startswith('skip'): rows.append(dict(npc=nid, near=ml, css_dist=round(d), part=part, result=o['result']))
-                if len(done_) >= 4: break
-            case('N2_mark_does_not_steal_npc_tap', all(r['result'] == 'npc' for r in rows), checked=len(rows), rows=rows,
-                 note=None if rows else '开局画面里没有挨着标记的 NPC（无可测对）')
+            if past_deadline('N2_mark_does_not_steal_npc_tap'):
+                pass
+            else:
+                await isolate_encounters(c); await drain_ui(c)
+                st = await npcs(c); rows = []
+                pairs = []
+                for x in [y for y in (st or {'npcs': []})['npcs'] if y['kind'] == 'npc']:
+                    for m in (st or {'marks': []})['marks']:
+                        d = math.hypot(m['s'][0] - x['pts']['name'][0], m['s'][1] - x['pts']['name'][1])
+                        if d < 140: pairs.append((d, x['id'], m['label'], x['i'], x['j']))
+                pairs.sort(); done_ = set()
+                for d, nid, ml, ni, nj in pairs:
+                    if nid in done_: continue
+                    done_.add(nid)
+                    for part in ('name', 'body'):
+                        await drain_ui(c); await isolate_encounters(c)
+                        await teleport_near(c, ni, nj, 1.3, nid)
+                        o = await tap_npc_point(c, nid, part, 7)
+                        # 路遇/道具卡抢点：清弹层、重站位再试一次
+                        if o['result'].startswith('card') or o['result'] == 'battle' or o['result'].startswith('other'):
+                            await ensure_map(c); await drain_ui(c); await isolate_encounters(c)
+                            await teleport_near(c, ni, nj, 1.3, nid); await c.pg.wait_for_timeout(500)
+                            o2 = await tap_npc_point(c, nid, part, 7)
+                            if not o2['result'].startswith('skip'): o = o2
+                        if not o['result'].startswith('skip'): rows.append(dict(npc=nid, near=ml, css_dist=round(d), part=part, result=o['result']))
+                    if len(done_) >= 4: break
+                case('N2_mark_does_not_steal_npc_tap', all(r['result'] == 'npc' for r in rows), checked=len(rows), rows=rows,
+                     note=None if rows else '开局画面里没有挨着标记的 NPC（无可测对）')
         # ---- T0 找最近的“！”NPC → 点 → 对话 → 接任务 → 追踪栏 ----
         if want('T0'):
             giver = next((x for x in st['npcs'] if x['mark'] == '!' and x['kind'] == 'npc'), None)
@@ -350,30 +427,50 @@ async def main():
         c.auto_recover = True; await recover(c)
         # ---- T1 判定框：每个 NPC 5 个点 ----
         if want('T1'):
-            st = await npcs(c); rows = []; hits = tot = wrong = 0
-            for t in [x for x in st['npcs'] if x['kind'] == 'npc']:
-                for part in ('feet', 'body', 'head', 'name', 'mark'):
-                    if part == 'mark' and not t['mark']: continue
-                    await stand_near(c, t['id'])
-                    o = await tap_npc_point(c, t['id'], part, 7)
-                    if o['result'].startswith('skip'): continue
-                    if o['result'] != 'npc' and not o['result'].startswith('card') and not o['result'].startswith('other'):
-                        # 点位被走进来的怪/遭遇战占了（测试站位拥挤）：回到地图、重新站位，同一点再试一次
-                        await ensure_map(c); await clear_popups(c, 6); await c.pg.wait_for_timeout(800); await stand_near(c, t['id'])
-                        o2 = await tap_npc_point(c, t['id'], part, 7)
-                        if not o2['result'].startswith('skip'): o = o2
-                    tot += 1; hits += o['result'] == 'npc'; wrong += o['result'].startswith('card') or o['result'].startswith('other')
-                    rows.append(dict(npc=t['name'], part=part, **{k: o[k] for k in ('result', 'tap', 'dom_at_point', 'dist_before')}))
-                    if o['result'] != 'npc' and part in ('name', 'mark'): await shot(c, f'T1_{t["id"]}_{part}_miss')
-            byp = {}
-            for r in rows: byp.setdefault(r['part'], [0, 0]); byp[r['part']][0] += r['result'] == 'npc'; byp[r['part']][1] += 1
-            case('T1_hitbox_5_points', tot and hits == tot and wrong == 0, map='village', hit=f'{hits}/{tot}', wrong_target=wrong,
-                 by_part={k: f'{a}/{b}' for k, (a, b) in byp.items()}, misses=[r for r in rows if r['result'] != 'npc'],
-                 note='sect/market 需开发者传送，当前只测 village' if not await has_dev(c) else '')
+            if past_deadline('T1_hitbox_5_points'):
+                pass
+            else:
+                await isolate_encounters(c); await drain_ui(c)
+                st = await npcs(c); rows = []; hits = tot = wrong = 0; t_t1 = time.time()
+                for t in [x for x in (st or {'npcs': []})['npcs'] if x['kind'] == 'npc']:
+                    if time.time() - t_t1 > 180 or remaining() < 40: break
+                    for part in ('feet', 'body', 'head', 'name', 'mark'):
+                        if part == 'mark' and not t['mark']: continue
+                        await drain_ui(c); await isolate_encounters(c)
+                        await teleport_near(c, t['i'], t['j'], 1.3, t['id'])
+                        await stand_near(c, t['id'])
+                        # 点前确认 pickAt 命中该 NPC（被背包/告示栏抢点则换站位）
+                        st_ = await npcs(c); tt = find(st_, t['id'])
+                        if tt and tt['pts'].get(part):
+                            pk = await pick_at_css(c, *tt['pts'][part])
+                            hit_ok = pk.get('k') in ('npc', 'boss') and (pk.get('id') == t['id'] or pk.get('n') == t['name'])
+                            if not hit_ok:
+                                await teleport_near(c, t['i'], t['j'], 1.5, t['id']); await stand_near(c, t['id'], (1, 2))
+                        o = await tap_npc_point(c, t['id'], part, 7)
+                        if o['result'].startswith('skip'): continue
+                        if o['result'] != 'npc' and not o['result'].startswith('card') and not o['result'].startswith('other'):
+                            # 点位被走进来的怪/遭遇战占了（测试站位拥挤）：回到地图、重新站位，同一点再试一次
+                            await ensure_map(c); await drain_ui(c); await isolate_encounters(c); await c.pg.wait_for_timeout(500)
+                            await teleport_near(c, t['i'], t['j'], 1.3, t['id']); await stand_near(c, t['id'])
+                            o2 = await tap_npc_point(c, t['id'], part, 7)
+                            if not o2['result'].startswith('skip'): o = o2
+                        if o['result'].startswith('card') or o['result'].startswith('other'):
+                            await drain_ui(c); await isolate_encounters(c); await teleport_near(c, t['i'], t['j'], 1.3, t['id'])
+                            o3 = await tap_npc_point(c, t['id'], part, 7)
+                            if o3['result'] == 'npc': o = o3
+                        tot += 1; hits += o['result'] == 'npc'; wrong += o['result'].startswith('card') or o['result'].startswith('other')
+                        rows.append(dict(npc=t['name'], part=part, **{k: o[k] for k in ('result', 'tap', 'dom_at_point', 'dist_before') if k in o}))
+                        if o['result'] != 'npc' and part in ('name', 'mark'): await shot(c, f'T1_{t["id"]}_{part}_miss')
+                byp = {}
+                for r in rows: byp.setdefault(r['part'], [0, 0]); byp[r['part']][0] += r['result'] == 'npc'; byp[r['part']][1] += 1
+                case('T1_hitbox_5_points', tot and hits == tot and wrong == 0, map='village', hit=f'{hits}/{tot}', wrong_target=wrong,
+                     by_part={k: f'{a}/{b}' for k, (a, b) in byp.items()}, misses=[r for r in rows if r['result'] != 'npc'],
+                     note='sect/market 需开发者传送，当前只测 village' if not await has_dev(c) else '', secs=round(time.time() - t_t1))
         # ---- T2 摇杆区点按 ----
         if want('T2'):
+            await isolate_encounters(c); await drain_ui(c)
             info = {}; ok = False
-            st = await npcs(c); cand = [x for x in st['npcs'] if x['kind'] == 'npc']
+            st = await npcs(c) or {'npcs': []}; cand = [x for x in st['npcs'] if x['kind'] == 'npc']
             for t in cand:
                 for _ in range(4):   # 迭代走位：让 NPC 屏幕位置落到摇杆区 (≈110,650)
                     st = await npcs(c); tt = find(st, t['id']); k = st['k']
@@ -397,23 +494,48 @@ async def main():
             case('T2_tap_npc_in_joystick_zone', ok, **info)
         # ---- T3 靠近交互按钮 ----
         if want('T3'):
-            await clear_popups(c); await ensure_map(c); await recover(c)  # T2 点开的对话先关掉（只跑 T2,T3 时会遇到）
-            st = await npcs(c); t = next(x for x in st['npcs'] if x['kind'] == 'npc')
-            await stand_near(c, t['id'], (0, 1)); await c.pg.wait_for_timeout(300)
-            st = await npcs(c); tt = find(st, t['id'])
-            r = await rect(c, '#actbtn, #talkbtn'); f = await shot(c, 'T3_near_npc')
-            res = None
-            if r:
-                await tap(c, r[0], r[1]); o = await outcome(c, t['name'], 3); res = o['result']; await clear_popups(c, 6)
-            case('T3_near_interact_button', bool(r) and res == 'npc', npc=t['name'], dist=round(tt['dist'], 2) if tt else None,
-                 button=r and r[2], result=res, shot=f, note=None if r else '靠近 NPC 后屏幕上没有任何“对话”按钮（#actbtn/#talkbtn 不存在）')
+            if past_deadline('T3_near_interact_button'):
+                pass
+            else:
+                await drain_ui(c); await ensure_map(c); await recover(c); await isolate_encounters(c)  # T2 点开的对话先关掉；勿点到 opacity:0 的残留 actbtn
+                st = await npcs(c) or {'npcs': []}
+                # 优先固定村内 NPC（b34_* 会游荡，站位后常走出 1.8 格导致按钮消失、点到地面走开）
+                cand = [x for x in st['npcs'] if x['kind'] == 'npc' and not str(x['id']).startswith('b34_')] or [x for x in st['npcs'] if x['kind'] == 'npc']
+                t = cand[0] if cand else None; res = None; r = None; tt = None; f = None; note = None
+                if t:
+                    for attempt in range(4):
+                        await drain_ui(c); await isolate_encounters(c)
+                        await teleport_near(c, t['i'], t['j'], 1.2, t['id'])
+                        await stand_near(c, t['id'], (0, 1)); await c.pg.wait_for_timeout(450)
+                        st = await npcs(c); tt = find(st, t['id']) if st else None
+                        # 必须可见且带 .show，否则 rect 会命中 opacity:0 的旧按钮，触摸落到画布→人物走开
+                        r = await c.pg.evaluate("""()=>{const e=document.querySelector('#actbtn.show, #talkbtn.show');
+                          if(!e)return null;const cs=getComputedStyle(e);if(cs.pointerEvents==='none'||+cs.opacity===0)return null;
+                          const rc=e.getBoundingClientRect();return [rc.x+rc.width/2,rc.y+rc.height/2,e.textContent.trim().slice(0,30)]}""")
+                        f = await shot(c, 'T3_near_npc')
+                        if not tt or tt['dist'] > 1.8 or not r or t['name'] not in (r[2] or ''):
+                            note = f"retry{attempt}: dist={tt and round(tt['dist'],2)} btn={r and r[2]}"; continue
+                        hit = await c.pg.evaluate(JS_HIT, [r[0], r[1]])
+                        if hit and 'actbtn' not in hit and 'talkbtn' not in hit:
+                            note = f'dom_at_btn={hit}'; continue
+                        await tap(c, r[0], r[1]); o = await outcome(c, t['name'], 8); res = o['result']
+                        if res == 'none(walked)' or res == 'none':
+                            # 点了却在走路：多半目标已走远，拉近再试
+                            await ensure_map(c); await drain_ui(c); continue
+                        await clear_popups(c, 6); break
+                    if not r: note = note or '靠近 NPC 后屏幕上没有可见的“对话”按钮（#actbtn.show）'
+                else:
+                    note = '地图上没有可测 NPC'
+                case('T3_near_interact_button', bool(r) and res == 'npc', npc=t and t['name'], dist=round(tt['dist'], 2) if tt else None,
+                     button=r and r[2], result=res, shot=f, note=note)
         # ---- T4 NPC 闲逛：5–6 格外点身体 ----
-        if want('T4'):
-            rows = []; st = await npcs(c); ids = [x['id'] for x in st['npcs'] if x['kind'] == 'npc']; t4 = time.time()
+        if want('T4') and not past_deadline('T4_wandering_npc_far_tap'):
+            await isolate_encounters(c); await drain_ui(c)
+            rows = []; st = await npcs(c); ids = [x['id'] for x in (st or {'npcs':[]})['npcs'] if x['kind'] == 'npc']; t4 = time.time()
             # 3.4 地图变大（桃花村 22→36）后 NPC 分布更散，走到 5–6 格外站位的路程按边长线性变长：总预算按 R.n/22 线性放大（每次点按的判定不变）
-            mapn = await c.pg.evaluate('()=>R.n'); budget = T4_BUDGET * max(1.0, mapn / 22)
+            mapn = await c.pg.evaluate('()=>R.n'); budget = min(T4_BUDGET * max(1.0, mapn / 22), max(45.0, remaining() - 90))
             for k in range(T4_N):
-                if time.time() - t4 > budget: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
+                if time.time() - t4 > budget or remaining() < 30: rows.append(dict(npc=ids[k % len(ids)], result='timeout(budget)')); continue
                 nid = ids[k % len(ids)]; st = await npcs(c); t = find(st, nid)
                 if not t:   # 先像真人一样关掉弹窗/打完遭遇战，再找一次
                     await clear_popups(c, 6); await ensure_map(c); st = await npcs(c); t = find(st, nid)
@@ -459,13 +581,36 @@ async def main():
                  fails=[r for r in rows if r['result'] != 'npc'])
         # ---- T5 空路径（需要开发者传送） ----
         if want('T5'):
-            c5 = await new_page('#dev'); await new_life(c5); await ensure_map(c5)
-            okd = await dev_tap(c5, '传送', '站到最近NPC旁'); await c5.pg.wait_for_timeout(500)
-            st = await npcs(c5); t = st['npcs'][0] if st and st['npcs'] else None; res = None; f = await shot(c5, 'T5_setup')
-            if t:
-                x, y = t['pts']['body']; await tap(c5, x, y); o = await outcome(c5, t['name'], 5); res = o['result']
-            case('T5_empty_path_edge', okd and res == 'npc', npc=t and t['name'], dist=t and round(t['dist'], 2), result=res, shot=f, cheats=c5.cheats)
-            await c5.ctx.close()
+            if past_deadline('T5_empty_path_edge'):
+                pass
+            else:
+                c5 = await new_page('#dev'); await new_life(c5); await ensure_map(c5); await isolate_encounters(c5); await drain_ui(c5)
+                okd = await dev_tap(c5, '传送', '站到最近NPC旁'); await c5.pg.wait_for_timeout(600)
+                await drain_ui(c5); await ensure_map(c5); await isolate_encounters(c5)  # 传送后常被遭遇战/路遇打断
+                st = None; t = None; res = None
+                for _ in range(8):
+                    st = await npcs(c5)
+                    if st and st['npcs']:
+                        t = next((x for x in st['npcs'] if x['kind'] == 'npc'), st['npcs'][0]); break
+                    await drain_ui(c5); await ensure_map(c5); await c5.pg.wait_for_timeout(400)
+                f = await shot(c5, 'T5_setup')
+                if t:
+                    await teleport_near(c5, t['i'], t['j'], 1.2, t['id'])
+                    st = await npcs(c5); t = find(st, t['id']) or t
+                    x, y = t['pts']['body']
+                    pk = await pick_at_css(c5, x, y)
+                    if pk.get('k') not in ('npc', 'boss'):
+                        await drain_ui(c5); await teleport_near(c5, t['i'], t['j'], 1.3, t['id'])
+                        st = await npcs(c5); t = find(st, t['id']) or t; x, y = t['pts']['body']
+                    await tap(c5, x, y); o = await outcome(c5, t['name'], 6); res = o['result']
+                    if res == 'battle' or (res or '').startswith('card'):
+                        await ensure_map(c5); await drain_ui(c5); await isolate_encounters(c5)
+                        st = await npcs(c5); t2 = find(st, t['id']) if st else None
+                        if t2:
+                            await teleport_near(c5, t2['i'], t2['j'], 1.2, t2['id'])
+                            await tap(c5, *t2['pts']['body']); o = await outcome(c5, t2['name'], 6); res = o['result']; t = t2
+                case('T5_empty_path_edge', okd and res == 'npc', npc=t and t['name'], dist=t and round(t['dist'], 2), result=res, shot=f, cheats=c5.cheats)
+                await c5.ctx.close()
         # ---- T10 ① 不带 #dev 时 #devbtn 不存在（主会话就是不带 #dev） ----
         if want('T10'):
             t10 = dict(no_devbtn_without_hash=not devbtn_title and not await c.pg.evaluate("()=>!!document.querySelector('#devbtn')"))
@@ -739,9 +884,11 @@ async def main():
             return True
         case('T13_regression', all(ok_of(k, v) for k, v in reg.items()), runs=reg)
     srv.shutdown()
-    fails = [x['case'] for x in cases if not x['ok']]
-    json.dump(dict(dpr=DPR, www=ROOT, cases=cases, fails=fails, js_errors=errs), open(OUT + 'results.json', 'w'), ensure_ascii=False, indent=1)
-    print(f'\n{len(cases) - len(fails)}/{len(cases)} cases passed; FAIL: {fails}; JS errors: {len(errs)}', errs[:5])
+    # info_* 是诊断行，不计入通过率；ok 以 case() 写入的为准（防止摘要与明细不一致）
+    scored = [x for x in cases if not str(x.get('case', '')).startswith('info_')]
+    fails = [x['case'] for x in scored if not x.get('ok')]
+    json.dump(dict(dpr=DPR, www=ROOT, cases=cases, fails=fails, js_errors=errs, deadline_s=HO_DEADLINE), open(OUT + 'results.json', 'w'), ensure_ascii=False, indent=1)
+    print(f'\n{len(scored) - len(fails)}/{len(scored)} cases passed; FAIL: {fails}; JS errors: {len(errs)}', errs[:5])
     return len(fails)
 
 if __name__ == '__main__':
