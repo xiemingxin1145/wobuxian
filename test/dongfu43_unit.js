@@ -34,7 +34,7 @@ ok(R("typeof window.DF43") === 'object', 'DF43 挂到 window（顶层 const 的 
 // ---- 存档惰性 ----
 let G = mkG(); R('Game').G = G;
 const D = DF.st(G);
-ok(D && D.ey === 0 && D.hv === 0 && D.n === 0 && D.sp === 0 && typeof D.ev === 'object', 'G.df43 惰性补全零值');
+ok(D && D.ey === -1 && D.hv === -1 && D.n === 0 && D.sp === -1 && typeof D.ev === 'object', 'G.df43 惰性补全（年戳 -1=从未）');
 ok(G.v === 2, '不升 G.v');
 G.df43 = { ev: null, n: 'x' }; DF.st(G); ok(G.df43.n === 0 && G.df43.ev && typeof G.df43.ev === 'object', '坏字段修复');
 ok(DF.st(null) === null || DF.st(null) === DF.st(G), 'st(null) 回落 Game.G 不抛');
@@ -189,6 +189,88 @@ DF.off = true; ok(DF.onEnter(mkG()) === null, 'DF43.off 关闭年事'); DF.off =
 // 文案包完整
 ok(['jade', 'herb', 'bigfurnace', 'pavilion', 'well', 'house', 'altar', 'obelisk', 'mortal'].every(k2 => DF.TEXT.lock[k2]), '锁定文案 9 条齐');
 ok(DF.TEXT.enter.length === 3 && DF.TEXT.auto_block.includes('挂机'), '进门/挂机文案');
+// ---- 奥拉夫 #66 审出回归（M1/M2/L1–L6）----
+// M1：storyBlock / B.on 时不 stamp ey，年事 pending，解除后同年度再弹
+{
+  const c1 = box(); const R1 = s => vm.runInContext(s, c1);
+  const G1 = mkG({ year: 12, debt: 8888 }); R1('Game').G = G1; const D1 = R1('DF43');
+  R1('globalThis.NPC37 = { storyBlock(){ return "prologue"; } }');
+  ok(D1.onEnter(G1, seq([0.01])) === null && G1.df43.ey === -1 && G1.df43.n === 1, 'M1：prologue 挡年事，不 stamp ey，仍计数');
+  R1('NPC37.storyBlock = () => null');
+  const freed = D1.onEnter(G1, seq([0.01]));
+  ok(freed && freed.id && G1.df43.ey === 12, 'M1：解除 storyBlock 后同年补发年事');
+  G1.year = 13; G1.df43.ey = -1; G1.df43.ev = {};
+  R1('globalThis.B = { on: true }');
+  ok(D1.onEnter(G1, seq([0.01])) === null && G1.df43.ey === -1, 'M1：B.on 挡年事，不 stamp ey');
+  R1('B.on = false');
+  ok(D1.onEnter(G1, seq([0.01])) && G1.df43.ey === 13, 'M1：战斗结束后补发');
+}
+// M2：year===0 不回落 age；year=0 灵泉后 year=1 不再二次灵泉
+{
+  const c2 = box(); const R2 = s => vm.runInContext(s, c2);
+  const G2 = mkG({ year: 0, age: 25, cave: { zl: 5, field: 0, forge: 0 } }); R2('Game').G = G2; const D2 = R2('DF43');
+  ok(D2.springReady(G2), 'M2：year=0 灵泉就绪（按 year 不是 age）');
+  const sp0 = D2.spring(G2); ok(sp0.ok && G2.df43.sp === 0, 'M2：year=0 灵泉记 sp=0（非 age 25）');
+  ok(!D2.springReady(G2) && !D2.spring(G2).ok && G2.df43.sp === 0, 'M2：同年 year=0 不可再采');
+  // 旧 bug：yr 用 age 会把 sp 打成 25，year 改成 1 后又就绪；现 stamp=0，year=1 是新的一年可采（合法）
+  G2.year = 1; ok(D2.springReady(G2) && G2.df43.sp === 0, 'M2：year=1 相对 sp=0 是新一年（不会误用 age=25）');
+  const sp1 = D2.spring(G2); ok(sp1.ok && G2.df43.sp === 1, 'M2：year=1 灵泉记 sp=1');
+  G2.year = 1; ok(!D2.springReady(G2), 'M2：year=1 同年不可再采');
+}
+// L1：residents/ctx(null) 不抛
+{
+  const c3 = box(); const R3 = s => vm.runInContext(s, c3); R3('Game').G = null; const D3 = R3('DF43');
+  ok(Array.isArray(D3.residents(null)) && D3.residents(null).length === 0, 'L1：residents(null) → []');
+  const cx0 = D3.ctx(null); ok(cx0 && Array.isArray(cx0.P) && cx0.P.length === 0 && cx0.o, 'L1：ctx(null) 安全空壳');
+}
+// L2：zl=5 + 裱封条硬封顶 1.5（不超过玉台）
+{
+  const c4 = box(); const R4 = s => vm.runInContext(s, c4);
+  const G4 = mkG({ year: 10, debt: 100, cave: { zl: 5, field: 0, forge: 0 }, mem37: { dx: 0 } }); R4('Game').G = G4; const D4 = R4('DF43');
+  const eSeal = D4.EV.find(x => x.id === 'df_seal');
+  const instS = { id: 'df_seal', ch: eSeal.ch.map(o => ({ l: o.l, o })), c: D4.ctx(G4) };
+  D4.choose(G4, instS, 1);
+  ok(G4.df43.seal === 10 && D4.medMul(G4) === 1.5, 'L2：zl=5+seal 倍率夹到 1.5（非 1.55）');
+  G4.cave.zl = 4; ok(D4.medMul(G4) === 1.45, 'L2：zl=4+seal = 1.45 不夹');
+}
+// L3：choose 同实例一次性
+{
+  const c5 = box(); const R5 = s => vm.runInContext(s, c5);
+  const G5 = mkG({ pets: [{ name: '甲', exp: 0 }, { name: '乙', exp: 0 }] }); R5('Game').G = G5; const D5 = R5('DF43');
+  const eFight = D5.EV.find(x => x.id === 'df_pet_fight');
+  const instF = { id: 'df_pet_fight', ch: eFight.ch.map(o => ({ l: o.l, o })), c: D5.ctx(G5, () => 0.5) };
+  D5.choose(G5, instF, 0, () => 0.99);
+  ok(G5.pets[0].exp === 20 && G5.pets[1].exp === 20, 'L3：首次 choose 发奖');
+  const t2 = D5.choose(G5, instF, 0, () => 0.99);
+  ok(t2 === '' && G5.pets[0].exp === 20 && G5.pets[1].exp === 20, 'L3：同实例再 choose 空串且不刷奖');
+}
+// L4：无 r 时 pick 走 Game.roll
+{
+  const c6 = box(); const R6 = s => vm.runInContext(s, c6);
+  const G6 = mkG(); R6('Game').G = G6; const D6 = R6('DF43'); R6('Game').rolls = [];
+  const linePet = D6.line({ kind: 'pet', label: '甲' }, G6);
+  ok(R6('Game').rolls.length >= 1 && R6('Game').rolls.every(x => x[1] === 'dongfu43'), 'L4：无 r 台词 pick 走 Game.roll(dongfu43)');
+  ok(typeof linePet === 'string' && linePet.includes('甲'), 'L4：仍能抽出带名台词');
+}
+// L5：气灵台词非空（§17.6 / FB_LINES 兜底）
+{
+  const c7 = box(); const R7 = s => vm.runInContext(s, c7);
+  const G7 = mkG({ fb33: { id: 'fb_jian', tier: 6 } }); R7('Game').G = G7; const D7 = R7('DF43');
+  const ql = D7.line({ kind: 'qiling', id: 'df_ql', label: '器灵' }, G7, () => 0);
+  ok(ql && ql.length > 0, 'L5：气灵台词非空（TEXT43.qiling 兜底）');
+  R7('globalThis.FB_LINES_BY_ID = { fb_jian: { any: ["“剑专属台词A”", "“剑专属台词B”"] } }');
+  ok(D7.line({ kind: 'qiling' }, G7, () => 0) === '“剑专属台词A”', 'L5：有 FB_LINES_BY_ID 时用专属 any');
+}
+// L6：ap=Infinity 拒采且不改 hv
+{
+  const c8 = box(); const R8 = s => vm.runInContext(s, c8);
+  const G8 = mkG({ year: 10, cave: { zl: 0, field: 2, forge: 0 }, ap: Infinity }); R8('Game').G = G8; const D8 = R8('DF43'); D8.st(G8);
+  const hInf = D8.harvest(G8, () => 0.5);
+  ok(!hInf.ok && G8.df43.hv === -1 && G8.ap === Infinity, 'L6：ap=Infinity 拒采，不记 hv');
+  G8.ap = NaN; ok(!D8.harvest(G8, () => 0.5).ok && G8.df43.hv === -1, 'L6：ap=NaN 拒采');
+  G8.ap = 2; ok(D8.harvest(G8, () => 0.5).ok && G8.ap === 1, 'L6：正常 ap 仍可采');
+}
+
 // 不进 index（第 1 轮）
 const HTML = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
 ok(!HTML.includes('dongfu43.js'), '第 1 轮未接入 index.html（零运行时影响）');

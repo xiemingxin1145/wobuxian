@@ -1,9 +1,10 @@
 // ======================= 3.9.3 自家洞府 dongfu43（规格 docs/research_v22.md §17）第 1 轮 =======================
 // 本轮：数据 + 纯逻辑（入口判定/静室倍率/灵泉/手采灵田/洞府年事池/居民摆放/锁定文案），附 test/dongfu43_unit.js。
 // 本轮不进 index.html、不登记 MAPINFO、不包任何函数——地图 art/mapdefs43.py、makeMarks 覆盖、居民 ents、入口卡片留第 2 轮。
-// 存档：G.df43 = { ev:{}, ey:0, hv:0, n:0 }（§17.1⑥）+ 本模块惰性附加 sp（灵泉年）、mouse（田鼠还利息年）、seal（裱封条年）。
+// 存档：G.df43 = { ev:{}, ey:-1, hv:-1, n:0 }（§17.1⑥；年戳 -1=从未，避 year=0）+ 惰性附加 sp/mouse/seal（同 -1）。
 // 老档缺省即全 0，不升 G.v；新一世 G 重建即归零。不新增货币，不改 G.cave 价格/年产出。
-// rng：Game.roll(p,'dongfu43') → Math.random；奖励只用灵石/修为/已有道具 herb/lz/peach + 好感/善恶/道心（mem37.dx）。
+// rng：Game.roll(p,'dongfu43') → Math.random；弹卡守 NPC37.storyBlock + B.on（#53，不 stamp ey 以便延后）；奖励只用灵石/修为/已有道具 herb/lz/peach + 好感/善恶/道心（mem37.dx）。
+// yr：typeof G.year==='number' ? G.year : G.age（year=0 不回落到 age）；静室倍率硬封顶 1.5；choose 同实例一次性。
 'use strict';
 (function (W) {
   const TEXT43 = {
@@ -32,6 +33,7 @@
     kid_small: ['“爹/娘抱！”', '“我今天背了《还款经》第一章！”', '“为什么我们家门口有封条？”'],
     kid_big: ['“我想下山闯荡。……也想顺便帮家里还点债。”', '“我在坊市听人说，咱家是三界最出名的欠债户。我觉得挺威风的。”'],
     tablet: ['牌位上写着：「本门祖师·落魄剑仙（尾款未付）」。香灰里埋着一张欠条。', '你给祖师上了一炷香。牌位好像晃了一下，像是心虚。'],
+    qiling: ['“擦轻点！我是法宝，不是抹布。”', '“你今天又欠了谁的钱？我闻得出来。”', '“打架记得先喊我，别等快输了才想起来。”', '“灵石不够就别硬升阶，碎了你可赔不起。”'],
     clone: '化身看着你：“本体，你今天也没还钱。”',
     auto_block: '家里没怪可打。去外面挂机吧。',
     // 卡片按钮（§17.1①②）
@@ -55,8 +57,20 @@
   const npcs = () => (typeof NPCS !== 'undefined' ? NPCS : null);
   const rng = (p, kind) => { const g = Gm(); if (g && typeof g.roll === 'function') return !!g.roll(p, kind || 'dongfu43'); return Math.random() < p; };
   const POWf = t => (typeof POW === 'function' ? POW(t) : Math.pow(1.75, t));
-  const yr = G => (G.year || G.age || 0);
-  const pick = (a, r) => a[Math.floor((r ? r() : Math.random()) * a.length) % a.length];
+  // year=0 是合法年号，不能用 || 回落到 age（奥拉夫 M2）
+  const yr = G => (typeof G.year === 'number' ? G.year : (G.age || 0));
+  // 无显式 r 时优先 Game.roll 蓄水池抽样，再回退 Math.random（奥拉夫 L4）
+  const pick = (a, r) => {
+    if (!a || !a.length) return undefined;
+    if (typeof r === 'function') return a[Math.floor(r() * a.length) % a.length];
+    const g = Gm();
+    if (g && typeof g.roll === 'function') {
+      let idx = 0;
+      for (let i = 1; i < a.length; i++) if (g.roll(1 / (i + 1), 'dongfu43')) idx = i;
+      return a[idx];
+    }
+    return a[Math.floor(Math.random() * a.length) % a.length];
+  };
   const fill = (s, o) => String(s).replace(/\{(\w+)\}/g, (m, k) => (o && o[k] !== undefined ? o[k] : m));
   const parentWord = G => (G && G.sex === 'm' ? '爹' : G && G.sex === 'f' ? '娘' : '爹娘');
   const sexFix = (s, G) => String(s).replace(/爹\/娘/g, parentWord(G));
@@ -77,7 +91,9 @@
       G = getG(G); if (!G) return null;
       let D = G.df43; if (!D || typeof D !== 'object') D = G.df43 = {};
       if (!D.ev || typeof D.ev !== 'object') D.ev = {};
-      for (const k of ['ey', 'hv', 'n', 'sp', 'mouse', 'seal']) if (typeof D[k] !== 'number' || !isFinite(D[k])) D[k] = 0;
+      // ey/hv/sp/mouse/seal 用 -1 表示「从未」，避免 year===0 与缺省 0 撞车（奥拉夫 M2）
+      for (const k of ['ey', 'hv', 'sp', 'mouse', 'seal']) if (typeof D[k] !== 'number' || !isFinite(D[k])) D[k] = -1;
+      if (typeof D.n !== 'number' || !isFinite(D.n)) D.n = 0;
       return D;
     },
     // ---- §17.1 入口/出口 ----
@@ -87,7 +103,7 @@
     travelRow(G) { G = getG(G); return !!(G && (G.realm || 0) >= 2 && this.canHome(G)); }, // 筑基起御剑面板置顶
     exitChoices(G) { G = getG(G); return (G && (G.realm || 0) >= 2) ? [TEXT43.btnOut, TEXT43.btnFly, TEXT43.btnNo] : [TEXT43.btnOut, TEXT43.btnNo]; },
     // ---- §17.4① 静室打坐 ----
-    medMul(G) { G = getG(G); const zl = Math.max(0, Math.min(5, cave(G).zl | 0)); const D = this.st(G); return Math.round((1 + 0.1 * zl + (D && D.seal === yr(G) ? 0.05 : 0)) * 100) / 100; },
+    medMul(G) { G = getG(G); const zl = Math.max(0, Math.min(5, cave(G).zl | 0)); const D = this.st(G); const raw = 1 + 0.1 * zl + (D && D.seal === yr(G) ? 0.05 : 0); return Math.min(1.5, Math.round(raw * 100) / 100); },
     // ---- §17.4② 灵泉 ----
     springReady(G) { G = getG(G); const D = this.st(G); return cave(G).zl >= 1 && D.sp !== yr(G); },
     spring(G) {
@@ -113,8 +129,8 @@
       G = getG(G); const D = this.st(G); const f = cave(G).field | 0;
       if (f < 1) return { ok: false, msg: fill(TEXT43.lock.herb, { n: 1 }) };
       if (D.hv === yr(G)) return { ok: false, msg: TEXT43.harvestDone };
-      if ((G.ap || 0) < 1) return { ok: false, msg: TEXT43.apShort };
-      G.ap -= 1; D.hv = yr(G);
+      if (!Number.isFinite(G.ap) || G.ap < 1) return { ok: false, msg: TEXT43.apShort };
+      G.ap = Math.max(0, G.ap - 1); D.hv = yr(G);
       const got = this.harvestYield(f, r);
       if (D.mouse && D.mouse === yr(G) - 1) got.herb = (got.herb || 0) + 3; // df_mouse 放它一马：下一年手采追加灵草×3
       const parts = [];
@@ -139,13 +155,13 @@
     hasShenqi(G) { const S = G && G.sq36; if (!S || typeof S !== 'object') return false; if (Array.isArray(S.own)) return S.own.length > 0; if (S.own && typeof S.own === 'object') return Object.keys(S.own).length > 0; return !!S.id; },
     alchBonus(G) { return cave(getG(G)).forge >= 3 ? 0.15 : 0; },
     // ---- 居民/在家判定 ----
-    homePets(G) { G = getG(G); return (Array.isArray(G.pets) ? G.pets : []).filter(p => p && !p.pd35); },
-    awayPets(G) { G = getG(G); return (Array.isArray(G.pets) ? G.pets : []).filter(p => p && p.pd35); },
-    homeDis(G) { G = getG(G); return (Array.isArray(G.dis36) ? G.dis36 : []).filter(d => d && d.state === 'idle'); },
-    kids(G) { G = getG(G); const F = G.fam37; const ks = F && Array.isArray(F.kids) ? F.kids.slice() : [];
+    homePets(G) { G = getG(G); if (!G) return []; return (Array.isArray(G.pets) ? G.pets : []).filter(p => p && !p.pd35); },
+    awayPets(G) { G = getG(G); if (!G) return []; return (Array.isArray(G.pets) ? G.pets : []).filter(p => p && p.pd35); },
+    homeDis(G) { G = getG(G); if (!G) return []; return (Array.isArray(G.dis36) ? G.dis36 : []).filter(d => d && d.state === 'idle'); },
+    kids(G) { G = getG(G); if (!G) return []; const F = G.fam37; const ks = F && Array.isArray(F.kids) ? F.kids.slice() : [];
       return ks.map(k => Object.assign({}, k, { _age: typeof k.age === 'number' ? k.age : Math.max(0, yr(G) - (k.born || 0)), _ref: k })).sort((a, b) => b._age - a._age); },
     residents(G) {
-      G = getG(G); const out = []; const act = (typeof G.petA === 'number' && G.petA >= 0 && G.pets) ? G.pets[G.petA] : null;
+      G = getG(G); if (!G) return []; const out = []; const act = (typeof G.petA === 'number' && G.petA >= 0 && G.pets) ? G.pets[G.petA] : null;
       const pets = (Array.isArray(G.pets) ? G.pets : []); let slot = 0;
       for (const p of pets) { if (slot >= 4) break; if (!p || p === act) continue;
         if (p.pd35) out.push({ kind: 'sign', id: 'df_away' + slot, at: SPOT.pet[slot], label: fill(TEXT43.pet_away, { job: p.pd35.job || '' }) });
@@ -172,6 +188,17 @@
           return T && T[2] ? `${e.label}：${T[2]}` : pick(TEXT43.dis_tag_default, r); }
         case 'spouse': return pick(TEXT43.spouse, r);
         case 'kid': return sexFix(pick((e.age || 0) < 16 ? TEXT43.kid_small : TEXT43.kid_big, r), G);
+        case 'qiling': {
+          // §17.6：复用 fabao33 FB_LINES_BY_ID / FB_LINES，缺则 TEXT43.qiling 兜底
+          let lines = null; const fid = G && G.fb33 && G.fb33.id;
+          try {
+            if (typeof FB_LINES_BY_ID !== 'undefined' && FB_LINES_BY_ID && fid && FB_LINES_BY_ID[fid] && Array.isArray(FB_LINES_BY_ID[fid].any))
+              lines = FB_LINES_BY_ID[fid].any;
+            else if (typeof FB_LINES !== 'undefined' && FB_LINES && Array.isArray(FB_LINES.any))
+              lines = FB_LINES.any;
+          } catch (err) { }
+          return pick(lines && lines.length ? lines : TEXT43.qiling, r);
+        }
         case 'clone': return TEXT43.clone;
         default: return '';
       }
@@ -179,7 +206,9 @@
     tabletLine(G, r) { return pick(TEXT43.tablet, r); },
     // ---- §17.5 洞府年事 ----
     ctx(G, r) {
-      G = getG(G); const hp = this.homePets(G), hd = this.homeDis(G), ks = this.kids(G);
+      G = getG(G);
+      if (!G) return { P: [], D: [], K: [], V: null, o: { p1: '', p2: '', d1: '', d2: '', k1: '', sp: '', npc: '' } };
+      const hp = this.homePets(G), hd = this.homeDis(G), ks = this.kids(G);
       const sh = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor((r ? r() : Math.random()) * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
       const ps = sh(hp), ds = sh(hd);
       const L = G.life34 && G.life34.rel ? G.life34.rel : {}; const vis = Object.keys(L).filter(id => L[id] > 0 && npcs() && npcs()[id]);
@@ -196,17 +225,34 @@
       let ev = P[P.length - 1]; for (const e of P) { x -= e.w; if (x < 0) { ev = e; break; } }
       return { ev, c };
     },
+    // #53：序章/指引/战斗中不弹年事（对齐 loan42/clan41）
+    storyBlock() {
+      try {
+        if (typeof NPC37 !== 'undefined' && NPC37 && typeof NPC37.storyBlock === 'function') {
+          const r = NPC37.storyBlock();
+          if (r) return r;
+        }
+      } catch (e) { }
+      try { if (typeof B !== 'undefined' && B && B.on) return 'battle'; } catch (e) { }
+      return null;
+    },
     // 主角本人进门：计数 + 本年第一次进门抽 1 件（§17.1④）
+    // storyBlock/B.on 时不 stamp ey/ev，年事保持 pending，解除后再弹（奥拉夫 M1）
     onEnter(G, r) {
       G = getG(G); if (!G || this.off) return null; const D = this.st(G); D.n++;
       if (D.ey === yr(G)) return null;
+      if (this.storyBlock()) return null;
       const { ev, c } = this.pickEv(G, r); D.ey = yr(G); D.ev[ev.id] = yr(G);
       return { id: ev.id, t: ev.t, x: sexFix(fill(ev.x, c.o), G), ch: ev.ch.filter(o => !o.ok || o.ok(G, c)).map(o => ({ l: fill(o.l, c.o), o })), c };
     },
+    // 同一事件实例只结算一次，防重复 choose 刷奖（奥拉夫 L3）
     choose(G, inst, idx, r) {
-      G = getG(G); const it = inst && inst.ch[idx]; if (!it) return '';
-      const res = it.o.fx(G, inst.c, r || Math.random, this) || it.o.r || '';
-      return sexFix(fill(res, inst.c.o), G);
+      G = getG(G); if (!inst || inst._done) return '';
+      const it = inst.ch && inst.ch[idx]; if (!it) return '';
+      inst._done = true;
+      const rf = typeof r === 'function' ? r : Math.random;
+      const res = it.o.fx(G, inst.c, rf, this) || it.o.r || '';
+      return sexFix(fill(res, (inst.c && inst.c.o) || {}), G);
     },
     _helpers: { fill, sexFix, POWf, yExp, addExp, give, affAdd, dxAdd, parentWord }
   };
