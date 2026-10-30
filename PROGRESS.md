@@ -5,7 +5,7 @@
 - 未碰核心文件；未跑 Chrome；未 push main。
 - node：sweep44 **67/67**；validate22 errors []；其余 test/*.js 全过。
 - PR：https://github.com/xiemingxin1145/wobuxian/pull/71 （`bc6efd7`）
-- wip 普通 merge：见本提交前一条 merge。
+- wip 普通 merge：`f2a2574`。
 - 下一步：第 2 轮面板接线（`UI.p_dungeon26` + index）；等奥拉夫审 #71。
 
 ## 开放世界线 · loan42 催收开场文案稳定（2026-10-30 23:19 UTC+8，Grok Bot）
