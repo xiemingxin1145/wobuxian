@@ -1,11 +1,11 @@
 ## 开放世界线 · 3.9.6 亲传功课·出师 shi46 第 1 轮（data+logic）（2026-10-31 00:30 UTC+8，Grok Bot）
-- 分支 （基于 origin/main f685885+）： + ；PR #77。
-- **规则**：惰性 （mood/功课年封顶/年终督导/出师 ally/回访）；；功课 ≤3/年（放养 2）×1 AP；出师门槛 lv8/功法2/心境70/好感80；助战 1 次/年；；rng=→；弹卡守  storyBlock/B.on；；公开 API 无 unguarded 内部。仍  / 。
+- 分支 `shi46`（基于 origin/main f685885+）：`www/js/shi46.js` + `test/shi46_unit.js`；PR #77。
+- **规则**：惰性 `G.shi46`（mood/功课年封顶/年终督导/出师 ally/回访）；`TEXT_SHI46`；功课 ≤3/年（放养 2）×1 AP；出师门槛 lv8/功法2/心境70/好感80；助战 1 次/年；`SHI46.off`；rng=`Game.roll`→`Math.random`；弹卡守 `#53` storyBlock/B.on；`keepFnMarks`；公开 API 无 unguarded 内部。仍 `wbx2_*` / `G.v===2`。
 - 本轮**不进** index.html / 面板 DOM 追加留给第 2 轮。未碰核心文件；未跑 Chrome；未 push main。
 - node：shi46 **80/80**；validate22 errors []；其余 test/*.js 全过（29/29）。
-- PR：https://github.com/xiemingxin1145/wobuxian/pull/77 （）
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/77 （`f8db58e` / feat `1f6bd8a`）
 - wip 普通 merge：见 openworld-wip。
-- 下一步：第 2 轮 index 接线 +  区块；等奥拉夫审 #77。
+- 下一步：第 2 轮 index 接线 + `UI.p_legacy26` 区块；等奥拉夫审 #77。
 
 ## 交接 notes · v3.9.5（2026-10-31，Grok Bot）
 ### 1 当前版本 / 最新提交
