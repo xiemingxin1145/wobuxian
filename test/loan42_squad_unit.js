@@ -398,6 +398,74 @@ async function drain(c, expr) {
     ok(run(c2, "LOAN42.trySquad(Game.G,'market')") === null, 'M4 选定后同年不再刷');
   }
 
+  // ---- M5：催收开场文案稳定 — sqPend.oi 首次写入；复弹/读档复用；老档无 oi 补抽一次 ----
+  {
+    const c = box();
+    seedOd(c, 1);
+    // 强制 roll：intro 循环 i=1 → p=1/2；i=2 → p=1/3；使 oi 落到 2（两轮都 true）
+    const rollPs = [];
+    c.Game.roll = function (p, k) { this.rolls.push([p, k]); rollPs.push(p); return true; };
+    c.UI._cardIdx = 99; // 弹出不选
+    await drain(c, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    const pend = c.Game.G.loan42.sqPend;
+    ok(pend && (pend.oi | 0) === 2, 'M5 首次弹出写 sqPend.oi=2');
+    ok(rollPs.includes(0.5) && rollPs.includes(1 / 3), 'M5 开场抽签经 Game.roll(1/(i+1))');
+    const opens = run(c, 'TEXT42.squadOpen');
+    const want = opens[2];
+    ok(c.cards[0] && String(c.cards[0].x).startsWith(want), 'M5 首弹卡文案=opens[oi]');
+
+    // 读档复弹：即使 roll 全 false，仍用同一 oi/文案，且不再为开场再 roll
+    const raw = JSON.stringify(c.Game.G);
+    const c2 = box();
+    c2.Game.G = JSON.parse(raw);
+    c2.Game.rolls = [];
+    c2.Game.roll = function (p, k) { this.rolls.push([p, k]); return false; };
+    c2.UI._cardIdx = 99;
+    c2.cards = [];
+    const tier2 = +c2.Game.G.loan42.sqPend.tier;
+    await drain(c2, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400,tier:' + tier2 + ',pending:true})');
+    ok(c2.Game.G.loan42.sqPend && (c2.Game.G.loan42.sqPend.oi | 0) === 2, 'M5 读档复弹保留 oi=2');
+    ok(c2.cards[0] && String(c2.cards[0].x).startsWith(want), 'M5 读档复弹同开场文案（不重抽）');
+    ok(!c2.Game.rolls.some(r => r[0] === 0.5 || Math.abs(r[0] - 1 / 3) < 1e-12),
+      'M5 有 oi 时复弹不为开场再 roll');
+
+    // 老档：sqPend 无 oi → 补抽一次写入，之后稳定
+    const c3 = box();
+    seedOd(c3, 1);
+    c3.Game.G.loan42.sqPend = { y: 12, amt: 400, tier: 2.6 }; // 无 oi
+    let nIntroRoll = 0;
+    c3.Game.roll = function (p, k) {
+      this.rolls.push([p, k]);
+      if (p === 0.5 || Math.abs(p - 1 / 3) < 1e-12) { nIntroRoll++; return true; }
+      return false;
+    };
+    c3.UI._cardIdx = 99;
+    await drain(c3, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400,tier:2.6,pending:true})');
+    ok(c3.Game.G.loan42.sqPend && (c3.Game.G.loan42.sqPend.oi | 0) === 2, 'M5 老档无 oi：补抽并写入 oi');
+    ok(nIntroRoll >= 1, 'M5 老档无 oi：至少一次开场 roll');
+    const want3 = run(c3, 'TEXT42.squadOpen')[2];
+    ok(c3.cards[0] && String(c3.cards[0].x).startsWith(want3), 'M5 老档补抽后卡文案=opens[oi]');
+    // 再弹一次：不应再为开场 roll
+    nIntroRoll = 0;
+    c3.Game.rolls = [];
+    c3.cards = [];
+    c3.UI._cardIdx = 99;
+    await drain(c3, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400,tier:2.6,pending:true})');
+    ok((c3.Game.G.loan42.sqPend.oi | 0) === 2, 'M5 老档补齐后二次复弹 oi 不变');
+    ok(c3.cards[0] && String(c3.cards[0].x).startsWith(want3), 'M5 老档补齐后二次同文案');
+    ok(nIntroRoll === 0, 'M5 老档补齐后二次不再开场 roll');
+
+    // Math.random 回退：无 Game.roll 时仍能选开场并写入 oi
+    const c4 = box();
+    seedOd(c4, 1);
+    c4.Game.roll = undefined;
+    c4.Math.random = () => 0.01; // 总是 < p → oi 走高
+    c4.UI._cardIdx = 99;
+    await drain(c4, 'LOAN42.offerSquad(Game.G,{trigger:true,amt:400})');
+    ok(c4.Game.G.loan42.sqPend && Number.isFinite(+c4.Game.G.loan42.sqPend.oi),
+      'M5 无 Game.roll 时 Math.random 回退仍写 oi');
+  }
+
   console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
   process.exitCode = fails;
 })().catch(e => { console.error(e); process.exitCode = 1; });
