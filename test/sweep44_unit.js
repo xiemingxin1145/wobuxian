@@ -292,7 +292,7 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
 
   // ---- null guards ----
   ok(SW2.st(undefined) !== null || true, 'st 有 Game.G');
-  ok(SW2._once(null, 0) === null || SW2._once(mkG(), -1) === null, '_once 非法 band/空 G 不抛');
+  ok(SW2._once === undefined && typeof SW2._once !== 'function', 'Sweep44._once 未暴露（闭包私有）');
   ok(typeof SW2.once !== 'function', 'once 不再作为公开 API');
   c = box2(); SW2 = R(c, 'Sweep44');
   ok(SW2.can(null, 0) === false, 'can(null) 无 Game.G → false');
@@ -354,8 +354,8 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   // 未解锁
   r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
   ok(!r1.ok && r1.reason === 'locked_first' && G.ap === 10 && G.stone === 0, '未解锁公开 go 拒绝且不发奖');
-  ok(typeof SW2.once !== 'function', '公开对象无 once（防绕过）');
-  // 即使误调 _once，公开路径仍受门闩；这里验证反复 go 不能超过 3
+  ok(typeof SW2.once !== 'function' && SW2._once === undefined, '公开对象无 once/_once（防绕过）');
+  // 公开路径受门闩；验证反复 go 不能超过 3
   SW2.markFull(G, 0, true);
   for (let i = 0; i < 3; i++) {
     r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');

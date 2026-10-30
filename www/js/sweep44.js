@@ -1,6 +1,6 @@
 // ======================= 3.9.4 秘境扫荡 sweep44（规格 docs/research_v22.md §18）第 1 轮 =======================
-// 本轮：数据 + 纯逻辑（首通/次数/奖励结算/合成 Dng.run→exit / TEXT44），附 test/sweep44_unit.js。
-// 本轮不进 index.html、不包 UI.p_dungeon26 面板区块——接线留第 2 轮。
+// 第 1 轮：数据 + 纯逻辑（首通/次数/奖励结算/合成 Dng.run→exit / TEXT44）。
+// 第 2 轮：_once 收进闭包（公开 Sweep44._once === undefined）；UI 接线见 sweep44_ui.js。
 // 存档 G.sw44 = { full:{}, y:0, n:0, tot:0 } 惰性；老档迁移仅当 dungeon.best>=3 才认 clear（§18.1⑥ / §18.7：clear 在单层守关就写，不能单独当首通）。
 // 不升 G.v，仍走 wbx2_* / G.v===2。rng：Game.roll → Math.random。弹卡守 NPC37.storyBlock + B.on（#53）。
 // LOOP 总开关：Sweep44.off=true 整系统停用。不改 dungeon26/game/talk/data/ui/battle/main。
@@ -90,6 +90,60 @@
     } catch (e) {}
     return id;
   };
+
+  /** 内部单次结算（闭包私有，不挂到公开 Sweep44）。合成已通关 run → Dng.exit(true)。 */
+  function once(G, b) {
+    G = getG(G);
+    if (!G || Sweep44.off) return null;
+    b = b | 0;
+    if (b < 0 || b > 4) return null;
+    const t = TIER[b] + 0.15;
+    const out = { st: 0, exp: 0, eq: [], it: [], band: b, T: t };
+    const g = Gm();
+
+    out.st = Math.round(100 * POWf(t) * rndRange(0.85, 1.15));
+    G.stone = (G.stone || 0) + out.st;
+
+    const need = (typeof g !== 'undefined' && g && typeof g.yearExp === 'function')
+      ? g.yearExp() * 0.6
+      : 0;
+    if (g && typeof g.addExp === 'function') {
+      out.exp = g.addExp(need, true);
+    } else {
+      out.exp = Math.round(need);
+      G.exp = Math.max(0, (G.exp || 0) + out.exp);
+    }
+
+    if (g && typeof g.randEq === 'function') {
+      out.eq.push(g.randEq(t, 1), g.randEq(t + 0.5, 2));
+    } else {
+      const mk = (tier, minR) => ({ name: `eq_t${tier}_r${minR}`, tier, r: minR });
+      out.eq.push(mk(t, 1), mk(t + 0.5, 2));
+      G.eqs = G.eqs || [];
+      G.eqs.push(out.eq[0], out.eq[1]);
+    }
+
+    const loot = LOOT[b] || LOOT[0];
+    for (let i = 0; i < 2; i++) {
+      const k = pick(loot);
+      if (g && typeof g.give === 'function') g.give(k, 1);
+      else { G.inv = G.inv || {}; G.inv[k] = (G.inv[k] || 0) + 1; }
+      out.it.push(k);
+    }
+
+    try {
+      if (typeof Dng !== 'undefined' && Dng && typeof Dng.exit === 'function') {
+        Dng.run = {
+          band: b, tier: t, maxFloor: 3, floor: 3,
+          doneRooms: 3, needRooms: 3, bossDone: true,
+          loot: [], over: false, sweep: 1
+        };
+        Dng.exit(true);
+      }
+    } catch (e) {}
+
+    return out;
+  }
 
   const Sweep44 = {
     TEXT: TEXT44,
@@ -238,62 +292,6 @@
       return !!(S.full[b] && b <= this.curBand(G) && S.n < CAP && Number.isFinite(G.ap) && G.ap >= 1);
     },
 
-    /** 内部单次结算（不弹卡）。合成已通关 run → Dng.exit(true) 触发 shenqi36/items40 钩子。
-     * 不对外：无 unlock/AP/年 cap 门闩；仅由 go() 在校验后调用。 */
-    _once(G, b) {
-      G = getG(G);
-      if (!G || this.off) return null;
-      b = b | 0;
-      if (b < 0 || b > 4) return null;
-      const t = TIER[b] + 0.15;
-      const out = { st: 0, exp: 0, eq: [], it: [], band: b, T: t };
-      const g = Gm();
-
-      out.st = Math.round(100 * POWf(t) * rndRange(0.85, 1.15));
-      G.stone = (G.stone || 0) + out.st;
-
-      const need = (typeof g !== 'undefined' && g && typeof g.yearExp === 'function')
-        ? g.yearExp() * 0.6
-        : 0;
-      if (g && typeof g.addExp === 'function') {
-        out.exp = g.addExp(need, true);
-      } else {
-        out.exp = Math.round(need);
-        G.exp = Math.max(0, (G.exp || 0) + out.exp);
-      }
-
-      if (g && typeof g.randEq === 'function') {
-        out.eq.push(g.randEq(t, 1), g.randEq(t + 0.5, 2));
-      } else {
-        // stub：无 Game.randEq 时记占位，便于单测计数
-        const mk = (tier, minR) => ({ name: `eq_t${tier}_r${minR}`, tier, r: minR });
-        out.eq.push(mk(t, 1), mk(t + 0.5, 2));
-        G.eqs = G.eqs || [];
-        G.eqs.push(out.eq[0], out.eq[1]);
-      }
-
-      const loot = LOOT[b] || LOOT[0];
-      for (let i = 0; i < 2; i++) {
-        const k = pick(loot);
-        if (g && typeof g.give === 'function') g.give(k, 1);
-        else { G.inv = G.inv || {}; G.inv[k] = (G.inv[k] || 0) + 1; }
-        out.it.push(k);
-      }
-
-      // 合成已打完的 run，让下游 Dng.exit 钩子发碎晶/3.8.2 道具
-      try {
-        if (typeof Dng !== 'undefined' && Dng && typeof Dng.exit === 'function') {
-          Dng.run = {
-            band: b, tier: t, maxFloor: 3, floor: 3,
-            doneRooms: 3, needRooms: 3, bossDone: true,
-            loot: [], over: false, sweep: 1
-          };
-          Dng.exit(true);
-        }
-      } catch (e) {}
-
-      return out;
-    },
 
     _useAP(G, n) {
       n = n | 0;
@@ -341,7 +339,7 @@
       const outs = [];
       for (let i = 0; i < times; i++) {
         if (!this._useAP(G, 1)) return { ok: false, reason: 'noap', msg: TEXT44.noap, outs };
-        const one = this._once(G, b);
+        const one = once(G, b);
         if (!one) return { ok: false, reason: 'once', outs };
         outs.push(one);
         S.n++;

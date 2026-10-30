@@ -1,3 +1,9 @@
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R2 UI 接线（2026-10-30 23:49 UTC+8，Grok Bot）
+- 分支 sweep44-r2（自 origin/sweep44 @ f914b42，已合 main 解 #71 冲突）。依赖 PR #71。
+- 改动：`www/js/sweep44.js`（`_once` 收进闭包，公开 `Sweep44._once === undefined`）；新 `www/js/sweep44_ui.js`（包 `UI.p_dungeon26` 扫荡区块：本年剩余/AP/档行/TEXT44 确认+回执；DevPanel「扫荡44」；tit39 `t_sw44` 尽力挂 TITLES + tit39Deferred；finish 全通 exit 解锁 / retreat 不解锁）；`www/index.html`（dongfu43_ui→sweep44→sweep44_ui→audio32）；`test/sweep44_unit.js`；新 `test/sweep44_ui_unit.js`。未碰核心。
+- node：sweep44 **84/84**；sweep44_ui **33/33**；test/*.js **22/22**；validate22 errors []。未跑 Chrome；**页测待做**（秘境面板扫荡按钮/回执卡/Dev「扫荡44」/storyBlock）。
+- 下一步：开 PR→main（注依赖 #71）；合 openworld-wip；等奥拉夫页测。
+
 ## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R1 审修 M1/M2（2026-10-30 23:36 UTC+8，Grok Bot）
 - 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
 - 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
