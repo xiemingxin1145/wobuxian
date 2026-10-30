@@ -1,3 +1,15 @@
+## 开放世界线 · cherry-pick dongfu43 奥拉夫 #66 M1+M2+Low（2026-10-30 22:38 UTC+8，Grok Bot）
+- 自 PR #66 `dongfu43` cherry-pick `cd38ab7` → `43106c7`：`www/js/dongfu43.js` + `test/dongfu43_unit.js`。
+- **M1**：`onEnter` 守 `#53` storyBlock/B.on，挡时不 stamp `ey`（年事 pending，解除后同年补发）。
+- **M2**：`yr = typeof year==='number' ? year : age`；年戳缺省 `-1` 避 year=0 撞车。
+- **Low**：residents/ctx null；medMul 硬封顶 1.5；choose 同实例一次性；pick 优先 Game.roll；气灵台词；ap Infinity 拒采。
+- 未碰核心文件；未跑 Chrome；未 push main。
+- node：dongfu43 **138/138**；validate22 []；loan42 110；clan41 70；items40 152；stage3_* / chain37 78 / npc37 80 / events 54 / pf38 34 / tit39 / zf39* 全过；loan42_squad / cos36 本分支无文件跳过。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/66#issuecomment-6525406189
+- 下一步：等奥拉夫复审 #66；第 2 轮地图/标记/卡片仍延后。
+
+---
+
 ## 开放世界线 · cherry-pick loan42 sqPend（#65 奥拉夫 Medium · 选定后才记年）（2026-10-30 22:24 UTC+8，Grok Bot）
 - 自 PR #65 `loan42-r2` cherry-pick `d81c08b` → `33b091e`：`www/js/loan42.js` + `test/loan42_squad_unit.js`。
 - **规则**：卡弹出写 `G.loan42.sqPend={y,tier,amt}`；还/战/跑后才 `_squadDoneY` 并清 marker；存档重进/下张图有 marker 则复弹同 tier/amt（跳过 roll）；`card()=-1` 不写 marker；跨年仍复弹同一张（结案按当前 year）。
