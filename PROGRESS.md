@@ -1,3 +1,14 @@
+## 开放世界线 · loan42 催收开场文案稳定（2026-10-30 23:19 UTC+8，Grok Bot）
+- 分支 `loan42-intro`（基于 origin/main）：`www/js/loan42.js` + `test/loan42_squad_unit.js`；PR #70。
+- **修**：催收卡 `sqPend` 未结案读档/换图复弹时不再重抽 `squadOpen`；首次弹出写 `sqPend.oi`，复弹复用；老档无 `oi` 补抽一次写入。rng=`Game.roll` 回退 `Math.random`。仍 `wbx2_*` / `G.v===2`，不升版本。
+- 未碰核心文件；未跑 Chrome；未 push main。
+- node：loan42_squad **84/84**；loan42_unit **110/110**；clan41 70；items40 152；validate22 []；其余 test/*.js 全过。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/70 （`a3b0f91`）
+- wip 普通 merge：`50ec690`。
+- 下一步：等奥拉夫审 #70；页测仍延后。
+
+---
+
 ## 开放世界线 · 3.9.3 洞府 dongfu43 R2 奥拉夫审修（2026-10-30 23:08 UTC+8，Grok Bot）
 - 分支 dongfu43-r2 / PR #68：修 M1 df43_sign 叠 mark（clearResidents 清 sign；spawn 幂等）+ L1 Acts.cave 包装原实现 + L2 storyBlock 下 onEnterHome 仍 n++ + L3 亲传 label 不裸露 ah（NPCS 缺省回落「亲传」）。
 - 改动：www/js/dongfu43_ui.js、www/js/dongfu43.js、test/dongfu43_ui_unit.js。未碰核心。
