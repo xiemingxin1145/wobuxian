@@ -1,8 +1,8 @@
 ## 交接 notes · v3.9.5（2026-10-31，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `PENDING_TAG`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
+- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `5eaa8f5368ad41a17f815e4b6e46eb4fd58842c1`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
 - **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.5
-- Release 资产：`wobuxian.apk` / `wobuxian-lite.apk`（大小与 versionCode 发版后补记；自 307 起由 CI `100+run_number` 递增）。
+- Release 资产：`wobuxian.apk`（约 355 MB）/ `wobuxian-lite.apk`（约 80 MB）；**versionCode 314**（CI `100+run_number`，自 307 递增）。
 - index 序：`…→loan42→main40→dongfu43→dongfu43_ui→memory45→sweep44→sweep44_ui→audio32`。
 
 ### 2 本版做了什么 / 刻意没做什么
@@ -15,7 +15,7 @@
 ### 3 测试结果
 - node（合 #73 后）：validate22 **0**；sweep44 **87**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；其余 unit → **ALL PASS**。
 - 奥拉夫：#73 含页测 APPROVE；#72 已合。
-- CI：见 tag `v3.9.5`（发版后补）。
+- CI：tag `v3.9.5` run 成功（build 314）；Latest；HD+lite 均已挂；`/releases/latest/download/*` → 200。
 
 ### 4 遗留问题
 - Issue #12 OPEN；dungeon26 `clear[band]` 单层偏差（§18.7）；enterMap 标记链可能被后加载模块盖掉（低风险）。
