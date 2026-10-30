@@ -1,3 +1,19 @@
+## 开放世界线 · 3.9.7 qing47 R1 审修 HIGH/MEDIUM（PR #78）（2026-10-31 00:4x UTC+8，Grok Bot）
+- 分支 feat/qing47：合 origin/main（#76 sweep44-auto、#77 shi46；PROGRESS 双保留）。
+- **HIGH**：`UI.p_comps` 每次渲染不再 `addEventListener` 叠 click；改为 `b.onclick=` 赋值（同 `p_fam37`）。对抗：连渲 3 次后点叙旧 → `nEv`+1、`AP`−1。
+- **MEDIUM**：`Talk.extra` 上层 `undefined`/非数组 → 归一 `[]` 再拼（同 shi46），恒返回数组。
+- 改动：`www/js/qing47.js`、`test/qing47_unit.js`、`PROGRESS.md`。未碰核心。
+- node：qing47 **73/73**（+10 R1 对抗）；shi46 **104**；sweep44 **101**；validate22 **errors []**；test/*.js **30/30** ALL PASS。未跑 Chrome。
+- 下一步：push PR #78；等奥拉夫再审。
+
+## 开放世界线 · 3.9.7 道侣线深化 qing47（2026-10-31 00:3x UTC+8，Grok Bot）
+- 分支 feat/qing47（自 origin/main `112a5cd` §21 规格）：新包装模块 `www/js/qing47.js`（叙旧/并肩吐纳/心结/共同历劫/离别·回归；反刷 EV_CAP/DX_CAP/AP/aff 年帽/离别 CD；`G.qing47` 惰性，不升 `G.v`）。
+- 改动：`www/js/qing47.js`、`www/index.html`（`…→memory45→sweep44→sweep44_ui→qing47→audio32`）、`test/qing47_unit.js`、`PROGRESS.md`、`docs/ROADMAP.md`（3.9.7 🔍 in review）。未碰核心四件套；未改 fam37 求亲/生子；旧年事池保留。
+- DevPanel「道侣47」；弹卡守 `NPC37.storyBlock`/`B.on`/`UI.modal`；随机 `Game.roll`；包装 `keepFnMarks`。
+- 规格偏差：`dx.opt_ok` 文案由「开始吐纳」改为「运转周天」，避免命中 ux23 SAFE 前缀「开始」（§21.1b，不改 ux23）。
+- node：qing47 **63/63**；validate22 **errors []**；sweep44 **101**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；dongfu43 **145**；dongfu43_ui **56**；其余 `*_unit` + good_rel_cap + stage3/battle_rt/lowpoly → **ALL PASS**（24 文件 unit 批 + 5 额外 js）。未跑 Chrome / 页测待奥拉夫。
+- 下一步：开 PR→main；等奥拉夫审。
+
 ## 开放世界线 · 3.9.6 shi46 R1 review 修（PR #77）（2026-10-31 00:40 UTC+8，Grok Bot）
 - 分支 `shi46` @ worktree：修奥拉夫 COMMENT（M1/M2/L1/L2）+ §20.9.9a。
 - **M1**：`visitY` 同时闸 `allyOptFor`（同年隐藏回访）与 `thank`（`visit_cap` 拒刷 aff/herb）；助战仍用 `fightY`。
