@@ -2,6 +2,14 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 开放世界线 · 阵法面板 UI zf39 第 3 轮（2026-10-30 19:25 UTC+8，Grok Bot）
+- 开发已恢复（主人确认此前暂停结束）。分支 `zf39-ui` ← origin/main，PR #58 → main（审：奥拉夫）；本提交 cherry-pick 进 `openworld-wip`。
+- 新增 `www/js/zf39_ui.js`：洞府「阵法」入口（包 `UI.p_cave`）、三页战阵/洞府阵/阵图；学阵（钱多多施工图+三阵图、阴三娘黄河、算无遗欠条阵）；炼阵/布阵；`Game.fight` 胜利 `winXp`；ITEMS zws39/ztc39；#53 storyBlock 守卫；开发者 Tab「阵法39」。`index.html` 在 zf39_hook 后加载。
+- 单测 `test/zf39_ui_unit.js` 55/55；连带 zf39_unit 118、zf39_hook 20、chain37/npc37/pf38/good_rel_cap/battle_rt/stage3_*/lowpoly_box、validate22 errors [] 全过。
+- **未跑** Chrome 页面测试（需协调）：jsscan33、pf38_page、dev_openworld_page、human23。
+- 未碰核心文件（game/talk/data/ui/battle/ux23/huashen33/main/life34/jianghu34/章节/systems21 等）；存档只 `G.zf39`，`wbx2_*`、`G.v===2`。
+- 下一步：破阵 UI / rt27 `rtMult` / 洞府阵挂点 / 页面门禁；或继续开放世界低模。
+
 ## 开放世界线 · 追兵头子佩挂点修复 + 门禁（2026-10-30 10:23 UTC+8，Grok Bot）
 - 合入：`git pull --rebase=merges` 已最新；`openworld-wip` 落后 origin/main 1 提交（`fc7f19d` #57 squash）→ 普通 merge `4c56659`，无冲突；分支未 detached。
 - 修复：`test/lowpoly_attach.js` 失败根因——「追兵头子」(`touzi`) 部件名 `armor`/`helmet` 不在 GARMENT/HEADISH，导致 `sockets.pei === null`。仅改 `www/js/lowpoly_extra_chars.js`：`armor→robe`、`helmet→hat`（对齐催债使者等样例）；未碰核心文件。
