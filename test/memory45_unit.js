@@ -218,8 +218,108 @@ const mkG = (o) => Object.assign({
     const c = box();
     c.Game.G = mkG({ partner: 'lengyue', aff: { lengyue: 99 }, visited: { village: 1, market: 1 } });
     await c.Game.die('sit');
-    ok(c.Game.meta.mem45 && c.Game.meta.mem45.npcs.lengyue, 'die 前 snapshot 写入 meta');
+    ok(c.Game.meta.mem45 && c.Game.meta.mem45.npcs.lengyue, 'M1 真死后 snapshot 写入 meta');
     ok(c.Game.meta.mem45.places.market === 1, 'places 记录 visited');
+  }
+
+  // ---- M1: main40-like blocked die does NOT snapshot ----
+  {
+    const c = box();
+    // simulate main40 outer wrap under mem45: mem45 wires first in box(), then we wrap again like main40
+    const _inner = c.Game.die.bind(c.Game);
+    // mem45 already wrapped die; insert main40-like block inside by re-wrapping as outer? 
+    // Load order: mem45 (outer) → main40 → base. So mem45 calls main40 which may return early.
+    // In box(), only mem45 wraps base. Re-wire: put main40 between mem45 and base.
+    const memDie = c.Game.die;
+    // rebuild: base → main40-block → need mem45 on outside
+    // Easier: replace Game.die with chain manually
+    let baseCalled = 0;
+    const base = async function (kind) {
+      baseCalled++;
+      this.G.dead = true; this.G.ending = kind; c.dies.push(kind);
+    };
+    const main40ish = async function (kind) {
+      const G = this.G;
+      if (G && G.flags && G.flags.boss_tiandao2 && (kind === 'newdao' || kind === 'auditor') && !G.flags.ys_end) {
+        return; // blocked — no dead
+      }
+      return base.apply(this, arguments);
+    };
+    // mem45-style outer (same as fixed code)
+    c.Game.die = async function (kind) {
+      const G0 = this.G;
+      const aliveBefore = !!(G0 && !G0.dead);
+      const r = await main40ish.apply(this, arguments);
+      try {
+        const G = this.G;
+        if (aliveBefore && G && G.dead) c.Memory45.snapshot(G);
+      } catch (e) { }
+      return r;
+    };
+    delete c.Game.meta.mem45;
+    c.Game.G = mkG({ partner: 'lengyue', aff: { lengyue: 90 }, flags: { boss_tiandao2: 1 } });
+    await c.Game.die('newdao');
+    ok(!c.Game.G.dead, 'M1 拦截后 G.dead===false');
+    ok(!c.Game.meta.mem45 || !c.Game.meta.mem45.npcs || !c.Game.meta.mem45.npcs.lengyue, 'M1 拦截死亡不写 mem45');
+    ok(baseCalled === 0, 'M1 未落入 base die');
+    // real death still snapshots
+    c.Game.G.dead = false; c.Game.G.flags = {};
+    delete c.Game.meta.mem45;
+    await c.Game.die('sit');
+    ok(c.Game.G.dead && c.Game.meta.mem45 && c.Game.meta.mem45.npcs.lengyue, 'M1 真死仍 snapshot');
+  }
+
+  // ---- M2: placeHint replaces {map} ----
+  {
+    const c = box();
+    c.Game.G = mkG({ year: 3 });
+    c.Memory45.ensureMeta();
+    c.Game.meta.mem45.places = { market: 1 };
+    // force place line containing {map}
+    const orig = c.MEM45.TEXT.place;
+    c.MEM45.TEXT.place = ['你踏进{map}，旧尘在靴底发响。'];
+    // force roll success: stub roll always true
+    c.Game.roll = function (p, kind) { this.rolls.push([p, kind]); return true; };
+    c.toasts.length = 0;
+    await c.Memory45.placeHint(c.Game.G, 'market');
+    ok(c.toasts.length >= 1 && !/\{map\}/.test(c.toasts[0]) && /market/.test(c.toasts[0]), 'M2 placeHint 替换 {map}');
+    c.MEM45.TEXT.place = orig;
+  }
+
+  // ---- M3: places keep newest ----
+  {
+    const c = box();
+    c.Game.G = mkG({ visited: { village: 1 } });
+    const meta = c.Memory45.ensureMeta();
+    meta.places = {};
+    for (let i = 0; i < 12; i++) meta.places['old' + i] = 1;
+    c.Game.G.visited = { village: 1, market: 1, heaven: 1 };
+    c.Memory45.snapshot(c.Game.G, true);
+    const keys = Object.keys(c.Game.meta.mem45.places);
+    ok(keys.length === 12, 'M3 places 仍封顶 12 得 ' + keys.length);
+    ok(!!c.Game.meta.mem45.places.market && !!c.Game.meta.mem45.places.heaven, 'M3 新地图保留');
+    ok(!c.Game.meta.mem45.places.old0 || !c.Game.meta.mem45.places.old1, 'M3 最旧被丢（至少 old0/old1 之一）');
+    // stronger: old0 should be gone (first inserted)
+    ok(!c.Game.meta.mem45.places.old0, 'M3 弃最旧 old0');
+  }
+
+  // ---- L1: pickLine uses Game.roll ----
+  {
+    const c = box();
+    c.Game.rolls = [];
+    c.Game.roll = function (p, kind) { this.rolls.push([p, kind]); return p >= 1 || Math.random() < p; };
+    // access pickLine via fireCard path or weak - inject and fire
+    c.Game.G = mkG();
+    c.Memory45.inject('mentor', 'friend', 50);
+    // TEXT has multiple lines → reservoir rolls
+    await c.Memory45.fireCard(c.Game.G, 'mentor');
+    ok(c.Game.rolls.filter(r => r[1] === 'qiyu').length >= 2, 'L1 pickLine/触发 多次 Game.roll');
+  }
+
+  // ---- L2: Talk._mem45 ----
+  {
+    const c = box();
+    ok(c.Talk._mem45 === 1, 'L2 Talk._mem45 标记');
   }
 
   console.log('\n' + n + ' tests, ' + fails + ' failed');

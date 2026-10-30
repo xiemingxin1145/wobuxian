@@ -51,17 +51,28 @@
     return Math.random() < p;
   }
 
-  function pickLine(pool, n) {
+  /** L1：用 Game.roll 均匀抽下标；M2：替换 {n}/{map} 等占位 */
+  function pickLine(pool, vars) {
     const arr = pool && pool.length ? pool : (TEXT_MEM45.generic || ['……']);
     let i = 0;
     try {
       if (typeof Game !== 'undefined' && Game.roll) {
-        // use roll only for flavor; pick index via Math after seeding attempt
-        roll(1, 'qiyu');
+        // reservoir：第 k 项以 1/(k+1) 替换当前选择 → 均匀
+        for (let k = 1; k < arr.length; k++) {
+          if (Game.roll(1 / (k + 1), 'qiyu')) i = k;
+        }
+      } else {
+        i = Math.floor(Math.random() * arr.length) % arr.length;
       }
-    } catch (e) { }
-    i = Math.floor(Math.random() * arr.length) % arr.length;
-    return String(arr[i]).replace(/\{n\}/g, n || '故人');
+    } catch (e) {
+      i = Math.floor(Math.random() * arr.length) % arr.length;
+    }
+    const v = (vars && typeof vars === 'object') ? vars : { n: vars };
+    const n = (v && v.n != null) ? String(v.n) : '故人';
+    const map = (v && v.map != null) ? String(v.map) : n;
+    return String(arr[i])
+      .replace(/\{n\}/g, n)
+      .replace(/\{map\}/g, map);
   }
 
   const API = W.Memory45 = {
@@ -205,30 +216,56 @@
       for (let i = 0; i < list.length && i < MEM45.NPC_CAP; i++) next[list[i].id] = list[i].e;
       meta.npcs = next;
 
-      // places
-      const places = Object.assign({}, meta.places);
+      // places：本世访问沉底为「最新」；封顶时弃旧留新（M3）
+      const placeOrder = [];
+      const placeSeen = {};
+      const pushPlace = (mid) => {
+        if (!mid || mid === 'village' || placeSeen[mid]) return;
+        placeSeen[mid] = 1; placeOrder.push(mid);
+      };
+      for (const mid in (meta.places || {})) pushPlace(mid);
       const vis = G.visited || {};
       for (const mid in vis) {
         if (mid === 'village') continue;
-        places[mid] = 1;
+        // 本世再访：挪到末尾视为最新
+        if (placeSeen[mid]) {
+          const ix = placeOrder.indexOf(mid);
+          if (ix >= 0) placeOrder.splice(ix, 1);
+          placeSeen[mid] = 0;
+        }
+        pushPlace(mid);
       }
-      const pkeys = Object.keys(places);
-      if (pkeys.length > MEM45.PLACE_CAP) {
-        const keep = {};
-        for (let i = 0; i < MEM45.PLACE_CAP; i++) keep[pkeys[i]] = 1;
-        meta.places = keep;
-      } else meta.places = places;
+      const keepP = placeOrder.length > MEM45.PLACE_CAP
+        ? placeOrder.slice(-MEM45.PLACE_CAP) : placeOrder;
+      meta.places = {};
+      for (const mid of keepP) meta.places[mid] = 1;
 
-      // bosses
-      const bosses = Object.assign({}, meta.bosses);
-      if (G.bosses) for (const b in G.bosses) if (G.bosses[b]) bosses[b] = 1;
-      if (G.flags) for (const f in G.flags) if (/^boss_/.test(f) && G.flags[f]) bosses[f] = 1;
-      const bkeys = Object.keys(bosses);
-      if (bkeys.length > MEM45.BOSS_CAP) {
-        const keep = {};
-        for (let i = 0; i < MEM45.BOSS_CAP; i++) keep[bkeys[i]] = 1;
-        meta.bosses = keep;
-      } else meta.bosses = bosses;
+      // bosses：同 places，新击杀沉底；弃旧留新（M3）
+      const bossOrder = [];
+      const bossSeen = {};
+      const pushBoss = (bid) => {
+        if (!bid || bossSeen[bid]) return;
+        bossSeen[bid] = 1; bossOrder.push(bid);
+      };
+      for (const b in (meta.bosses || {})) pushBoss(b);
+      if (G.bosses) for (const b in G.bosses) if (G.bosses[b]) {
+        if (bossSeen[b]) {
+          const ix = bossOrder.indexOf(b); if (ix >= 0) bossOrder.splice(ix, 1);
+          bossSeen[b] = 0;
+        }
+        pushBoss(b);
+      }
+      if (G.flags) for (const f in G.flags) if (/^boss_/.test(f) && G.flags[f]) {
+        if (bossSeen[f]) {
+          const ix = bossOrder.indexOf(f); if (ix >= 0) bossOrder.splice(ix, 1);
+          bossSeen[f] = 0;
+        }
+        pushBoss(f);
+      }
+      const keepB = bossOrder.length > MEM45.BOSS_CAP
+        ? bossOrder.slice(-MEM45.BOSS_CAP) : bossOrder;
+      meta.bosses = {};
+      for (const b of keepB) meta.bosses[b] = 1;
 
       try {
         if (typeof Game !== 'undefined' && Game.saveMeta) Game.saveMeta();
@@ -354,7 +391,7 @@
       if (!roll(0.4, 'qiyu')) return false;
       s.placeFired[mapId] = 1;
       try {
-        if (typeof UI !== 'undefined' && UI.toast) UI.toast(pickLine(TEXT_MEM45.place, mapId));
+        if (typeof UI !== 'undefined' && UI.toast) UI.toast(pickLine(TEXT_MEM45.place, { map: mapId, n: mapId }));
         if (typeof Game !== 'undefined' && Game.save) Game.save();
       } catch (e) { }
       return true;
@@ -373,12 +410,18 @@
       this._wired = true;
       this.ensureMeta();
 
-      // Game.die → snapshot first
+      // Game.die → 先内层；仅真死（G.dead）后 snapshot（M1：main40 拦截 newdao/auditor 不记）
       if (Game.die && !Game.die._mem45) {
         const _die = Game.die;
         Game.die = async function (kind) {
-          try { API.snapshot(this.G); } catch (e) { console.warn('[mem45] snapshot', e); }
-          return _die.apply(this, arguments);
+          const G0 = this.G;
+          const aliveBefore = !!(G0 && !G0.dead);
+          const r = await _die.apply(this, arguments);
+          try {
+            const G = this.G;
+            if (aliveBefore && G && G.dead) API.snapshot(G);
+          } catch (e) { console.warn('[mem45] snapshot', e); }
+          return r;
         };
         Game.die._mem45 = 1;
         if (_die._loan42) Game.die._loan42 = 1;
@@ -396,8 +439,8 @@
         Game.newLife._mem45 = 1;
       }
 
-      // Talk.extra
-      if (typeof Talk !== 'undefined') {
+      // Talk.extra（L2：Talk._mem45 重入标记）
+      if (typeof Talk !== 'undefined' && !Talk._mem45) {
         const _ex = Talk.extra ? Talk.extra.bind(Talk) : function () { return []; };
         Talk.extra = function (id) {
           const out = [];
@@ -425,6 +468,7 @@
           } catch (e) { console.warn('[mem45] Talk.extra', e); }
           return out;
         };
+        Talk._mem45 = 1;
       }
 
       // enterMap place hint
