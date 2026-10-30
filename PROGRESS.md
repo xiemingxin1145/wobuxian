@@ -1,3 +1,10 @@
+## 开放世界线 · sweep44 确认卡/×N 中途 autoOn 再查（MEDIUM）（2026-10-31 00:25 UTC+8，Grok Bot）
+- 分支 sweep44-auto（已 `git merge origin/main`，PROGRESS 双保留；index 序沿用 main：`…→memory45→sweep44→sweep44_ui→audio32`）。
+- MEDIUM：`Sweep44.go` 原先只在确认卡前查 `autoOn()`；确认卡打开期间若切到 AUTO/AFK，确认后仍会扣 AP、计数、发奖。现：确认后再查一次（拒则不花 AP）；×N 每轮迭代再查（中途开自动停后续、已完成保留）；`silent` 默认也守 `autoOn`，仅 `opts.test===true` 可覆盖（逻辑层单测）。
+- 改动：`www/js/sweep44.js`、`test/sweep44_unit.js`（对抗：确认中途开自动不变档；×N 中途开自动只完成 1 次；silent 拒 auto / test 覆盖）。未碰核心、未改 ux23/sweep44_ui。
+- node：sweep44 **101/101**；sweep44_ui **33/33**；memory45 **58**；loan42 **110**；loan42_squad **105**；test/*.js **28/28**；validate22 **errors []**。未跑 Chrome。
+- 下一步：push → 合 openworld-wip；等奥拉夫审。
+
 ## 开放世界线 · sweep44 自动任务/挂机不扫荡（§18.6-8）（2026-10-31 00:35 UTC+8，开放世界开发 bot）
 - 分支 sweep44-auto（自 origin/main 784b792）：`Sweep44.go` 非 silent 路径在 ux23 `AUTO.on` 或 `AFK.on` 时先拒 `reason:'auto'`（不花 AP、不计数、不发奖），新增 `Sweep44.autoOn()`（缺 AUTO/AFK 安全返回 false）和 `TEXT44.auto` 文案；`sweep44_ui` 点扫荡被拒时 toast 该文案。
 - 改动：`www/js/sweep44.js`、`www/js/sweep44_ui.js`、`test/sweep44_unit.js`（+7：autoOn 缺省/AUTO/AFK 拒绝不变档/扫荡按钮与确认选项不匹配 ux23 SAFE）。未碰核心、未改 ux23。
@@ -8,6 +15,50 @@
 - 普通 merge：`sweep44-r2`（rndRange→Game.roll + #72 memory45 index）+ `loan42-mk`（deathTransfer 真死后 + keepFnMarks `_main40`/`_mem45`）入 openworld-wip。
 - index：`dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`。未碰核心；未跑 Chrome；未 force。
 - node（合入后）：loan42_squad **105**；loan42 **110**；sweep44 **87**；sweep44_ui **33**；memory45 **53**；validate22 []；test/*.js 全过。
+## 交接 notes · v3.9.5（2026-10-31，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `PENDING_TAG`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
+- **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.5
+- Release 资产：`wobuxian.apk` / `wobuxian-lite.apk`（大小与 versionCode 发版后补记；自 307 起由 CI `100+run_number` 递增）。
+- index 序：`…→loan42→main40→dongfu43→dongfu43_ui→memory45→sweep44→sweep44_ui→audio32`。
+
+### 2 本版做了什么 / 刻意没做什么
+- **3.9.4 sweep44**（#71 数据+逻辑 + #73 UI 接线/隐藏 `_once`）：秘境面板扫荡、年 cap、Dev「扫荡44」。
+- **3.9.5 memory45**（#72 + #75 中文地图名）：跨世似曾相识卡、微好感/顿悟上限、地点弱提示。
+- **#74**：loan42 仅真死后 `deathTransfer`；重 hook 保留 `_main40`/`_mem45`。
+- 刻意没做：未改核心四件套；BOSS 旁白等 §19 P2；不删分支。
+- 已知低风险：`dongfu43_ui` / `audio32` 重包 `enterMap` 未 `keepFnMarks`，检测上可能只见 `_loan42`（调用链一般仍在）。
+
+### 3 测试结果
+- node（合 #73 后）：validate22 **0**；sweep44 **87**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；其余 unit → **ALL PASS**。
+- 奥拉夫：#73 含页测 APPROVE；#72 已合。
+- CI：见 tag `v3.9.5`（发版后补）。
+
+### 4 遗留问题
+- Issue #12 OPEN；dungeon26 `clear[band]` 单层偏差（§18.7）；enterMap 标记链可能被后加载模块盖掉（低风险）。
+
+### 5 下一版任务（按顺序）
+1. P2 剩余 / memory45 BOSS 旁白与 tit39 `t_mem45`（可选）
+2. 其它 ROADMAP P2
+
+### 6 交接注意
+- 禁止改 `game.js`/`talk.js`/`data.js`/`ui.js`；老档 `G.v===2` 惰性字段。
+- 扫荡与似曾相识均守 `NPC37.storyBlock`/`B.on`。
+- HD：CI 拉 `assets-hd`；缺 APK 时从 artifact 手工 upload。
+
+---
+
+## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
+- 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
+- `git merge origin/main`（#72 memory45）：index 序 `dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R2 UI 接线（2026-10-30 23:49 UTC+8，Grok Bot）
+- 分支 sweep44-r2（自 origin/sweep44 @ f914b42，已合 main 解 #71 冲突）。依赖 PR #71。
+- 改动：`www/js/sweep44.js`（`_once` 收进闭包，公开 `Sweep44._once === undefined`）；新 `www/js/sweep44_ui.js`（包 `UI.p_dungeon26` 扫荡区块：本年剩余/AP/档行/TEXT44 确认+回执；DevPanel「扫荡44」；tit39 `t_sw44` 尽力挂 TITLES + tit39Deferred；finish 全通 exit 解锁 / retreat 不解锁）；`www/index.html`（dongfu43_ui→sweep44→sweep44_ui→audio32）；`test/sweep44_unit.js`；新 `test/sweep44_ui_unit.js`。未碰核心。
+- node：sweep44 **84/84**；sweep44_ui **33/33**；test/*.js **22/22**；validate22 errors []。未跑 Chrome；**页测待做**（秘境面板扫荡按钮/回执卡/Dev「扫荡44」/storyBlock）。
+- 下一步：开 PR→main（注依赖 #71）；合 openworld-wip；等奥拉夫页测。
 
 ## 开放世界线 · loan42 deathTransfer 真死后结算 + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
 - 分支 loan42-mk：`Game.die` 先调内层，仅 wasAlive&&G.dead 后 `deathTransfer`；main40 拦截 newdao/auditor 时债/贷不动。`keepFnMarks` 保留 `_main40`/`_mem45`。
