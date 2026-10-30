@@ -1,3 +1,12 @@
+## 开放世界线 · 3.9.6 亲传功课·出师 shi46 第 1 轮（data+logic）（2026-10-31 00:30 UTC+8，Grok Bot）
+- 分支 `shi46`（基于 origin/main f685885+）：`www/js/shi46.js` + `test/shi46_unit.js`；PR #77。
+- **规则**：惰性 `G.shi46`（mood/功课年封顶/年终督导/出师 ally/回访）；`TEXT_SHI46`；功课 ≤3/年（放养 2）×1 AP；出师门槛 lv8/功法2/心境70/好感80；助战 1 次/年；`SHI46.off`；rng=`Game.roll`→`Math.random`；弹卡守 `#53` storyBlock/B.on；`keepFnMarks`；公开 API 无 unguarded 内部。仍 `wbx2_*` / `G.v===2`。
+- 本轮**不进** index.html / 面板 DOM 追加留给第 2 轮。未碰核心文件；未跑 Chrome；未 push main。
+- node：shi46 **80/80**；validate22 errors []；其余 test/*.js 全过（29/29）。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/77 （feat `1f6bd8a`）
+- wip 普通 merge：本提交合入 openworld-wip。
+- 下一步：第 2 轮 index 接线 + `UI.p_legacy26` 区块；等奥拉夫审 #77。
+
 ## 开放世界线 · sweep44 确认卡/×N 中途 autoOn 再查（MEDIUM）（2026-10-31 00:25 UTC+8，Grok Bot）
 - 分支 sweep44-auto（已 `git merge origin/main`，PROGRESS 双保留；index 序沿用 main：`…→memory45→sweep44→sweep44_ui→audio32`）。
 - MEDIUM：`Sweep44.go` 原先只在确认卡前查 `autoOn()`；确认卡打开期间若切到 AUTO/AFK，确认后仍会扣 AP、计数、发奖。现：确认后再查一次（拒则不花 AP）；×N 每轮迭代再查（中途开自动停后续、已完成保留）；`silent` 默认也守 `autoOn`，仅 `opts.test===true` 可覆盖（逻辑层单测）。
@@ -6,7 +15,7 @@
 - 下一步：push → 合 openworld-wip；等奥拉夫审。
 
 ## 开放世界线 · sweep44 自动任务/挂机不扫荡（§18.6-8）（2026-10-31 00:35 UTC+8，开放世界开发 bot）
-- 分支 sweep44-auto（自 origin/main 784b792）：`Sweep44.go` 非 silent 路径在 ux23 `AUTO.on` 或 `AFK.on` 时先拒 `reason:'auto'`（不花 AP、不计数、不发奖），新增 `Sweep44.autoOn()`（缺 AUTO/AFK 安全返回 false）和 `TEXT44.auto` 文案；`sweep44_ui` 点扫荡被拒时 toast 该文案。
+- 分支 sweep44-auto（自 origin/main 784b792）：`Sweep44.go` 非 silent 路径在 ux23 `AUTO.on` 或 `AFK.on` 时先拒 `reason:"auto"`（不花 AP、不计数、不发奖），新增 `Sweep44.autoOn()`（缺 AUTO/AFK 安全返回 false）和 `TEXT44.auto` 文案；`sweep44_ui` 点扫荡被拒时 toast 该文案。
 - 改动：`www/js/sweep44.js`、`www/js/sweep44_ui.js`、`test/sweep44_unit.js`（+7：autoOn 缺省/AUTO/AFK 拒绝不变档/扫荡按钮与确认选项不匹配 ux23 SAFE）。未碰核心、未改 ux23。
 - node：sweep44 **94/94**；sweep44_ui **33/33**；test/*.js 全过。未跑 Chrome；页测仍待做（秘境面板扫荡按钮/回执卡/Dev「扫荡44」，以及开自动任务时点扫荡出 toast）。
 - 下一步：等奥拉夫审；3.9.4+3.9.5 待发版人整理发版。
@@ -15,11 +24,12 @@
 - 普通 merge：`sweep44-r2`（rndRange→Game.roll + #72 memory45 index）+ `loan42-mk`（deathTransfer 真死后 + keepFnMarks `_main40`/`_mem45`）入 openworld-wip。
 - index：`dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`。未碰核心；未跑 Chrome；未 force。
 - node（合入后）：loan42_squad **105**；loan42 **110**；sweep44 **87**；sweep44_ui **33**；memory45 **53**；validate22 []；test/*.js 全过。
+
 ## 交接 notes · v3.9.5（2026-10-31，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `PENDING_TAG`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
+- 版本：**v3.9.5「扫荡 · 似曾相识」**，`VERSION`=3.9.5，tag `v3.9.5` → commit `5eaa8f5368ad41a17f815e4b6e46eb4fd58842c1`；其下 merge #73 `784b792`（sweep44 R2）、#74 loan42、#75/#72 memory45、#71 sweep44 R1、v3.9.3。
 - **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.5
-- Release 资产：`wobuxian.apk` / `wobuxian-lite.apk`（大小与 versionCode 发版后补记；自 307 起由 CI `100+run_number` 递增）。
+- Release 资产：`wobuxian.apk`（约 355 MB）/ `wobuxian-lite.apk`（约 80 MB）；**versionCode 314**（CI `100+run_number`，自 307 递增）。
 - index 序：`…→loan42→main40→dongfu43→dongfu43_ui→memory45→sweep44→sweep44_ui→audio32`。
 
 ### 2 本版做了什么 / 刻意没做什么
@@ -32,7 +42,7 @@
 ### 3 测试结果
 - node（合 #73 后）：validate22 **0**；sweep44 **87**；sweep44_ui **33**；memory45 **58**；loan42 **110**；loan42_squad **105**；其余 unit → **ALL PASS**。
 - 奥拉夫：#73 含页测 APPROVE；#72 已合。
-- CI：见 tag `v3.9.5`（发版后补）。
+- CI：tag `v3.9.5` run 成功（build 314）；Latest；HD+lite 均已挂；`/releases/latest/download/*` → 200。
 
 ### 4 遗留问题
 - Issue #12 OPEN；dungeon26 `clear[band]` 单层偏差（§18.7）；enterMap 标记链可能被后加载模块盖掉（低风险）。

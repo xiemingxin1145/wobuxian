@@ -85,7 +85,7 @@
 | 3.9.2 | ✅ 已随 v3.9.3 发布（2026-10-30，#69 main40） | 主线终局补完 main40 · `docs/research_story40_main.md` |
 | 3.9.3 | ✅ 已发布（2026-10-30，Latest = v3.9.3 `54bd685`，#66+#68 洞府 + #69 main40 + #70 loan42，versionCode 307） | 洞府可进入地图 dongfu43 · `docs/research_v22.md` §17；同版合入 3.9.2 main40 |
 | 3.9.4 | ✅ 已随 v3.9.5 发布（2026-10-31，#71+#73 sweep44） | 秘境扫荡 sweep44 · `docs/research_v22.md` §18 |
-| 3.9.5 | ✅ 已发布（2026-10-31，Latest = v3.9.5，#72+#75 memory45 + #71+#73 sweep44 + #74 loan42） | 似曾相识 memory45 · `docs/research_v22.md` §19；同版合入 3.9.4 扫荡 |
+| 3.9.5 | ✅ 已发布（2026-10-31，Latest = v3.9.5 `5eaa8f5`，#72+#75 memory45 + #71+#73 sweep44 + #74 loan42，versionCode 314） | 似曾相识 memory45 · `docs/research_v22.md` §19；同版合入 3.9.4 扫荡 |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
 | v2.5+ | 🟡 阶段 1/2 已签收并合入 `main`（合并提交 `61d2eba`）；阶段 3 未验收、未合并 | 阶段 1 仅是离线低模模型/预览，没有导入正式游戏资源；阶段 2 为 `www/prototypes/encounter/` 独立浏览器练习页，主人已签收最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372`。精确快照 CDP 合成触摸复测 8/8，浏览器/page/console/HTTP 错误 0；不是实体触屏或真机，也没有接入正式地图/战斗/存档。CI build-153 成功：HD APK 278,378,225 B、lite APK 47,716,509 B；相对 v2.3.0 稳定包各增加 37,164 B。HD APK 在 API 30/34 模拟器安装启动，自动试玩有推进；API 34 截图出现 Android 系统 Pixel Launcher 无响应对话框，游戏进程本身无 FATAL/ANR/JS 错误。预发布不替换稳定版 latest。未验收的阶段 3 债务事件代码仍在隔离工作区，未合入 `main`。 |
