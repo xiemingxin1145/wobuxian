@@ -1,3 +1,13 @@
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 第 1 轮（data+logic）（2026-10-30 23:30 UTC+8，Grok Bot）
+- 分支 `sweep44`（基于 origin/main）：`www/js/sweep44.js` + `test/sweep44_unit.js`；PR #71。
+- **规则**：首通解锁（包 `Dng.exit`，`ok && !r.sweep`）；不把 `G.dungeon.clear` 单独当首通（§18.7：单层守关就写 clear）；老档仅 `best>=3` 才迁 `full`；每年 3 次×1 AP；奖励表+TEXT44（§18.2/18.5）。
+- 存档 `G.sw44` 惰性；仍 `wbx2_*` / `G.v===2`；rng=`Game.roll`→`Math.random`；`Sweep44.off`；弹卡守 `#53` storyBlock/B.on。本轮**不进** index.html / 不包面板。
+- 未碰核心文件；未跑 Chrome；未 push main。
+- node：sweep44 **67/67**；validate22 errors []；其余 test/*.js 全过。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/71 （`bc6efd7`）
+- wip 普通 merge：见本提交前一条 merge。
+- 下一步：第 2 轮面板接线（`UI.p_dungeon26` + index）；等奥拉夫审 #71。
+
 ## 开放世界线 · loan42 催收开场文案稳定（2026-10-30 23:19 UTC+8，Grok Bot）
 - 分支 `loan42-intro`（基于 origin/main）：`www/js/loan42.js` + `test/loan42_squad_unit.js`；PR #70。
 - **修**：催收卡 `sqPend` 未结案读档/换图复弹时不再重抽 `squadOpen`；首次弹出写 `sqPend.oi`，复弹复用；老档无 `oi` 补抽一次写入。rng=`Game.roll` 回退 `Math.random`。仍 `wbx2_*` / `G.v===2`，不升版本。
