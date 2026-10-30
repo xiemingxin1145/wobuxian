@@ -10,10 +10,11 @@ const CORE = rd('sweep44.js'), UIJS = rd('sweep44_ui.js');
 const INDEX = fs.readFileSync(path.join(ROOT, 'www', 'index.html'), 'utf8');
 
 ok(/sweep44\.js/.test(INDEX) && /sweep44_ui\.js/.test(INDEX), 'index.html 含 sweep44.js 与 sweep44_ui.js');
-ok(INDEX.indexOf('dongfu43_ui.js') < INDEX.indexOf('sweep44.js')
+ok(INDEX.indexOf('dongfu43_ui.js') < INDEX.indexOf('memory45.js')
+  && INDEX.indexOf('memory45.js') < INDEX.indexOf('sweep44.js')
   && INDEX.indexOf('sweep44.js') < INDEX.indexOf('sweep44_ui.js')
   && INDEX.indexOf('sweep44_ui.js') < INDEX.indexOf('audio32.js'),
-  '脚本序：dongfu43_ui → sweep44 → sweep44_ui → audio32');
+  '脚本序：dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32');
 
 function box(extra) {
   const calls = { cards: [], toasts: [], exits: [] };

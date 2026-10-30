@@ -1,3 +1,9 @@
+## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
+- 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
+- `git merge origin/main`（#72 memory45）：index 序 `dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
 ## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R2 UI 接线（2026-10-30 23:49 UTC+8，Grok Bot）
 - 分支 sweep44-r2（自 origin/sweep44 @ f914b42，已合 main 解 #71 冲突）。依赖 PR #71。
 - 改动：`www/js/sweep44.js`（`_once` 收进闭包，公开 `Sweep44._once === undefined`）；新 `www/js/sweep44_ui.js`（包 `UI.p_dungeon26` 扫荡区块：本年剩余/AP/档行/TEXT44 确认+回执；DevPanel「扫荡44」；tit39 `t_sw44` 尽力挂 TITLES + tit39Deferred；finish 全通 exit 解锁 / retreat 不解锁）；`www/index.html`（dongfu43_ui→sweep44→sweep44_ui→audio32）；`test/sweep44_unit.js`；新 `test/sweep44_ui_unit.js`。未碰核心。
