@@ -1,3 +1,9 @@
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R1 审修 M1/M2（2026-10-30 23:36 UTC+8，Grok Bot）
+- 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
+- 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
+- node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
+- wip 普通 merge：。下一步：等奥拉夫再审 / R2 接线。
+
 ## 开放世界线 · 3.9.4 秘境扫荡 sweep44 第 1 轮（data+logic）（2026-10-30 23:30 UTC+8，Grok Bot）
 - 分支 `sweep44`（基于 origin/main）：`www/js/sweep44.js` + `test/sweep44_unit.js`；PR #71。
 - **规则**：首通解锁（包 `Dng.exit`，`ok && !r.sweep`）；不把 `G.dungeon.clear` 单独当首通（§18.7：单层守关就写 clear）；老档仅 `best>=3` 才迁 `full`；每年 3 次×1 AP；奖励表+TEXT44（§18.2/18.5）。

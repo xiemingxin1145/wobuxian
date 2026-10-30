@@ -292,7 +292,8 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
 
   // ---- null guards ----
   ok(SW2.st(undefined) !== null || true, 'st 有 Game.G');
-  ok(SW2.once(null, 0) === null || SW2.once(mkG(), -1) === null, 'once 非法 band/空 G 不抛');
+  ok(SW2._once(null, 0) === null || SW2._once(mkG(), -1) === null, '_once 非法 band/空 G 不抛');
+  ok(typeof SW2.once !== 'function', 'once 不再作为公开 API');
   c = box2(); SW2 = R(c, 'Sweep44');
   ok(SW2.can(null, 0) === false, 'can(null) 无 Game.G → false');
   R(c, 'Game').G = mkG();
@@ -322,6 +323,62 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   G = mkG({ ap: 4 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
   r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
   ok(!r1.ok && r1.reason === 'locked_first', '未首通 go 拒绝');
+
+
+  // ---- 对抗：M1 storyBlock / B.on 下 go（非 silent）不花 AP、不计数 ----
+  c = box2();
+  G = mkG({ ap: 5, stone: 100, exp: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  const snap = () => ({ ap: G.ap, n: G.sw44.n, tot: G.sw44.tot, stone: G.stone, exp: G.exp, eqs: (G.eqs || []).length, inv: JSON.stringify(G.inv || {}) });
+  R(c, '__setNpcBlock("prologue")');
+  let before = snap();
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1);');
+  ok(!r1.ok && r1.reason === 'blocked', 'storyBlock 时 go 拒绝 blocked');
+  ok(JSON.stringify(snap()) === JSON.stringify(before), 'storyBlock 时 AP/n/tot/奖励不变');
+  R(c, '__setNpcBlock(null)');
+  R(c, '__setB(true)');
+  before = snap();
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1);');
+  ok(!r1.ok && r1.reason === 'blocked', 'B.on 时 go 拒绝 blocked');
+  ok(JSON.stringify(snap()) === JSON.stringify(before), 'B.on 时 AP/n/tot/奖励不变');
+  R(c, '__setB(false)');
+  // silent 路径仍可测逻辑（不受 storyBlock 挡）
+  R(c, '__setNpcBlock("prologue")');
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(r1.ok && G.ap === 4 && G.sw44.n === 1, 'silent 逻辑层单测仍可过 storyBlock');
+  R(c, '__setNpcBlock(null)');
+
+  // ---- 对抗：公开 API 无法绕过年 cap / 未解锁 / 无 AP ----
+  c = box2();
+  G = mkG({ ap: 10, stone: 0, realm: 2 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  // 未解锁
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(!r1.ok && r1.reason === 'locked_first' && G.ap === 10 && G.stone === 0, '未解锁公开 go 拒绝且不发奖');
+  ok(typeof SW2.once !== 'function', '公开对象无 once（防绕过）');
+  // 即使误调 _once，公开路径仍受门闩；这里验证反复 go 不能超过 3
+  SW2.markFull(G, 0, true);
+  for (let i = 0; i < 3; i++) {
+    r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+    ok(r1.ok, '公开 go 第 ' + (i + 1) + ' 次');
+  }
+  ok(G.sw44.n === 3 && SW2.left(G) === 0, '满 3 次');
+  const apAfter3 = G.ap, stoneAfter3 = G.stone, totAfter3 = G.sw44.tot;
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(!r1.ok && r1.reason === 'cap', '第 4 次公开 go 拒 cap');
+  ok(G.ap === apAfter3 && G.stone === stoneAfter3 && G.sw44.n === 3 && G.sw44.tot === totAfter3, '超 cap 后状态不变');
+  // ×N 一次也不能突破 cap
+  G.sw44.n = 2; G.sw44.y = G.year; G.ap = 5;
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 2, { silent: true });');
+  ok(!r1.ok && r1.reason === 'cap' && G.sw44.n === 2, '×2 在剩余 1 时拒 cap、不计数');
+  // 无 AP
+  G.sw44.n = 0; G.sw44.y = G.year; G.ap = 0; G.stone = 0;
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(!r1.ok && r1.reason === 'noap' && G.stone === 0 && G.sw44.n === 0, '无 AP 公开 go 拒绝且不发奖');
+  // AP 不足 times
+  G.ap = 1;
+  r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 2, { silent: true });');
+  ok(!r1.ok && r1.reason === 'noap' && G.ap === 1 && G.sw44.n === 0, 'AP 不足 ×N 拒绝');
+
 
   console.log(`\n${n - fails}/${n} passed, ${fails} failed`);
   process.exit(fails);

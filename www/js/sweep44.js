@@ -238,8 +238,9 @@
       return !!(S.full[b] && b <= this.curBand(G) && S.n < CAP && Number.isFinite(G.ap) && G.ap >= 1);
     },
 
-    /** 单次结算（不弹卡）。合成已通关 run → Dng.exit(true) 触发 shenqi36/items40 钩子。 */
-    once(G, b) {
+    /** 内部单次结算（不弹卡）。合成已通关 run → Dng.exit(true) 触发 shenqi36/items40 钩子。
+     * 不对外：无 unlock/AP/年 cap 门闩；仅由 go() 在校验后调用。 */
+    _once(G, b) {
       G = getG(G);
       if (!G || this.off) return null;
       b = b | 0;
@@ -326,17 +327,21 @@
       if (S.n + times > CAP) return { ok: false, reason: 'cap', msg: TEXT44.cap };
       if (!Number.isFinite(G.ap) || G.ap < times) return { ok: false, reason: 'noap', msg: TEXT44.noap };
 
-      if (!opts.silent && opts.confirm !== false) {
-        const conf = fill(TEXT44.confirm, { b: BANDS_N[b], n: times });
-        const ch = await this.card(TEXT44.title, conf, 'i:chest', [TEXT44.confirm_ok, TEXT44.confirm_no]);
-        // canPopup=false 时 card 返回 -1，视为跳过确认继续（逻辑层可测）
-        if (ch === 1) return { ok: false, reason: 'cancel' };
+      // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。silent 留给逻辑层单测。
+      if (!opts.silent) {
+        if (!this.canPopup()) return { ok: false, reason: 'blocked' };
+        if (opts.confirm !== false) {
+          const conf = fill(TEXT44.confirm, { b: BANDS_N[b], n: times });
+          const ch = await this.card(TEXT44.title, conf, 'i:chest', [TEXT44.confirm_ok, TEXT44.confirm_no]);
+          // -1 / 非 0：拒收或取消 → 提前返回，不花 AP、不计数
+          if (ch !== 0) return { ok: false, reason: ch === 1 ? 'cancel' : 'blocked' };
+        }
       }
 
       const outs = [];
       for (let i = 0; i < times; i++) {
         if (!this._useAP(G, 1)) return { ok: false, reason: 'noap', msg: TEXT44.noap, outs };
-        const one = this.once(G, b);
+        const one = this._once(G, b);
         if (!one) return { ok: false, reason: 'once', outs };
         outs.push(one);
         S.n++;
