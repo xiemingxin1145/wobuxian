@@ -24,30 +24,30 @@
 
 ## 交接 notes · v3.8.3（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
-- 版本：**v3.8.3「家族」**，`VERSION`=3.8.3，tag `v3.8.3` →（发版提交）；其下含 #60 clan41、#38 human_olaf、#59 zf39_rt（不发号）、v3.8.2.1/#62。
+- 版本：**v3.8.3「家族」**，`VERSION`=3.8.3，tag `v3.8.3` → commit `0ac62a2`；其下含 #60 clan41、#38 human_olaf、#59 zf39_rt（不发号）、发版后另合 #61 zf39_dng（不发号）、v3.8.2.1/#62。
 - **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.8.3
-- Release 资产：发版后填。
+- Release 资产：`wobuxian.apk` 372,202,443 B（≈372MB）、`wobuxian-lite.apk` 84,045,995 B（≈84MB）；Latest 已指向 v3.8.3。
 
 ### 2 本版做了什么 / 刻意没做什么
-- **clan41 家族**（#60）：立族/10 级、族产、族规、子嗣境界、联姻、21 族事、6 家族道具；`www/js/clan41.js`；index：`…→zf39_ui→items40→zf39_rt→clan41`。
+- **clan41 家族**（#60）：立族/10 级、族产、族规、子嗣境界、联姻、21 族事、6 家族道具；`www/js/clan41.js`；index：`…→zf39_ui→items40→zf39_rt→zf39_dng→clan41`（#61 热修后合入）。
 - **#59 zf39_rt**：即时战 rtMult，属 3.9.0，**未**单独立项发版。
 - **#38**：human_olaf N1/T1 站位 flake 测试修正。
 - **items40_unit**：有 clan41 时不再断言「尚未开放」。
-- 刻意没做：#61 破阵未合；3.8.4 时装未开工。
+- 刻意没做：3.8.4 时装未开工；#61 已合 main 但不进 3.8.3 发号（属 3.9.0）。
 
 ### 3 测试结果
-- node：validate22 0；items40 **152/152**；clan41 **70/70**；zf39_rt **33/33**；zf39_ui 60 / zf39 121 / hook 20；其余 unit 全过。
+- node：validate22 0；items40 **152/152**；clan41 **70/70**；zf39_dng **64/64**；zf39_rt **33/33**；zf39_ui 60 / zf39 121 / hook 20；其余 unit 全过（#61 合入后 19/19）。
 - **jsscan33**：21 maps，**errors []**，exit 0（本轮 Chrome 空闲已跑）。
 - 奥拉夫：#60 页测已过；#59 已审。
 
 ### 4 遗留问题
-- PR #61 `zf39-dng` 破阵（依赖 #59，未合）；Issue #12 OPEN。分支不删。
+- Issue #12 OPEN。#61 已合。分支不删。
 
 ### 5 下一版任务（按顺序）
-1. **3.8.4 时装** §15 → **3.9.0 阵法**完整发版（#61 / zf39_dng + `Dng.roomTrap`）→ **3.9.1 loan** §16 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17
+1. **3.8.4 时装** §15 → **3.9.0 阵法**完整发版（UI+rt+dng 已合 main，待整理发号/验收）→ **3.9.1 loan** §16 → **3.9.2 main40** → **3.9.3 洞府 dongfu43** §17
 
 ### 6 交接注意
-- 包装序：`zf39_ui → items40 → zf39_rt → clan41`（clan41 抢回 useItem 最外层）；不改核心文件；HD/签名同前。
+- 包装序：`zf39_ui → items40 → zf39_rt → zf39_dng → clan41`（clan41 抢回 useItem 最外层）；不改核心文件；HD/签名同前。
 
 ## 交接 notes · v3.8.2.1（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
