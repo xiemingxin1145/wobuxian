@@ -1,3 +1,9 @@
+## 开放世界线 · sweep44 自动任务/挂机不扫荡（§18.6-8）（2026-10-31 00:35 UTC+8，开放世界开发 bot）
+- 分支 sweep44-auto（自 origin/main 784b792）：`Sweep44.go` 非 silent 路径在 ux23 `AUTO.on` 或 `AFK.on` 时先拒 `reason:'auto'`（不花 AP、不计数、不发奖），新增 `Sweep44.autoOn()`（缺 AUTO/AFK 安全返回 false）和 `TEXT44.auto` 文案；`sweep44_ui` 点扫荡被拒时 toast 该文案。
+- 改动：`www/js/sweep44.js`、`www/js/sweep44_ui.js`、`test/sweep44_unit.js`（+7：autoOn 缺省/AUTO/AFK 拒绝不变档/扫荡按钮与确认选项不匹配 ux23 SAFE）。未碰核心、未改 ux23。
+- node：sweep44 **94/94**；sweep44_ui **33/33**；test/*.js 全过。未跑 Chrome；页测仍待做（秘境面板扫荡按钮/回执卡/Dev「扫荡44」，以及开自动任务时点扫荡出 toast）。
+- 下一步：等奥拉夫审；3.9.4+3.9.5 待发版人整理发版。
+
 ## docs: PROGRESS — openworld-wip re-merge sweep44-r2 + loan42-mk after main/#72（2026-10-31 00:12 UTC+8，Grok Bot）
 - 普通 merge：`sweep44-r2`（rndRange→Game.roll + #72 memory45 index）+ `loan42-mk`（deathTransfer 真死后 + keepFnMarks `_main40`/`_mem45`）入 openworld-wip。
 - index：`dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`。未碰核心；未跑 Chrome；未 force。

@@ -13,6 +13,7 @@
     locked_realm: '境界不足。外包员说这档秘境的保险你买不起。',
     cap: '今年的外包额度用完了。讨债司：“明年请早，工位有限。”',
     noap: '行动力不够。外包按次计费，计费单位是你的一季光阴。',
+    auto: '自动任务/挂机中不接外包单。先停下自动，再亲自签合同。',
     btn1: '扫荡 ×1',
     btnN: '扫荡 ×{n}',
     confirm: '委托讨债司外包代扫【{b}】{n} 次？\n消耗行动力 {n}，不战斗、不受伤、不会失败。',
@@ -306,6 +307,13 @@
     },
 
 
+    // ux23 的 AUTO（自动任务/挂机 idle）或 AFK 开着时为 true；缺省安全返回 false
+    autoOn() {
+      try { if (typeof AUTO !== 'undefined' && AUTO && AUTO.on) return true; } catch (e) {}
+      try { if (typeof AFK !== 'undefined' && AFK && AFK.on) return true; } catch (e) {}
+      return false;
+    },
+
     _useAP(G, n) {
       n = n | 0;
       if (n <= 0) return true;
@@ -340,6 +348,8 @@
 
       // 非 silent：storyBlock/B.on 下禁止推进（不花 AP、不计数）。silent 留给逻辑层单测。
       if (!opts.silent) {
+        // §18.6-8：自动任务/挂机期间不扫荡（会花 AP）；不花 AP、不计数
+        if (this.autoOn()) return { ok: false, reason: 'auto', msg: TEXT44.auto };
         if (!this.canPopup()) return { ok: false, reason: 'blocked' };
         if (opts.confirm !== false) {
           const conf = fill(TEXT44.confirm, { b: BANDS_N[b], n: times });
