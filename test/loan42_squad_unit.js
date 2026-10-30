@@ -466,6 +466,100 @@ async function drain(c, expr) {
       'M5 无 Game.roll 时 Math.random 回退仍写 oi');
   }
 
+
+  // ---- marker fix：DOMContentLoaded 重 hook 不得冲掉 main40/memory45 标记 ----
+  {
+    const c = box();
+    // 模拟 main40 + memory45 先包：enterMap/die 有 _main40/_mem45，无 _loan42
+    c.Game.enterMap = async function (id) { this._map = id; this._main40ran = (this._main40ran || 0) + 1; };
+    c.Game.enterMap._main40 = 1;
+    c.Game.enterMap._mem45 = 1;
+    c.Game.die = async function (kind) { this.G.dead = true; this.G.ending = kind; this._main40died = 1; };
+    c.Game.die._main40 = 1;
+    c.Game.die._mem45 = 1;
+    // 其余钩子已有 _loan42（首次加载），仅 enterMap/die 会再包
+    ok(typeof c.LOAN42._hook === 'function', 'L42._hook 可重入');
+    c.LOAN42._hook();
+    ok(!!c.Game.enterMap._loan42, '重 hook 后 enterMap._loan42');
+    ok(!!c.Game.enterMap._main40, '重 hook 后仍保留 enterMap._main40');
+    ok(!!c.Game.enterMap._mem45, '重 hook 后仍保留 enterMap._mem45');
+    ok(!!c.Game.die._loan42, '重 hook 后 die._loan42');
+    ok(!!c.Game.die._main40, '重 hook 后仍保留 die._main40');
+    ok(!!c.Game.die._mem45, '重 hook 后仍保留 die._mem45');
+    // 调用链：loan42 外层 → main40 stub
+    c.Game.G = { v: 2, year: 1, age: 20, realm: 1, stone: 0, debt: 0, ap: 4, loan42: null, inv: {}, flags: {} };
+    await c.Game.enterMap('market');
+    ok(c.Game._main40ran === 1, '重 hook 后仍调用到原 _main40 包装');
+    // 已有 _loan42 时再 hook 不重复包（标记仍在）
+    const em1 = c.Game.enterMap;
+    c.LOAN42._hook();
+    ok(c.Game.enterMap === em1 && c.Game.enterMap._loan42 && c.Game.enterMap._main40 && c.Game.enterMap._mem45,
+      '已包装时再 hook 不重包且 _loan42/_main40/_mem45 仍在');
+  }
+
+  // ---- deathTransfer 仅在真实死亡后：main40 拦截 newdao/auditor 时债/贷不动 ----
+  {
+    // 模拟生产序：loan42 先加载（readyState=loading 推迟 hook）→ main40 包 die → DOMContentLoaded 再 hook
+    const c = box();
+    // 清掉首次加载对 die 的包装，改成 deferred 场景
+    c.document.readyState = 'loading';
+    // 重新用 raw die + main40 拦截层（无 _loan42）
+    const rawDie = async function (kind) { this.G.dead = true; this.G.ending = kind; this._rawDied = (this._rawDied || 0) + 1; };
+    // memory45 式外层：先调内层；真死后才旁路（此处旁路为空，只验标记链）
+    const main40Die = async function (kind) {
+      const G = this.G;
+      if (G && G.flags && G.flags.boss_tiandao2 && (kind === 'newdao' || kind === 'auditor') && !G.flags.ys_end) {
+        this._blocked = (this._blocked || 0) + 1;
+        try { if (typeof UI !== 'undefined' && UI.toast) UI.toast('旧三选一已关闭，不会以此结局落幕'); } catch (e) {}
+        return; // 不调 raw、不置 dead
+      }
+      return rawDie.apply(this, arguments);
+    };
+    main40Die._main40 = 1;
+    c.Game.die = async function (kind) {
+      const r = await main40Die.apply(this, arguments);
+      // mem45 仅在真死后做事；拦截路径 G.dead 仍假 → 无副作用
+      if (this.G && this.G.dead) this._mem45snap = (this._mem45snap || 0) + 1;
+      return r;
+    };
+    c.Game.die._main40 = 1;
+    c.Game.die._mem45 = 1;
+    // 此时无 _loan42；调用 _hook 模拟 DOMContentLoaded（loan 包在 mem45/main40 外）
+    ok(typeof c.LOAN42._hook === 'function', 'deathTransfer 场景 L42._hook 可用');
+    c.LOAN42._hook();
+    ok(!!c.Game.die._loan42 && !!c.Game.die._main40 && !!c.Game.die._mem45,
+      'keepFnMarks：loan 外包后 _loan42/_main40/_mem45 三标记仍在');
+
+    const loan = [{ id: 'L1', t: 'fq', p0: 500, p: 500, r: 0.1, y0: 10, n: 4, left: 3, due: 200, od: 0, ins: 0 }];
+    c.Game.G = mkG({ debt: 100, loan42: { L: loan.slice(), y: 12, squad: 0, score: 80 }, flags: { boss_tiandao2: 1 } });
+    c.toasts = [];
+    await c.Game.die('newdao');
+    ok(!c.Game.G.dead && (c.Game._blocked | 0) === 1, '拦截 newdao：角色未死');
+    ok(c.Game.G.debt === 100, '拦截 newdao：debt 不变');
+    ok(Array.isArray(c.Game.G.loan42.L) && c.Game.G.loan42.L.length === 1 && c.Game.G.loan42.L[0].p === 500,
+      '拦截 newdao：贷款列表不变');
+    ok(!c.toasts.some(t => String(t).indexOf('人死账不消') >= 0), '拦截 newdao：无 deathTransfer toast');
+
+    // auditor 同样拦截
+    c.Game.G.dead = false; c.Game.G.ending = null; c.Game._blocked = 0; c.toasts = [];
+    c.Game.G.debt = 100;
+    c.Game.G.loan42.L = loan.map(l => Object.assign({}, l));
+    await c.Game.die('auditor');
+    ok(!c.Game.G.dead && (c.Game._blocked | 0) === 1, '拦截 auditor：角色未死');
+    ok(c.Game.G.debt === 100 && c.Game.G.loan42.L.length === 1 && c.Game.G.loan42.L[0].p === 500,
+      '拦截 auditor：debt/贷款不变');
+
+    // 真实死亡（oldage）仍应转入尾款
+    c.Game.G.dead = false; c.Game.G.ending = null; c.Game._rawDied = 0; c.toasts = [];
+    c.Game.G.debt = 100;
+    c.Game.G.loan42.L = loan.map(l => Object.assign({}, l));
+    await c.Game.die('oldage');
+    ok(!!c.Game.G.dead && c.Game.G.ending === 'oldage', '真实死亡：G.dead 置位');
+    ok(c.Game.G.debt === 600, '真实死亡：本金 500 转入 debt→600');
+    ok(c.Game.G.loan42.L.length === 0, '真实死亡：贷款已清');
+    ok(c.toasts.some(t => String(t).indexOf('人死账不消') >= 0), '真实死亡：有 deathTransfer toast');
+  }
+
   console.log(fails ? `${fails} FAIL / ${n}` : `ALL PASS ${n}`);
   process.exitCode = fails;
 })().catch(e => { console.error(e); process.exitCode = 1; });
