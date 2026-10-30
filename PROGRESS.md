@@ -1,3 +1,9 @@
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R1 审修 M1/M2（2026-10-30 23:36 UTC+8，Grok Bot）
+- 分支 sweep44 / PR #71 @ bc6efd7 后续：修 Olaf M1（go 在 storyBlock/B.on 下 card=-1 仍花 AP）+ M2（公开 once 绕过 unlock/AP/年 cap）。
+- 改动：`www/js/sweep44.js`（非 silent 且 !canPopup → blocked；confirm 非 0 早退；once→_once）；`test/sweep44_unit.js` 对抗用例。未碰核心。
+- node：sweep44 **84/84**；test/*.js **26/26**；validate22 errors []。未跑 Chrome。
+- 下一步：合 openworld-wip；等奥拉夫再审 / R2 接线。
+
 ## 开放世界线 · 3.9.3 洞府 dongfu43 R2 奥拉夫审修（2026-10-30 23:08 UTC+8，Grok Bot）
 - 分支 dongfu43-r2 / PR #68：修 M1 df43_sign 叠 mark（clearResidents 清 sign；spawn 幂等）+ L1 Acts.cave 包装原实现 + L2 storyBlock 下 onEnterHome 仍 n++ + L3 亲传 label 不裸露 ah（NPCS 缺省回落「亲传」）。
 - 改动：www/js/dongfu43_ui.js、www/js/dongfu43.js、test/dongfu43_ui_unit.js。未碰核心。
