@@ -42,6 +42,34 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 交接 notes · v3.9.1（2026-10-30，Grok Bot）
+### 1 当前版本 / 最新提交
+- 版本：**v3.9.1「阵法 · 天道小贷」**，`VERSION`=3.9.1，tag `v3.9.1` →（VERSION bump commit）；其下 `d05bb2a` #65 merge、此前 #64 / #58 / #59 / #61、v3.8.4。
+- **是 Latest**。https://github.com/xiemingxin1145/wobuxian/releases/tag/v3.9.1
+- Release 资产：CI HD+lite；versionCode 自 298 递增。发版后填字节数。
+
+### 2 本版做了什么 / 刻意没做什么
+- **3.9.0 阵法**一并发号：zf39 UI（洞府学炼布）、zf39_rt 即时战、zf39_dng 秘境破阵（早先已合 main）。
+- **3.9.1 loan42**：第 1 轮数据+借还入口（#64）+ 第 2 轮催收开战/面板/DevPanel（#65）；index：`…→clan41→loan42`。
+- 合 #65 前把 main（含 v3.8.4 cos36）合进 `loan42-r2`，index 无冲突：`cos36→tit39→…→clan41→loan42`。
+- 刻意没做：未动 #66 dongfu43；催收卡开场白重抽（low，开放世界后续修）；不删分支。
+
+### 3 测试结果
+- node（合 main 后）：validate22 0；loan42 **110/110**；loan42_squad **71/71**；cos36 53；clan41 70；items40 152；zf39_* / 其余 unit → **22/22 PASS**。
+- 奥拉夫：#65 页测已过；无 high/medium。
+- CI（tag v3.9.1）：发版后填。
+
+### 4 遗留问题
+- PR #66 `dongfu43` 第 1 轮（进行中，勿动）；Issue #12 OPEN；催收卡文案重抽（low）。
+
+### 5 下一版任务（按顺序）
+1. **3.9.2 main40**（`docs/research_story40_main.md`）→ **3.9.3 洞府 dongfu43**（#66 / §17）
+
+### 6 交接注意
+- 模块规则不变；阵法/小贷均为包装模块。
+- loan42：`LOAN42.off`；催收 `sqPend` 选定后才记 `_squadDoneY`。
+- HD/签名同前；Chrome 忙只跑 node。
+
 ## 交接 notes · v3.8.4（2026-10-30，Grok Bot）
 ### 1 当前版本 / 最新提交
 - 版本：**v3.8.4「时装」**，`VERSION`=3.8.4，tag `v3.8.4` → commit `4efbf13`；其下 `5d57ddc` #63 merge、`e2bdb54`/`bb5858e` haveTz 守卫。
