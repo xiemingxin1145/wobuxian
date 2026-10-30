@@ -1,3 +1,11 @@
+## 开放世界线 · cherry-pick zf39_dng Medium 触底破阵超量回血（2026-10-30 20:53 UTC+8，Grok Bot）
+- 自 PR #61 `zf39-dng` cherry-pick `ad3c638` → `32aa370`：陷阱触底后破阵还原按扣前气血，禁止名义 dmg 超量回血。
+- 改动：`www/js/zf39_dng.js`、`test/zf39_dng_unit.js`。`restoreHp(G, preHp, keptDmg)` + `armHpWatch`/`preTrapHp`；repro hp10−50→1 成功后回 10（非 51）。
+- 未碰核心文件 / dungeon26；未跑 Chrome。
+- node：zf39_dng **64/64**；zf39_rt 33；zf39 121 / hook 20 / ui 60；items40 147；validate22 []；battle_rt_proto / stage3_* / chain37 78 / pf38 34 / tit39 全过。
+- PR 评论：https://github.com/xiemingxin1145/wobuxian/pull/61#issuecomment-6523297177
+- 下一步：等奥拉夫复审 #61；或洞府阵挂点 / 页测。
+
 ## 开放世界线 · 合 main v3.8.2 + cherry-pick zf39_dng（2026-10-30 20:40 UTC+8，Grok Bot）
 - `openworld-wip` 普通 merge `origin/main`（v3.8.2 / #55+#58）：`7f6fc2e`。冲突：`index` 保留 `zf39_rt`；`items40` 保留 WIP `chance`/`autoToast`；`PROGRESS` 保留 main 六节交接 + wip 开放世界历史（不截断）。
 - cherry-pick `b8173ba` → `7ddb2ef`：`www/js/zf39_dng.js` + `test/zf39_dng_unit.js`；index：`…zf39_ui→items40→zf39_rt→zf39_dng`。
