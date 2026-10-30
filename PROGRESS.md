@@ -1,3 +1,12 @@
+## 开放世界线 · cherry-pick zf39 即时战 rtMult（2026-10-30 19:46 UTC+8，Grok Bot）
+- 自 PR #59 `zf39-rt`（基于 `zf39-ui`）cherry-pick：即时战套用布阵 `ZF39.rtMult`。
+- 新增 `www/js/zf39_rt.js`：包 `calcDmg`，仅 `RT27.on` 时乘 out/inc、临时加 crit；回合制不叠；老档惰性。
+- `www/index.html`：在 items40 之后加载（wrap 最外）。单测 `test/zf39_rt_unit.js`。
+- 未碰核心文件；未跑 Chrome。
+- node：zf39_rt **25/25**；zf39_unit 121、hook 20、ui 60；items40 **152/152**；validate22 []；battle_rt_proto / chain37 78 / pf38 34 / stage3_* 全过。
+- PR：https://github.com/xiemingxin1145/wobuxian/pull/59
+- 下一步：破阵 UI / 洞府阵挂点 / 页面门禁；或等奥拉夫审 #58+#59。
+
 ## 开放世界线 · cherry-pick items40 奥拉夫 #55 修复（2026-10-30 19:37 UTC+8，Grok Bot）
 - 自 PR #55 `items40` cherry-pick `92447df`：转运珠 luck 仅 `Chain37.yearTick` 消耗（VIP `roll(0.3,'qiyu')` 不偷吃）；逆鳞交龙宫文案「业力−10」。
 - 改动：`www/js/items40.js`、`test/items40_unit.js`。未碰核心文件 / zf39-ui 工作区。
