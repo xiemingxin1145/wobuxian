@@ -2,6 +2,12 @@
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
 
+## 开放世界线 · cherry-pick items40（2026-10-30 19:25 UTC+8，Grok Bot）
+- 自 PR #55 `items40` cherry-pick：`www/js/items40.js` + `www/index.html`（在 zf39_ui 后）+ `test/items40_unit.js`（含 storyBlock/#53、Game.roll chance、无 PF38 gate、密信 flake 钉死）。
+- 未碰 zf39-ui 工作区/分支；未改核心文件；未带入 test 截图。
+- node：items40_unit 应 147/147；validate22 及其它既有单测需绿。
+- 页测仍待：human_olaf / panels21 / multilife（见 PR #55）。
+
 ## 开放世界线 · 阵法面板 UI zf39 第 3 轮（2026-10-30 19:25 UTC+8，Grok Bot）
 - 开发已恢复（主人确认此前暂停结束）。分支 `zf39-ui` ← origin/main，PR #58 → main（审：奥拉夫）；本提交 cherry-pick 进 `openworld-wip`。
 - 新增 `www/js/zf39_ui.js`：洞府「阵法」入口（包 `UI.p_cave`）、三页战阵/洞府阵/阵图；学阵（钱多多施工图+三阵图、阴三娘黄河、算无遗欠条阵）；炼阵/布阵；`Game.fight` 胜利 `winXp`；ITEMS zws39/ztc39；#53 storyBlock 守卫；开发者 Tab「阵法39」。`index.html` 在 zf39_hook 后加载。
