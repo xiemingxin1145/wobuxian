@@ -515,8 +515,14 @@ async def main():
                         f = await shot(c, 'T3_near_npc')
                         if not tt or tt['dist'] > 1.8 or not r or t['name'] not in (r[2] or ''):
                             note = f"retry{attempt}: dist={tt and round(tt['dist'],2)} btn={r and r[2]}"; continue
-                        hit = await c.pg.evaluate(JS_HIT, [r[0], r[1]])
-                        if hit and 'actbtn' not in hit and 'talkbtn' not in hit:
+                        # 按钮中心常落在内部 <i>/图标上：接受 #actbtn/#talkbtn 或其后代（closest）
+                        hit = await c.pg.evaluate("""([x,y])=>{
+                          const e=document.elementFromPoint(x,y); if(!e) return null;
+                          const btn=e.closest('#actbtn,#talkbtn');
+                          if(btn) return btn.id?('#'+btn.id):'btn';
+                          return e.id?('#'+e.id):e.tagName.toLowerCase()+(e.className&&e.className.baseVal===undefined?('.'+String(e.className).split(/\\s+/)[0]):'');
+                        }""", [r[0], r[1]])
+                        if hit and hit not in ('#actbtn', '#talkbtn', 'btn') and 'actbtn' not in hit and 'talkbtn' not in hit:
                             note = f'dom_at_btn={hit}'; continue
                         await tap(c, r[0], r[1]); o = await outcome(c, t['name'], 8); res = o['result']
                         if res == 'none(walked)' or res == 'none':
