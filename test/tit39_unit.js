@@ -69,6 +69,11 @@ setTimeout(() => {
     const jh = run(c, "TEXT39.titles.find(t=>t.id==='t39_jianghu')");
     ok(run(c, "T39.def('t39_jianghu')._ok({})") === false && run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{}}})") === false, 't39_jianghu 缺 ev.total → false');
     ok(run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{total:29,meet:40}}})") === false && run(c, "T39.def('t39_jianghu')._ok({npc37:{ev:{total:30}}})") === true, 't39_jianghu 读 G.npc37.ev.total≥30');
+    run(c, "var Chain37={doneCount(G){return (G&&G._cd)||0;}}");
+    ok(run(c, "T39.def('t39_jianghu')._ok({_cd:2})") === false && run(c, "T39.def('t39_jianghu')._ok({_cd:3})") === true, 't39_jianghu 读 Chain37.doneCount(G)≥3');
+    ok(run(c, "T39.def('t39_jianghu')._ok({_cd:0,npc37:{ev:{total:30}}})") === true, 't39_jianghu ev.total 与 doneCount 任一满足即可');
+    run(c, "Chain37={doneCount(){throw new Error('x');}}");
+    ok(run(c, "T39.def('t39_jianghu')._ok({})") === false, 't39_jianghu doneCount 抛错 → false 不崩');
     run(c, "SV={year:5,realm:3,stage:0,karma:40,stone:5,debt:0,aff:{},title:'debtor'};var s1=Game.hasSave();Game.G=s1;");
     ok(run(c, 'Game.G.t39.cnt') === 7 && c.news.length === 6, '读档后刷新收藏（静默）cnt=' + run(c, 'Game.G.t39&&Game.G.t39.cnt'));
     run(c, "Game.G.t39.cnt=99;Game.hasSave();"); ok(run(c, 'Game.G.t39.cnt') === 99, '同一存档只刷新一次');
