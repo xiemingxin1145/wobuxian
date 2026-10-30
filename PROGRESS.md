@@ -47,6 +47,14 @@
 - PR #55：`items40_unit` 密信换绑避开 mentor flake；`chance()` 优先 Game.roll；`autoToast` 守 #53。
 - 加载序目标：profile38→tit39→zf39→zf39_hook→zf39_ui→items40（clan41 槽位其后）。
 
+## 3.8.2 道具 items40 · 修奥拉夫 #55 审查（2026-10-30 19:36 UTC+8，Grok Bot）
+- 修 PR #55 行内评论（未改 game.js 等核心文件；未碰 zf39-ui 工作区）：
+  1. **Medium 转运珠 VIP 偷吃**：`Game.roll` 的 luck 只在 `Chain37.yearTick` 门闩内消耗；VIP `yearEnd` 的 `roll(0.3,'qiyu')` 不再清 luck。回归：vip=1 + luck=1 + random0.99 → yearTick 入口 luck 仍 1，风声必中。
+  2. **Low 逆鳞文案**：交龙宫卡「业力+10」→「业力−10」（§13.6 `karma-10` / 代码 `karma-=10`）。
+- 改动文件：`www/js/items40.js`、`test/items40_unit.js`；本 note。
+- node：items40_unit **152/152**；validate22 errors []；chain37 78、npc37 80、npc37_events 54、pf38 34、zf39 118、zf39_hook 20、stage3_* 全过。未跑 Chrome。
+- 下一步：奥拉夫复审；cherry-pick 进 openworld-wip；页测仍待。
+
 
 ## 交接 notes · v3.8.0（2026-10-24，Grok Bot）
 
