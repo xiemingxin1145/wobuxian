@@ -146,14 +146,20 @@ const c = box(); const U = c.ZF39UI; const Z = c.ZF39;
   const G = mkG({ year: 10 }); Z.ensure(G);
   G.zf39.lv = 3; G.zf39.xp = Z.need(3); G.zf39.know.fengshi = 1; G.zf39.tier.fengshi = 1; G.zf39.war = ['fengshi'];
   const xp0 = G.zf39.xp;
-  ok(U.doWinXp(G, 10) === 1 && G.zf39.xp === xp0 + 1 && G.zf39.yrWinXp === 1, '布阵胜利 +1');
+  let wr = U.doWinXp(G, 10);
+  ok(wr.add === 1 && Array.isArray(wr.ups) && G.zf39.xp === xp0 + 1 && G.zf39.yrWinXp === 1, '布阵胜利 +1（{add,ups}）');
   for (let i = 0; i < 50; i++) U.doWinXp(G, 10);
   ok(G.zf39.yrWinXp === 40, '每年上限 40');
-  ok(U.doWinXp(G, 10) === 0, '超额不再加');
+  ok(U.doWinXp(G, 10).add === 0, '超额不再加');
   const xp1 = G.zf39.xp;
-  ok(U.doWinXp(G, 11) === 1 && G.zf39.yrWinXp === 1 && G.zf39.xp === xp1 + 1, '换年清零再加');
+  wr = U.doWinXp(G, 11);
+  ok(wr.add === 1 && G.zf39.yrWinXp === 1 && G.zf39.xp === xp1 + 1, '换年清零再加');
   G.zf39.war = [];
-  ok(U.doWinXp(G, 11) === 0, '撤阵后胜利不加');
+  ok(U.doWinXp(G, 11).add === 0, '撤阵后胜利不加');
+  // 跨级：xp = need(2)-1 → 胜利必须带 ups=[2]
+  G.zf39.war = ['fengshi']; G.zf39.lv = 1; G.zf39.xp = Z.need(2) - 1; G.zf39.yrKey = 20; G.zf39.yrWinXp = 0;
+  wr = U.doWinXp(G, 20);
+  ok(wr.add === 1 && wr.ups.join() === '2' && G.zf39.lv === 2, 'doWinXp 跨级 ups=[2]');
 }
 
 // ---- 残页 ----
@@ -199,13 +205,15 @@ const c = box(); const U = c.ZF39UI; const Z = c.ZF39;
   vm.runInContext(ZF, c2); vm.runInContext(UIJS, c2);
   // 直接测 ZF39UI.canToast / announceXp
   ok(c2.ZF39UI.canToast() === false, 'prologue：canToast=false');
-  const xp0 = G.zf39.xp; const add = c2.ZF39UI.doWinXp(G);
-  c2.ZF39UI.announceXp(add, []);
-  ok(add === 1 && G.zf39.xp === xp0 + 1 && toasts.length === 0, 'prologue：仍加经验但不 toast');
+  const xp0 = G.zf39.xp; const wr = c2.ZF39UI.doWinXp(G);
+  c2.ZF39UI.announceXp(wr.add, wr.ups || []);
+  ok(wr.add === 1 && G.zf39.xp === xp0 + 1 && toasts.length === 0, 'prologue：仍加经验但不 toast');
   NPC37.block = null;
   ok(c2.ZF39UI.canToast() === true, '放行：canToast=true');
   c2.ZF39UI.announceXp(1, []);
   ok(toasts.some(t => /阵道 \+1/.test(t)), '放行后 toast 阵道 +1');
+  c2.ZF39UI.announceXp(1, [2]);
+  ok(toasts.some(t => /阵道提升至 2/.test(t)), 'announceXp 带 ups 弹出升级提示');
 }
 
 // ---- Game.fight 包装加经验（异步段见文末 __zf39FightTest）----
@@ -235,6 +243,13 @@ const c = box(); const U = c.ZF39UI; const Z = c.ZF39;
     // replace inner: the wrapped fight calls original which still returns win
     await Game.fight('x');
     ok(G.zf39.xp === xp1 && toasts.length === 0, '撤阵后 fight 胜利不加经验');
+    // 跨级胜利：必须有升级 toast（奥拉夫 Medium）
+    G.zf39.war = ['fengshi']; G.zf39.lv = 1; G.zf39.xp = c4.ZF39.need(2) - 1;
+    G.zf39.yrKey = 22; G.zf39.yrWinXp = 0; toasts.length = 0;
+    await Game.fight('x');
+    ok(G.zf39.lv === 2, '跨级 fight：lv→2');
+    ok(toasts.some(t => /阵道 \+1/.test(t)), '跨级 fight：toast 阵道 +1');
+    ok(toasts.some(t => /阵道提升至 2/.test(t)), '跨级 fight：toast 阵道提升至 2 级');
   };
 }
 
@@ -245,7 +260,7 @@ const c = box(); const U = c.ZF39UI; const Z = c.ZF39;
     const G = mkG(); delete G.zf39;
     const j0 = JSON.stringify(G);
     const c5 = box();
-    ok(c5.ZF39UI.doWinXp(G) === 0 && JSON.stringify(G) === j0, '老档 winXp：不建 G.zf39');
+    ok(c5.ZF39UI.doWinXp(G).add === 0 && JSON.stringify(G) === j0, '老档 winXp：不建 G.zf39');
     ok(c5.ZF39UI.panelHtml(G, 'war').indexOf('钱多多') >= 0 || c5.ZF39UI.panelHtml(G, 'war').indexOf('阵法') >= 0, '老档面板引导');
   }
   // v===2

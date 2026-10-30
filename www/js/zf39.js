@@ -184,13 +184,17 @@
       Z.lv = to; return { add: n, from, to, ups };
     },
     breakXp(eyes) { return N.xp.breakBase + N.xp.breakPerEye * eyes; },
-    // 布阵状态下赢一场：+1，每游戏年 40
+    // 布阵状态下赢一场：+1，每游戏年 40；返回 { add, ups }（与 addXp 对齐；add=0 时 ups=[]）
     winXp(G, year) {
-      G = getG(G); const Z = peek(G); if (!Z || !Z.lv || !Z.war.length) return 0;
+      G = getG(G); const Z = peek(G);
+      // war 惰性兜底：残缺/损坏存档缺 war 时不 NPE（与 active 的 Array.isArray 一致）
+      if (!Z || !Z.lv || !(Z.war || []).length) return { add: 0, ups: [] };
       year = year === undefined ? (G.year || 0) : year;
       if (Z.yrKey !== year) { Z.yrKey = year; Z.yrWinXp = 0; }
-      if (Z.yrWinXp >= N.xp.winCapYear) return 0;
-      Z.yrWinXp += N.xp.win; this.addXp(G, N.xp.win); return N.xp.win;
+      if (Z.yrWinXp >= N.xp.winCapYear) return { add: 0, ups: [] };
+      Z.yrWinXp += N.xp.win;
+      const up = this.addXp(G, N.xp.win);
+      return { add: N.xp.win, ups: (up && up.ups) || [] };
     },
     // ---------- 炼制 ----------
     cost(id, tier) {

@@ -82,10 +82,23 @@ ok(Z.lvOf(0) === 1 && Z.lvOf(59) === 1 && Z.lvOf(60) === 2 && Z.lvOf(959) === 4 
   ok(Z.breakXp(3) === 30 && Z.breakXp(4) === 35 && Z.breakXp(5) === 40, '破阵 xp 30/35/40');
 }
 { const G = zfG(['fengshi'], { fengshi: 1 }, 1);
-  let s = 0; for (let k = 0; k < 50; k++) s += Z.winXp(G, 30);
+  let s = 0; for (let k = 0; k < 50; k++) s += Z.winXp(G, 30).add;
   ok(s === 40 && G.zf39.yrWinXp === 40 && G.zf39.yrKey === 30, '布阵赢一场 +1，每年上限 40');
-  ok(Z.winXp(G, 31) === 1 && G.zf39.yrWinXp === 1 && G.zf39.yrKey === 31, '换年清零');
-  G.zf39.war = []; ok(Z.winXp(G, 31) === 0, '没布阵不加');
+  let wr = Z.winXp(G, 31); ok(wr.add === 1 && Array.isArray(wr.ups) && G.zf39.yrWinXp === 1 && G.zf39.yrKey === 31, '换年清零（返回 {add,ups}）');
+  G.zf39.war = []; ok(Z.winXp(G, 31).add === 0, '没布阵不加');
+}
+// ---- winXp：缺 war 不 NPE；跨级 ups ----
+{ const G = mkG(); Z.ensure(G); G.zf39.lv = 1; G.zf39.xp = 0; delete G.zf39.war;
+  let wr = Z.winXp(G, 1);
+  ok(wr && wr.add === 0 && Array.isArray(wr.ups) && wr.ups.length === 0, '缺 war：返回 {add:0,ups:[]} 不抛');
+  G.zf39 = { lv: 2, xp: 10 }; wr = null; let threw = false;
+  try { wr = Z.winXp(G, 2); } catch (e) { threw = true; }
+  ok(!threw && wr && wr.add === 0 && Array.isArray(wr.ups), '残缺 zf39 无 war：不 NPE，add=0');
+}
+{ const G = zfG(['fengshi'], { fengshi: 1 }, 1);
+  G.zf39.xp = Z.need(2) - 1; G.zf39.lv = 1; G.zf39.yrKey = 99; G.zf39.yrWinXp = 0;
+  const wr = Z.winXp(G, 99);
+  ok(wr.add === 1 && wr.ups.join() === '2' && G.zf39.lv === 2 && G.zf39.xp === Z.need(2), 'xp=need(2)-1 胜利：ups=[2] 升到 lv2');
 }
 
 // ---- 炼制 ----
