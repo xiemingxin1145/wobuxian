@@ -454,7 +454,11 @@ UI.p_dev = function (b, re, close, tab) {
   };
 };
 const _canEnter = Game.canEnter.bind(Game);
-Game.canEnter = function (id) { return (this.G && this.G.flags && this.G.flags.devmaps) ? true : _canEnter(id); };
+// G 可能为 null（标题页/轮回间隙/读档前）；seam34 地面渲染仍会每帧调 canEnter，原先短路失败后落到原函数读 G.flags 会 TypeError
+Game.canEnter = function (id) {
+  if (!this.G || !this.G.flags) return id === 'village';
+  return this.G.flags.devmaps ? true : _canEnter(id);
+};
 const _monAI = monAI; monAI = function (e, dt) { if (DEV.noEnc) return; return _monAI(e, dt); };
 const _hit = hitTargets;
 hitTargets = function (u, S, targets) { // 无敌 / 一击必杀（只在开发者开关打开时生效）
