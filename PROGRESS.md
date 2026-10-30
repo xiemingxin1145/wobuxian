@@ -1,3 +1,23 @@
+## 交接 notes · 3.8.3 家族深化进行中（clan41 分支，未发版）
+
+### 1 当前版本 / 最新提交
+- 稳定版仍为 **v3.8.1**；本分支实现 3.8.3，未改 VERSION / 未发版 / 未合 main。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新文件 `www/js/clan41.js`（包 fam37 / yearEnd / Sys.bonus / newLife / lifeMax / UI.p_fam37 / UI.useItem / DevPanel）；`www/index.html` 在 tit39 后加载；`test/clan41_unit.js`。
+- 已做：立族、10 级、12 族产年结（不乘境界）、10 族规（互斥/槽位/冷却）、子嗣境界、婚配/世家联姻（c41_sp）、21 族事、6 家族道具接入、轮回 best。
+- 未做/待页测：human_olaf / panels21 / multilife / jsscan33（Chrome 被奥拉夫占用，本轮仅 node）；与 PR #55 items40 合入后需确认 index 顺序为 items40 → clan41。
+- 未碰：game.js/talk.js/data.js/ui.js、items40.js、zf39_ui.js、zf39_rt.js。
+
+### 3 测试结果
+- `node test/clan41_unit.js` 51/51；`node test/validate22.js` 0 错；tit39/pf38/chain37/zf39/zf39_hook/npc37/npc37_events/good_rel_cap 均绿。
+- 页测未跑（保留给奥拉夫）。
+
+### 4–6
+- 见 PR「3.8.3 家族」；下一版仍按 ROADMAP。老档 `wbx2_*` / `G.v===2`；`G.clan41` 惰性兜底。
+
+---
+
 # 我不仙 进度清单（2026-10-17 Grok 接管后）
 
 > 交接规则与模板见 `AGENTS.md` §0。最新交接 note 永远放在本文件最上面。
