@@ -27,6 +27,12 @@ function box() {
       merchant:{n:'钱多多',por:'npc_merchant'},
       xianguan:{n:'记账童子',por:'npc_tongzi'}
     };
+    var MAPINFO={
+      village:{n:'桃花村'},
+      market:{n:'云来坊市'},
+      heaven:{n:'天外天'},
+      unknown_map:{/* 无 n */}
+    };
     var B={on:false};
     var NPC37={storyBlock:function(){return null;}};
     var Life34={
@@ -275,15 +281,23 @@ const mkG = (o) => Object.assign({
     c.Game.G = mkG({ year: 3 });
     c.Memory45.ensureMeta();
     c.Game.meta.mem45.places = { market: 1 };
-    // force place line containing {map}
     const orig = c.MEM45.TEXT.place;
     c.MEM45.TEXT.place = ['你踏进{map}，旧尘在靴底发响。'];
-    // force roll success: stub roll always true
     c.Game.roll = function (p, kind) { this.rolls.push([p, kind]); return true; };
     c.toasts.length = 0;
     await c.Memory45.placeHint(c.Game.G, 'market');
-    ok(c.toasts.length >= 1 && !/\{map\}/.test(c.toasts[0]) && /market/.test(c.toasts[0]), 'M2 placeHint 替换 {map}');
+    ok(c.toasts.length >= 1 && !/\{map\}/.test(c.toasts[0]), 'M2 placeHint 无字面 {map}');
+    ok(/云来坊市/.test(c.toasts[0]) && !/\bmarket\b/.test(c.toasts[0]), 'placeHint 用中文名「云来坊市」而非 id');
     c.MEM45.TEXT.place = orig;
+  }
+
+  // ---- mapName：MAPINFO.n / 回退 id ----
+  {
+    const c = box();
+    ok(c.Memory45.mapName('market') === '云来坊市', 'mapName(market)→云来坊市');
+    ok(c.Memory45.mapName('heaven') === '天外天', 'mapName(heaven)→天外天');
+    ok(c.Memory45.mapName('no_such_map') === 'no_such_map', 'mapName 缺省回退 id');
+    ok(c.Memory45.mapName('unknown_map') === 'unknown_map', 'mapName 无 n 字段回退 id');
   }
 
   // ---- M3: places keep newest ----

@@ -27,6 +27,19 @@
     return id;
   }
 
+  /** 地图中文名：MAPINFO[id].n（游戏内显示名），缺则回退 id */
+  function mapName(id) {
+    if (!id) return '';
+    try {
+      if (typeof MAPINFO !== 'undefined' && MAPINFO[id]) {
+        const I = MAPINFO[id];
+        if (I.n) return String(I.n);
+        if (I.name) return String(I.name);
+      }
+    } catch (e) { }
+    return String(id);
+  }
+
   function relOf(G, id) {
     try {
       if (typeof Life34 !== 'undefined' && Life34.st) {
@@ -391,7 +404,10 @@
       if (!roll(0.4, 'qiyu')) return false;
       s.placeFired[mapId] = 1;
       try {
-        if (typeof UI !== 'undefined' && UI.toast) UI.toast(pickLine(TEXT_MEM45.place, { map: mapId, n: mapId }));
+        if (typeof UI !== 'undefined' && UI.toast) {
+          const mn = mapName(mapId);
+          UI.toast(pickLine(TEXT_MEM45.place, { map: mn, n: mn }));
+        }
         if (typeof Game !== 'undefined' && Game.save) Game.save();
       } catch (e) { }
       return true;
@@ -566,6 +582,8 @@
   MEM45.canFire = (G, id) => API.canFire(G, id);
   MEM45.fireCard = (G, id) => API.fireCard(G, id);
   MEM45.inject = (...a) => API.inject(...a);
+  MEM45.mapName = (id) => mapName(id);
+  API.mapName = mapName;
 
   function boot() {
     try { API.wire(); } catch (e) { console.error('[mem45] wire', e); }
