@@ -1,3 +1,23 @@
+## 交接 notes · 3.8.4 时装进行中（cos36 分支，未发版）
+
+### 1 当前版本 / 最新提交
+- 稳定版仍为 **v3.8.3**；本分支实现 3.8.4，未改 VERSION / 未发版 / 未合 main。
+
+### 2 本版做了什么 / 刻意没做什么
+- 新文件 `www/js/cos36.js`（包 Sys.bonus / Sys.setCostume / Game.playerSpr / UI.p_mount / WB33.settle / Game.yearEnd / Game.enterMap / Talk.extra / Game.newLife / DevPanel）；`www/index.html` 在 profile38 之后、tit39 之前加载；`test/cos36_unit.js`。
+- 已做：11 套 4 部位混搭、set2/set4、账号级 own、霓裳丝来源/上限、霓裳坊买卖织、讨债司制服兑换、taozhai→tianjia 外观回退、老档迁移、COS36.off。
+- 未做：染色 P2、新精灵/部位图标（用现有 hat/robe_p/jade/boots 回退）、点按页测 cos36_page.py。
+- 未碰：game.js/talk.js/data.js/ui.js、clan41.js、items40.js、zf39_*.js、loan42。
+
+### 3 测试结果
+- `node test/cos36_unit.js` 50/50；`node test/validate22.js` 0 错；tit39/pf38/items40/clan41/chain37/zf39*/npc37* 均绿。
+- 页测未跑：需 human_olaf / panels21 / multilife（及可选 cos36 穿脱/霓裳坊点按）。
+
+### 4–6
+- 见 PR「3.8.4 时装」；下一版 3.9.0 阵法完整发版。包装序备注：`profile38 → cos36 → tit39 → zf39… → items40 → zf39_rt → zf39_dng → clan41`（Sys.bonus 链上 cos36 在 tit39/clan41 内侧）。老档 `wbx2_*` / `G.v===2`；`Game.meta.cos36` / `G.cos36w` / `G.cos36s` 惰性兜底。
+
+---
+
 ## 交接 notes · 3.8.3 家族深化进行中（clan41 分支，未发版）
 
 ### 1 当前版本 / 最新提交
