@@ -107,6 +107,7 @@
       "gift_line": "你收下礼物。师徒二人相视一笑。",
       "fight_ok": "{n}提剑站到你身侧：「这回我罩着您。」",
       "fight_cap": "今年已助战过一次。让弟子也歇歇。",
+      "visit_cap": "今年已回访过一次。让师徒都歇歇。",
       "visit_toast": "出师弟子【{n}】回门探望。"
     },
     "tiandao": [
@@ -306,13 +307,12 @@
       s._apprenticeId = null;
     }
 
-    // 跨年功课计数归零；放养标记只影响「下一年」——进入新年时消费 freeCut 到 cap
+    // 跨年功课计数归零。§20.4.1：上年选放养留下的 freeCut/style 跨年保留，
+    // 新年 hwCap 见 freeCut+yearDone!==year → cap=2；切换督导风格时由 applyYearStyle 重设。
     const yr = G.year || 0;
     if (s.y !== yr) {
       s.y = yr;
       s.n = 0;
-      // freeCut 在新年保留到 cap 计算后由 applyYearStyle 写入；跨年不清 style 本身
-      // 若上年选了 free，freeCut=1 保留至本年；本年再用完后在 apply 时重设
     }
     return s;
   }
@@ -322,8 +322,11 @@
     if (!G) return SHI46.HW_CAP;
     const s = ensure(G);
     if (!s) return SHI46.HW_CAP;
-    // 放养：style=free 且 freeCut 已应用 → 本年 cap−1
-    if (s.style === 'free' && s.freeCut) return Math.max(1, SHI46.HW_CAP - 1);
+    // §20.4.1 / §20.4 规则3：放养设定当年 cap 仍为 HW_CAP（n 不清零、不绕开封顶）；
+    // 跨年后（yearDone !== G.year）freeCut=1 才把本年上限降为 2。yearDone 在 applyYearStyle 写入设定年。
+    if (s.style === 'free' && s.freeCut && (s.yearDone | 0) !== (G.year | 0)) {
+      return Math.max(1, SHI46.HW_CAP - 1);
+    }
     return SHI46.HW_CAP;
   }
 
@@ -564,10 +567,9 @@
       toast(fill(TEXT_SHI46.year.toast_strict, { n: name }), '#ffc8a0');
     } else if (style === 'free') {
       s.mood = clamp((s.mood | 0) + 3, 0, 100);
-      s.freeCut = 1; // 下一年（及本若已跨）cap−1：按规格「本年功课上限−1」——选完后立刻影响剩余本年? 规格：放养 → 心境+3，freeCut=1（下一年功课上限 2）
-      // 20.4：「放养：mood+3，freeCut=1（下一年功课上限 2）」——明确是下一年
-      // 但 20.9.3「放养年 cap=2」及面板文案「本年功课上限−1」——测试按 cap=2 在 free 生效年
-      // 实现：选 free 后 freeCut=1，hwCap 见 style==='free' && freeCut → 若仍在同一年选完，立刻 cap=2（剩余额度也受影响）
+      // §20.4.1：freeCut=1 标记「下一年功课上限 2」；设定当年 n 不清零、cap 仍 3（不绕开封顶）。
+      // yearDone 已写为本年 → hwCap 同年不降；跨年 yearDone!==year 后 cap=2。不在此重置 n。
+      s.freeCut = 1;
       toast(fill(TEXT_SHI46.year.toast_free, { n: name }), '#c8ffd8');
     } else {
       s.style = 'kind';
@@ -627,9 +629,10 @@
     if (!s.ally || !s.ally.id) return { ok: false, reason: 'no_ally' };
     if (!opts.silent && !canPopup()) return { ok: false, reason: 'blocked' };
 
-    // 每年回访卡 ≤1（主动 Talk 选项仍可进，但 visitY 标记年结自动回访）
+    // §20.4 / 反刷：每年回访卡 ≤1；visitY 同时闸 allyOptFor 与 thank（M1）
     const ally = s.ally;
     const name = ally.n || npcName(ally.id);
+    const yr = G.year | 0;
 
     if (!opts.silent) {
       const line = pick(TEXT_SHI46.ally.talk) || TEXT_SHI46.ally.talk[0];
@@ -642,9 +645,14 @@
       opts.act = ch === 0 ? 'thank' : ch === 1 ? 'fight' : 'leave';
     }
     const act = opts.act || 'leave';
-    s.visitY = G.year | 0;
 
     if (act === 'thank') {
+      // 同年已回访（含勉励/助战/离开写过 visitY）→ 拒刷 aff/herb
+      if ((s.visitY | 0) === yr) {
+        if (!opts.silent) toast(TEXT_SHI46.ally.visit_cap, '#ffc8a0');
+        return { ok: false, reason: 'visit_cap' };
+      }
+      s.visitY = yr;
       G.aff = G.aff || {};
       G.aff[ally.id] = Math.min(150, (G.aff[ally.id] || 0) + 3);
       let gift = false;
@@ -663,26 +671,30 @@
     }
 
     if (act === 'fight') {
-      if ((ally.fightY | 0) === (G.year | 0)) {
+      if ((ally.fightY | 0) === yr) {
         if (!opts.silent) toast(TEXT_SHI46.ally.fight_cap, '#ffc8a0');
         return { ok: false, reason: 'fight_cap' };
       }
-      ally.fightY = G.year | 0;
+      ally.fightY = yr;
+      s.visitY = yr; // 回访卡年帽：助战后同年不再开回访选项
       G.follower = ally.id;
       if (!opts.silent) toast(fill(TEXT_SHI46.ally.fight_ok, { n: name }), '#ffd8a0');
       return { ok: true, act: 'fight', follower: G.follower };
     }
 
+    s.visitY = yr;
     return { ok: true, act: 'leave' };
   }
 
-  /** Talk.extra 注入用：是否可对 id 显示回访 */
+  /** Talk.extra 注入用：是否可对 id 显示回访（§20.4：visitY===year 则隐藏） */
   function allyOptFor(id) {
     if (SHI46.off || !id) return false;
     const G = getG();
     if (!G) return false;
     const s = ensure(G);
-    return !!(s && s.ally && s.ally.id === id);
+    if (!s || !s.ally || s.ally.id !== id) return false;
+    if ((s.visitY | 0) === (G.year | 0)) return false;
+    return true;
   }
 
   /** 面板信息快照（UI 轮用；本轮供单测） */
@@ -795,16 +807,20 @@
             keepFnMarks(_nl, Game.newLife, '_shi46');
           }
 
-          // die：可选遗憾 toast
+          // die：先内层；仅真死（alive→G.dead）后遗憾 toast（L1：main40 拦截 newdao/auditor 不叹；同 mem45/#74）
           if (Game.die && !Game.die._shi46) {
             const _die = Game.die;
             Game.die = async function () {
+              const G0 = this.G;
+              const aliveBefore = !!(G0 && !G0.dead);
+              const r = await _die.apply(this, arguments);
               try {
-                if (!SHI46.off && this.G && this.G.apprentice) {
+                const G = this.G;
+                if (!SHI46.off && aliveBefore && G && G.dead && G.apprentice) {
                   toast('弟子尚在门下，未能亲送你一程……', '#c8c0b0');
                 }
               } catch (e) {}
-              return await _die.apply(this, arguments);
+              return r;
             };
             Game.die._shi46 = 1;
             keepFnMarks(_die, Game.die, '_shi46');
@@ -833,7 +849,12 @@
         if (typeof Talk !== 'undefined' && Talk && !Talk._shi46) {
           const _ex = Talk.extra;
           Talk.extra = function (id) {
-            const out = _ex ? _ex.apply(this, arguments) : [];
+            // M2：上层若返回 undefined/非数组，归一成 [] 再拼，避免 out.push 炸链
+            const out = [];
+            try {
+              const prev = _ex ? _ex.apply(this, arguments) : [];
+              if (Array.isArray(prev) && prev.length) out.push.apply(out, prev);
+            } catch (e) {}
             try {
               if (!SHI46.off && allyOptFor(id) && canPopup()) {
                 out.push(['✦ 门下回访', async () => { await allyVisit(getG(), {}); }]);

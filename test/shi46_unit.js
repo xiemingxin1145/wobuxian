@@ -133,7 +133,7 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     ok(R(c, 'Game.rolls').some(x => x[0] === 0.7 && x[1] === 'qiyu'), '2 Game.roll(HW_OK,qiyu) 被调用');
   }
 
-  // ---- §20.9.3 跨年 n 归零；放养年 cap=2 ----
+  // ---- §20.9.3 跨年 n 归零；放养次年 cap=2（§20.4.1）----
   {
     c = box2();
     const G = mkG({ ap: 10, year: 20 });
@@ -146,7 +146,11 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     ok(G.shi46.n === 0 && G.shi46.y === 21, '3 跨年 n 归零');
     const yr = await asyncR(c, "return SHI46.applyYearStyle(Game.G, 'free');");
     ok(yr.ok && G.shi46.style === 'free' && G.shi46.freeCut === 1, '3 放养 style/freeCut');
-    ok(R(c, 'SHI46.hwCap(Game.G)') === 2, '3 放养年 cap=2');
+    // 设定当年 cap 仍 3（不立刻降）
+    ok(R(c, 'SHI46.hwCap(Game.G)') === 3, '3 放养设定当年 cap 仍 3');
+    G.year = 22;
+    R(c, 'SHI46.ensure(Game.G)');
+    ok(G.shi46.n === 0 && R(c, 'SHI46.hwCap(Game.G)') === 2, '3 跨年后放养年 cap=2');
     await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
     await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
     const r3 = await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
@@ -380,6 +384,111 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     const info = R(c, 'SHI46.panelInfo(Game.G)');
     ok(!info.empty && info.name === '冷月仙子' && info.lvl === 7 && info.techs === 2, 'panelInfo 亲传摘要');
     ok(info.canHw && !info.canGrad, 'panelInfo canHw、未达出师');
+  }
+
+  // ---- §20.9.9a 放养计年 + visitY 闸 thank/allyOptFor ----
+  {
+    c = box2();
+    const G = mkG({ ap: 20, year: 20 });
+    R(c, 'Game').G = G;
+    for (let i = 0; i < 3; i++) {
+      const r = await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
+      ok(r.ok, '9a 当年功课第 ' + (i + 1) + ' 次');
+    }
+    ok(G.shi46.n === 3, '9a 布置满 n=3');
+    const fr = await asyncR(c, "return SHI46.applyYearStyle(Game.G, 'free');");
+    ok(fr.ok && G.shi46.freeCut === 1 && G.shi46.n === 3, '9a 选放养后 n 仍 3、freeCut=1');
+    ok(R(c, 'SHI46.hwCap(Game.G)') === 3, '9a 设定当年 cap 仍 3');
+    const over = await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
+    ok(!over.ok && over.reason === 'cap' && G.shi46.n === 3, '9a 放养不绕开当年封顶');
+    G.year = 21;
+    R(c, 'SHI46.ensure(Game.G)');
+    ok(G.shi46.n === 0 && R(c, 'SHI46.hwCap(Game.G)') === 2, '9a 次年 n=0 cap=2');
+    await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
+    await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
+    const r3 = await asyncR(c, 'return await SHI46.doHw(Game.G, { silent: true, forceOk: true });');
+    ok(!r3.ok && r3.reason === 'cap' && G.shi46.n === 2, '9a 次年第3次功课拒绝');
+
+    // visitY 闸 thank / allyOptFor
+    c = box2();
+    const G2 = mkG({ apprentice: null, apprenticeLvl: 0, apprenticeTechs: {}, aff: { lengyue: 50 }, year: 40, inv: {} });
+    R(c, 'Game').G = G2;
+    const s2 = R(c, 'SHI46.ensure(Game.G)');
+    s2.ally = { id: 'lengyue', n: '冷月', y0: 30, fightY: 0 };
+    R(c, 'SHI46.wire()');
+    ok(R(c, 'SHI46.allyOptFor("lengyue")') === true, '9a 回访前 allyOptFor true');
+    const t1 = await asyncR(c, "return await SHI46.allyVisit(Game.G, { silent: true, act: 'thank' });");
+    ok(t1.ok && G2.aff.lengyue === 53 && G2.shi46.visitY === 40, '9a 首次 thank aff+3');
+    const t2 = await asyncR(c, "return await SHI46.allyVisit(Game.G, { silent: true, act: 'thank' });");
+    ok(!t2.ok && t2.reason === 'visit_cap' && G2.aff.lengyue === 53, '9a 同年二次 thank 拒 visit_cap');
+    ok(R(c, 'SHI46.allyOptFor("lengyue")') === false, '9a visitY 后 allyOptFor false');
+    const ex = R(c, 'Talk.extra("lengyue")');
+    ok(!ex.some(x => /门下回访/.test(x[0])), '9a Talk.extra 同年不再注入回访');
+  }
+
+  // ---- 对抗 M2：Talk.extra 上层 undefined/非数组 → 仍返回 [] ----
+  {
+    c = box2();
+    R(c, 'Game').G = mkG({ apprentice: null });
+    R(c, 'Talk.extra = function () { return undefined; }');
+    R(c, 'SHI46.wire()');
+    const out1 = R(c, 'Talk.extra("x")');
+    ok(Array.isArray(out1) && out1.length === 0, 'adv M2 prev=undefined → []');
+
+    c = box2();
+    R(c, 'Game').G = mkG({ apprentice: null });
+    R(c, 'Talk.extra = function () { return { not: "array" }; }');
+    R(c, 'SHI46.wire()');
+    const out2 = R(c, 'Talk.extra("x")');
+    ok(Array.isArray(out2) && out2.length === 0, 'adv M2 prev=非数组 → []');
+  }
+
+  // ---- 对抗 L1：die 拦截未死不叹；真死后才遗憾 + keepFnMarks ----
+  {
+    c = box2();
+    const G = mkG({ apprentice: 'lengyue' });
+    R(c, 'Game').G = G;
+    R(c, 'SHI46.ensure(Game.G)');
+    // 拦截版内层：不置 dead（模拟 main40 newdao/auditor）
+    R(c, `
+      Game.die = async function () { /* intercepted */ };
+      Game.die._main40 = 1;
+      Game.die._mem45 = 1;
+    `);
+    R(c, 'SHI46.wire()');
+    R(c, 'UI.toasts = []');
+    await asyncR(c, 'return await Game.die("newdao");');
+    ok(!G.dead && R(c, 'UI.toasts').length === 0, 'adv L1 拦截未死无遗憾 toast');
+    ok(R(c, 'Game.die._shi46') === 1 && R(c, 'Game.die._main40') === 1 && R(c, 'Game.die._mem45') === 1,
+      'adv L1 keepFnMarks 保留 _main40/_mem45');
+
+    // 真死版：新沙箱
+    c = box2();
+    const G2 = mkG({ apprentice: 'lengyue' });
+    R(c, 'Game').G = G2;
+    R(c, 'SHI46.ensure(Game.G)');
+    R(c, 'Game.die._main40 = 1');
+    R(c, 'SHI46.wire()');
+    R(c, 'UI.toasts = []');
+    await asyncR(c, 'return await Game.die("sit");');
+    ok(G2.dead && R(c, 'UI.toasts').some(x => /弟子尚在门下/.test(x[0])), 'adv L1 真死后遗憾 toast');
+  }
+
+  // ---- 对抗 M1：visitY 闸 aff/herb 双刷 ----
+  {
+    c = box2();
+    const G = mkG({ apprentice: null, aff: { lengyue: 50 }, year: 20, inv: {} });
+    R(c, 'Game').G = G;
+    const s = R(c, 'SHI46.ensure(Game.G)');
+    s.ally = { id: 'lengyue', n: '冷月', y0: 10, fightY: 0 };
+    R(c, 'Game.roll = function(){ return true; }'); // 必出 herb
+    const a1 = await asyncR(c, "return await SHI46.allyVisit(Game.G, { silent: true, act: 'thank' });");
+    const aff1 = G.aff.lengyue, herb1 = G.inv.herb | 0;
+    ok(a1.ok && aff1 === 53 && herb1 >= 1, 'adv M1 首次 thank 生效');
+    const a2 = await asyncR(c, "return await SHI46.allyVisit(Game.G, { silent: true, act: 'thank' });");
+    ok(!a2.ok && a2.reason === 'visit_cap', 'adv M1 二次 thank visit_cap');
+    ok(G.aff.lengyue === aff1 && (G.inv.herb | 0) === herb1, 'adv M1 二次不刷 aff/herb');
+    ok(!R(c, 'SHI46.allyOptFor("lengyue")'), 'adv M1 allyOptFor 同年隐藏');
   }
 
   // ---- validate22 在外部跑；这里确认模块不污染 G.v ----
