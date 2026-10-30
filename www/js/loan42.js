@@ -318,22 +318,36 @@
       if ((G.stone | 0) < amt) return { ok: false, msg: 'stone', amt };
       G.stone -= amt;
       S.hist.repaid += amt;
-      this.bumpCr(S, 25);
+      // 提前还清 +25：仅当本笔至少跨过一次年结算 sync（l.crossed）；同年借还/仅有利息不算；每年最多一次
+      let crGain = 0;
+      const crossed = !!(l.crossed);
+      const y = G.year | 0;
+      if (crossed && (S.crEarlyY | 0) !== y) {
+        this.bumpCr(S, 25);
+        S.crEarlyY = y;
+        crGain = 25;
+      }
       S.L = S.L.filter(x => x !== l);
+      this._clearSquadIfNoOd(S);
       this._checkDebtPaid(G);
       this._notifyD0(G);
-      return { ok: true, amt, early: true };
+      return { ok: true, amt, early: true, cr: crGain };
     },
     repayOverdue(G) {
       if (this.off) return { ok: false };
       G = this.G(G); const S = this.peek(G); if (!S) return { ok: false };
       this.sync(G, { quiet: true });
+      const ods = S.L.filter(l => (l.od | 0) > 0);
+      if (!ods.length) { S.squad = 0; return { ok: true, amt: 0, lines: [] }; }
+      // 原子：先合计再扣；不够则一分不动
+      let need = 0;
+      for (const l of ods) need += this.odDue(l);
+      if ((G.stone | 0) < need) return { ok: false, msg: 'stone', need, paid: 0 };
       let total = 0;
       const lines = [];
-      for (const l of [...S.L]) {
-        if (!(l.od > 0)) continue;
+      for (const l of [...ods]) {
+        if (!S.L.includes(l)) continue;
         const amt = this.odDue(l);
-        if ((G.stone | 0) < amt) return { ok: false, msg: 'stone', need: amt, paid: total };
         G.stone -= amt;
         // 还逾期：清 od/ins，扣掉对应本金（fq/到期本），期数推进一年份
         const prin = this._prinPart(l);
@@ -345,12 +359,17 @@
         lines.push(l);
         if (l.left <= 0 || l.p <= 0) S.L = S.L.filter(x => x !== l);
       }
-      if (S.L.every(l => !(l.od > 0))) S.squad = 0;
+      this._clearSquadIfNoOd(S);
       this._checkDebtPaid(G);
       this._notifyD0(G);
       return { ok: true, amt: total, lines };
     },
 
+    /** 无逾期笔时清催收旗（repayLoan / sync / repayOverdue 共用） */
+    _clearSquadIfNoOd(S) {
+      if (!S) return;
+      if (!S.L.some(l => (l.od | 0) > 0)) S.squad = 0;
+    },
     _prinPart(l) {
       if (!l) return 0;
       if (l.t === 'fq') return Math.ceil(l.p0 / l.n);
@@ -450,6 +469,7 @@
         for (const l of [...S.L]) {
           if (!S.L.includes(l)) continue;
           if (k === (l.y0 | 0)) continue; // 借款当年不计息
+          l.crossed = 1; // 至少跨过一次年结算（提前还清 +25 门槛）
           const int = Math.ceil(l.p * l.r);
           let due = 0, prin = 0;
           if (l.t === 'bt') {
@@ -492,6 +512,7 @@
         }
       }
       S.y = yEnd; // 与 G.year 对齐（while 已推进；防中途 break）
+      this._clearSquadIfNoOd(S);
       this._checkDebtPaid(G);
       if (!opts.quiet && log.length) this._queueYearCard(G, log);
       return log;
@@ -560,10 +581,19 @@
     },
     squadRun(G) {
       G = this.G(G); const S = this.peek(G); if (!S) return;
-      for (const l of S.L) if ((l.od | 0) > 0) l.od++;
+      // §16.6 跑：逾期笔 od+1 加速转尾款；od 达 2 立刻 transfer
+      const xfer = [];
+      for (const l of S.L) {
+        if ((l.od | 0) > 0) {
+          l.od++;
+          if (l.od >= 2) xfer.push(l);
+        }
+      }
+      for (const l of xfer) this.transfer(G, l, []);
       S.squad = 0; // 本年不再刷
       S._squadDoneY = G.year | 0;
-      return { ok: true };
+      this._clearSquadIfNoOd(S);
+      return { ok: true, transferred: xfer.length };
     },
     squadWin(G) {
       G = this.G(G); const S = this.peek(G); if (!S) return null;
@@ -600,6 +630,8 @@
     trySquad(G, mapId) {
       if (this.off) return null;
       G = this.G(G); const S = this.peek(G); if (!S || S.squad !== 1) return null;
+      const amt0 = this.squadOdAmt(G);
+      if (amt0 <= 0) { S.squad = 0; return null; } // 无逾期应还：清幽灵旗，不触发
       if ((S._squadDoneY | 0) === (G.year | 0)) return null;
       if (this.storyBlock()) return null;
       try {
@@ -611,7 +643,7 @@
       } catch (e) {}
       if (!hasMons) return null;
       if (!this.roll(0.6)) return { deferred: true }; // 下一张图再判
-      return { trigger: true, amt: this.squadOdAmt(G), names: TEXT42.squadNames };
+      return { trigger: true, amt: amt0, names: TEXT42.squadNames };
     },
 
     // ---- 最小 UI：Talk.extra 窗口 ----
@@ -676,7 +708,7 @@
       if (act[0] === 'borrow') await this._confirmBorrow(G, act[1], agent);
       else if (act[0] === 'repay') {
         const r = this.repayLoan(G, act[1]);
-        if (r && r.ok) await this.card('还款', TEXT42.repaidEarly, 'i:bill', ['好']);
+        if (r && r.ok) await this.card('还款', (r.cr > 0) ? TEXT42.repaidEarly : '你还清了这笔。记账童子点了点头。', 'i:bill', ['好']);
         else this.toast(r && r.msg === 'stone' ? '灵石不足' : '还不成');
       } else if (act[0] === 'od') {
         const r = this.repayOverdue(G);
@@ -789,9 +821,10 @@
       }
     } catch (e) {}
 
-    // Talk.extra：钱多多代办 / 仙官·算盘总行
+    // Talk.extra：钱多多代办 / 仙官·算盘总行（防重入）
     try {
-      if (typeof Talk !== 'undefined') {
+      if (typeof Talk !== 'undefined' && !Talk._loan42) {
+        Talk._loan42 = 1;
         const _ex = Talk.extra;
         Talk.extra = function (id) {
           const out = _ex ? (_ex.apply(this, arguments) || []) : [];
