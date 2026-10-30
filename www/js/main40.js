@@ -75,6 +75,8 @@
       if (this.mainId(G) !== 'dianfei') return;
       if ((G.realm || 0) >= 6) return;
       if (G.flags && G.flags.m40_wait) return;
+      // L2：有打开的 UI.modal 时延后，不置 m40_wait，下次 enterMap 再试
+      try { if (typeof UI !== 'undefined' && UI.modal) return; } catch (e) { }
       G.flags = G.flags || {};
       G.flags.m40_wait = 1;
       const card = TEXT_MAIN40.cards.huashen_wait;
@@ -132,11 +134,41 @@
         }
       } catch (e) { }
 
-      // G4：q_ev3 改为 flags.ev_xy_chess（老档 visit_guishi 不再秒完成）
+      // G4：q_ev3 → flags.ev_xy_chess；浅拷贝替换表项 + 包 questDone（不原地改原 need）
       try {
-        if (typeof QUESTS !== 'undefined' && QUESTS.q_ev3) {
-          QUESTS.q_ev3.need = { f: 'ev_xy_chess' };
-          QUESTS.q_ev3.d = '逍遥散人说他只在下棋时说真话。陪他猜一拳——去鬼市找他。';
+        if (typeof QUESTS !== 'undefined' && QUESTS.q_ev3 && !QUESTS.q_ev3._main40) {
+          const src = QUESTS.q_ev3;
+          QUESTS.q_ev3 = Object.assign({}, src, {
+            need: { f: 'ev_xy_chess' },
+            d: '逍遥散人说他只在下棋时说真话。陪他猜一拳——去鬼市找他。',
+            _main40: 1,
+            _main40_src: src
+          });
+        }
+      } catch (e) { }
+      try {
+        if (Game.questDone && !Game.questDone._main40) {
+          const _qd = Game.questDone.bind(Game);
+          Game.questDone = function (q) {
+            if (q === 'q_ev3') {
+              const G = this.G;
+              if (!G || !G.quests || !G.quests.q_ev3) return false;
+              return !!(G.flags && G.flags.ev_xy_chess);
+            }
+            return _qd(q);
+          };
+          Game.questDone._main40 = 1;
+        }
+        if (Game.questProg && !Game.questProg._main40) {
+          const _qp = Game.questProg.bind(Game);
+          Game.questProg = function (q) {
+            if (q === 'q_ev3') {
+              const G = this.G;
+              return (G && G.flags && G.flags.ev_xy_chess) ? '已完成' : '未完成';
+            }
+            return _qp(q);
+          };
+          Game.questProg._main40 = 1;
         }
       } catch (e) { }
 
@@ -172,21 +204,24 @@
           if (evN >= 3) {
             if (check) return true;
             return ['★ 师父，拔剑吧', async () => {
-              const say = async (who, t, opts) => {
+              // L3：勿与 content23 的 say 同名；M3：写 aff/karma 前惰性兜底
+              const m40Say = async (who, t, opts) => {
                 const por = (typeof NPCS !== 'undefined' && NPCS[who] && NPCS[who].por) || ('npc_' + who);
                 const n = (typeof NPCS !== 'undefined' && NPCS[who] && NPCS[who].n) || who;
                 return UI.say(por, n, t, opts || ['……']);
               };
-              await say('mentor', '“好。我说。这个世界，是我订的。”', ['订的？']);
-              await say('mentor', '“一万年前，我找天道包工建一个世界，有山有水有灵气。首付付了，尾款……没付。”', ['然后呢']);
-              await say('mentor', '“担保人那一栏要写生辰八字，我手边没人，就随手写了一个。后来那个八字真的出生了，就是你。”', ['所以天道一直追着我讨债？']);
+              G.aff = G.aff || {};
+              G.flags = G.flags || {};
+              await m40Say('mentor', '“好。我说。这个世界，是我订的。”', ['订的？']);
+              await m40Say('mentor', '“一万年前，我找天道包工建一个世界，有山有水有灵气。首付付了，尾款……没付。”', ['然后呢']);
+              await m40Say('mentor', '“担保人那一栏要写生辰八字，我手边没人，就随手写了一个。后来那个八字真的出生了，就是你。”', ['所以天道一直追着我讨债？']);
               const ex = TEXT_MAIN40.dlg.hetong.mentor_reveal_extra;
               let opts = ['师父，拔剑吧', '（先不说话）'];
               let preface = '“嗯。我躲在桥洞下喝酒，就是不敢见你。后来忍不住，还是去收了你当徒弟……想着至少教你打得过讨债的。”';
               if (G.flags.m37_mt_forgive) preface += '\n' + ex.forgive;
               if (G.flags.m37_mt_grudge) preface += '\n' + ex.grudge;
-              const c = await say('mentor', preface, opts);
-              if (c === 1) await say('mentor', '“' + ex.silent + '”', ['……']);
+              const c = await m40Say('mentor', preface, opts);
+              if (c === 1) await m40Say('mentor', '“' + ex.silent + '”', ['……']);
               if (G.flags.m37_mt_forgive && c === 0) G.aff.mentor = (G.aff.mentor || 0) + 10;
               if (G.flags.m37_mt_grudge && c === 1) { G.aff.mentor = (G.aff.mentor || 0) - 5; G.karma = (G.karma || 0) + 2; }
               G.aff.mentor = (G.aff.mentor || 0) + (c === 0 ? 10 : -10);
@@ -255,11 +290,12 @@
         };
       }
 
-      // ---- enterMap：化神软引导卡 ----
+      // ---- enterMap：化神软引导卡（L5：保留下层 _loan42 标记） ----
       if (Game.enterMap && !Game.enterMap._main40) {
-        const _em = Game.enterMap.bind(Game);
+        const _emRaw = Game.enterMap;
+        const hadLoanEm = !!_emRaw._loan42;
         Game.enterMap = async function (id) {
-          const r = await _em(id);
+          const r = await _emRaw.apply(this, arguments);
           try {
             const G = this.G;
             if (G) await Main40.maybeHuashenWait(G);
@@ -267,39 +303,50 @@
           return r;
         };
         Game.enterMap._main40 = 1;
+        if (hadLoanEm) Game.enterMap._loan42 = 1;
       }
 
-      // ---- G3：包装 UI.card 结局卡 + Game.die，按 pickEnd 重算 ----
+      // ---- G3 / G7：包装 UI.card 结局卡 + Game.die ----
       if (typeof UI !== 'undefined' && UI.card && !UI.card._main40) {
         const _card = UI.card.bind(UI);
         UI.card = async function (title, body, por, opts) {
           // G7：吞掉 content22「天道认账」旧三选一
+          // M1：return 2（销账继续修仙），绝不能 return 0/1，否则 content22 会 Game.die
+          // M2：G.flags 可能 undefined，先惰性兜底
           if (typeof title === 'string' && title === '天道认账' && Array.isArray(opts) && opts.some(o => /成为新天道|天庭审计|销账/.test(String(o)))) {
             const G = (typeof Game !== 'undefined') ? Game.G : null;
-            if (G && !G.flags.boss_tiandao2) {
-              // 若 content23 未处理完，补一张正确推进卡
+            if (G) {
               try {
-                G.bosses = G.bosses || {}; G.bosses.tiandao2 = 1;
-                G.flags.boss_tiandao2 = 1;
-                if (Main40.mainId(G) === 'zhenshen' || Main40.mainId(G) === 'dianfei') {
-                  /* keep */
-                } else if (Main40.mid('yanshou') >= 0) {
-                  G.main = Main40.mid('yanshou');
+                G.flags = G.flags || {};
+                G.bosses = G.bosses || {};
+                if (!G.flags.boss_tiandao2) {
+                  G.bosses.tiandao2 = 1;
+                  G.flags.boss_tiandao2 = 1;
+                  const mid = Main40.mainId(G);
+                  if (mid !== 'zhenshen' && mid !== 'dianfei' && mid !== 'yanshou' && Main40.mid('yanshou') >= 0) {
+                    G.main = Main40.mid('yanshou');
+                  }
                 }
               } catch (e) { }
             }
             await _card('原来甲方在这儿', '（旧三选一已关闭）总账房的算盘崩落。天道真身：“飞升吧。我在南天门等你们签字。”', 'boss_tiandao2', ['继续']);
             try { if (typeof Game !== 'undefined') { if (Game.checkMain) Game.checkMain(); Game.refreshNpcs && Game.refreshNpcs(); Game.save && Game.save(); } } catch (e) { }
-            return 0;
+            return 2;
           }
+          // L1：结局卡 pickEnd 只提交一次（m40_ys_locked）
           if (typeof title === 'string' && title.indexOf('结局·') === 0) {
             const G = (typeof Game !== 'undefined') ? Game.G : null;
             if (G && G.flags && G.flags.bargain) {
-              const cnt = String(G.flags.bargain).split(',').map(Number);
-              const end = Main40.pickEnd(G, cnt);
-              Main40.snapshotYs40(G, cnt);
-              G.flags.ys_end = end;
-              if (end === 'jiaxiang') { try { if (typeof Game !== 'undefined' && Game.ach) Game.ach('jiaxiang_end'); } catch (e) { } }
+              G.flags = G.flags || {};
+              let end = G.flags.ys_end;
+              if (!G.flags.m40_ys_locked) {
+                const cnt = String(G.flags.bargain).split(',').map(Number);
+                end = Main40.pickEnd(G, cnt);
+                Main40.snapshotYs40(G, cnt);
+                G.flags.ys_end = end;
+                G.flags.m40_ys_locked = 1;
+                if (end === 'jiaxiang') { try { if (typeof Game !== 'undefined' && Game.ach) Game.ach('jiaxiang_end'); } catch (e) { } }
+              }
               const E = (typeof ENDINGS !== 'undefined' && ENDINGS[end]) || TEXT_MAIN40.endings[end] || ['竣工验收', ''];
               title = '结局·' + E[0];
               body = E[1] + '\n\n（结局已记录。你可以就此落幕，也可以留在仙界继续修行——尾声与仙界篇在等你。）';
@@ -311,16 +358,23 @@
         UI.card._main40 = 1;
       }
 
+      // L5：保留下层 _loan42 标记；M1 防护误传 newdao/auditor
       if (Game.die && !Game.die._main40) {
-        const _die = Game.die.bind(Game);
+        const _dieRaw = Game.die;
+        const hadLoanDie = !!_dieRaw._loan42;
         Game.die = async function (kind) {
           const G = this.G;
           if (G && G.flags && G.flags.ys_end && kind && (String(kind).indexOf('ys_') === 0 || kind === 'jiaxiang')) {
             kind = G.flags.ys_end;
           }
-          return _die(kind);
+          if (G && G.flags && G.flags.boss_tiandao2 && (kind === 'newdao' || kind === 'auditor') && !G.flags.ys_end) {
+            try { if (typeof UI !== 'undefined' && UI.toast) UI.toast('旧三选一已关闭，不会以此结局落幕'); } catch (e) { }
+            return;
+          }
+          return _dieRaw.apply(this, [kind]);
         };
         Game.die._main40 = 1;
+        if (hadLoanDie) Game.die._loan42 = 1;
       }
 
       // ---- G8：AUTO.pick 追加 unsafe ----

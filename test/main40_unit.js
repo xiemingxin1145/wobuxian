@@ -32,6 +32,7 @@ function box() {
     var Chain37={doneCount:function(G){return (G&&G._chains)||0;}};
     var AUTO={pick:function(top){var os=[].slice.call(top.querySelectorAll('.opt'));return os[0]||null;}};
     var UI={
+      modal:null,
       toast:function(s){toasts.push(String(s));},
       card:async function(t,x,p,o){cards.push({t:t,x:x,o:o});return 0;},
       say:async function(por,n,t,o){says.push({por:por,n:n,t:t,o:o});return 0;},
@@ -46,10 +47,13 @@ function box() {
       roll:function(p,kind){this.rolls.push([p,kind]);return Math.random()<p;},
       save:function(){}, give:function(){}, ach:function(a){this._ach.push(a);},
       refreshNpcs:function(){}, checkMain:function(){},
+      questDone:function(q){var G=this.G,Q=QUESTS[q];if(!G||!Q||!Q.need)return false;if(Q.need.f)return!!(G.flags&&G.flags[Q.need.f]);return false;},
+      questProg:function(q){var G=this.G,Q=QUESTS[q];if(!G||!Q||!Q.need)return '';if(Q.need.f)return (G.flags&&G.flags[Q.need.f])?'已完成':'未完成';return '';},
       async enterMap(id){this._map=id;},
       async die(kind){dies.push(kind); this.G.dead=true; this.G.ending=kind;},
       async fight(){return {res:'win'};}
     };
+    Game.enterMap._loan42=1; Game.die._loan42=1;
   `, c);
   vm.runInContext(SRC, c);
   return c;
@@ -170,12 +174,56 @@ const mkG = (o) => Object.assign({
     ok(c.dies[0] === 'ys_karma', 'G3 die 使用 ys_end');
   }
 
-  // ---- G7 ----
+  // ---- G7 + M1 content22 die path ----
   {
     const c = box();
-    c.Game.G = mkG({ main: 3, flags: {} });
-    await c.UI.card('天道认账', '旧', 'boss_tiandao2', ['成为新天道（结局）', '让算无遗做天庭审计（结局）', '销账，继续修仙']);
+    c.Game.G = mkG({ main: 5, flags: {} }); // done-like
+    const c2 = await c.UI.card('天道认账', '旧', 'boss_tiandao2', ['成为新天道（结局）', '让算无遗做天庭审计（结局）', '销账，继续修仙']);
     ok(c.cards.length === 1 && /旧三选一已关闭|甲方/.test(c.cards[0].x + c.cards[0].t), 'G7 吞掉天道认账三选一');
+    ok(c2 === 2, 'M1 G7 返回 2（非 0/1）');
+    // content22-like fallthrough
+    if (c2 === 0) { await c.Game.die('newdao'); }
+    else if (c2 === 1) { await c.Game.die('auditor'); }
+    else { /* 销账继续修仙 */ }
+    ok(!c.Game.G.dead && c.dies.length === 0, 'M1 玩家不会 die(newdao/auditor)');
+  }
+  // M1 防护：即使误调 die('newdao') 也被挡住
+  {
+    const c = box();
+    c.Game.G = mkG({ flags: { boss_tiandao2: 1 } });
+    await c.Game.die('newdao');
+    ok(!c.Game.G.dead && c.dies.length === 0, 'M1 die(newdao) 在 G7 接管后被拒');
+  }
+  // M2：G.flags undefined 不抛
+  {
+    const c = box();
+    const G = mkG({ main: 5 });
+    delete G.flags;
+    c.Game.G = G;
+    let threw = false;
+    try {
+      const c2 = await c.UI.card('天道认账', '旧', 'boss_tiandao2', ['成为新天道（结局）', '让算无遗做天庭审计（结局）', '销账，继续修仙']);
+      ok(c2 === 2, 'M2 flags 缺失仍返回 2');
+      ok(G.flags && G.flags.boss_tiandao2 === 1, 'M2 惰性补 flags');
+    } catch (e) { threw = true; console.error(e); }
+    ok(!threw, 'M2 G.flags undefined 不抛');
+  }
+  // M3：G.aff undefined 不抛
+  {
+    const c = box();
+    const G = mkG({
+      main: 2, realm: 6,
+      flags: { hetong_1: 1, m37_mt_forgive: 1 },
+      qdone: { q_ev1: 1, q_ev2: 1, q_ev3: 1 }
+    });
+    delete G.aff;
+    c.Game.G = G;
+    const opt = c.Talk.mainTalk('mentor', false);
+    ok(Array.isArray(opt) && typeof opt[1] === 'function', 'M3 mentor 星标可调用');
+    let threw = false;
+    try { await opt[1](); } catch (e) { threw = true; console.error(e); }
+    ok(!threw, 'M3 G.aff undefined 不抛');
+    ok(G.aff && typeof G.aff.mentor === 'number', 'M3 惰性补 aff.mentor');
   }
 
   // ---- G4 ----
@@ -212,6 +260,57 @@ const mkG = (o) => Object.assign({
     el.onclick({ target: { dataset: { m40: 'm40_yanshou' } } });
     ok(c.Game.G.realm === 7 && c.Main40.mainId(c.Game.G) === 'yanshou', 'G6 跳·终章下验收');
     ok(c.Game.G.flags.boss_tiandao2 === 1 && c.Game.G.flags.mentor_ally === 1, 'G6 跳转置旗');
+  }
+
+  // ---- L1 ending sticky ----
+  {
+    const c = box();
+    c.Game.G = mkG({ debt: 0, aff: { mentor: 100 }, flags: { bargain: '2,0,0' } });
+    await c.UI.card('结局·工程验收通过', '旧', null, ['留在仙界（继续）', '以此结局落幕']);
+    ok(c.Game.G.flags.ys_end === 'jiaxiang' && c.Game.G.flags.m40_ys_locked === 1, 'L1 首次锁定 ys_end');
+    c.Game.G.debt = 99999; c.Game.G.aff.mentor = 0; c.Game.G.flags.bargain = '0,2,0';
+    await c.UI.card('结局·工程验收通过', '再弹', null, ['留在仙界（继续）', '以此结局落幕']);
+    ok(c.Game.G.flags.ys_end === 'jiaxiang', 'L1 再次弹结局卡不改写 ys_end');
+    ok(c.cards.length === 2 && c.cards[1].t === '结局·回家', 'L1 第二次仍显示锁定结局文案');
+  }
+
+  // ---- L2 UI.modal defer ----
+  {
+    const c = box();
+    c.UI.modal = {}; // open modal
+    c.Game.G = mkG({ main: 1, realm: 5, flags: {} });
+    await c.Main40.maybeHuashenWait(c.Game.G);
+    ok(c.Game.G.flags.m40_wait !== 1 && c.cards.length === 0, 'L2 modal 打开时不弹、不置 flag');
+    c.UI.modal = null;
+    await c.Main40.maybeHuashenWait(c.Game.G);
+    ok(c.Game.G.flags.m40_wait === 1 && c.cards.length === 1, 'L2 modal 关闭后可弹');
+  }
+
+  // ---- L3 m40Say rename (no global say pollution) ----
+  {
+    const c = box();
+    ok(typeof c.say === 'undefined', 'L3 未导出与 content23 冲突的 say');
+    ok(typeof c.m40Say === 'undefined', 'L3 m40Say 为 G5 局部函数');
+  }
+
+  // ---- L4 quest copy + questDone wrap ----
+  {
+    const c = box();
+    ok(c.QUESTS.q_ev3._main40 === 1 && c.QUESTS.q_ev3._main40_src, 'L4 浅拷贝替换 QUESTS.q_ev3');
+    ok(c.QUESTS.q_ev3._main40_src.need.f === 'visit_guishi', 'L4 原 need 未原地改写');
+    ok(c.QUESTS.q_ev3.need.f === 'ev_xy_chess', 'L4 拷贝 need → ev_xy_chess');
+    c.Game.G = mkG({ quests: { q_ev3: { k0: {} } }, flags: { visit_guishi: 1 } });
+    ok(c.Game.questDone('q_ev3') === false, 'L4 visit_guishi 不再秒完成');
+    c.Game.G.flags.ev_xy_chess = 1;
+    ok(c.Game.questDone('q_ev3') === true, 'L4 ev_xy_chess 可完成');
+  }
+
+  // ---- L5 _loan42 marker preserved ----
+  {
+    const c = box();
+    ok(c.Game.enterMap._loan42 === 1, 'L5 enterMap._loan42 保留');
+    ok(c.Game.die._loan42 === 1, 'L5 die._loan42 保留');
+    ok(c.Game.enterMap._main40 === 1 && c.Game.die._main40 === 1, 'L5 同时有 _main40 标记');
   }
 
   // ---- old save ----
