@@ -1,3 +1,11 @@
+## 开放世界线 · 3.9.7 qing47 R1 审修 HIGH/MEDIUM（PR #78）（2026-10-31 00:4x UTC+8，Grok Bot）
+- 分支 feat/qing47：合 origin/main（#76 sweep44-auto、#77 shi46；PROGRESS 双保留）。
+- **HIGH**：`UI.p_comps` 每次渲染不再 `addEventListener` 叠 click；改为 `b.onclick=` 赋值（同 `p_fam37`）。对抗：连渲 3 次后点叙旧 → `nEv`+1、`AP`−1。
+- **MEDIUM**：`Talk.extra` 上层 `undefined`/非数组 → 归一 `[]` 再拼（同 shi46），恒返回数组。
+- 改动：`www/js/qing47.js`、`test/qing47_unit.js`、`PROGRESS.md`。未碰核心。
+- node：qing47 **73/73**（+10 R1 对抗）；shi46 **104**；sweep44 **101**；validate22 **errors []**；test/*.js **30/30** ALL PASS。未跑 Chrome。
+- 下一步：push PR #78；等奥拉夫再审。
+
 ## 开放世界线 · 3.9.7 道侣线深化 qing47（2026-10-31 00:3x UTC+8，Grok Bot）
 - 分支 feat/qing47（自 origin/main `112a5cd` §21 规格）：新包装模块 `www/js/qing47.js`（叙旧/并肩吐纳/心结/共同历劫/离别·回归；反刷 EV_CAP/DX_CAP/AP/aff 年帽/离别 CD；`G.qing47` 惰性，不升 `G.v`）。
 - 改动：`www/js/qing47.js`、`www/index.html`（`…→memory45→sweep44→sweep44_ui→qing47→audio32`）、`test/qing47_unit.js`、`PROGRESS.md`、`docs/ROADMAP.md`（3.9.7 🔍 in review）。未碰核心四件套；未改 fam37 求亲/生子；旧年事池保留。

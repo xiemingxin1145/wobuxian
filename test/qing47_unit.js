@@ -18,11 +18,97 @@ function box(extra) {
     console: { log() {}, warn() {}, error() {} },
     Math: Object.create(Math), JSON, Date,
     setTimeout() {}, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {},
-    document: {
-      readyState: 'complete', addEventListener() {}, head: { appendChild() {} },
-      createElement(tag) { return { tag, style: {}, setAttribute() {}, appendChild() {}, innerHTML: '', id: '' }; },
-      getElementById() { return null; }
-    },
+    document: (function () {
+      function el(tag) {
+        const o = {
+          tagName: String(tag || 'div').toUpperCase(),
+          tag: tag || 'div',
+          style: {},
+          id: '',
+          className: '',
+          children: [],
+          childNodes: [],
+          parentNode: null,
+          onclick: null,
+          _attrs: {},
+          _listeners: [],
+          setAttribute(k, v) { this._attrs[k] = String(v); if (k === 'data-q47') this.dataset = this.dataset || {}; if (k.indexOf('data-') === 0) { this.dataset = this.dataset || {}; this.dataset[k.slice(5)] = String(v); } },
+          getAttribute(k) { if (k === 'data-q47' && this.dataset) return this.dataset.q47; return this._attrs[k]; },
+          get firstChild() { return this.children[0] || null; },
+          removeChild(c) {
+            const i = this.children.indexOf(c);
+            if (i >= 0) { this.children.splice(i, 1); this.childNodes.splice(i, 1); c.parentNode = null; }
+            return c;
+          },
+          appendChild(c) {
+            if (c.parentNode && c.parentNode.removeChild) c.parentNode.removeChild(c);
+            c.parentNode = this; this.children.push(c); this.childNodes.push(c); return c;
+          },
+          addEventListener(t, fn) { this._listeners.push([t, fn]); },
+          closest(sel) {
+            let n = this;
+            while (n) {
+              if (sel === '[data-q47]' && n.dataset && n.dataset.q47 != null) return n;
+              if (sel.charAt(0) === '.' && (n.className || '').split(/\s+/).indexOf(sel.slice(1)) >= 0) return n;
+              n = n.parentNode;
+            }
+            return null;
+          },
+          querySelector(sel) {
+            const walk = (n) => {
+              if (sel === '[data-q47]' && n.dataset && n.dataset.q47 != null) return n;
+              if (sel.indexOf('[data-q47=') === 0) {
+                const v = sel.match(/data-q47="?([^\]"]+)/); 
+                if (v && n.dataset && n.dataset.q47 === v[1]) return n;
+              }
+              for (const c of (n.children || [])) { const r = walk(c); if (r) return r; }
+              return null;
+            };
+            return walk(this);
+          },
+          click() {
+            const e = { target: this, stopPropagation() {} };
+            if (typeof this.onclick === 'function') this.onclick(e);
+            // also bubble to parent onclick (panel handler)
+            let p = this.parentNode;
+            while (p) {
+              if (typeof p.onclick === 'function') { p.onclick({ target: this, stopPropagation() {} }); break; }
+              p = p.parentNode;
+            }
+          }
+        };
+        Object.defineProperty(o, 'innerHTML', {
+          get() { return this._html || ''; },
+          set(v) {
+            this._html = String(v == null ? '' : v);
+            this.children = [];
+            this.childNodes = [];
+            // minimal parse for <button ... data-q47="ev">...</button> and wrapping div.qing47
+            const re = /<button\b([^>]*)>/gi;
+            let m;
+            while ((m = re.exec(this._html))) {
+              const attrs = m[1];
+              const dq = /data-q47\s*=\s*"([^"]+)"/.exec(attrs);
+              const btn = el('button');
+              btn.dataset = { q47: dq ? dq[1] : '' };
+              btn._attrs['data-q47'] = btn.dataset.q47;
+              btn.parentNode = o;
+              o.children.push(btn);
+              o.childNodes.push(btn);
+            }
+          }
+        });
+        o.dataset = {};
+        return o;
+      }
+      return {
+        readyState: 'complete', addEventListener() {},
+        head: { appendChild() {} },
+        body: el('body'),
+        createElement: el,
+        getElementById() { return null; }
+      };
+    })(),
     toasts: [], cards: []
   };
   c.window = c; c.globalThis = c;
@@ -56,8 +142,15 @@ function box(extra) {
       tryBreak:async function(){ return this._tryBreak(); }
     };
     var UI_p_comps_calls=0;
-    UI.p_comps=function(b){ UI_p_comps_calls++; if(b) b._comps=1; };
-    UI.p_fam37=function(b){ if(b) b._fam=1; };
+    UI.p_comps=function(b){
+      UI_p_comps_calls++;
+      if(b){
+        b._comps=1;
+        // mimic ui.js: reset panel body
+        b.innerHTML = '<p class="hint">伙伴</p>';
+      }
+    };
+    UI.p_fam37=function(b){ if(b){ b._fam=1; b.innerHTML='<p>fam</p>'; b.onclick=function(){}; } };
   `, c);
   if (extra) vm.runInContext(extra, c);
   vm.runInContext(SRC, c);
@@ -365,6 +458,114 @@ const mkG = (o) => Object.assign({
     ok(c.Game.G._qing47Jie === 1, '破境成功标记 _qing47Jie');
   }
 
-  console.log('\n' + n + ' tests, ' + fails + ' failed');
+  // ---- HIGH: p_comps 重复渲染不叠 listener；一点只一动 ----
+  {
+    const c = box();
+    c.Game.G = mkG({ partner: 'sumei', ap: 4, year: 10 });
+    c.Qing47.ensure(c.Game.G);
+    const b = c.document.createElement('div');
+    // spy addEventListener counts on panel root
+    let added = 0;
+    const _a = b.addEventListener.bind(b);
+    b.addEventListener = function (t, fn, o) {
+      if (t === 'click') added++;
+      return _a(t, fn, o);
+    };
+    c.UI.p_comps(b);
+    c.UI.p_comps(b);
+    c.UI.p_comps(b);
+    ok(added === 0, 'HIGH: p_comps 不再用 addEventListener 叠 click（三次渲染 added=' + added + '）');
+    ok(typeof b.onclick === 'function', 'HIGH: p_comps 用 onclick 赋值');
+    const btn = b.querySelector('[data-q47="ev"]');
+    ok(!!btn, 'HIGH: 面板含叙旧按钮');
+    const ap0 = c.Game.G.ap;
+    const nEv0 = c.Game.G.qing47.nEv || 0;
+    // 三次渲染后点一次
+    await new Promise((res) => {
+      const prev = b.onclick;
+      b.onclick = function (e) {
+        const r = prev && prev.call(this, e);
+        // onPanelClick is async; wait a tick after
+        Promise.resolve(r).then(() => setTimeout(res, 0));
+      };
+      btn.click();
+    });
+    // allow microtasks
+    await new Promise(r => setTimeout(r, 10));
+    ok(c.Game.G.qing47.nEv === nEv0 + 1, 'HIGH: 三次渲染后一点叙旧只 +1 nEv（got ' + c.Game.G.qing47.nEv + ')');
+    ok(c.Game.G.ap === ap0 - 1, 'HIGH: 一点只扣 1 AP（got ap=' + c.Game.G.ap + ')');
+  }
+
+  // ---- MEDIUM: Talk.extra 上层 undefined/非数组 → 恒返回数组 ----
+  {
+    const c = {
+      console: { log() {}, warn() {}, error() {} },
+      Math: Object.create(Math), JSON, Date,
+      setTimeout() {}, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {},
+      document: { readyState: 'complete', addEventListener() {}, head: { appendChild() {} },
+        createElement(tag) { return { tag, style: {}, setAttribute() {}, appendChild() {}, innerHTML: '', id: '', children: [], dataset: {} }; },
+        getElementById() { return null; } },
+      toasts: [], cards: []
+    };
+    c.window = c; c.globalThis = c;
+    vm.createContext(c);
+    vm.runInContext(`
+      var NPCS={sumei:{n:'苏魅',por:'npc_girl',comp:1}};
+      var B={on:false}; var NPC37={storyBlock:function(){return null;}};
+      var Life34={rel:function(){},st:function(){return {rel:{}};}};
+      var UI={modal:null,toast:function(){},card:async function(){return 0;},hud:function(){},p_comps:function(){},p_fam37:function(){}};
+      var Talk={extra:function(){ return undefined; }};
+      var DevTabs=[]; var DevPanel={registerTab:function(k,n,r){DevTabs.push({key:k,name:n});}};
+      var Game={G:null,meta:{},rolls:[],roll:function(p){return Math.random()<p;},save:function(){},
+        useAP:function(n){if(!this.G||this.G.ap<n)return false; this.G.ap-=n; return true;},
+        newLife:function(cfg){this.G=Object.assign({v:2,year:1,ap:4,partner:null,aff:{}},cfg||{});return this.G;},
+        yearEnd:async function(){if(this.G)this.G.year++;},
+        _tryBreak:async function(){}, need:function(){return 1000;}, addExp:function(){}};
+    `, c);
+    vm.runInContext(SRC, c);
+    c.Game.G = mkG({ partner: 'sumei', ap: 4 });
+    c.Qing47.ensure(c.Game.G);
+    const r1 = c.Talk.extra('sumei');
+    ok(Array.isArray(r1), 'MEDIUM: 上层 undefined 时 Talk.extra 仍返回数组');
+    ok(r1.length >= 1, 'MEDIUM: 有道侣时仍注入叙旧/吐纳（len=' + r1.length + ')');
+  }
+  {
+    const c = {
+      console: { log() {}, warn() {}, error() {} },
+      Math: Object.create(Math), JSON, Date,
+      setTimeout() {}, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {},
+      document: { readyState: 'complete', addEventListener() {}, head: { appendChild() {} },
+        createElement(tag) { return { tag, style: {}, setAttribute() {}, appendChild() {}, innerHTML: '', id: '', children: [], dataset: {} }; },
+        getElementById() { return null; } },
+      toasts: [], cards: []
+    };
+    c.window = c; c.globalThis = c;
+    vm.createContext(c);
+    vm.runInContext(`
+      var NPCS={sumei:{n:'苏魅',por:'npc_girl',comp:1}};
+      var B={on:false}; var NPC37={storyBlock:function(){return null;}};
+      var Life34={rel:function(){},st:function(){return {rel:{}};}};
+      var UI={modal:null,toast:function(){},card:async function(){return 0;},hud:function(){},p_comps:function(){},p_fam37:function(){}};
+      var Talk={extra:function(){ return 'not-array'; }};
+      var DevTabs=[]; var DevPanel={registerTab:function(){}};
+      var Game={G:null,meta:{},rolls:[],roll:function(p){return Math.random()<p;},save:function(){},
+        useAP:function(n){if(!this.G||this.G.ap<n)return false; this.G.ap-=n; return true;},
+        newLife:function(cfg){this.G=Object.assign({v:2,year:1,ap:4,partner:null,aff:{}},cfg||{});return this.G;},
+        yearEnd:async function(){}, _tryBreak:async function(){}, need:function(){return 1000;}, addExp:function(){}};
+    `, c);
+    vm.runInContext(SRC, c);
+    c.Game.G = mkG({ partner: 'sumei', ap: 4 });
+    c.Qing47.ensure(c.Game.G);
+    const r2 = c.Talk.extra('sumei');
+    ok(Array.isArray(r2), 'MEDIUM: 上层非数组时 Talk.extra 仍返回数组');
+    ok(r2.length >= 1, 'MEDIUM: 非数组上游不丢本模块入口');
+    // no partner → still array
+    c.Game.G.partner = null;
+    c.Qing47.clear(c.Game.G);
+    const r3 = c.Talk.extra('sumei');
+    ok(Array.isArray(r3) && r3.length === 0, 'MEDIUM: 无道侣时返回 []');
+  }
+
+  console.log(n + ' tests, ' + fails + ' failed');
   process.exit(fails);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -750,18 +750,19 @@
           UI.p_comps = function (b) {
             const r = _pc.apply(this, arguments);
             try {
-              if (!Q.off && typeof Game !== 'undefined' && Game.G) {
+              if (!Q.off && typeof Game !== 'undefined' && Game.G && b) {
                 const wrap = document.createElement('div');
                 wrap.innerHTML = API.panelHtml(Game.G);
                 while (wrap.firstChild) b.appendChild(wrap.firstChild);
-                b.addEventListener('click', function handler(e) {
-                  const t = e.target.closest('[data-q47]');
+                // HIGH fix: assign onclick (replace), never stack addEventListener across re-renders
+                b.onclick = function (e) {
+                  const t = e && e.target && e.target.closest && e.target.closest('[data-q47]');
                   if (!t) return;
-                  e.stopPropagation();
+                  if (e.stopPropagation) e.stopPropagation();
                   API.onPanelClick(t).then(() => {
                     try { UI.p_comps(b); } catch (e2) { }
                   });
-                }, { once: false });
+                };
               }
             } catch (e) { console.warn('[qing47] p_comps', e); }
             return r;
@@ -803,7 +804,12 @@
         if (typeof Talk !== 'undefined' && Talk.extra && !Talk.extra._qing47) {
           const _ex = Talk.extra;
           Talk.extra = function (id) {
-            const out = _ex ? _ex.apply(this, arguments) : [];
+            // MEDIUM fix: 上层 undefined/非数组 → 归一 []（同 shi46），避免 out.push 炸链返回 undefined
+            const out = [];
+            try {
+              const prev = _ex ? _ex.apply(this, arguments) : [];
+              if (Array.isArray(prev) && prev.length) out.push.apply(out, prev);
+            } catch (e) { }
             try {
               if (Q.off) return out;
               const G = Game && Game.G;
