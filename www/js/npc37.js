@@ -33,6 +33,8 @@ const NPC37 = {
   foeBlocked(id) { const G = this.G(); const P = G && G.life34 && G.life34.pending; if (P && P.npc === id) return true;
     try { if (typeof Stage3 !== 'undefined' && Stage3.huntBlocksFoe && Stage3.huntBlocksFoe(G)) return true; } catch (e) { } return false; },
   // 路遇：通过则记冷却/额度，生成场景放入自有队列并返回；否则 null
+  // 遭遇计数 G.npc37.ev = {total,meet,feud,help,debt}（旧档 ev 可能是 {} / 缺失）
+  evc(S, k) { if (!S) return null; if (!S.ev || typeof S.ev !== 'object') S.ev = {}; const E = S.ev; for (const x of ['total', 'meet', 'feud', 'help', 'debt']) if (!Number.isInteger(E[x])) E[x] = 0; if (k) { E[k]++; E.total++; } return E; },
   onMeet(id, mapId, opt) { opt = opt || {}; if (!opt.force && this.block(id, mapId)) return null; const S = this.st(); if (!S) return null;
     let tier = this.tier(id); if (tier === 'chou' && this.foeBlocked(id)) { if (!opt.force) return null; tier = 'sheng'; }
     const pool = TEXT37.meet[tier]; const k = opt.k != null ? opt.k : Math.floor(Math.random() * pool.length); const sc = pool[k % pool.length];
@@ -62,18 +64,24 @@ const NPC37 = {
     return { ok: true, eff, out, fight }; },
   // 弹卡：标题以「⚑」开头，置灰选项加（缺）并重弹
   async play(scene) { if (typeof UI === 'undefined' || !UI.card || !scene) return null;
+    // 遭遇计数只在路遇卡真正弹给玩家时 +1（每张卡一次；被队列挤掉的不计）
+    if (!scene.cnt) { scene.cnt = 1; this.evc(this.st(), 'meet'); }
     for (let tries = 0; tries < 3; tries++) { const opts = scene.ch.map(o => '⚑ ' + o.x + (this.can(o.fx) ? '' : '（缺）'));
       const c = await UI.card(scene.title, (scene.line ? `${scene.name || this.name(scene.id)}：“${scene.line}”\n` : '') + scene.t, 'i:bill', opts);
       const r = await this.resolve(scene, c, out => { if (typeof UI.toast === 'function' && out && out.length) UI.toast(out.join('，')); });
       if (r.ok) { if (r.fight && typeof UI.toast === 'function') UI.toast(r.fight === 'win' ? `路遇一战：击退来敌` : `路遇一战：落了下风`); if (Game.save) Game.save(); return r; }
       if (typeof UI.toast === 'function') UI.toast('条件不足'); } return null; },
   // 新闻：kind ∈ news 六类；a/b NPC id；每 NPC 年 ≤2、全年 ≤6、toast ≤2
-  emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = TEXT37.news[kind]; if (!pool) return null; const c = S.yc;
-    if (c.news >= this.NEWS_MAX) return null; if ((c.per[a] || 0) >= this.PER_MAX || (b && (c.per[b] || 0) >= this.PER_MAX)) return null;
+  // 第三十轮：opt.pool 自带模板（npc37_events.js 的 NEWS37C 结仇/求助/讨债，与路遇共用同一套额度）；opt.force 跳过额度但照样计入（开发者按钮）
+  emit(kind, a, b, mapId, opt) { opt = opt || {}; if (b === a) b = null; const S = this.st(); if (!S) return null; const pool = opt.pool || TEXT37.news[kind]; if (!pool || !pool.length) return null; const c = S.yc;
+    if (!opt.force && !this.room(a, b)) return null;
     const pl = b ? pool : pool.filter(x => x.indexOf('{b}') < 0); if (!pl.length) return null; const s = '【江湖风云】' + this.fill(this.rnd(pl), { a: this.name(a), b: b ? this.name(b) : '', map: this.mapName(mapId) });
     c.news++; c.per[a] = (c.per[a] || 0) + 1; if (b) c.per[b] = (c.per[b] || 0) + 1;
     const toast = !!opt.notable && c.toast < this.TOAST_MAX; if (toast) c.toast++;
     this.feed(s, toast); this.bus.fire('news', { kind, a, b, s }); return s; },
+  // 额度查询（不改状态）：全年新闻未满 6 条，且 a、b 本年事件（路遇 + 新闻）都 <2
+  room(a, b) { const S = this.st(); if (!S) return false; const c = S.yc; if (c.news >= this.NEWS_MAX) return false;
+    return (c.per[a] || 0) < this.PER_MAX && (!b || b === a || (c.per[b] || 0) < this.PER_MAX); },
   feed(s, toast) { const G = this.G(); if (!G) return;
     if (typeof JH34 !== 'undefined' && JH34.say && JH34.ensure) { JH34.say(JH34.ensure(G), s, 'npc37', false); }
     else { G.jh34 = G.jh34 || { feed: [] }; const F = G.jh34.feed = G.jh34.feed || []; F.push({ t: G.jh34.t || 0, s, k: 'npc37' }); if (F.length > 40) F.splice(0, F.length - 40); }
@@ -110,3 +118,14 @@ if (typeof npcAI === 'function') { const _ai = npcAI; npcAI = function (e, dt) {
 if (typeof Game !== 'undefined' && Game.yearEnd) { const _ye = Game.yearEnd; Game.yearEnd = async function () { const r = await _ye.apply(this, arguments); try { NPC37.yearNews(); } catch (x) { } return r; }; }
 const Story37 = window.Story37 || { on: (e, f) => NPC37.bus.on(e, f), fire: (e, d) => NPC37.bus.fire(e, d) };
 window.NPC37 = NPC37; window.Story37 = Story37; window.TEXT37 = TEXT37;
+// ---------- 序章/新手指引/主线战斗守卫（包裹式，不改 game.js / talk.js / data.js / ui.js） ----------
+// 设计规则：序章（打跑讨债史莱姆）结束前、新手指引（Game.meta.tut23 未置位）期间、任何战斗（B.on，含主线战）中，不出路遇卡、不弹江湖 toast（新闻仍只进新闻流）。
+// 序章结束 = G.flags.main0 已置位 或 G.main 已越过「序章·上门讨债」（MAIN[0]，id 'debt'）。返回 null（放行）或原因字符串。
+NPC37.storyBlock = function () { const G = this.G(); if (!G) return 'nogame';
+  let debt = 0; try { if (typeof MI === 'function') { const k = MI('debt'); if (k >= 0) debt = k; } } catch (e) { }
+  const f = G.flags || {}; if (!f.main0 && !((G.main | 0) > debt)) return 'prologue';
+  if (typeof Game !== 'undefined' && Game.meta && !Game.meta.tut23) return 'tutorial';
+  if (typeof B !== 'undefined' && B && B.on) return 'battle';
+  return null; };
+if (!NPC37.idle._g37) { const _idle = NPC37.idle; NPC37.idle = function () { if (this.storyBlock()) return false; return _idle.apply(this, arguments); }; NPC37.idle._g37 = 1; }
+if (!NPC37.feed._g37) { const _feed = NPC37.feed; NPC37.feed = function (s, toast) { let t = toast; try { if (t && this.storyBlock()) t = false; } catch (e) { } return _feed.call(this, s, t); }; NPC37.feed._g37 = 1; }

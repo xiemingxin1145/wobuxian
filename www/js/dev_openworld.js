@@ -144,8 +144,16 @@
         if (h.closed) await h.closed;
         const u = uiObj();
         if (!s.settled) { toast('中途离场：追兵战不结算', '#cccccc'); return; }
+        // 讨债令抵扣误工费（主人已批准）：败场且持有讨债令 → 先问是否花 1 枚抵掉；同意则扣令、不记误工费并存档
+        if (Stage3.canOffsetFee && Stage3.canOffsetFee(G, s) && u && u.card) {
+          const pick = await u.card(Stage3.TOKEN_NAME + '抵扣', `这场输了，讨债司要记误工费 ${s.fee}（欠款 ${s.debtBefore} → ${s.debtAfter}）。\n你有 ${Stage3.tokenCount(G)} 枚${Stage3.TOKEN_NAME}，花 ${Stage3.TOKEN_FEE_COST} 枚抵掉这笔？`, 'i:bill', ['花 1 枚抵掉', '照付误工费']);
+          if (pick === 0 && Stage3.offsetFee(G, s).ok) {
+            if (typeof g.save === 'function') g.save();
+            toast(`${Stage3.TOKEN_NAME}抵掉误工费 ${s.fee}，剩 ${s.tokens} 枚`, '#ffe0a0');
+          }
+        }
         if (u && u.card) {
-          await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：只是凭证，暂无用途` : ''}${s.tokenBlocked === 'cap' ? `\n${Stage3.TOKEN_NAME}已满 ${Stage3.TOKEN_MAX} 枚，这次没再缴获` : s.tokenBlocked === 'cooldown' ? `\n今年已缴获过${Stage3.TOKEN_NAME}，明年再来` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}${tu.error ? '\n调参表无效，本场用默认表' : tu.changed.length ? `\n开发者调参：${tu.changed.length} 项生效（见「追兵调参」）` : ''}`, 'i:bill', ['好']);
+          await u.card('追兵战结算', `${s.result === 'win' ? '胜' : '败'}·${s.n}\n${s.note}\n债务：${s.debtBefore} → ${s.debtAfter}${s.bountyCleared ? '\n通缉已撤销' : ''}${s.token ? `\n缴获${Stage3.TOKEN_NAME}×1（共 ${s.tokens} 枚）：追兵战输了可花 1 枚抵掉误工费` : ''}${s.tokenBlocked === 'cap' ? `\n${Stage3.TOKEN_NAME}已满 ${Stage3.TOKEN_MAX} 枚，这次没再缴获` : s.tokenBlocked === 'cooldown' ? `\n今年已缴获过${Stage3.TOKEN_NAME}，明年再来` : ''}\n追兵特性：${P.traitNote}${P.bossNote ? '\n头子：' + P.bossNote : ''}${tu.error ? '\n调参表无效，本场用默认表' : tu.changed.length ? `\n开发者调参：${tu.changed.length} 项生效（见「追兵调参」）` : ''}`, 'i:bill', ['好']);
           if (u.hud) u.hud();
         }
     } },
