@@ -631,6 +631,7 @@
       for (const l of xfer) this.transfer(G, l, []);
       S.squad = 0; // 本年不再刷
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       this._clearSquadIfNoOd(S);
       return { ok: true, transferred: xfer.length };
     },
@@ -644,6 +645,7 @@
       if (this.roll(0.15)) { loot.xyf = 1; try { if (typeof Game !== 'undefined' && Game.give) Game.give('xyf', 1); } catch (e) { G.inv = G.inv || {}; G.inv.xyf = (G.inv.xyf || 0) + 1; } }
       S.squad = 0;
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       // 欠款/逾期不变
       return loot;
     },
@@ -663,6 +665,7 @@
       this.bumpCr(S, -20);
       // squad 保持，明年还来
       S._squadDoneY = G.year | 0;
+      if (S.sqPend) delete S.sqPend;
       return { fee, paid, debtAdd, token };
     },
     /** 开战：3 只 loan42_sq，solo+noflee；经 Game.fight（外包套标记 loan42Squad） */
@@ -673,7 +676,11 @@
       try {
         if (typeof MONS !== 'undefined' && MONS && MONS[this.SQUAD_MON]) MONS[this.SQUAD_MON].n = name;
       } catch (e) {}
-      const tier = ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
+      const S0 = this.peek(G);
+      const pend = S0 && S0.sqPend;
+      const tier = (pend && pend.tier != null && Number.isFinite(+pend.tier))
+        ? +pend.tier
+        : ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
       const opts = {
         elite: true, solo: true, noflee: true,
         adds: [this.SQUAD_MON, this.SQUAD_MON],
@@ -714,8 +721,10 @@
     },
     /**
      * 弹催收三选一卡并执行（当场还款 / 应战→Game.fight / 跑）。
-     * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 下次再试。
-     * §16.6：灵石不够时「当场还款」🔒 灰掉不可点（同 life34 赔礼）；卡真正弹出（card()!==-1）后才记 _squadDoneY（当年最多 1 次）。
+     * 守 #53：storyBlock 或 !canPopup 则不弹，留 squad=1 / sqPend 下次再试。
+     * §16.6（研究员确认）：卡真正弹出（card()!==-1）时只写 G.loan42.sqPend={y,tier,amt}；
+     * 玩家选定 还/战/跑 后才记 _squadDoneY 并清 marker。存档重进 / 下张图若有 marker 则复弹同 tier/amt。
+     * card()=-1：不记年、不写 marker。跨年仍有 marker：仍复弹同一张（结案时按当前 G.year 记 _squadDoneY）。
      */
     async offerSquad(G, info) {
       if (this.off) return null;
@@ -743,12 +752,17 @@
           TEXT42.squadOpts[2]
         ];
         idx = await this.card('催收小分队', open + `\n逾期应还 ${amt} 灵石。`, 'mon_collector', opts);
-        // card() 返回 -1 表示卡未弹出：不记年，留 squad=1 下一张图再试
+        // card() 返回 -1 表示卡未弹出：不记年、不写 marker，留 squad=1 下一张图再试
         if (idx === -1 && !shown) return { blocked: true, notShown: true };
-        // 卡成功弹出后即记年（含点灰项重弹 / 战 / 跑 / 关），当年不再刷
+        // 卡成功弹出：只写 pending（存档命名空间 G.loan42.sqPend），选定前不烧年
         if (!shown) {
           shown = true;
-          if (S) S._squadDoneY = G.year | 0;
+          if (S) {
+            const tier = (info.tier != null && Number.isFinite(+info.tier))
+              ? +info.tier
+              : ((G.realm | 0) + ((G.stage || 0) * 0.2) + 0.4);
+            S.sqPend = { y: G.year | 0, amt: amt | 0, tier };
+          }
         }
         if (idx === 0 && !canPay) {
           this.toast('灵石不足，还不成');
@@ -758,6 +772,7 @@
       }
       if (idx === 0) {
         const r = this.squadPayNow(G);
+        if (S) { S._squadDoneY = G.year | 0; if (S.sqPend) delete S.sqPend; }
         if (r && r.ok) {
           this.toast('已还清逾期 ' + (r.amt | 0), '#9aff9a');
           await this.card('催收小分队', '讨债鬼点了点头，收起单子走了。', 'mon_collector', ['好']);
@@ -782,15 +797,19 @@
         try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) {}
         return { choice: 'run' };
       }
+      // 关/无效：保留 sqPend，不记 _squadDoneY → 下张图 / 读档复弹
       return { choice: 'none', idx };
     },
-    /** 进入有怪地图时尝试刷催收（每年最多 1 次，60%） */
+    /**
+     * 进入有怪地图时尝试刷催收（每年最多 1 次，60%）。
+     * 若 G.loan42.sqPend 仍在（卡已弹未选定 / 存档重进），跳过 roll 与 _squadDoneY，复弹同 amt/tier；
+     * 跨年仍复弹同一张（不重抽金额）。无逾期应还则清幽灵旗与 marker。
+     */
     trySquad(G, mapId) {
       if (this.off) return null;
       G = this.G(G); const S = this.peek(G); if (!S || S.squad !== 1) return null;
       const amt0 = this.squadOdAmt(G);
-      if (amt0 <= 0) { S.squad = 0; return null; } // 无逾期应还：清幽灵旗，不触发
-      if ((S._squadDoneY | 0) === (G.year | 0)) return null;
+      if (amt0 <= 0) { S.squad = 0; if (S.sqPend) delete S.sqPend; return null; } // 无逾期应还：清幽灵旗，不触发
       if (this.storyBlock()) return null;
       try {
         if (typeof R !== 'undefined' && R && R.player && R.player.nav) return null;
@@ -800,6 +819,18 @@
         if (typeof MAPINFO !== 'undefined' && mapId && MAPINFO[mapId]) hasMons = !!(MAPINFO[mapId].mons && MAPINFO[mapId].mons.length);
       } catch (e) {}
       if (!hasMons) return null;
+      // pending：卡曾弹出未选定（含读档 / 跨年）→ 复弹，不 roll、不看 _squadDoneY
+      if (S.sqPend && typeof S.sqPend === 'object') {
+        const pendAmt = (S.sqPend.amt != null) ? (S.sqPend.amt | 0) : amt0;
+        return {
+          trigger: true,
+          amt: pendAmt,
+          tier: S.sqPend.tier,
+          pending: true,
+          names: TEXT42.squadNames
+        };
+      }
+      if ((S._squadDoneY | 0) === (G.year | 0)) return null;
       if (!this.roll(0.6)) return { deferred: true }; // 下一张图再判
       return { trigger: true, amt: amt0, names: TEXT42.squadNames };
     },
@@ -1100,16 +1131,16 @@
               if (!S2.L.length) { ctx && ctx.toast && ctx.toast('无贷款'); }
               else { L42.transfer(G2, S2.L[0], []); ctx && ctx.toast && ctx.toast('已转尾款'); }
             } else if (a === 'sq') {
-              S2.squad = 1; S2._squadDoneY = 0;
+              S2.squad = 1; S2._squadDoneY = 0; if (S2.sqPend) delete S2.sqPend;
               if (!S2.L.some(l => (l.od | 0) > 0)) {
                 if (!S2.L.length) { G2.realm = Math.max(G2.realm | 0, 2); L42.borrow(G2, 'fq', L42.prodMax('fq', G2) || 100, false); }
                 if (S2.L[0]) { S2.L[0].od = 1; S2.L[0].due = L42.earlyDue(S2.L[0]); }
               }
               ctx && ctx.toast && ctx.toast('squad=1');
             } else if (a === 'clr') {
-              S2.L = []; S2.squad = 0; ctx && ctx.toast && ctx.toast('已清空');
+              S2.L = []; S2.squad = 0; if (S2.sqPend) delete S2.sqPend; S2._squadDoneY = 0; ctx && ctx.toast && ctx.toast('已清空');
             } else if (a === 'fight') {
-              S2.squad = 1; S2._squadDoneY = 0;
+              S2.squad = 1; S2._squadDoneY = 0; if (S2.sqPend) delete S2.sqPend;
               if (!S2.L.some(l => (l.od | 0) > 0)) {
                 if (!S2.L.length) { G2.realm = Math.max(G2.realm | 0, 2); L42.borrow(G2, 'fq', L42.prodMax('fq', G2) || 100, false); }
                 if (S2.L[0]) { S2.L[0].od = 1; S2.L[0].due = L42.earlyDue(S2.L[0]); }
