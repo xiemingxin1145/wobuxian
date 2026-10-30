@@ -314,17 +314,43 @@ const base = (o) => Object.assign({
   const cards0 = run(c, 'cards.length');
   const r5 = await run(c, 'C41.runEvent(Game.G,"c41_harvest")');
   ok(run(c, 'cards.length===' + cards0), 'R5a storyBlock 时不弹族事卡');
-  ok(run(c, 'Game.G.clan41.pendingEv && Game.G.clan41.pendingEv.id==="c41_harvest"'), 'R5b 记入 pendingEv');
+  ok(run(c, 'Game.G.clan41.pendingQ && Game.G.clan41.pendingQ.length===1 && Game.G.clan41.pendingQ[0].id==="c41_harvest"'), 'R5b 记入 pendingQ');
   ok(run(c, '!Game.G.clan41.ev.c41_harvest'), 'R5c defer 不记 ev 次数（待真正结算）');
   // B.on 也 defer
   c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei' }));
   run(c, 'C41.found(Game.G); Game.G.clan41.props.biaoju=1; var B={on:true};');
   await run(c, 'C41.runEvent(Game.G,"c41_robbed")');
-  ok(run(c, 'Game.G.clan41.pendingEv && Game.G.clan41.pendingEv.id==="c41_robbed"'), 'R5d B.on 时 defer 劫镖');
+  ok(run(c, 'Game.G.clan41.pendingQ && Game.G.clan41.pendingQ[0].id==="c41_robbed"'), 'R5d B.on 时 defer 劫镖');
   // 解除后 yearStep flush
   run(c, 'B.on=false; Math.random=()=>0;');
   await run(c, 'C41.yearStep(Game.G)');
-  ok(run(c, '!Game.G.clan41.pendingEv && Game.G.clan41.ev.c41_robbed>=1'), 'R5e 空闲 yearStep 刷出 pending 并结算');
+  ok(run(c, '(!Game.G.clan41.pendingQ||!Game.G.clan41.pendingQ.length) && Game.G.clan41.ev.c41_robbed>=1'), 'R5e 空闲 yearStep 刷出 pending 并结算');
+
+
+
+  // R6 pendingQ：多条不互盖、每年最多刷 1 张、刷过则本年不抽新事件、旧档 pendingEv 迁入、上限 3
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [{ n: '张小满', lg: 'san', born: 1, age: 10, nodes: {} }], rate: 0, log: [], ev: {} }, partner: 'sumei', year: 10 }));
+  run(c, 'C41.found(Game.G); Game.G.clan41.props.biaoju=1; Game.G.clan41.props.tian=1; var NPC37={storyBlock:()=>"prologue"}; var B={on:false};');
+  await run(c, 'C41.runEvent(Game.G,"c41_harvest")');
+  await run(c, 'C41.runEvent(Game.G,"c41_robbed")');
+  await run(c, 'C41.runEvent(Game.G,"c41_flood")');
+  ok(run(c, 'Game.G.clan41.pendingQ.map(p=>p.id).join(",")==="c41_harvest,c41_robbed,c41_flood"'), 'R6a 三条 defer 均入队不互盖');
+  await run(c, 'C41.runEvent(Game.G,"c41_kidfight")'); // 第 4 条 → 丢最旧 harvest
+  ok(run(c, 'Game.G.clan41.pendingQ.length===3 && Game.G.clan41.pendingQ[0].id==="c41_robbed" && Game.G.clan41.pendingQ[2].id==="c41_kidfight"'), 'R6b 上限 3，满则丢最旧');
+  // 解除 busy，yearStep 只刷 1 张，且不再抽新（即使 robbed / 100% 概率）
+  run(c, 'NPC37.storyBlock=()=>null; B.on=false; Math.random=()=>0; var cardsBefore=cards.length;');
+  await run(c, 'C41.yearStep(Game.G)');
+  ok(run(c, 'Game.G.clan41.ev.c41_robbed>=1 && Game.G.clan41.pendingQ.length===2 && Game.G.clan41.pendingQ[0].id==="c41_flood"'), 'R6c 每年只刷队首 1 张，其余仍排队');
+  ok(run(c, 'cards.length===cardsBefore+1'), 'R6d 本年只弹 1 张卡（刷出的那张），不连带新事件');
+  // 旧档 pendingEv 单条迁入
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei', clan41: { v: 1, on: 1, name: '张氏', lv: 1, rep: 0, pop: 0, props: {}, rules: [], fams: {}, wed: [], pendingEv: { id: 'c41_ancestor', y: 3 } } }));
+  ok(run(c, 'C41.ensure(Game.G); Game.G.clan41.pendingQ.length===1 && Game.G.clan41.pendingQ[0].id==="c41_ancestor" && Game.G.clan41.pendingEv===null'), 'R6e 旧档 pendingEv 惰性迁入 pendingQ');
+  // 同 id 不重复入队
+  c = box(base({ fam37: { v: 1, sp: 'sumei', kids: [], rate: 0, log: [], ev: {} }, partner: 'sumei' }));
+  run(c, 'C41.found(Game.G); var B={on:true};');
+  await run(c, 'C41.runEvent(Game.G,"c41_ancestor")');
+  await run(c, 'C41.runEvent(Game.G,"c41_ancestor")');
+  ok(run(c, 'Game.G.clan41.pendingQ.length===1'), 'R6f 同 id 不重复入队');
 
 
   console.log(`${n - fails}/${n} PASS`);

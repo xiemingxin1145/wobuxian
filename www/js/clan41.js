@@ -156,7 +156,13 @@ const C41 = {
     if (C.zupuUsed == null) C.zupuUsed = 0;
     if (C.lianhun == null) C.lianhun = 0;
     if (!C.grandBy || typeof C.grandBy !== 'object') C.grandBy = {};
-    if (C.pendingEv === undefined) C.pendingEv = null;
+    // pendingQ：延迟族事队列（上限 3）；旧档 pendingEv 单条惰性迁入
+    if (!Array.isArray(C.pendingQ)) {
+      C.pendingQ = [];
+      if (C.pendingEv && C.pendingEv.id) C.pendingQ.push({ id: C.pendingEv.id, y: C.pendingEv.y || 0 });
+    }
+    if (C.pendingQ.length > 3) C.pendingQ.length = 3;
+    C.pendingEv = null; // 不再使用单槽字段
     return C;
   },
   pick(a, rnd) { rnd = rnd || Math.random; return a[Math.floor(rnd() * a.length)]; },
@@ -168,10 +174,21 @@ const C41 = {
     try { if (typeof B !== 'undefined' && B && B.on) return true; } catch (e) {}
     return false;
   },
+  PENDING_CAP: 3,
+  enqueuePending(C, id, y) {
+    if (!C || !id) return false;
+    if (!Array.isArray(C.pendingQ)) C.pendingQ = [];
+    if (C.pendingQ.some(p => p && p.id === id)) return false; // 同 id 不重复入队
+    if (C.pendingQ.length >= this.PENDING_CAP) C.pendingQ.shift(); // 满则丢最旧
+    C.pendingQ.push({ id, y: y || 0 });
+    return true;
+  },
+  // 弹出队首一条（供空闲时调用）；busy 时不动
   tryFlush(G) {
-    G = G || this.G(); const C = this.ensure(G); if (!C || !C.pendingEv || this.busy()) return false;
-    const id = C.pendingEv.id; C.pendingEv = null;
-    Promise.resolve().then(() => this.runEvent(G, id)).catch(e => console.warn('clan41 flush', e));
+    G = G || this.G(); const C = this.ensure(G); if (!C || this.busy()) return false;
+    if (!C.pendingQ || !C.pendingQ.length) return false;
+    const p = C.pendingQ.shift();
+    Promise.resolve().then(() => this.runEvent(G, p.id)).catch(e => console.warn('clan41 flush', e));
     return true;
   },
   news(G, s) {
@@ -794,10 +811,10 @@ const C41 = {
       else if (typeof FAM37 !== 'undefined' && FAM37.canEff && !FAM37.canEff(G, eff)) label = '🔒' + label;
       return label;
     });
-    // 序章/指引/战斗：不弹卡，记下 pending 待空闲再弹
+    // 序章/指引/战斗：不弹卡，入队 pendingQ（上限 3）待空闲再弹
     if (this.busy()) {
-      C.pendingEv = { id: E.id, y: G.year || 0 };
-      try { console.warn('clan41 defer event', E.id); } catch (e) {}
+      this.enqueuePending(C, E.id, G.year || 0);
+      try { console.warn('clan41 defer event', E.id, 'q=' + C.pendingQ.length); } catch (e) {}
       return { id: E.id, deferred: 1 };
     }
     let c = 0;
@@ -827,7 +844,12 @@ const C41 = {
   async yearStep(G) {
     G = G || this.G(); const C = this.ensure(G); if (!C || !C.on || !G || G.dead) return;
     const step = async (name, fn) => { try { await fn(); } catch (e) { console.warn('clan41', name, e); } };
-    await step('flush', async () => { if (C.pendingEv && !this.busy()) { const id = C.pendingEv.id; C.pendingEv = null; await this.runEvent(G, id); } });
+    let flushed = false;
+    await step('flush', async () => {
+      if (this.busy() || !C.pendingQ || !C.pendingQ.length) return;
+      const p = C.pendingQ.shift(); flushed = true;
+      await this.runEvent(G, p.id); // 每年最多刷 1 张；若仍 busy 会再入队
+    });
     await step('divorce', () => {
       if (C.spInfo && G.partner !== 'c41_sp') {
         const fam = C.spInfo.fam; C.fams[fam] = Math.max(-100, (C.fams[fam] || 0) - 60);
@@ -908,6 +930,8 @@ const C41 = {
       }
     });
     await step('event', async () => {
+      // 本年已刷出一张延迟族事 → 不再抽新事件，避免连弹两张
+      if (flushed) return;
       if (robbed) await this.runEvent(G, robbed);
       else if (Math.random() < 0.6) await this.runEvent(G);
     });
