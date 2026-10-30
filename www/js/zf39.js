@@ -135,14 +135,18 @@
     ztc39: { n: TEXT390.items.ztc39.n, ic: 'scroll', t: 'misc', p: 300, d: TEXT390.items.ztc39.d, use: 'zf39page' },
   };
   const DEF = () => ({ lv: 0, xp: 0, know: {}, tier: {}, war: [], cave: [], yrWinXp: 0, yrKey: 0, eyes: {} });
-  const getG = G => G || (W.Game && W.Game.G) || null;
+  // game.js 的 Game 是顶层 const，不挂 window：必须用 typeof 取（W.Game 只给 node 沙箱兜底）
+  const gm = () => { try { if (typeof Game !== 'undefined' && Game) return Game; } catch (e) {} return W.Game || null; };
+  const getG = G => G || (gm() && gm().G) || null;
   const peek = G => { G = getG(G); return G && G.zf39 && typeof G.zf39 === 'object' ? G.zf39 : null; }; // 只读，不创建
   const inv = (G, id) => (G.inv && G.inv[id]) || 0;
   const r2 = x => Math.round(x * 1e6) / 1e6;
+  // 概率判定走 Game.roll（吃作弊/幸运开关），没有 Game 时退回 Math.random（node 单测、早期加载）
+  const roll = p => { try { const g = gm(); if (g && typeof g.roll === 'function') return !!g.roll(p, 'zf39'); } catch (e) {} return Math.random() < p; };
 
   const ZF39 = {
     TEXT390, RING, SHENG, WAR_IDS, CAVE_IDS, WAR, CAVE, LV, ITEMS390, MAXLV,
-    need,
+    need, roll,
     // ---------- 存档 ----------
     ensure(G) {
       G = getG(G); if (!G) return null;
@@ -255,10 +259,9 @@
       return f;
     },
     // 回合制：startBattle 设好 u.buf={} 之后、battleLoop 第一回合前调用（第 2 轮由 battleLoop 包装在 B.round===0 时调）。
-    // 只改 side 0/1 单位的已有字段；返回 fx（含 chain，用于面板/飘字）。rng 可注入（默认 Math.random），只用于困龙阵上品定身判定。
+    // 只改 side 0/1 单位的已有字段；返回 fx（含 chain，用于面板/飘字）。rng 可注入（单测用）；不注入时走 Game.roll，只用于困龙阵上品定身判定。
     apply(units, G, rng) {
       const f = this.fx(G); if (!Array.isArray(units)) return f;
-      rng = rng || Math.random;
       for (const u of units) {
         if (!u || (u.side !== 0 && u.side !== 1)) continue;
         u.buf = u.buf || {};
@@ -277,7 +280,7 @@
           const boss = !!u.boss;
           const sl = boss ? f.bossSlow : f.slow; if (sl) u.buf.slow = Math.max(u.buf.slow || 0, sl);
           const po = boss ? f.bossPoison : f.poison; if (po) u.buf.poison = Math.max(u.buf.poison || 0, po);
-          if (!boss && f.stunP && rng() < f.stunP) u.buf.stun = Math.max(u.buf.stun || 0, 1);
+          if (!boss && f.stunP && (rng ? rng() < f.stunP : roll(f.stunP))) u.buf.stun = Math.max(u.buf.stun || 0, 1);
         }
       }
       return f;
