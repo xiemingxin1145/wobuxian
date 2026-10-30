@@ -292,7 +292,7 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
 
   // ---- null guards ----
   ok(SW2.st(undefined) !== null || true, 'st 有 Game.G');
-  ok(SW2._once(null, 0) === null || SW2._once(mkG(), -1) === null, '_once 非法 band/空 G 不抛');
+  ok(SW2._once === undefined && typeof SW2._once !== 'function', 'Sweep44._once 未暴露（闭包私有）');
   ok(typeof SW2.once !== 'function', 'once 不再作为公开 API');
   c = box2(); SW2 = R(c, 'Sweep44');
   ok(SW2.can(null, 0) === false, 'can(null) 无 Game.G → false');
@@ -310,6 +310,26 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   // force roll to always false then true variety — just ensure roll was called
   await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
   ok(R(c, 'Game.rolls').some(x => x[1] === 'sweep44'), '材料 pick 走 Game.roll(..., sweep44)');
+
+  // ---- rndRange 走 Game.roll(0.5,'sweep44') 二进制展开；无 roll 时 Math.random 回退 ----
+  c = box2();
+  G = mkG({ ap: 4, stone: 0, realm: 1 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, 'Game.rolls = []');
+  await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  const bitRolls = R(c, 'Game.rolls').filter(x => x[0] === 0.5 && x[1] === 'sweep44');
+  ok(bitRolls.length >= 16, 'rndRange 经 Game.roll(0.5,sweep44)（≥16 bit）');
+  const T0 = 1.15 + 0.15;
+  const loR = Math.round(100 * Math.pow(1.75, T0) * 0.85);
+  const hiR = Math.round(100 * Math.pow(1.75, T0) * 1.15);
+  ok(G.stone >= loR && G.stone <= hiR, `rndRange+Game.roll 灵石仍在 [${loR},${hiR}]（得 ${G.stone}）`);
+  // Math.random 回退
+  c = box2();
+  G = mkG({ ap: 4, stone: 0, realm: 1 }); R(c, 'Game').G = G; SW2 = R(c, 'Sweep44');
+  SW2.markFull(G, 0, true);
+  R(c, 'Game.roll = undefined');
+  await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
+  ok(G.stone >= loR && G.stone <= hiR && G.ap === 3, '无 Game.roll 时 rndRange Math.random 回退仍发奖');
 
   // ---- listMax ----
   c = box2();
@@ -354,8 +374,8 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
   // 未解锁
   r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');
   ok(!r1.ok && r1.reason === 'locked_first' && G.ap === 10 && G.stone === 0, '未解锁公开 go 拒绝且不发奖');
-  ok(typeof SW2.once !== 'function', '公开对象无 once（防绕过）');
-  // 即使误调 _once，公开路径仍受门闩；这里验证反复 go 不能超过 3
+  ok(typeof SW2.once !== 'function' && SW2._once === undefined, '公开对象无 once/_once（防绕过）');
+  // 公开路径受门闩；验证反复 go 不能超过 3
   SW2.markFull(G, 0, true);
   for (let i = 0; i < 3; i++) {
     r1 = await asyncR(c, 'return await Sweep44.go(Game.G, 0, 1, { silent: true });');

@@ -1,3 +1,15 @@
+## 开放世界线 · sweep44 rndRange→Game.roll + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
+- 分支 sweep44-r2：`rndRange` 有 `Game.roll` 时二进制展开 U[0,1)，否则 `Math.random`；单测覆盖 roll 路径与回退。
+- 改动：`www/js/sweep44.js`；`test/sweep44_unit.js`；`test/sweep44_ui_unit.js`（index 序含 memory45）。未碰核心。
+- `git merge origin/main`（#72 memory45）：index 序 `dongfu43_ui → memory45 → sweep44 → sweep44_ui → audio32`；PROGRESS 双保留。
+- node：合 main 后全量重跑。未跑 Chrome。
+
+## 开放世界线 · 3.9.4 秘境扫荡 sweep44 R2 UI 接线（2026-10-30 23:49 UTC+8，Grok Bot）
+- 分支 sweep44-r2（自 origin/sweep44 @ f914b42，已合 main 解 #71 冲突）。依赖 PR #71。
+- 改动：`www/js/sweep44.js`（`_once` 收进闭包，公开 `Sweep44._once === undefined`）；新 `www/js/sweep44_ui.js`（包 `UI.p_dungeon26` 扫荡区块：本年剩余/AP/档行/TEXT44 确认+回执；DevPanel「扫荡44」；tit39 `t_sw44` 尽力挂 TITLES + tit39Deferred；finish 全通 exit 解锁 / retreat 不解锁）；`www/index.html`（dongfu43_ui→sweep44→sweep44_ui→audio32）；`test/sweep44_unit.js`；新 `test/sweep44_ui_unit.js`。未碰核心。
+- node：sweep44 **84/84**；sweep44_ui **33/33**；test/*.js **22/22**；validate22 errors []。未跑 Chrome；**页测待做**（秘境面板扫荡按钮/回执卡/Dev「扫荡44」/storyBlock）。
+- 下一步：开 PR→main（注依赖 #71）；合 openworld-wip；等奥拉夫页测。
+
 ## 开放世界线 · loan42 deathTransfer 真死后结算 + merge main/#72（2026-10-31 00:05 UTC+8，Grok Bot）
 - 分支 loan42-mk：`Game.die` 先调内层，仅 wasAlive&&G.dead 后 `deathTransfer`；main40 拦截 newdao/auditor 时债/贷不动。`keepFnMarks` 保留 `_main40`/`_mem45`。
 - 改动：`www/js/loan42.js`；`test/loan42_squad_unit.js`（拦截/真死/三标记）。未碰核心。
