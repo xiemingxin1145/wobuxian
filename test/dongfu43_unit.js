@@ -294,9 +294,10 @@ ok(DF.TEXT.enter.length === 3 && DF.TEXT.auto_block.includes('挂机'), '进门/
   ok(hY2.ok && G10.inv.herb === 6 && hY2.got.herb === 1, 'L7：再下一年不再追加（无双发）');
 }
 
-// 不进 index（第 1 轮）
+// 第 2 轮已接入 index（dongfu43 → dongfu43_ui，介于 loan42 与 audio32）
 const HTML = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
-ok(!HTML.includes('dongfu43.js'), '第 1 轮未接入 index.html（零运行时影响）');
+ok(HTML.includes('dongfu43.js') && HTML.includes('dongfu43_ui.js'), '第 2 轮已接入 dongfu43.js + dongfu43_ui.js');
+ok(HTML.indexOf('loan42.js') < HTML.indexOf('dongfu43.js') && HTML.indexOf('dongfu43_ui.js') < HTML.indexOf('audio32.js'), '脚本序 loan42→dongfu43→ui→audio32');
 
 console.log(`\n${n - fails}/${n} passed`);
 process.exit(fails);

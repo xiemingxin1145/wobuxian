@@ -167,7 +167,17 @@
         if (p.pd35) out.push({ kind: 'sign', id: 'df_away' + slot, at: SPOT.pet[slot], label: fill(TEXT43.pet_away, { job: p.pd35.job || '' }) });
         else out.push({ kind: 'pet', id: 'df_pet' + slot, at: SPOT.pet[slot], label: p.name, mon: p.mon, s: 0.7, ref: p });
         slot++; }
-      if (G.apprentice) out.push({ kind: 'apprentice', id: 'df_app', at: SPOT.apprentice, label: npcN(typeof G.apprentice === 'string' ? G.apprentice : (G.apprentice.npc || G.apprentice.n || '')), npc: G.apprentice });
+      if (G.apprentice) {
+        const a = G.apprentice;
+        const aid = typeof a === 'string' ? a : (a && (a.npc || a.id) || '');
+        let alabel = npcN(aid);
+        // npcN 找不到时会回落裸 id（如 ah）；改用对象名或「亲传」（奥拉夫 L3）
+        if (!alabel || alabel === aid) {
+          if (a && typeof a === 'object' && a.n) alabel = String(a.n).split('·').pop();
+          else if (alabel === aid && aid && !/[\u4e00-\u9fff]/.test(aid)) alabel = '亲传';
+        }
+        out.push({ kind: 'apprentice', id: 'df_app', at: SPOT.apprentice, label: alabel, npc: a });
+      }
       this.homeDis(G).slice(0, 4).forEach((d, i) => out.push({ kind: 'dis', id: 'df_dis' + i, at: SPOT.dis[i], label: d.n, spr: 'npc_disciple', ref: d }));
       if (G.partner) out.push({ kind: 'spouse', id: 'df_sp', at: SPOT.spouse, label: npcN(G.partner), npc: G.partner });
       this.kids(G).slice(0, 3).forEach((k, i) => out.push({ kind: 'kid', id: 'df_kid' + i, at: SPOT.kid[i], label: k.n, s: k._age < 16 ? 0.75 : 1, spr: k._age < 16 ? 'npc_disciple' : null, ref: k._ref, age: k._age }));
