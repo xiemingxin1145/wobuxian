@@ -1,4 +1,4 @@
-## 版本 · 4.1 分支剧情 v1 第一线 route41（2026-10-31，4.1 总协调）
+## 版本 · 4.1 分支剧情 v1 第一线 route41（2026-10-31，4.1 总协调，PR #87）
 - 来源：design_feedback_v23.md §E.2（ROADMAP P1 #10 分支剧情 v1），第一线只做分歧点 + 路线存档，不做专属章节与专属结局。
 - 实现：新包装模块 www/js/route41.js（index 在 zong36 之后、audio32 之前）；拿到祖传欠条后的首次年结算弹出分歧卡，选项只用 E.2 原文三句（还债线“欠债还钱，天经地义。”、赖账线“我没签字，不认。”、收购线“欠条？我全收了。”）+“以后再说”延期；G.route = null|'pay'|'dodge'|'buy' 惰性，老档缺省主线，不升 G.v；dodge 写 G.flags.debt_union = 1（解锁 events22.js 已有负债者联盟事件），pay / buy 只记路线；守 storyBlock / B.on / UI.modal / AUTO / AFK；选项不进 SAFE、不命中 UNSAFE；keepFnMarks；newLife 清除路线。
 - 偏差明写：E.2 说分歧点在第三章坊市查账结尾，代码里欠条由战斗后给出、无同步结尾钩子可 await 卡片，故改为拿到欠条后的首次年结算弹出（每年最多问一次，延期下一年再问）。
