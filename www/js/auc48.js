@@ -740,6 +740,11 @@
         } catch (e) { }
         return { ok: true, result: 'sold', item: itemId, got: got, fee: fee };
       }
+      // 3.9.9 S1 流拍退物：寄拍时已取物，流拍必须先退回再返回（手续费不退）
+      try {
+        if (typeof Game !== 'undefined' && Game.give) Game.give(itemId, 1);
+        else { G.inv[itemId] = (G.inv[itemId] | 0) + 1; }
+      } catch (e) { }
       try {
         if (!opts.silent && typeof UI !== 'undefined' && UI.card) {
           await UI.card(TEXT_AUC48.consign.title,
