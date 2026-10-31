@@ -1,3 +1,13 @@
+## 版本 · 4.0 收口版（2026-10-31，Muse）
+
+- 分支 `muse/400-release` → main（PR #PRNUM）：本版不改任何 `www/js` 玩法代码、不改核心四件套（game.js/talk.js/data.js/ui.js）、不新增模块与存档字段；只做 4.0 收口：`VERSION` 文件 3.9.8 → 4.0（注：3.9.9/3.9.10/3.9.11 合入后 VERSION 文件仍停留在 3.9.8，本版一步升到 4.0），并同步 `PROGRESS.md` 与 `docs/ROADMAP.md`。
+- 主线核对结论（以 main 实测文件为准，核对日 main d68c1605a053）：`drafts/content23.js` 的全部内容早已在 3.3.0 接入正式主线——`www/js/content23.js` 已在 `www/index.html` 接线（xianjie31/xiancontent31 之后、mingge33 之前），与草稿逐行 diff 仅两处：一是头注说明 3.3 接入位置与仙界留存，二是结局处由草稿的直接 `Game.die(end)` 改为先弹结局卡、二选一“留在仙界（继续）/以此结局落幕”（仙界篇包裹，属 3.3 已定口径，非本版改动）。其余台词、数值、章节、结局逻辑与草稿逐字一致，本版零硬编、零新增剧情台词。
+- 已接进正式主线流程的草稿内容：第十七章·雷部电费单（`dianfei`，雷公/电母双 BOSS + 电费单技能，胜后电费账单作废、得外包合同 `hetong_doc`）；第十八章·剑仙的合同（`hetong`，证物任务 q_ev1/q_ev2/q_ev3 + 师徒对决剑仙本相 `mentor_true`，胜后剑仙入队 `mentor_ally`）；终章（上）改名·天道真身（`zhenshen` 改渡劫圆满 realm 6，天道真身战败后不再直接出结局、改去终章（下））；终章（下）·南天门竣工验收（`yanshou`，飞升后找过路财，三阶段最终战 `tiandao3`，按 `flags.bargain` 选 `ys_paid` 工程验收通过 / `ys_newdao` 新天道 / `ys_auditor` 三界审计）；隐藏结局 `jiaxiang`「回家」（`G.debt<=0` 且剑仙好感 ≥100 时触发）。旧档兼容：主线停在 `zhenshen` 且未完成电费章时改道去 `dianfei`；`zhenshen` 章节名与 realm 已在 content23 中改写。
+- 未硬编的证明：`diff drafts/content23.js www/js/content23.js` 仅上述两处（头注 + 结局留仙界二选一）；本版未动 `www/js/content23.js` 一字，未改任何用户已定稿剧情口径。
+- 仍明写的缺口（不属本版改动范围，随 4.0 记录在案）：① ROADMAP §3「2.3.1」第 4 项与 P1 第 7 项的旧验收中，`test/multilife.py` 从渡劫全程跑到新结局、human23/human_olaf 不回退两项未在本轮以真机/模拟器实测，列入 human_olaf 页测清单；② 自动任务不碰结局选项（旧验收“加进 UNSAFE”）一项：GitHub 代码检索在 main 上查 `UNSAFE` / `autoTask` / “自动任务”均为 0 命中（检索索引覆盖范围未作保证）；结局入口本身须玩家主动点 ★ 竣工验收对话并在结局卡上二选一，非自动推进可达路径，但自动任务排除表未在本轮以运行实测，故列为待验、不记作已完成；③ 分支剧情 v1（还债/赖账/收购三路线，每线专属章 + 专属结局）仍为 ROADMAP P1 ⬜，不在 4.0 口径内，本版不编；④ ROADMAP §2 表中 `2.3.1` 一行仍指向旧 §3，本版仅把 §3 两项主线补完条目标为 4.0 核对收口，不改写 2.3.1 其余 issue #5 验收（T4/T9/controls 仍待验）。
+- node：28 个 `*_unit.js` 全过；validate22 **errors []**；git 历史依赖 3 旧测试（good_rel_cap 11/12、stage3_chain 2 FAILED、battle_rt_proto FAILED 2）与基线失败数一致，不计入回归。未打 tag、未发 APK、未直接推 main；页测（human_olaf：shi46/qing47/auc48/pick49/zong36/主线终章）仍待做。
+
+
 ## 版本 · 3.9.11 深审剩余项 M1-M13 / L1-L3（2026-10-31，Muse）
 - 分支 `muse/3911-bugfix` → main（PR #85）：只改 `www/js/auc48.js`、`www/js/qing47.js`、`www/js/shi46.js`、`www/js/shi46_ui.js` + 新增 `test/bugfix3911_unit.js`；不升 G.v、不改 index 接线顺序、不改核心四件套（game.js/talk.js/data.js/ui.js）正文；分三批修、每批重跑单测。
 - auc48：M1 初始 nextY 去掉 `|| gap`，网格年（1/4/7…）当季可开拍；M2 寄拍先算手续费（含未付入场笺）并查灵石，通过后再扣笺/AP/nCon，不足返回 stone 且零扣费；M3 举牌 pend 按 lotId 分键（`S.pends`，旧档单 pend 迁移，restorePend/yearTick/enterMap 兼容分键，主 pend 空闲或已是举牌时才指向本单）；M4 逾期且成交价 > 灵石×0.9 时不再走 gap<=0 早返，须玩家接受「催收优先受偿」同意关（`_padOrBail` odLimit 分支，`odChoice`，拒绝则流拍；本轮已接受则 `_winLot` 不二次弹卡；同意为按次关卡，不改 loan42 还款流向）。
@@ -1024,5 +1034,6 @@
 - [x] 10-24 3.7.2：对话抉择 dlg37（PR #40 squash，含奥拉夫 3 条修正）；npc37 寻路判定加 R/R.player 空值保护；VERSION 3.7.2 + CHANGELOG；门禁：human_olaf N1 已知 flake，N2 一次被路遇卡抢点、单跑通过。
 - [x] 10-24 v3.7.2 已发布（对话抉择）。
 - [x] 10-24 3.7.3：NPC 自发事件（PR #42 squash）+ #48 fam37 已有道侣同步（Fixes #47）；VERSION 3.7.3 + CHANGELOG；门禁：human_olaf N2 门禁中被路遇卡抢点 1 次，单跑 8/8 通过。
+
 
 
