@@ -1,3 +1,11 @@
+## 版本 · 4.1 分支剧情 v1 第一线 route41（2026-10-31，4.1 总协调）
+- 来源：design_feedback_v23.md §E.2（ROADMAP P1 #10 分支剧情 v1），第一线只做分歧点 + 路线存档，不做专属章节与专属结局。
+- 实现：新包装模块 www/js/route41.js（index 在 zong36 之后、audio32 之前）；拿到祖传欠条后的首次年结算弹出分歧卡，选项只用 E.2 原文三句（还债线“欠债还钱，天经地义。”、赖账线“我没签字，不认。”、收购线“欠条？我全收了。”）+“以后再说”延期；G.route = null|'pay'|'dodge'|'buy' 惰性，老档缺省主线，不升 G.v；dodge 写 G.flags.debt_union = 1（解锁 events22.js 已有负债者联盟事件），pay / buy 只记路线；守 storyBlock / B.on / UI.modal / AUTO / AFK；选项不进 SAFE、不命中 UNSAFE；keepFnMarks；newLife 清除路线。
+- 偏差明写：E.2 说分歧点在第三章坊市查账结尾，代码里欠条由战斗后给出、无同步结尾钩子可 await 卡片，故改为拿到欠条后的首次年结算弹出（每年最多问一次，延期下一年再问）。
+- 改动：www/js/route41.js、www/index.html、test/route41_unit.js、PROGRESS.md、docs/ROADMAP.md、VERSION。未碰核心四件套 / content22 / content23 正文。未跑真机。
+- node：route41 32/32；validate22 errors []（见本版门禁）。
+- 下一步：页测（分歧卡弹出条件、延期、dodge 联盟事件、AUTO 不代选、老档不变）+ 4.2 专属章节/结局逐线做。
+
 ## 版本 · 4.0 收口版（2026-10-31，Muse）
 
 - 分支 `muse/400-release` → main（PR #86）：本版不改任何 `www/js` 玩法代码、不改核心四件套（game.js/talk.js/data.js/ui.js）、不新增模块与存档字段；只做 4.0 收口：`VERSION` 文件 3.9.8 → 4.0（注：3.9.9/3.9.10/3.9.11 合入后 VERSION 文件仍停留在 3.9.8，本版一步升到 4.0），并同步 `PROGRESS.md` 与 `docs/ROADMAP.md`。
