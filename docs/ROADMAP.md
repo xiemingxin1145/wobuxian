@@ -93,6 +93,7 @@
 | 3.9.10 | ✅ 已合 main（PR #84，待页测发版） | 宗门经营轻层 zong36 · `docs/research_v36.md` §5（元婴开山、被动建筑、弟子大比声望、声望换记名上限） |
 | 3.9.11 | ✅ 已合 main（PR #85，待页测发版） | 深审剩余中项分批修 M1–M13/L1–L3：auc48 网格年开拍/寄拍回滚/pend 分键/逾期催收同意关，qing47 p_comps 委托/周年与历劫被拦不消耗/残留清零/off 与下标校验，shi46 回访关闭不计次/年结 toast 不烧回访/换徒清状态/放养仅次年减帽 |
 | 4.0 | ✅ 已合 main（PR #86，待页测发版） | 收口版：主线终章收口核对——第十七章·雷部电费单、第十八章·剑仙的合同、终章（下）·南天门竣工验收 + 4 结局（ys_paid/ys_newdao/ys_auditor/jiaxiang）均已在 3.3.0 接入 www/js/content23.js，4.0 复核与 drafts/content23.js 的 diff 仅头注与结局仙界留存二选一，零新增剧情台词；VERSION 升到 4.0；未打 tag、未发 APK |
+| 4.1 | 🔍 in review | 分支剧情 v1 第一线 route41 · design_feedback_v23.md §E.2（分歧卡 + G.route 存档，专属章节/结局留 4.2） |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
 | v2.5+ | 🟡 阶段 1/2 已签收并合入 `main`（合并提交 `61d2eba`）；阶段 3 未验收、未合并 | 阶段 1 仅是离线低模模型/预览，没有导入正式游戏资源；阶段 2 为 `www/prototypes/encounter/` 独立浏览器练习页，主人已签收最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372`。精确快照 CDP 合成触摸复测 8/8，浏览器/page/console/HTTP 错误 0；不是实体触屏或真机，也没有接入正式地图/战斗/存档。CI build-153 成功：HD APK 278,378,225 B、lite APK 47,716,509 B；相对 v2.3.0 稳定包各增加 37,164 B。HD APK 在 API 30/34 模拟器安装启动，自动试玩有推进；API 34 截图出现 Android 系统 Pixel Launcher 无响应对话框，游戏进程本身无 FATAL/ANR/JS 错误。预发布不替换稳定版 latest。未验收的阶段 3 债务事件代码仍在隔离工作区，未合入 `main`。 |
