@@ -1,5 +1,13 @@
+## 版本 · 3.9.10 宗门经营轻层 zong36（2026-10-31，Muse）
+- 分支 `muse/3910-zong36` → main（PR 号见合入记录）：新增 `www/js/zong36.js` + `test/zong36_unit.js` + `www/index.html` 接线（auc48 之后）；只包装，不改核心四件套（game.js/talk.js/data.js/ui.js）正文，不升 G.v，老档惰性补默认。
+- 核对结论（以 fam37 现有实现为准，research_v36 §4 偏差已在 zong36.js 头注与报告中明写）：上限 cap=realm−1 与 §4 完全一致（筑基1/金丹2/元婴3/化神4/渡劫5）；派遣槽 PD35.max=min(4,1+floor(realm/2)) 与 §4 共享槽公式一致（fam37 主宠 petA 豁免为既有偏差）；束脩 fam37 实收 300×实际人数/年（§4 的 300×N 按上限读会多收，不采纳）；年 xp 公式一致，仅多 TAG.xp 系数；派遣 10% 分支 fam37 是受伤而非 §4 的带回碎晶/碎片；立嗣 fam37 另要求衣钵空缺且有 npc 归属；资质 linggen 词条可至 1.5（§4 写 0.6–1.4）。
+- 实现：元婴（realm≥4）后找师父开山，G.zong36={n,lv:1,fame:0,bld:{cangjing:0,danfang:0,lianqi:0}}；建筑升级费 2000×1.8^当前级（0→1 级 2000，4→5 级 20995），上限 5 级，灵石不足/满级拒绝不扣费；藏经阁弟子年 xp +8%/级（包裹 FAM37.yearXp）；丹房每月产培元丹 lv 颗、炼器房 lv≥3 每月神器碎晶 +1（月结挂 Time27.nextMonth，年度制下 yearEnd 补 12 次）；弟子大比三年一届、胜场×10 声望（复刻 sects25 赛制，sects25 doTournament 为 IIFE 私有无法直接调用，玩家本人大比不动）；声望每满 100 记名弟子上限 +1（封顶 +8，包裹 FAM37.cap 实现）；G.sectRel 正值结盟只在面板展示计数，不编数值效果；G.zong36.lv 在 §5 无升级规则，本版恒为 1 仅展示。
+- 守卫：storyBlock/B.on/UI.modal（弹卡前）、keepFnMarks、Talk.extra 非数组归一、面板按钮 onclick= 赋值、选项文案不以「开始」起首、ZONG36.off 停用；入口仅师父对话，未元婴不显示（A5.2）。
+- node：zong36 **44/44**（A5.1 藏经阁 3 级 20→24.8、A5.2、建筑上限/费用、fame 上限、老档默认、月结、大比、年度制补结、nextMonth）；27 个 `*_unit.js` 全过；validate22 **errors []**；git 历史依赖 3 旧测试（good_rel_cap 11/12、stage3_chain 2 FAILED、battle_rt_proto FAILED 2）与基线失败数一致，不计入回归。未打 tag、未发 APK；页测（human_olaf：开山/升级/月结/大比、shi46/qing47/auc48/pick49）仍待做。
+- 顺带回填：3.9.9 在 PROGRESS/ROADMAP 里的 PR 号为 #83（随本 PR 合入，不另开 PR）。
+
 ## 版本 · 3.9.9 pick49 + S1 + S2（2026-10-31，Muse）
-- 分支 `muse/399-pick49` → main（PR 号见合入记录）：只改 `www/js/ux23.js` 的 pickAt 评分与裁决段 + `www/js/auc48.js` 流拍退物 + `www/js/shi46.js` 出师扣费；不改 entHitRect、Game.onTap、UX.goTo、让位、life34、index 顺序；不新增 www/js 模块、不升 G.v、不新增存档字段；未碰核心四件套。
+- 分支 `muse/399-pick49` → main（PR #83）：只改 `www/js/ux23.js` 的 pickAt 评分与裁决段 + `www/js/auc48.js` 流拍退物 + `www/js/shi46.js` 出师扣费；不改 entHitRect、Game.onTap、UX.goTo、让位、life34、index 顺序；不新增 www/js 模块、不升 G.v、不新增存档字段；未碰核心四件套。
 - pick49（Issue #12）：名牌带加分 0、标记圆 ★/!/ ? 保留优先（圆心 ty−fs−34、半径 26，按 engine.js 实际值）、💬/… 气泡不优先、身体优先于名牌、平局分差 ≤15 按 i+j 更大者裁决、mon +30 保留、胖手指兜底与轨迹逻辑不动；新增 `test/pick49_unit.js`（从 ux23.js 源码抽取真实 pickAt/entHitRect/UX.sd,ovl 执行，V1/V3 旧版复现作参照）。
 - S1：auc48 寄拍流拍分支先 `Game.give(itemId,1)` 再返回（手续费不退）；S2：shi46 出师赠礼改为扣费——灵石先验 `G.stone>=amt` 再扣减，功法扣库存、不足返回 no_stone/no_scroll 且不改档（校验在清徒弟之前）。
 - 旧测试口径调整（修复本身改了既定行为，非回归）：shi46 §4 灵石贺仪断言由“+amt”改为“−amt”（用例补 stone:5000）；adv scroll 用例库存由 {} 改为 {scroll:1}、断言由“=1”改为“=0”。
@@ -1007,4 +1015,5 @@
 - [x] 10-24 3.7.2：对话抉择 dlg37（PR #40 squash，含奥拉夫 3 条修正）；npc37 寻路判定加 R/R.player 空值保护；VERSION 3.7.2 + CHANGELOG；门禁：human_olaf N1 已知 flake，N2 一次被路遇卡抢点、单跑通过。
 - [x] 10-24 v3.7.2 已发布（对话抉择）。
 - [x] 10-24 3.7.3：NPC 自发事件（PR #42 squash）+ #48 fam37 已有道侣同步（Fixes #47）；VERSION 3.7.3 + CHANGELOG；门禁：human_olaf N2 门禁中被路遇卡抢点 1 次，单跑 8/8 通过。
+
 
