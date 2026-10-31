@@ -1,6 +1,6 @@
 ## 版本 · 4.0 收口版（2026-10-31，Muse）
 
-- 分支 `muse/400-release` → main（PR #PRNUM）：本版不改任何 `www/js` 玩法代码、不改核心四件套（game.js/talk.js/data.js/ui.js）、不新增模块与存档字段；只做 4.0 收口：`VERSION` 文件 3.9.8 → 4.0（注：3.9.9/3.9.10/3.9.11 合入后 VERSION 文件仍停留在 3.9.8，本版一步升到 4.0），并同步 `PROGRESS.md` 与 `docs/ROADMAP.md`。
+- 分支 `muse/400-release` → main（PR #86）：本版不改任何 `www/js` 玩法代码、不改核心四件套（game.js/talk.js/data.js/ui.js）、不新增模块与存档字段；只做 4.0 收口：`VERSION` 文件 3.9.8 → 4.0（注：3.9.9/3.9.10/3.9.11 合入后 VERSION 文件仍停留在 3.9.8，本版一步升到 4.0），并同步 `PROGRESS.md` 与 `docs/ROADMAP.md`。
 - 主线核对结论（以 main 实测文件为准，核对日 main d68c1605a053）：`drafts/content23.js` 的全部内容早已在 3.3.0 接入正式主线——`www/js/content23.js` 已在 `www/index.html` 接线（xianjie31/xiancontent31 之后、mingge33 之前），与草稿逐行 diff 仅两处：一是头注说明 3.3 接入位置与仙界留存，二是结局处由草稿的直接 `Game.die(end)` 改为先弹结局卡、二选一“留在仙界（继续）/以此结局落幕”（仙界篇包裹，属 3.3 已定口径，非本版改动）。其余台词、数值、章节、结局逻辑与草稿逐字一致，本版零硬编、零新增剧情台词。
 - 已接进正式主线流程的草稿内容：第十七章·雷部电费单（`dianfei`，雷公/电母双 BOSS + 电费单技能，胜后电费账单作废、得外包合同 `hetong_doc`）；第十八章·剑仙的合同（`hetong`，证物任务 q_ev1/q_ev2/q_ev3 + 师徒对决剑仙本相 `mentor_true`，胜后剑仙入队 `mentor_ally`）；终章（上）改名·天道真身（`zhenshen` 改渡劫圆满 realm 6，天道真身战败后不再直接出结局、改去终章（下））；终章（下）·南天门竣工验收（`yanshou`，飞升后找过路财，三阶段最终战 `tiandao3`，按 `flags.bargain` 选 `ys_paid` 工程验收通过 / `ys_newdao` 新天道 / `ys_auditor` 三界审计）；隐藏结局 `jiaxiang`「回家」（`G.debt<=0` 且剑仙好感 ≥100 时触发）。旧档兼容：主线停在 `zhenshen` 且未完成电费章时改道去 `dianfei`；`zhenshen` 章节名与 realm 已在 content23 中改写。
 - 未硬编的证明：`diff drafts/content23.js www/js/content23.js` 仅上述两处（头注 + 结局留仙界二选一）；本版未动 `www/js/content23.js` 一字，未改任何用户已定稿剧情口径。
