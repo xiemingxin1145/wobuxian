@@ -92,6 +92,10 @@
       "ask": "当前价 {cur}，你还差 {gap} 灵石。\n要不要走一趟天道小贷？（调用 loan42，不改其公式）",
       "opt_go": "去小贷窗口看看",
       "opt_no": "算了，不跟了",
+      "od_title": "催收优先受偿",
+      "od_ask": "你名下有逾期小贷，当前价 {cur} 已超过灵石 ×0.9。接受「催收优先受偿」条款后方可成交（成交款优先用于偿还逾期小贷），否则本次举牌作罢。",
+      "od_yes": "接受催收优先受偿",
+      "od_no": "算了，不跟了",
       "blocked": "小贷窗口：逾期未清或征信不够，不垫拍场款。",
       "ok": "小贷到账。你可以继续举牌——也多了一笔要还的。"
     },
@@ -285,17 +289,22 @@
         if (typeof S[k] !== 'number') S[k] = 0;
       }
       if (S.pend != null && typeof S.pend !== 'object') S.pend = null;
+      // 3.9.11 M3：举牌 pend 按 lotId 分键，旧档单 pend 若为举牌则迁入
+      if (!S.pends || typeof S.pends !== 'object') S.pends = {};
+      if (S.pend && S.pend.kind === 'bid' && S.pend.lotId && !S.pends[S.pend.lotId]) {
+        S.pends[S.pend.lotId] = S.pend;
+      }
       // 年帽跨年归零
       const yr = G.year | 0;
       if (S.y !== yr) {
         S.y = yr;
         S.nBid = 0; S.nCon = 0; S.nLeak = 0; S.dealY = 0;
       }
-      // nextY 对齐
+      // nextY 对齐（3.9.11 M1：去掉 || gap，当前网格年本身可开拍）
       if (!S.nextY) {
         const gap = A.GAP | 0;
         const y = Math.max(1, yr);
-        S.nextY = y + ((gap - ((y - 1) % gap)) % gap || gap);
+        S.nextY = y + ((gap - ((y - 1) % gap)) % gap);
         if (S.nextY < y) S.nextY = y;
       }
       metaOf();
@@ -442,8 +451,8 @@
       }
       if (!opts.silent && !this.canPopup() && !opts.force) return { ok: false, reason: 'block' };
 
-      // 费用 / AP（pend.paid 则不重复扣）
-      const pend = S.pend && S.pend.kind === 'bid' && S.pend.lotId === lotId ? S.pend : null;
+      // 费用 / AP（pend.paid 则不重复扣；3.9.11 M3：先查分键 pends，再认旧单 pend）
+      const pend = (S.pends && S.pends[lotId]) || (S.pend && S.pend.kind === 'bid' && S.pend.lotId === lotId ? S.pend : null);
       if (!(pend && pend.paid)) {
         const fee = this.payFee(G, S);
         if (!fee.ok) { toast(TEXT_AUC48.ui.nostone); return { ok: false, reason: 'fee' }; }
@@ -466,7 +475,11 @@
       // 逾期禁一口价
       if (!od) optsLabels.push(fmt(TEXT_AUC48.bid.opt_buyout, { buy: buy }));
 
-      S.pend = { kind: 'bid', y: G.year | 0, lotId: lot.id, cur: lot.cur | 0, paid: 1 };
+      const bidPend = { kind: 'bid', y: G.year | 0, lotId: lot.id, cur: lot.cur | 0, paid: 1 };
+      if (!S.pends || typeof S.pends !== 'object') S.pends = {};
+      S.pends[lot.id] = bidPend;
+      // 主 pend 仅在空闲或已是举牌时指向本单，避免覆盖寄拍/赌货/开拍 pend
+      if (!S.pend || S.pend.kind === 'bid') S.pend = bidPend;
 
       let choice = opts.choice;
       if (choice == null) {
@@ -489,7 +502,8 @@
       // 不跟了
       if (choice === 1) {
         lot.done = 1; lot.won = 0;
-        delete S.pend;
+        if (S.pends) delete S.pends[lot.id];
+        if (S.pend && S.pend.kind === 'bid' && S.pend.lotId === lot.id) delete S.pend;
         try {
           if (typeof UI !== 'undefined' && UI.card) {
             await UI.card(TEXT_AUC48.bid.title.replace('{name}', itemName(lot.item)),
@@ -507,18 +521,20 @@
 
       // 再加到 next：NPC 是否跟
       lot.cur = next;
-      S.pend.cur = lot.cur;
+      bidPend.cur = lot.cur;
       if (lot.cur < (lot.aiCeil | 0) && roll(0.62, 'qiyu')) {
         // NPC 再抬
         lot.cur = Math.round(lot.cur * A.RAISE);
-        S.pend.cur = lot.cur;
+        bidPend.cur = lot.cur;
         // 玩家付不起或逾期高价 → 垫资岔路
         const needPad = (lot.cur > (G.stone | 0)) || (od && lot.cur > (G.stone | 0) * A.OD_BID_MUL);
+        let pad = null;
         if (needPad) {
-          const pad = await this._padOrBail(G, S, lot, opts);
+          pad = await this._padOrBail(G, S, lot, Object.assign({}, opts, { odLimit: od && lot.cur > (G.stone | 0) * A.OD_BID_MUL }));
           if (!pad.ok) {
             lot.done = 1; lot.won = 0;
-            delete S.pend;
+            if (S.pends) delete S.pends[lot.id];
+            if (S.pend && S.pend.kind === 'bid' && S.pend.lotId === lot.id) delete S.pend;
             try {
               if (typeof UI !== 'undefined' && UI.card) {
                 await UI.card('竞价', TEXT_AUC48.bid.bust, 'npc_merchant', [TEXT_AUC48.year.opt_ok]);
@@ -527,6 +543,8 @@
             return { ok: true, result: 'bust', lot };
           }
         }
+        // 3.9.11 M4：本轮已接受催收优先受偿则不再二次弹卡
+        if (pad && pad.odAccepted) opts.odAccepted = 1;
         // NPC 跟了之后玩家再举一次（简化：视作玩家坚持则成交于 cur，若仍超 aiCeil 则 NPC 停）
         if (lot.cur >= (lot.aiCeil | 0) || !roll(0.62, 'qiyu')) {
           return await this._winLot(G, S, lot, lot.cur | 0, opts);
@@ -542,12 +560,15 @@
     async _winLot(G, S, lot, price, opts) {
       opts = opts || {};
       price = price | 0;
-      if ((G.stone | 0) < price) {
-        // 再试垫资
-        const pad = await this._padOrBail(G, S, lot, Object.assign({}, opts, { cur: price }));
+      // 3.9.11 M4：逾期且成交价 > 灵石×0.9 时，即使付得起也要先过催收优先受偿同意关
+      const odLimit = !opts.odAccepted && overdue(G) && price > (G.stone | 0) * A.OD_BID_MUL;
+      if ((G.stone | 0) < price || odLimit) {
+        // 再试垫资（odLimit 时 _padOrBail 走同意关而非借贷）
+        const pad = await this._padOrBail(G, S, lot, Object.assign({}, opts, { cur: price, odLimit: odLimit }));
         if (!pad.ok || (G.stone | 0) < price) {
           lot.done = 1; lot.won = 0;
-          delete S.pend;
+          if (S.pends) delete S.pends[lot.id];
+          if (S.pend && S.pend.kind === 'bid' && S.pend.lotId === lot.id) delete S.pend;
           try {
             if (typeof UI !== 'undefined' && UI.card) {
               await UI.card('竞价', TEXT_AUC48.bid.bust, 'npc_merchant', [TEXT_AUC48.year.opt_ok]);
@@ -569,7 +590,8 @@
       const m = metaOf();
       if (m) m.totDeal = (m.totDeal | 0) + 1;
       addRenown(A.GIFT_REN | 0);
-      delete S.pend;
+      if (S.pends) delete S.pends[lot.id];
+      if (S.pend && S.pend.kind === 'bid' && S.pend.lotId === lot.id) delete S.pend;
       try {
         if (!opts.silent && typeof UI !== 'undefined' && UI.card) {
           await UI.card(
@@ -588,7 +610,26 @@
       opts = opts || {};
       const cur = (opts.cur != null ? opts.cur : lot.cur) | 0;
       const gap = Math.max(0, cur - (G.stone | 0));
-      if (gap <= 0) return { ok: true };
+      if (gap <= 0 && !opts.odLimit) return { ok: true };
+      // 3.9.11 M4：逾期高价但不缺钱时，gap<=0 旧早返会静默成交；改为必须接受催收优先受偿
+      if (gap <= 0 && opts.odLimit) {
+        let oc = opts.odChoice;
+        if (oc == null) {
+          try {
+            if (typeof UI !== 'undefined' && UI.card) {
+              oc = await UI.card(
+                TEXT_AUC48.loan.od_title,
+                fmt(TEXT_AUC48.loan.od_ask, { cur: cur }),
+                'npc_merchant',
+                [TEXT_AUC48.loan.od_yes, TEXT_AUC48.loan.od_no]
+              );
+            } else oc = 1;
+          } catch (e) { oc = 1; }
+        }
+        if (oc === -1) return { ok: false, reason: 'modal' };
+        if (oc !== 0) return { ok: false, reason: 'oddecline' };
+        return { ok: true, odAccepted: true };
+      }
       if (!hasLoan()) return { ok: false, reason: 'noloan' };
       // 逾期时 canBorrow 会失败 → blocked
       let choice = opts.loanChoice;
@@ -697,6 +738,16 @@
         return { ok: false, reason: 'none' };
       }
 
+      // 3.9.11 M2：选定物品后先算手续费并查灵石（含未付的入场笺），通过后再扣笺/AP/nCon
+      const base = (ITEMS[itemId] && ITEMS[itemId].p) | 0;
+      const reserve = Math.round(base * 0.8);
+      const fee = Math.max(1, Math.round(reserve * A.CON_FEE));
+      const entryFee = S.feePaid ? 0 : (A.FEE | 0);
+      if ((G.stone | 0) < entryFee + fee) {
+        toast(TEXT_AUC48.ui.nostone);
+        delete S.pend;
+        return { ok: false, reason: 'stone' };
+      }
       const feeR = this.payFee(G, S);
       if (!feeR.ok) { toast(TEXT_AUC48.ui.nostone); delete S.pend; return { ok: false, reason: 'fee' }; }
       if (!opts.skipAp) {
@@ -705,15 +756,6 @@
         S.nCon = (S.nCon | 0) + 1;
       }
 
-      const base = (ITEMS[itemId] && ITEMS[itemId].p) | 0;
-      const reserve = Math.round(base * 0.8);
-      const fee = Math.max(1, Math.round(reserve * A.CON_FEE));
-      if ((G.stone | 0) < fee) {
-        // 手续费不足：退 AP? 规格：扣了就不退；尽量先检查
-        toast(TEXT_AUC48.ui.nostone);
-        delete S.pend;
-        return { ok: false, reason: 'stone' };
-      }
       try {
         if (typeof Game !== 'undefined' && Game.take) Game.take(itemId, 1);
         else { G.inv[itemId] = (G.inv[itemId] | 0) - 1; if (G.inv[itemId] <= 0) delete G.inv[itemId]; }
@@ -858,10 +900,11 @@
       opts = opts || {};
       if (!G) return null;
       const S = this.ensure(G);
-      if (!S || !S.pend) return null;
+      if (!S || (!S.pend && !(S.pends && Object.keys(S.pends).length))) return null;
       if (A.off) return null;
       if (!opts.force && !this.canPopup()) return null;
-      const p = S.pend;
+      // 3.9.11 M3：主 pend 为空时从分键 pends 取第一条未决举牌
+      const p = S.pend || S.pends[Object.keys(S.pends)[0]];
       toast(TEXT_AUC48.toast.pend_restore);
       if (p.kind === 'bid' && p.lotId) {
         return await this.bid(G, p.lotId, { force: true, skipCap: true, skipAp: true, choice: opts.choice });
@@ -884,8 +927,8 @@
       if (!G || A.off) return null;
       const S = this.ensure(G);
       if (!S) return null;
-      // 先复 pend
-      if (S.pend && this.canPopup()) {
+      // 先复 pend（3.9.11 M3：分键 pends 有未决也复）
+      if ((S.pend || (S.pends && Object.keys(S.pends).length)) && this.canPopup()) {
         try { await this.restorePend(G, opts); } catch (e) { }
       }
       const yr = G.year | 0;
@@ -913,8 +956,9 @@
       return S;
     },
 
-    /** 打开面板 */
+    /** 打开面板（3.9.11 L3：动作入口同样验 off，不只靠渲染层隐藏） */
     openPanel() {
+      if (A.off) { toast(TEXT_AUC48.toast.off); return null; }
       try {
         if (typeof UI !== 'undefined' && UI.panel) return UI.panel('auc48');
       } catch (e) { }
@@ -1076,8 +1120,9 @@
       } catch (e) { }
 
       // Talk.extra → merchant / suanpan
+      // 3.9.11 L3：Talk.extra 为 undefined 时也安装包装，不再静默缺失入口
       try {
-        if (typeof Talk !== 'undefined' && Talk.extra && !Talk.extra._auc48) {
+        if (typeof Talk !== 'undefined' && Talk && (!Talk.extra || !Talk.extra._auc48)) {
           const _ex = Talk.extra;
           Talk.extra = function (id) {
             const out = [];
@@ -1123,7 +1168,7 @@
             try {
               if (!A.off && this.G) {
                 const S = API.ensure(this.G);
-                if (S && S.pend && API.canPopup()) {
+                if (S && (S.pend || (S.pends && Object.keys(S.pends).length)) && API.canPopup()) {
                   await API.restorePend(this.G);
                 } else if (id === 'market' || id === 'longgong' || id === 'guishi') {
                   const yr = this.G.year | 0;
