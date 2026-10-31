@@ -8,6 +8,15 @@
 - 规格偏差：无（按 §22 实装；寄拍流拍不退物同浅拍；loan42 缺席时垫资入口隐藏）。
 - 下一步：开 PR→main；等奥拉夫页测（§22.9 #11）。
 
+## 开放世界线 · 3.9.6 shi46 round 2：亲传功课·出师 UI + index（2026-10-31 00:49 UTC+8，Grok Bot）
+- 分支 `shi46-r2`（自 origin/main 9fd5388 / #77）：新 `www/js/shi46_ui.js` + `test/shi46_ui_unit.js`；`www/index.html` 接线；`test/shi46_unit.js` 改 index 断言（R1「不进」→ R2 已进）。
+- **UI（只包装）**：`UI.p_legacy26` 追加「亲传功课 · 出师」区块（功课/出师按钮）；亲传 `Talk.extra` 布置功课入口；年终/出师/回访卡走 `SHI46.*`；DevPanel「师徒46」（逻辑层已挂则不重复）。
+- **硬约束**：按钮 `onclick=` 赋值 + `_shi46ui` 已绑跳过（禁止重复 `addEventListener`）；`keepFnMarks` 重包；`Talk.extra` 上层归一 `[]`；守 `storyBlock`/`B.on`/`AUTO·AFK`；决策项不在 ux23 SAFE、不以「开始」起头。
+- 单测对抗：M 次 re-render 后点 N 次 → `_clicks===N`；同节点二次 `wireBlock` 跳过。
+- 文件：`www/js/shi46_ui.js`、`www/index.html`、`test/shi46_ui_unit.js`、`test/shi46_unit.js`、`PROGRESS.md`。未碰核心四件套；无 Chrome；未 push main。
+- node：shi46 **105/105**；shi46_ui **45/45**；validate22 errors []；test/*.js **30/30**。
+- 页测待做：功课上限、跨年/放养、出师、回访年度上限、storyBlock、off、包装链、human_olaf、点击不叠加。
+- 下一步：PR → main；普通 merge 入 openworld-wip；等奥拉夫页测。
 ## 开放世界线 · 3.9.7 qing47 R1 审修 HIGH/MEDIUM（PR #78）（2026-10-31 00:4x UTC+8，Grok Bot）
 - 分支 feat/qing47：合 origin/main（#76 sweep44-auto、#77 shi46；PROGRESS 双保留）。
 - **HIGH**：`UI.p_comps` 每次渲染不再 `addEventListener` 叠 click；改为 `b.onclick=` 赋值（同 `p_fam37`）。对抗：连渲 3 次后点叙旧 → `nEv`+1、`AP`−1。
