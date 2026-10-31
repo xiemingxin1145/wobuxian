@@ -4,7 +4,7 @@
 // 加载：index 在 memory45/sweep44(_ui) 之后、audio32 之前（无 shi46 时接 sweep44_ui）。
 'use strict';
 (function (W) {
-  const TEXT_QING47 = {"meta":{"id":"TEXT_QING47","ver":"3.9.7","module":"qing47.js","title":"道侣线深化·情缘循环","basedOn":["research_v22.md§20","fam37.spouse","events21.v_p_*","dongfu43.spouse","memory45.dao","items40.yuelao"]},"ui":{"sec":"情缘 · 道侣","bond":"情缘 {b}/100","knot":"心结 {k}/3","years":"结侣第 {n} 年","ev_btn":"💗 叙旧（1 行动力）","dx_btn":"☯ 并肩吐纳（1 行动力）","knot_btn":"⚡ 解开心结","away_btn":"🌙 打听行踪","ev_cap":"本年叙旧已满（{n}/{cap}）","dx_cap":"本年双修已满（{n}/{cap}）","dx_lock":"心结太重，吐纳乱了。先解开再并肩。","noap":"行动力不够。谈情也要花一季光阴。","away":"【{n}】云游中（自第 {y} 年）。双修与叙旧暂不可用。","empty":"尚未结为道侣。伙伴面板好感满、或门下家族求亲成功后，情缘线才会展开。","hint":"情缘值与好感分开计；旧年事卡仍可能出现，不冲突。"},"ev":{"title":"情缘·{name}","pool":[{"id":"tea","ask":"{n}斟了桃花酿：「还打算把天道电话拉黑吗？」","opts":[{"l":"拉黑，然后陪你看月","bond":6,"aff":2,"r":"{n}笑了。月色好，账单在抽屉里睡觉。"},{"l":"回一封「下个月一定」","bond":3,"r":"{n}摇头：「你啊。」却把杯子添满。"},{"l":"把话题转到利息表","bond":-2,"r":"气氛冷了半寸。酒还是甜的。"}]},{"id":"market","ask":"坊市口，{n}盯着同心结：「……我们要不要也买？」","opts":[{"l":"买，挂洞府梁上","bond":7,"stone":-50,"r":"梁上多了个结。讨债小鬼打了个喷嚏。"},{"l":"手已经够了","bond":5,"r":"{n}耳尖红了：「油嘴。」"},{"l":"太贵了","bond":-3,"r":"{n}自己买了个便宜的，没给你看。"}]},{"id":"letter","ask":"枕下纸条，字迹是{n}的：「今晚后山，有话讲。」","opts":[{"l":"准时去","bond":8,"r":"后山风大。{n}只说：「我在。」"},{"l":"闭关忘了","bond":-6,"knot":1,"r":"纸条粘在门上，多了一笔：「下次。」"},{"l":"回条：债催完就来","bond":2,"r":"{n}回：「那你快点。」"}]},{"id":"debtjoke","ask":"{n}推来纸鹤：「哪句骂天道比较文雅？」","opts":[{"l":"一起改诗","bond":6,"r":"改到天亮。最文雅的一句仍被退回。"},{"l":"劝别寄","bond":3,"r":"纸鹤最终寄给了月老。"},{"l":"署名写成讨债司","bond":-4,"karma":-2,"r":"翌日约谈函。情缘−。"}]},{"id":"cook","ask":"{n}围围裙：「今日下厨。你负责——不许还债。」","opts":[{"l":"老实切菜","bond":7,"r":"菜焦了一点。两人吃光了。"},{"l":"偷看利息表","bond":-5,"r":"勺子敲了你手背。"},{"l":"债单叠纸花摆盘","bond":4,"r":"{n}又好气又好笑。"}]},{"id":"rain","ask":"暴雨困破庙。{n}披来外裳：「修仙也会打喷嚏。」","opts":[{"l":"靠着坐到雨停","bond":8,"r":"雷声里谁也没提欠款。"},{"l":"运功分他/她一点","bond":5,"r":"两人干干的。雨还在下。"},{"l":"担心洞府漏雨先赶回去","bond":-3,"r":"{n}跟着跑，一路没说话。"}]},{"id":"gift","ask":"生辰将至。{n}说「随便」，眼睛却在看暖玉。","opts":[{"l":"买下暖玉","bond":9,"stone":-120,"r":"{n}握着暖玉，半天：「……谢。」"},{"l":"手写欠条当礼物（玩笑）","bond":-8,"knot":1,"r":"那一夜洞府特别安静。"},{"l":"炼一颗普通培元丹","bond":6,"r":"丹相平平，{n}收得像仙品。"}]},{"id":"spar","ask":"{n}提剑：「比划？输的人今年洗碗。」","opts":[{"l":"认真比","bond":5,"r":"平手。碗轮着洗。"},{"l":"故意输","bond":4,"r":"{n}看穿了，罚你洗一个月。"},{"l":"改比谁算账快","bond":3,"r":"你赢了。{n}说这不算。"}]}]},"dx":{"title":"并肩吐纳","ask":"你与【{n}】对坐，周天缓缓相合。\n（本年 {nDx}/{cap} · 心结降低成功率）","opt_ok":"运转周天","opt_cancel":"改日","ok":"灵息相交。修为松动一寸，情缘亦然。\n情缘 +{b}","fail":"气息岔了一下。{n}按住你手：「别急。」\n情缘 −{b}","toast_ok":"双修吐纳顺利。","toast_fail":"吐纳未成，未损根本。"},"knot":{"ask_title":"心结","ask":"{n}把茶杯放重了：「你是不是把我排在利息后面了？」","opt_sorry":"认错，今晚陪你（情缘+6）","opt_reason":"讲道理：修仙不能误（情缘−4，心结+1）","opt_cold":"先闭关，改日说（心结+1）","heal_ask":"你想试着解开与【{n}】的心结。","heal_ok":"话虽笨，但送到了。心结 −1，情缘 +4。","heal_fail":"{n}听完：「我知道了。」心结仍在。","toast_up":"你们之间多了一层未说完的话。","full":"心结已满。吐纳之门暂时关上。"},"jie":{"title":"共同历劫","ask":"天劫将至。你望向【{n}】：「要不要一起扛一下气氛？」","opt_yes":"请他/她在阵外护持","opt_no":"独自渡（不影响数值）","ok":"{n}在雷云下撑着破伞——伞是假的，人是真的。情缘 +10。","fail":"护持晚了半步。劫过了，伞湿了。","toast":"有人愿意站在雷边，比多一颗破境丹难得。"},"away":{"title":"小别离","ask":"【{n}】收拾包袱：「我想出去走走。不是散伙——是透透气。」","opt_stay":"挽留（认错，情缘+8）","opt_stone":"塞盘缠请留（灵石−200）","opt_let":"尊重，等你回来","gone":"{n}出了洞府。纸条：「账还是你的，心……你看着办。」","stayed":"{n}放下包袱：「……再给你一次机会。」","cd":"才别不久，再提云游太伤。"},"back":{"title":"回归","ask":"门外熟悉脚步。【{n}】风尘仆仆：「欠债人还在不在？」","opt_hug":"迎上去","opt_tea":"先沏茶，再说话","opt_cool":"淡淡点头","ok":"包袱落地。云游结束。情缘 +15，心结缓和。","fail":"{n}看了你一眼：「再过一阵。」茶还热。","toast":"道侣归家。梁上同心结晃了晃。"},"year":{"anniv_title":"结缘周年","anniv":"与【{n}】结侣第 {n} 年。天道没贺电，月老打了个喷嚏。","anniv_opt":"简单纪念一下","anniv_done":"点了一盏灯。债单在抽屉，灯在桌上。"},"tiandao":["天道备注：道侣联名担保持续生效。离婚不自动销账。","月老：红线不是网线，通话记录我这儿有备份。","讨债司家事科：恭喜周年。附件：夫妻共同债务告知书。","纸鹤：「双修顺利。利息照旧。」","孟婆：忘不掉的人，汤也救不了。记在情缘簿上吧。"],"dev":{"tab":"道侣47","hint":"情缘循环（G.qing47）。仅开发者模式。"},"toast":{"off":"道侣47 已关闭（QING47.off）。","need":"需要道侣才能展开情缘。","blocked":"此刻不宜谈情（序章/战斗/教程中）。"}};
+  const TEXT_QING47 = {"meta":{"id":"TEXT_QING47","ver":"3.9.7","module":"qing47.js","title":"道侣线深化·情缘循环","basedOn":["research_v22.md§20","fam37.spouse","events21.v_p_*","dongfu43.spouse","memory45.dao","items40.yuelao"]},"ui":{"sec":"情缘 · 道侣","bond":"情缘 {b}/100","knot":"心结 {k}/3","years":"结侣第 {n} 年","ev_btn":"💗 叙旧（1 行动力）","dx_btn":"☯ 并肩吐纳（1 行动力）","knot_btn":"⚡ 解开心结","away_btn":"🌙 打听行踪","ev_cap":"本年叙旧已满（{n}/{cap}）","dx_cap":"本年双修已满（{n}/{cap}）","dx_lock":"心结太重，吐纳乱了。先解开再并肩。","noap":"行动力不够。谈情也要花一季光阴。","away":"【{n}】云游中（自第 {y} 年）。双修与叙旧暂不可用。","empty":"尚未结为道侣。伙伴面板好感满、或门下家族求亲成功后，情缘线才会展开。","hint":"情缘值与好感分开计；旧年事卡仍可能出现，不冲突。"},"ev":{"title":"情缘·{name}","pool":[{"id":"tea","ask":"{n}斟了桃花酿：「还打算把天道电话拉黑吗？」","opts":[{"l":"拉黑，然后陪你看月","bond":6,"aff":2,"r":"{n}笑了。月色好，账单在抽屉里睡觉。"},{"l":"回一封「下个月一定」","bond":3,"r":"{n}摇头：「你啊。」却把杯子添满。"},{"l":"把话题转到利息表","bond":-2,"r":"气氛冷了半寸。酒还是甜的。"}]},{"id":"market","ask":"坊市口，{n}盯着同心结：「……我们要不要也买？」","opts":[{"l":"买，挂洞府梁上","bond":7,"stone":-50,"r":"梁上多了个结。讨债小鬼打了个喷嚏。"},{"l":"手已经够了","bond":5,"r":"{n}耳尖红了：「油嘴。」"},{"l":"太贵了","bond":-3,"r":"{n}自己买了个便宜的，没给你看。"}]},{"id":"letter","ask":"枕下纸条，字迹是{n}的：「今晚后山，有话讲。」","opts":[{"l":"准时去","bond":8,"r":"后山风大。{n}只说：「我在。」"},{"l":"闭关忘了","bond":-6,"knot":1,"r":"纸条粘在门上，多了一笔：「下次。」"},{"l":"回条：债催完就来","bond":2,"r":"{n}回：「那你快点。」"}]},{"id":"debtjoke","ask":"{n}推来纸鹤：「哪句骂天道比较文雅？」","opts":[{"l":"一起改诗","bond":6,"r":"改到天亮。最文雅的一句仍被退回。"},{"l":"劝别寄","bond":3,"r":"纸鹤最终寄给了月老。"},{"l":"署名写成讨债司","bond":-4,"karma":-2,"r":"翌日约谈函。情缘−。"}]},{"id":"cook","ask":"{n}围围裙：「今日下厨。你负责——不许还债。」","opts":[{"l":"老实切菜","bond":7,"r":"菜焦了一点。两人吃光了。"},{"l":"偷看利息表","bond":-5,"r":"勺子敲了你手背。"},{"l":"债单叠纸花摆盘","bond":4,"r":"{n}又好气又好笑。"}]},{"id":"rain","ask":"暴雨困破庙。{n}披来外裳：「修仙也会打喷嚏。」","opts":[{"l":"靠着坐到雨停","bond":8,"r":"雷声里谁也没提欠款。"},{"l":"运功分他/她一点","bond":5,"r":"两人干干的。雨还在下。"},{"l":"担心洞府漏雨先赶回去","bond":-3,"r":"{n}跟着跑，一路没说话。"}]},{"id":"gift","ask":"生辰将至。{n}说「随便」，眼睛却在看暖玉。","opts":[{"l":"买下暖玉","bond":9,"stone":-120,"r":"{n}握着暖玉，半天：「……谢。」"},{"l":"手写欠条当礼物（玩笑）","bond":-8,"knot":1,"r":"那一夜洞府特别安静。"},{"l":"炼一颗普通培元丹","bond":6,"r":"丹相平平，{n}收得像仙品。"}]},{"id":"spar","ask":"{n}提剑：「比划？输的人今年洗碗。」","opts":[{"l":"认真比","bond":5,"r":"平手。碗轮着洗。"},{"l":"故意输","bond":4,"r":"{n}看穿了，罚你洗一个月。"},{"l":"改比谁算账快","bond":3,"r":"你赢了。{n}说这不算。"}]}]},"dx":{"title":"并肩吐纳","ask":"你与【{n}】对坐，周天缓缓相合。\n（本年 {nDx}/{cap} · 心结降低成功率）","opt_ok":"运转周天","opt_cancel":"改日","ok":"灵息相交。修为松动一寸，情缘亦然。\n情缘 +{b}","fail":"气息岔了一下。{n}按住你手：「别急。」\n情缘 −{b}","toast_ok":"双修吐纳顺利。","toast_fail":"吐纳未成，未损根本。"},"knot":{"ask_title":"心结","ask":"{n}把茶杯放重了：「你是不是把我排在利息后面了？」","opt_sorry":"认错，今晚陪你（情缘+6）","opt_reason":"讲道理：修仙不能误（情缘−4，心结+1）","opt_cold":"先闭关，改日说（心结+1）","heal_ask":"你想试着解开与【{n}】的心结。","heal_ok":"话虽笨，但送到了。心结 −1，情缘 +4。","heal_fail":"{n}听完：「我知道了。」心结仍在。","toast_up":"你们之间多了一层未说完的话。","full":"心结已满。吐纳之门暂时关上。"},"jie":{"title":"共同历劫","ask":"天劫将至。你望向【{n}】：「要不要一起扛一下气氛？」","opt_yes":"请他/她在阵外护持","opt_no":"独自渡（不影响数值）","ok":"{n}在雷云下撑着破伞——伞是假的，人是真的。情缘 +10。","fail":"护持晚了半步。劫过了，伞湿了。","toast":"有人愿意站在雷边，比多一颗破境丹难得。"},"away":{"title":"小别离","ask":"【{n}】收拾包袱：「我想出去走走。不是散伙——是透透气。」","opt_stay":"挽留（认错，情缘+8）","opt_stone":"塞盘缠请留（灵石−200）","opt_let":"尊重，等你回来","gone":"{n}出了洞府。纸条：「账还是你的，心……你看着办。」","stayed":"{n}放下包袱：「……再给你一次机会。」","cd":"才别不久，再提云游太伤。"},"back":{"title":"回归","ask":"门外熟悉脚步。【{n}】风尘仆仆：「欠债人还在不在？」","opt_hug":"迎上去","opt_tea":"先沏茶，再说话","opt_cool":"淡淡点头","ok":"包袱落地。云游结束。情缘 +15，心结缓和。","fail":"{n}看了你一眼：「再过一阵。」茶还热。","toast":"道侣归家。梁上同心结晃了晃。"},"year":{"anniv_title":"结缘周年","anniv":"与【{n}】结侣第 {n} 年。天道没贺电，月老打了个喷嚏。","anniv_opt":"简单纪念一下","anniv_done":"点了一盏灯。债单在抽屉，灯在桌上。"},"tiandao":["天道备注：道侣联名担保持续生效。离婚不自动销账。","月老：红线不是网线，通话记录我这儿有备份。","讨债司家事科：恭喜周年。附件：夫妻共同债务告知书。","纸鹤：「双修顺利。利息照旧。」","孟婆：忘不掉的人，汤也救不了。记在情缘簿上吧。"],"dev":{"tab":"道侣47","hint":"情缘循环（G.qing47）。仅开发者模式。"},"toast":{"off":"道侣47 已关闭（QING47.off）。","need":"需要道侣才能展开情缘。","blocked":"此刻不宜谈情（序章/战斗/教程中）。","stone":"灵石不足，盘缠不够，这次留不下他/她。"}};
 
   // 校验：模块加载时 JSON 往返必须通过
   try { JSON.parse(JSON.stringify(TEXT_QING47)); } catch (e) { console.warn('[qing47] TEXT invalid', e); }
@@ -145,6 +145,7 @@
         S.lastAwayY = 0;
         S.pend = null;
         S.offHint = 0;
+        S._annivY = 0; // 3.9.11 M7：配偶变更清周年标记，新道侣当年可纪念
       }
       if (!S.id) {
         S.id = sp;
@@ -190,8 +191,10 @@
       G.qing47 = {
         v: 1, id: null, y0: 0, bond: 40, knot: 0, away: 0,
         y: G.year || 0, nEv: 0, nDx: 0, nJie: 0, nKnot: 0, nHeal: 0, affY: 0,
-        lastAwayY: 0, pend: null, offHint: 0
+        lastAwayY: 0, pend: null, offHint: 0, _annivY: 0 // 3.9.11 M7：与 reset 分支一致
       };
+      // 3.9.11 M7：清档/离婚同时清历劫标记，新档不再误触发
+      try { G._qing47Jie = 0; } catch (e) { }
     },
 
     storyBlock() {
@@ -282,7 +285,6 @@
         toast(TEXT_QING47.toast.blocked);
         return { ok: false, reason: 'block' };
       }
-      if (!opts.skipAp && !this.spendAP(Q.EV_AP)) return { ok: false, reason: 'ap' };
       const pool = (TEXT_QING47.ev && TEXT_QING47.ev.pool) || [];
       if (!pool.length) return { ok: false, reason: 'empty' };
       const ei = opts.evIndex != null ? (opts.evIndex % pool.length) : rollIndex(pool.length);
@@ -290,6 +292,10 @@
       const n = npcName(S.id);
       const ask = fmt(ev.ask, { n: n, name: n });
       const labels = (ev.opts || []).map(o => o.l);
+      // 3.9.11 L2：下标校验在计次/扣 AP 之前；显式 choice 先验，卡片返回后复验（含关闭 -1）
+      if (opts.choice != null && (!Number.isInteger(opts.choice) || opts.choice < 0 || opts.choice >= labels.length)) {
+        return { ok: false, reason: 'choice' };
+      }
       let choice = opts.choice;
       if (choice == null) {
         try {
@@ -298,7 +304,12 @@
           } else choice = 0;
         } catch (e) { choice = 0; }
       }
-      const opt = (ev.opts && ev.opts[choice]) || (ev.opts && ev.opts[0]) || { bond: 0, r: '……' };
+      if (!Number.isInteger(choice) || choice < 0 || choice >= labels.length) {
+        return { ok: false, reason: 'choice' };
+      }
+      // AP 在确认合法选项后才扣（与 doDx 对齐；旧流程先扣 AP 再弹卡）
+      if (!opts.skipAp && !this.spendAP(Q.EV_AP)) return { ok: false, reason: 'ap' };
+      const opt = ev.opts[choice];
       this.applyEvOpt(G, S, opt);
       S.nEv = (S.nEv || 0) + 1;
       try { if (typeof Game !== 'undefined' && Game.save) Game.save(); } catch (e) { }
@@ -433,13 +444,14 @@
       }
 
       // 共同历劫：破境年后标记 _qing47Jie
+      // 3.9.11 M6：被拦不清除 _qing47Jie，下次 yearTick 可重试（不新增 pend 消费点）
       if (G._qing47Jie && (S.bond || 0) >= 50 && (S.nJie || 0) === 0) {
         if (!this.canPopup() && !opts.force) S.pend = 'jie';
         else {
           await this.doJie(Object.assign({ force: !!opts.force }, opts.jieOpts || {}));
           out.jie = true;
+          G._qing47Jie = 0;
         }
-        G._qing47Jie = 0;
       }
 
       // 心结
@@ -471,9 +483,10 @@
       if (yrs > 1 && S.y0 && ((G.year - S.y0) % 1 === 0) && !S._annivY) {
         // 每年都可纪念；用 _annivY 防同岁重复
       }
+      // 3.9.11 M6：周年先验 canPopup 再写 _annivY，被拦不写、下次可重试
       if (S.y0 && G.year > S.y0 && S._annivY !== G.year) {
-        S._annivY = G.year;
         if (this.canPopup() || opts.force) {
+          S._annivY = G.year;
           const n = npcName(S.id);
           try {
             if (typeof UI !== 'undefined' && UI.card && !opts.silent) {
@@ -498,9 +511,11 @@
 
     async doKnotAsk(opts) {
       opts = opts || {};
+      if (Q.off) return { ok: false, reason: 'off' }; // 3.9.11 M8：force 不绕 off
       const G = Game.G; const S = this.ensure(G);
       if (!S) return { ok: false };
       if ((S.nKnot || 0) > 0 && !opts.force) return { ok: false, reason: 'cap' };
+      if (!opts.force && !this.canPopup()) return { ok: false, reason: 'block' }; // 3.9.11 L3
       const n = npcName(S.id);
       let c = opts.choice;
       if (c == null && !opts.silent) {
@@ -510,6 +525,7 @@
         } catch (e) { c = 0; }
       }
       if (c == null) c = 0;
+      if (!Number.isInteger(c) || c < 0 || c > 2) return { ok: false, reason: 'choice' }; // 3.9.11 L2
       S.nKnot = (S.nKnot || 0) + 1;
       if (c === 0) {
         this.addBond(S, 6);
@@ -565,10 +581,12 @@
 
     async doJie(opts) {
       opts = opts || {};
+      if (Q.off) return { ok: false, reason: 'off' }; // 3.9.11 M8：force 不绕 off
       const G = Game.G; const S = this.ensure(G);
       if (!S) return { ok: false };
       if ((S.nJie || 0) > 0 && !opts.force) return { ok: false, reason: 'cap' };
       if ((S.bond || 0) < 50 && !opts.force) return { ok: false, reason: 'bond' };
+      if (!opts.force && !this.canPopup()) return { ok: false, reason: 'block' }; // 3.9.11 L3
       const n = npcName(S.id);
       let c = opts.choice;
       if (c == null && !opts.silent) {
@@ -578,6 +596,7 @@
         } catch (e) { c = 0; }
       }
       if (c == null) c = 0;
+      if (!Number.isInteger(c) || c < 0 || c > 1) return { ok: false, reason: 'choice' }; // 3.9.11 L2
       S.nJie = (S.nJie || 0) + 1;
       if (c === 0) {
         // 护持成功叙事（不改雷劫数值）；forceOk 可指定
@@ -602,6 +621,7 @@
 
     async doAway(opts) {
       opts = opts || {};
+      if (Q.off) return { ok: false, reason: 'off' }; // 3.9.11 M8：force 不绕 off
       const G = Game.G; const S = this.ensure(G);
       if (!S) return { ok: false };
       if (this.isAway(S)) return { ok: false, reason: 'already' };
@@ -612,6 +632,7 @@
       }
       const cond = (S.bond || 0) < 25 || (S.knot || 0) >= 2;
       if (!cond && !opts.force) return { ok: false, reason: 'cond' };
+      if (!opts.force && !this.canPopup()) return { ok: false, reason: 'block' }; // 3.9.11 L3
       const n = npcName(S.id);
       let c = opts.choice;
       if (c == null && !opts.silent) {
@@ -621,6 +642,7 @@
         } catch (e) { c = 2; }
       }
       if (c == null) c = 2;
+      if (!Number.isInteger(c) || c < 0 || c > 2) return { ok: false, reason: 'choice' }; // 3.9.11 L2
       if (c === 0) {
         this.addBond(S, 8);
         if (!opts.silent) {
@@ -637,7 +659,9 @@
           }
           return { ok: true, stayed: true, stone: true };
         }
-        // 不够钱 → 当作放行
+        // 3.9.11 M9：灵石不足不再静默放行，toast 并拒绝，不写 away
+        toast(TEXT_QING47.toast.stone);
+        return { ok: false, reason: 'stone' };
       }
       // 放行：away=year，不 unpartner
       S.away = G.year || 1;
@@ -651,8 +675,10 @@
 
     async doBack(opts) {
       opts = opts || {};
+      if (Q.off) return { ok: false, reason: 'off' }; // 3.9.11 M8：force 不绕 off
       const G = Game.G; const S = this.ensure(G);
       if (!S || !this.isAway(S)) return { ok: false, reason: 'notaway' };
+      if (!opts.force && !this.canPopup()) return { ok: false, reason: 'block' }; // 3.9.11 L3
       const n = npcName(S.id);
       let c = opts.choice;
       if (c == null && !opts.silent) {
@@ -662,6 +688,7 @@
         } catch (e) { c = 0; }
       }
       if (c == null) c = 0;
+      if (!Number.isInteger(c) || c < 0 || c > 2) return { ok: false, reason: 'choice' }; // 3.9.11 L2
       // 回归成功：默认成功（已过 roll）；forceOk false 可失败
       let ok = opts.forceOk;
       if (ok == null) ok = true;
@@ -686,6 +713,7 @@
 
     /** 打听行踪（离别中） */
     async inquire() {
+      if (Q.off) return { ok: false, reason: 'off' }; // 3.9.11 M8 补：inquire 至少加 off 检查
       const G = Game.G; const S = this.ensure(G);
       if (!S || !this.isAway(S)) return { ok: false };
       toast(fmt(TEXT_QING47.ui.away, { n: npcName(S.id), y: S.away }));
@@ -754,14 +782,18 @@
                 const wrap = document.createElement('div');
                 wrap.innerHTML = API.panelHtml(Game.G);
                 while (wrap.firstChild) b.appendChild(wrap.firstChild);
-                // HIGH fix: assign onclick (replace), never stack addEventListener across re-renders
+                // 3.9.11 M5：照抄 p_fam37 模式，先存 prev、非 data-q47 时委托
+                const prev = b.onclick;
                 b.onclick = function (e) {
                   const t = e && e.target && e.target.closest && e.target.closest('[data-q47]');
-                  if (!t) return;
-                  if (e.stopPropagation) e.stopPropagation();
-                  API.onPanelClick(t).then(() => {
-                    try { UI.p_comps(b); } catch (e2) { }
-                  });
+                  if (t) {
+                    if (e.stopPropagation) e.stopPropagation();
+                    API.onPanelClick(t).then(() => {
+                      try { UI.p_comps(b); } catch (e2) { }
+                    });
+                    return;
+                  }
+                  if (typeof prev === 'function') return prev.call(this, e);
                 };
               }
             } catch (e) { console.warn('[qing47] p_comps', e); }
@@ -862,6 +894,7 @@
               if (this.G) {
                 // 新世无道侣；清掉残留
                 if (this.G.qing47) API.clear(this.G);
+                this.G._qing47Jie = 0; // 3.9.11 M7：newLife 包裹显式清历劫标记
               }
             } catch (e) { }
             return r;
