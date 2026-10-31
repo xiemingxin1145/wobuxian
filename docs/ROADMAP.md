@@ -92,6 +92,7 @@
 | 3.9.9 | ✅ 已合 main（PR #83，待页测发版） | 点按命中修复 pick49 + 寄拍流拍退物 S1 + 出师扣费 S2 · `03_spec_399.md` §23（见 workspace 审计报告） |
 | 3.9.10 | ✅ 已合 main（PR #84，待页测发版） | 宗门经营轻层 zong36 · `docs/research_v36.md` §5（元婴开山、被动建筑、弟子大比声望、声望换记名上限） |
 | 3.9.11 | ✅ 已合 main（PR #85，待页测发版） | 深审剩余中项分批修 M1–M13/L1–L3：auc48 网格年开拍/寄拍回滚/pend 分键/逾期催收同意关，qing47 p_comps 委托/周年与历劫被拦不消耗/残留清零/off 与下标校验，shi46 回访关闭不计次/年结 toast 不烧回访/换徒清状态/放养仅次年减帽 |
+| 4.0 | ✅ 已合 main（PR #PRNUM，待页测发版） | 收口版：主线终章收口核对——第十七章·雷部电费单、第十八章·剑仙的合同、终章（下）·南天门竣工验收 + 4 结局（ys_paid/ys_newdao/ys_auditor/jiaxiang）均已在 3.3.0 接入 www/js/content23.js，4.0 复核与 drafts/content23.js 的 diff 仅头注与结局仙界留存二选一，零新增剧情台词；VERSION 升到 4.0；未打 tag、未发 APK |
 | 2.3.1 | ⬜ 下一个 | 见 §3「2.3.1」 |
 | 2.4 | 🔧 分支 `v24-chars` 进行中 | 见 §3「2.4」 |
 | v2.5+ | 🟡 阶段 1/2 已签收并合入 `main`（合并提交 `61d2eba`）；阶段 3 未验收、未合并 | 阶段 1 仅是离线低模模型/预览，没有导入正式游戏资源；阶段 2 为 `www/prototypes/encounter/` 独立浏览器练习页，主人已签收最终 SHA `574ccede7ef8a730c8e9dd697dbd1be52828f372`。精确快照 CDP 合成触摸复测 8/8，浏览器/page/console/HTTP 错误 0；不是实体触屏或真机，也没有接入正式地图/战斗/存档。CI build-153 成功：HD APK 278,378,225 B、lite APK 47,716,509 B；相对 v2.3.0 稳定包各增加 37,164 B。HD APK 在 API 30/34 模拟器安装启动，自动试玩有推进；API 34 截图出现 Android 系统 Pixel Launcher 无响应对话框，游戏进程本身无 FATAL/ANR/JS 错误。预发布不替换稳定版 latest。未验收的阶段 3 债务事件代码仍在隔离工作区，未合入 `main`。 |
@@ -133,7 +134,7 @@
 1. **issue #5：自动任务不推进主线** · `design_feedback_v23.md` §B.4、`test/human_olaf.py` T9 · 在 5c35c70 上 3 分钟停在主线第 4 步（坊市查账，讨债鬼头子打不过 → “先去变强”要等两年/境界提升）；最新提交上 T9 13 秒就推进（4→5），说明依赖战斗随机性。验收：T9 连跑 5 次都过；打输后的“变强”循环在 3 分钟内重试 · ⬜
 2. **issue #5：T4 从远处点游走的 NPC 9/20** · 失败全是 “npc missing”：点完后 NPC 已走开。验收：T4 ≥18/20；先判断是 harness（取位置→点按之间 NPC 移动）还是游戏（点按瞬间判定用了旧位置）。可考虑：被点中的 NPC 立即停步（`talking`）、移动中 NPC 判定框加大 · ⬜
 3. **issue #5：controls 三项回归**（点地停在 3.6 格外、拖出摇杆区不走、第二指断开摇杆）· `d8ad146` 已修第二指/摇杆候选被顶掉；最新 `test/controls.py` 0 失败、human_olaf T13 通过。⚠ `test/controls.py` 现在把 NPC 隐藏后测纯移动；“点地附近有 NPC 时被放大的判定框吸走”这一点未单独覆盖，2.3.1 加一个带 NPC 的点地用例 · 🟡
-4. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（下）南天门竣工验收、4 结局** · `docs/research_v22.md` §7（台词）+ §8（MONS/技能/剑仙伙伴/难度自检）；草稿 `drafts/content23.js` 已写好技能/MONS/章节/对话/结局逻辑，需接入 `index.html`（放在 `content22.js` 之后、`ux23.js` 之前）并按 §8 校数值 · 验收：`node test/validate22.js` 0 错误；`test/multilife.py` 能从渡劫跑到新结局；旧存档在 `zhenshen` 正常；human23/human_olaf 不回退；自动任务不碰结局选项（加进 `UNSAFE`） · ⬜
+4. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（下）南天门竣工验收、4 结局** · `docs/research_v22.md` §7（台词）+ §8（MONS/技能/剑仙伙伴/难度自检）；草稿 `drafts/content23.js` 已写好技能/MONS/章节/对话/结局逻辑，需接入 `index.html`（放在 `content22.js` 之后、`ux23.js` 之前）并按 §8 校数值 · 验收：`node test/validate22.js` 0 错误；`test/multilife.py` 能从渡劫跑到新结局；旧存档在 `zhenshen` 正常；human23/human_olaf 不回退；自动任务不碰结局选项（加进 `UNSAFE`） · 🟡 4.0 核对收口：章节/结局/接线/旧档改道已在 main 实测齐全（3.3.0 接入、4.0 复核）；multilife 全程、human 回退、自动任务 UNSAFE 三项未在本轮实测，见 PROGRESS 4.0 条
 5. 发版前门禁照 `AGENTS.md` §5；发版同 2.3.0（合并 main → `VERSION` → 推 `v2.3.1` 标签）。
 
 ### 2.4（大版本）
@@ -141,7 +142,7 @@
 - **地图扩展**：地图从 22×22 扩大（桃花村→36、青云宗/天外天→32），总数 15+ 张，加世界地图（见下方 P2 #14 的细节）。验收：寻路/分块绘制性能在低端机可接受；追踪栏跨图寻路仍过 T7；存档兼容（旧坐标迁移）。
 
 ### P1（2.3.x）
-7. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（上）改渡劫圆满、终章（下）南天门竣工验收 + `tiandao3` 三阶段 + 结局判定 + `jiaxiang`** · `docs/research_v22.md` §4.4、§7（台词可直接抄进 `content23.js`）· `node test/validate22.js` 0 错误；`test/multilife.py` 从渡劫跑到飞升结局；旧存档在 `zhenshen` 时显示“需要渡劫期” · ⬜
+7. **主线补完：第十七章雷部电费单、第十八章剑仙的合同、终章（上）改渡劫圆满、终章（下）南天门竣工验收 + `tiandao3` 三阶段 + 结局判定 + `jiaxiang`** · `docs/research_v22.md` §4.4、§7（台词可直接抄进 `content23.js`）· `node test/validate22.js` 0 错误；`test/multilife.py` 从渡劫跑到飞升结局；旧存档在 `zhenshen` 时显示“需要渡劫期” · 🟡 4.0 核对收口：同上（终章（上）改渡劫圆满 realm 6、旧档 zhenshen 未完成电费章时改道 dianfei 已在代码中确认）；multilife 全程与 human 回退未在本轮实测，见 PROGRESS 4.0 条
 8. **新角色**：电母、龟丞相、过路财、黑无常、剑仙本相、天道完全体 · research §4.3.2、`docs/art_specs.md` 格式 · 精灵/头像进包；缺素材时回退而不是静默删除 · ⬜
 9. **立绘第 1 批 + 新对话框**（立绘站在对话框上方） · `design_feedback_v23.md` §E.4；`art/gen/NEEDED.md` · 12 位核心角色（主角男女各档、剑仙、娘、翠花、龙傲天、阿离、掌门、三娘、敖小白、算无遗、天道）有半身立绘，对话截图人工确认 · 🔧（已有 5 张 AI 插画）
 10. **分支剧情 v1**（还债/赖账/收购三路线） · §E.2 · 分歧卡出现；每线 1 专属章 + 1 结局；validate 0 错误 · ⬜
@@ -196,5 +197,6 @@
 4. 发版前跑完 `AGENTS.md` §5 的全部门禁（`test/human_olaf.py`、`test/human23.py`、`node test/validate22.js` 必须全过）。
 5. **收工前更新 `PROGRESS.md`（逐项勾选、写清卡点和下一步）和本文的状态列/已知问题**，然后提交。
 6. 新规格写成文档放 `docs/`（或在本文对应条目里写“规格在哪”），不要只留在聊天记录里。
+
 
 
