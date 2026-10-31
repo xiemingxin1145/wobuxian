@@ -49,20 +49,38 @@ function entHitRect(e) {
 }
 pickAt = function (sx, sy) {
   const [wx, wy] = s2w(sx, sy);
-  // 统一规则（摇杆区内外一样）：所有判定框/名字牌命中的人里，选“身体中心或名字牌中心”离点按位置最近的那个；怪要明显更近才选（不误触开战）
-  let best = null, bs = 1e9;
+  // 3.9.9 pick49（Issue #12）：名牌带不再加分；只有指引标记圆（★/!/ ?）保留优先；
+  // 身体命中胜过仅名牌/气泡命中；平局（分差 ≤15）按 i+j 更大者（画面在前）裁决；怪 +30 保留。
+  // 胖手指兜底与轨迹逻辑在主循环之后，原样不动。
+  const body = [], name = [];
   for (const e of R.ents) {
     if (e.hidden || e === R.player || e.gone || !(e.kind === 'npc' || e.kind === 'boss' || e.kind === 'mon')) continue;
     const r = entHitRect(e); const [ex, ey] = t2p(e.i, e.j); const sb = spriteBox(e.spr, e.s);
-    let hit = wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1, dp = 1e9;
-    if (e.label && e.kind !== 'mon') { const ty = ey - sb.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6; const mk = e.mark ? 50 : 0;
+    let hit = wx >= r.x0 && wx <= r.x1 && wy >= r.y0 && wy <= r.y1, dp = 1e9, ty = 0;
+    if (e.label && e.kind !== 'mon') { ty = ey - sb.h - 6 - (e.lift || 0); const hw = (e.label.length * 30 + 22) / 2 + 6; const mk = e.mark ? 50 : 0;
       if (Math.abs(wx - ex) <= hw && wy >= ty - 38 - mk && wy <= ty + 14) { hit = true; dp = Math.hypot(wx - ex, Math.max(0, wy - (ty - 12)) + Math.max(0, (ty - 38) - wy) * 0.3); } }
     if (!hit) continue;
     const cy = ey - (sb.h + (e.lift || 0)) / 2; const db = Math.hypot(wx - ex, Math.max(0, Math.abs(wy - cy) - sb.h * 0.3) * 0.8 + Math.min(Math.abs(wy - cy), sb.h * 0.3) * 0.25);
-    const sc = Math.min(db, dp - 25 /* 正点在名字牌/头顶标记上：明确就是点它（★ 指引常叠在别人身上） */) + (e.kind === 'mon' ? 30 : 0);
-    if (sc < bs) { bs = sc; best = { ent: e }; }
+    const inBody = wx >= ex - sb.w / 2 && wx <= ex + sb.w / 2 && wy >= ey - sb.h && wy <= ey;
+    let marker = 1e9;
+    if (e.label && (e.mark === '★' || e.mark === '!' || e.mark === '?')) { // engine.js 标记圆：圆心 ty-fs-34（npc/boss fs=30），半径 26；💬/… 气泡不优先
+      const fs = (e.kind === 'npc' || e.kind === 'boss') ? 30 : 22; const d = Math.hypot(wx - ex, wy - (ty - fs - 34));
+      if (d <= 26) marker = d;
+    }
+    (inBody ? body : name).push({ e, db, dp, marker });
   }
-  if (best) return best;
+  const markers = body.concat(name).filter(c => c.marker < 1e9);
+  if (markers.length) { markers.sort((a, b) => a.marker - b.marker); return { ent: markers[0].e }; }
+  const pool = body.length ? body : name;
+  if (pool.length) {
+    pool.sort((a, b) => {
+      const sa = Math.min(a.db, a.dp) + (a.e.kind === 'mon' ? 30 : 0), sb = Math.min(b.db, b.dp) + (b.e.kind === 'mon' ? 30 : 0);
+      if (Math.abs(sa - sb) > 15) return sa - sb;
+      return (b.e.i + b.e.j) - (a.e.i + a.e.j);
+    });
+    return { ent: pool[0].e };
+  }
+  let best = null; // 胖手指兜底（原样不动）
   let fd = UX.w(36);
   for (const e of R.ents) { if (e.hidden || (e.kind !== 'npc' && e.kind !== 'boss')) continue; const r = entHitRect(e); const d = Math.max(0, Math.hypot(wx - r.cx, wy - r.cy) - (r.x1 - r.x0) / 2); if (d < fd) { fd = d; best = { ent: e }; } }
   if (best) return best;
