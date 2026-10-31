@@ -54,6 +54,8 @@
         }
       } catch (e) {}
       try { if (typeof B !== 'undefined' && B && B.on) return 'battle'; } catch (e) {}
+      // 3.9.11 L3：备用 storyBlock 补 UI.modal（逻辑层 SHI46.storyBlock 本就有 modal 兜底）
+      try { if (typeof UI !== 'undefined' && UI && UI.modal) return 'modal'; } catch (e) {}
       return null;
     },
     canPopup() {
