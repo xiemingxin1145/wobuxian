@@ -292,7 +292,11 @@
     if (s.blockedGradHint == null) s.blockedGradHint = 0;
     if (s.pendYear == null) s.pendYear = 0;
     if (s.yearDone == null) s.yearDone = 0; // 本年是否已弹督导卡的年份标记
+    if (s.freeYear == null) s.freeYear = 0; // 3.9.11 M13：放养设定的年份，仅次年减帽
     if (s._apprenticeId === undefined) s._apprenticeId = G.apprentice || null;
+
+    // 旧档迁移：freeCut 由 applyYearStyle 写入时 yearDone 即设定年
+    if (s.freeCut && !s.freeYear && s.yearDone) s.freeYear = s.yearDone;
 
     // 亲传 id 变化（新收徒）→ 重置心境与本年功课
     const cur = G.apprentice || null;
@@ -303,16 +307,25 @@
       s.freeCut = 0;
       s.style = 'kind';
       s._apprenticeId = cur;
+      // 3.9.11 M12：换徒清年终状态（yearDone 取与当年不等的值），不继承旧徒督导/顺延
+      s.yearDone = (G.year || 0) - 1;
+      s.pendYear = 0;
+      s.freeYear = 0;
     } else if (!cur) {
       s._apprenticeId = null;
     }
 
     // 跨年功课计数归零。§20.4.1：上年选放养留下的 freeCut/style 跨年保留，
-    // 新年 hwCap 见 freeCut+yearDone!==year → cap=2；切换督导风格时由 applyYearStyle 重设。
+    // 新年 hwCap 见 freeCut+freeYear → 仅 freeYear+1 年 cap=2；切换督导风格时由 applyYearStyle 重设。
     const yr = G.year || 0;
     if (s.y !== yr) {
       s.y = yr;
       s.n = 0;
+    }
+    // 3.9.11 M13：放养减帽过期自动清
+    if (s.freeCut && s.freeYear && (G.year || 0) > (s.freeYear | 0) + 1) {
+      s.freeCut = 0;
+      s.freeYear = 0;
     }
     return s;
   }
@@ -323,8 +336,8 @@
     const s = ensure(G);
     if (!s) return SHI46.HW_CAP;
     // §20.4.1 / §20.4 规则3：放养设定当年 cap 仍为 HW_CAP（n 不清零、不绕开封顶）；
-    // 跨年后（yearDone !== G.year）freeCut=1 才把本年上限降为 2。yearDone 在 applyYearStyle 写入设定年。
-    if (s.style === 'free' && s.freeCut && (s.yearDone | 0) !== (G.year | 0)) {
+    // 3.9.11 M13：仅 freeYear+1 年 cap=2，过期自动清 freeCut（见 ensure），不再无限期泄漏。
+    if (s.style === 'free' && s.freeCut && (s.freeYear | 0) && (G.year | 0) === (s.freeYear | 0) + 1) {
       return Math.max(1, SHI46.HW_CAP - 1);
     }
     return SHI46.HW_CAP;
@@ -558,6 +571,7 @@
 
   /** 应用年终督导风格（逻辑）。style: strict|kind|free */
   function applyYearStyle(G, style) {
+    if (SHI46.off) return { ok: false, reason: 'off' }; // 3.9.11 L1：首行 off 守卫
     G = getG(G);
     if (!G || !G.apprentice) return { ok: false, reason: 'no_apprentice' };
     const s = ensure(G);
@@ -569,17 +583,20 @@
     if (style === 'strict') {
       s.mood = clamp((s.mood | 0) - 5, 0, 100);
       s.freeCut = 0;
+      s.freeYear = 0;
       toast(fill(TEXT_SHI46.year.toast_strict, { n: name }), '#ffc8a0');
     } else if (style === 'free') {
       s.mood = clamp((s.mood | 0) + 3, 0, 100);
       // §20.4.1：freeCut=1 标记「下一年功课上限 2」；设定当年 n 不清零、cap 仍 3（不绕开封顶）。
-      // yearDone 已写为本年 → hwCap 同年不降；跨年 yearDone!==year 后 cap=2。不在此重置 n。
+      // 3.9.11 M13：另记 freeYear=设定年，hwCap 仅 freeYear+1 年降为 2。
       s.freeCut = 1;
+      s.freeYear = G.year | 0;
       toast(fill(TEXT_SHI46.year.toast_free, { n: name }), '#c8ffd8');
     } else {
       s.style = 'kind';
       s.mood = clamp((s.mood | 0) + 8, 0, 100);
       s.freeCut = 0;
+      s.freeYear = 0;
       toast(fill(TEXT_SHI46.year.toast_kind, { n: name }), '#ffe8a0');
     }
     return { ok: true, style: s.style, mood: s.mood, freeCut: s.freeCut };
@@ -597,7 +614,10 @@
     if (!G.apprentice) return { ok: false, reason: 'no_apprentice' };
     const s = ensure(G);
     if ((G.age | 0) < 8 && !opts.forceAge) return { ok: false, reason: 'age' };
-    if (s.yearDone === (G.year | 0) && !opts.force) return { ok: false, reason: 'done' };
+    if (s.yearDone === (G.year | 0) && !opts.force) {
+      s.pendYear = 0; // 3.9.11 M12：当年已督导，残留顺延过期顺手清
+      return { ok: false, reason: 'done' };
+    }
 
     if (!opts.silent && !canPopup()) {
       s.pendYear = 1;
@@ -647,6 +667,8 @@
         null,
         [TEXT_SHI46.ally.opt_thank, TEXT_SHI46.ally.opt_ask, TEXT_SHI46.ally.opt_leave]
       );
+      // 3.9.11 M10：关闭/ESC（ch<0）或越界直接取消，不写 visitY、不烧年帽
+      if (ch < 0 || ch > 2) return { ok: false, reason: 'cancel' };
       opts.act = ch === 0 ? 'thank' : ch === 1 ? 'fight' : 'leave';
     }
     const act = opts.act || 'leave';
@@ -775,11 +797,10 @@
                   if (s && (this.G.age | 0) >= 8 && s.yearDone !== (this.G.year | 0)) {
                     await yearReview(this.G, {});
                   }
-                  // 盟友年结回访概率
+                  // 盟友年结回访概率（3.9.11 M11：toast 只提示，不写 visitY、不烧回访年帽）
                   if (s && s.ally && s.visitY !== (this.G.year | 0) && canPopup()) {
                     if (roll(SHI46.VISIT_P, 'qiyu')) {
                       toast(fill(TEXT_SHI46.ally.visit_toast, { n: s.ally.n || npcName(s.ally.id) }), '#c8e0ff');
-                      s.visitY = this.G.year | 0;
                     }
                   }
                 } else if (!SHI46.off && this.G) {
@@ -867,6 +888,7 @@
             } catch (e) {}
             return out;
           };
+          keepFnMarks(_ex, Talk.extra, '_shi46'); // 3.9.11 L3：上层 _ 标记不丢失
           Talk._shi46 = 1;
         }
       } catch (e) {}
