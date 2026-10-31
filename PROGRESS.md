@@ -1,3 +1,13 @@
+## 开放世界线 · 3.9.8 拍卖行 auc48（2026-10-31 00:5x UTC+8，Grok Bot）
+- 分支 `feat/auc48`（自最新 origin/main，含 #78 qing47）：新包装模块 `www/js/auc48.js`（天道拍卖行·聚宝阁深化）。
+- **玩法**：`GAP=3` 定期开拍鼓；本场 4 明拍 + 1 赌货；举牌/一口价/寄拍/捡漏；年帽 BID5/CON2/LEAK1；`G.auc48.pend` 防存档重掷；逾期小贷禁一口价并走 `Loan42.canBorrow`/`borrow` 垫资岔路。
+- **守卫**：`Game.roll`（kind=`qiyu`）；`canPopup` 守 `NPC37.storyBlock`/`B.on`/`UI.modal`；`Talk.extra` 非数组→`[]`；`keepFnMarks`；面板 `onclick=` 不叠 listener；选项文案不以「开始」起首；`AUC48.off`；老档 `G.v===2` 惰性 `ensure`；不升 `G.v`。
+- **接线**：`Talk.extra`（merchant/suanpan）→「🏛 天道拍卖行」；包 `yearEnd`/`enterMap`/`newLife`/`UI.p_auction`（顶栏链）；Dev「拍卖48」；`index`：`…→qing47→auc48→audio32`（避与 #79 shi46 冲突：本分支 main 尚无 shi46）。
+- 改动：`www/js/auc48.js`、`www/index.html`、`test/auc48_unit.js`、`PROGRESS.md`、`docs/ROADMAP.md`（3.9.8 🔍 in review）。**未碰**核心四件套 / market25 / loan42 正文。未跑 Chrome。
+- node：auc48 **68/68**；validate22 **errors []**；`test/*_unit.js` + good_rel_cap **25/25 ALL PASS**。
+- 规格偏差：无（按 §22 实装；寄拍流拍不退物同浅拍；loan42 缺席时垫资入口隐藏）。
+- 下一步：开 PR→main；等奥拉夫页测（§22.9 #11）。
+
 ## 开放世界线 · 3.9.6 shi46 round 2：亲传功课·出师 UI + index（2026-10-31 00:49 UTC+8，Grok Bot）
 - 分支 `shi46-r2`（自 origin/main 9fd5388 / #77）：新 `www/js/shi46_ui.js` + `test/shi46_ui_unit.js`；`www/index.html` 接线；`test/shi46_unit.js` 改 index 断言（R1「不进」→ R2 已进）。
 - **UI（只包装）**：`UI.p_legacy26` 追加「亲传功课 · 出师」区块（功课/出师按钮）；亲传 `Talk.extra` 布置功课入口；年终/出师/回访卡走 `SHI46.*`；DevPanel「师徒46」（逻辑层已挂则不重复）。
