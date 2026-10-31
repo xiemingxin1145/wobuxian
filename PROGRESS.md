@@ -1,3 +1,10 @@
+## 版本 · 3.9.9 pick49 + S1 + S2（2026-10-31，Muse）
+- 分支 `muse/399-pick49` → main（PR 号见合入记录）：只改 `www/js/ux23.js` 的 pickAt 评分与裁决段 + `www/js/auc48.js` 流拍退物 + `www/js/shi46.js` 出师扣费；不改 entHitRect、Game.onTap、UX.goTo、让位、life34、index 顺序；不新增 www/js 模块、不升 G.v、不新增存档字段；未碰核心四件套。
+- pick49（Issue #12）：名牌带加分 0、标记圆 ★/!/ ? 保留优先（圆心 ty−fs−34、半径 26，按 engine.js 实际值）、💬/… 气泡不优先、身体优先于名牌、平局分差 ≤15 按 i+j 更大者裁决、mon +30 保留、胖手指兜底与轨迹逻辑不动；新增 `test/pick49_unit.js`（从 ux23.js 源码抽取真实 pickAt/entHitRect/UX.sd,ovl 执行，V1/V3 旧版复现作参照）。
+- S1：auc48 寄拍流拍分支先 `Game.give(itemId,1)` 再返回（手续费不退）；S2：shi46 出师赠礼改为扣费——灵石先验 `G.stone>=amt` 再扣减，功法扣库存、不足返回 no_stone/no_scroll 且不改档（校验在清徒弟之前）。
+- 旧测试口径调整（修复本身改了既定行为，非回归）：shi46 §4 灵石贺仪断言由“+amt”改为“−amt”（用例补 stone:5000）；adv scroll 用例库存由 {} 改为 {scroll:1}、断言由“=1”改为“=0”。
+- node：pick49 **24/24**；auc48 **69/69**（+1 流拍退物）；shi46 **110/110**（+5：扣费/不足拒绝）；26 个 `*_unit.js` 全过；validate22 **errors []**；git 历史依赖 3 旧测试（good_rel_cap 11/12、stage3_chain 2 FAILED、battle_rt_proto FAILED 2）与基线失败数完全一致，不计入回归。未打 tag、未发 APK；页测（human_olaf：pick49 T4/T1/N2/★压身、shi46/qing47/auc48）仍待做。
+
 ## 版本 · 3.9.8 版本号（2026-10-31，Muse）
 - `VERSION` 3.9.5 → 3.9.8；拍卖行 auc48 已合 main（#81，接 #80；#80 因与 #79 顶部插入冲突无法直接合入，已注明取代并关闭）。
 - ROADMAP 状态同步：3.9.6 shi46 ✅ 已合 main（#77+#79）、3.9.7 qing47 ✅ 已合 main（#78）、3.9.8 auc48 ✅ 已合 main（#81）。
@@ -1000,3 +1007,4 @@
 - [x] 10-24 3.7.2：对话抉择 dlg37（PR #40 squash，含奥拉夫 3 条修正）；npc37 寻路判定加 R/R.player 空值保护；VERSION 3.7.2 + CHANGELOG；门禁：human_olaf N1 已知 flake，N2 一次被路遇卡抢点、单跑通过。
 - [x] 10-24 v3.7.2 已发布（对话抉择）。
 - [x] 10-24 3.7.3：NPC 自发事件（PR #42 squash）+ #48 fam37 已有道侣同步（Fixes #47）；VERSION 3.7.3 + CHANGELOG；门禁：human_olaf N2 门禁中被路遇卡抢点 1 次，单跑 8/8 通过。
+

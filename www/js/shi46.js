@@ -503,6 +503,10 @@
     }
     gift = gift || 'none';
 
+    // 3.9.9 S2 出师赠礼先验资再扣费：校验放在清徒弟/写 ally 之前，不足直接拒绝、不改档
+    if (gift === 'stone' && (G.stone | 0) < stoneAmt) return { ok: false, reason: 'no_stone' };
+    if (gift === 'scroll' && ((G.inv && G.inv.scroll) | 0) < 1) return { ok: false, reason: 'no_scroll' };
+
     const s = ensure(G);
     s.ally = { id, n: name, y0: G.year | 0, fightY: 0 };
     s.grad = (s.grad | 0) + 1;
@@ -524,14 +528,15 @@
     } catch (e) {}
 
     if (gift === 'stone') {
-      G.stone = (G.stone | 0) + stoneAmt;
+      G.stone = (G.stone | 0) - stoneAmt;
     } else if (gift === 'scroll') {
       try {
         const g = Gm();
-        if (g && typeof g.give === 'function') g.give('scroll', 1);
-        else { G.inv = G.inv || {}; G.inv.scroll = (G.inv.scroll | 0) + 1; }
+        if (g && typeof g.take === 'function') g.take('scroll', 1);
+        else if (g && typeof g.give === 'function') g.give('scroll', -1);
+        else { G.inv = G.inv || {}; G.inv.scroll = (G.inv.scroll | 0) - 1; if (G.inv.scroll <= 0) delete G.inv.scroll; }
       } catch (e) {
-        G.inv = G.inv || {}; G.inv.scroll = (G.inv.scroll | 0) + 1;
+        G.inv = G.inv || {}; G.inv.scroll = (G.inv.scroll | 0) - 1; if (G.inv.scroll <= 0) delete G.inv.scroll;
       }
     }
 

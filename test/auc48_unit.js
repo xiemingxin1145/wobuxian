@@ -338,6 +338,7 @@ const mkG = (o) => Object.assign({
     c.Game.roll = function (p) { this.rolls.push([p]); if (Math.abs(p - 0.55) < 1e-9) return false; return false; };
     const pass = await c.Auc48.consign(c.Game.G, { force: true, itemId: 'pyd', forceSold: false });
     ok(pass.ok && pass.result === 'pass' && pass.fee > 0, '寄拍流拍扣手续');
+    ok((c.Game.G.inv.pyd | 0) === 1, '3.9.9 S1 寄拍流拍退物（1→取走→退回 1）');
 
     c.Game.G.auc48.nCon = 0;
     c.Game.G.inv = { bill: 1 };

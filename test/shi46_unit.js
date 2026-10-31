@@ -165,7 +165,7 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     c = box2();
     const G = mkG({
       apprentice: 'lengyue', apprenticeLvl: 7, apprenticeTechs: { a: 1 },
-      aff: { lengyue: 90 }, realm: 3
+      aff: { lengyue: 90 }, realm: 3, stone: 5000
     });
     R(c, 'Game').G = G;
     R(c, 'SHI46.ensure(Game.G)').mood = 80;
@@ -183,7 +183,7 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     ok(G.shi46.ally && G.shi46.ally.id === 'lengyue' && G.shi46.grad === 1, '4 写入 ally / grad++');
     ok(G.aff.lengyue === 90, '4 aff +10 有上限内提升（80→90）');
     ok((R(c, 'Life34._rel.lengyue') || 0) === relBefore + 15, '4 Life34.rel +15');
-    ok(G.stone === stoneBefore + Math.min(2000, Math.round(1300 * 0.08)), '4 灵石贺仪 0.08×need cap2000');
+    ok(G.stone === stoneBefore - Math.min(2000, Math.round(1300 * 0.08)), '4 3.9.9 S2 灵石贺仪改为扣减 0.08×need cap2000');
     ok(R(c, 'Game.meta.shi46.totGrad') === 1, '4 meta.totGrad++');
   }
 
@@ -358,14 +358,34 @@ const asyncR = (c, s) => vm.runInContext(`(async () => { ${s} })()`, c);
     c = box2();
     const G = mkG({
       apprentice: 'cuihua', apprenticeLvl: 10, apprenticeTechs: { x: 1, y: 1 },
-      aff: { cuihua: 120 }, inv: {}
+      aff: { cuihua: 120 }, inv: { scroll: 1 }
     });
     R(c, 'Game').G = G;
     R(c, 'SHI46.ensure(Game.G)').mood = 100;
     const gr = await asyncR(c, "return await SHI46.graduate(Game.G, 'scroll', { silent: true });");
-    ok(gr.ok && (G.inv.scroll | 0) === 1, 'adv 出师赠 scroll');
+    ok(gr.ok && (G.inv.scroll | 0) === 0, 'adv 3.9.9 S2 出师赠功法改为扣库存（1→0）');
     const th = await asyncR(c, "return await SHI46.allyVisit(Game.G, { silent: true, act: 'thank' });");
     ok(th.ok && th.act === 'thank' && G.aff.cuihua >= 123, 'adv 勉励 aff+3');
+  }
+
+  // ---- 3.9.9 S2 出师扣费不足拒绝（校验在清徒弟之前，不改档）----
+  {
+    c = box2();
+    const G = mkG({
+      apprentice: 'cuihua', apprenticeLvl: 10, apprenticeTechs: { x: 1, y: 1 },
+      aff: { cuihua: 120 }, inv: {}, stone: 10
+    });
+    R(c, 'Game').G = G;
+    R(c, 'SHI46.ensure(Game.G)').mood = 100;
+    const r1 = await asyncR(c, "return await SHI46.graduate(Game.G, 'stone', { silent: true });");
+    ok(!r1.ok && r1.reason === 'no_stone', 'S2 灵石不足出师拒绝 no_stone');
+    ok(G.apprentice === 'cuihua' && (G.shi46.grad | 0) === 0, 'S2 灵石不足拒绝后徒弟/grad 不变');
+    const r2 = await asyncR(c, "return await SHI46.graduate(Game.G, 'scroll', { silent: true });");
+    ok(!r2.ok && r2.reason === 'no_scroll', 'S2 无功法库存出师拒绝 no_scroll');
+    ok(G.apprentice === 'cuihua', 'S2 功法不足拒绝后徒弟不变');
+    G.stone = 5000;
+    const r3 = await asyncR(c, "return await SHI46.graduate(Game.G, 'stone', { silent: true });");
+    ok(r3.ok && G.stone < 5000, 'S2 灵石充足时出师成功并扣费');
   }
 
   // ---- wire 幂等 / DevTab ----
