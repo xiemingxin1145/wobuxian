@@ -123,13 +123,21 @@ CHAINS = [
             {"effects": {"aff": {"wounded": 5}}, "next": None},
         ],
     },
+    {
+        "id": "pomiao_beggar_1",
+        "choices": [
+            {"effects": {"debt": 5, "aff": {"beggar": 15}}, "next": None},
+            {"effects": {"debt": 0, "aff": {"beggar": 8}}, "next": None},
+            {"effects": {"aff": {"beggar": -5}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0, "beggar": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -251,6 +259,20 @@ def main() -> None:
     assert s["debt"] == 85, s  # 80 +5
     assert s["aff"]["wounded"] == 10, s
     passed("夜雨破庙只给药草：债务 85，好感 10")
+
+    # Path O: beggar give spirit stones
+    s = apply_path("pomiao_beggar_1", [0])
+    assert s["current"] is None
+    assert s["debt"] == 85, s  # 80 +5
+    assert s["aff"]["beggar"] == 15, s
+    passed("破庙乞丐给灵石：债务 85，好感 15")
+
+    # Path P: beggar give food
+    s = apply_path("pomiao_beggar_1", [1])
+    assert s["current"] is None
+    assert s["debt"] == 80, s  # 80 +0
+    assert s["aff"]["beggar"] == 8, s
+    passed("破庙乞丐给干粮：债务 80，好感 8")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
