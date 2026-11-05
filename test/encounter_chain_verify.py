@@ -131,13 +131,21 @@ CHAINS = [
             {"effects": {"aff": {"beggar": -5}}, "next": None},
         ],
     },
+    {
+        "id": "jiantong_1",
+        "choices": [
+            {"effects": {"debt": -5, "aff": {"jiantong": 20}}, "next": None},
+            {"effects": {"debt": 10, "aff": {"jiantong": 10}}, "next": None},
+            {"effects": {"aff": {"jiantong": -10}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0, "beggar": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0, "beggar": 0, "jiantong": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -273,6 +281,20 @@ def main() -> None:
     assert s["debt"] == 80, s  # 80 +0
     assert s["aff"]["beggar"] == 8, s
     passed("破庙乞丐给干粮：债务 80，好感 8")
+
+    # Path Q: jiantong guide
+    s = apply_path("jiantong_1", [0])
+    assert s["current"] is None
+    assert s["debt"] == 75, s  # 80 -5
+    assert s["aff"]["jiantong"] == 20, s
+    passed("剑童问路指路：债务 75，好感 20")
+
+    # Path R: jiantong give stones
+    s = apply_path("jiantong_1", [1])
+    assert s["current"] is None
+    assert s["debt"] == 90, s  # 80 +10
+    assert s["aff"]["jiantong"] == 10, s
+    passed("剑童问路给灵石：债务 90，好感 10")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
