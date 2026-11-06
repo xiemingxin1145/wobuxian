@@ -1,3 +1,8 @@
+## 开放世界线 · 低模接入即时战试炼场对比手感（2026-11-06，Grok Bot）
+- 分支 openworld-wip：`www/js/dev_openworld.js` 开发者入口懒加载增加 `lowpoly_box_chars.js`；「即时战」按钮询问是否用方块低模皮肤（skin:'box'，默认 jianxiu），取消则原精灵。仅开发者入口，不改正式加载链 / 不改核心。
+- 仍不接入正式战斗结算 / 不改存档。
+- 下一步：主人试打对比手感，或继续扩展低模角色进战斗 / 随机奇遇链。
+
 ## 开放世界线 · 奇遇链路径断言：剑童问路两条（2026-11-05，Grok Bot）
 - 分支 openworld-wip：`test/encounter_chain_verify.py` 补上剑童问路最小链两条路径断言（指路债务-5好感+20 / 给灵石债务+10好感+10）。docs/encounter_chain_draft.md 同步。
 - 仍不接入正式加载链 / 不改核心。
