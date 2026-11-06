@@ -314,6 +314,11 @@
   }
 
   const API = { CHARS, build, draw, angleFromFace, poseOffset, ids: Object.keys(CHARS), ATTACH, SLOT_BUDGET, triCount, sockets, dressParts, hasGlow, GLOW_AW, GLOW_PAD };
+  // 2026-11-06：若页面也加载了 lowpoly_extra_chars.js，合并进 CHARS，供即时战 box 皮肤试用更多角色
+  if (typeof window !== 'undefined' && window.LowpolyExtra) {
+    Object.assign(CHARS, window.LowpolyExtra);
+    API.ids = Object.keys(CHARS);
+  }
   if (typeof window !== 'undefined') window.LowpolyBox = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })();
