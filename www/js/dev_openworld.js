@@ -26,7 +26,7 @@
 //   点开一个按钮面板（#dow-open 打开 #dow-panel，按钮 id = dow-<key>）。非开发者模式不出现；宿主 mount() 过就隐藏。
 
 (function () {
-  const SCRIPTS = ['js/battle_realtime_prototype.js', 'js/stage3_encounter_draft.js', 'js/lowpoly_box_chars.js'];
+  const SCRIPTS = ['js/battle_realtime_prototype.js', 'js/stage3_encounter_draft.js', 'js/lowpoly_box_chars.js', 'js/lowpoly_extra_chars.js'];
   // game.js / ui.js 用顶层 `const Game` / `const UI` 声明：是全局词法绑定，不挂在 window 上（window.Game 恒为 undefined），必须用 typeof 取
   const gameObj = () => (typeof Game !== 'undefined' && Game ? Game : null);
   const uiObj = () => (typeof UI !== 'undefined' && UI ? UI : null);
