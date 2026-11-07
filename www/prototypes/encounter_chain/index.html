@@ -61,7 +61,7 @@ const CHAINS = [
   {
     id: 'wander_cultivator_1',
     title: '云游散修',
-    text: '路边坐着个衣衫襟裑的散修，抬眼道：“道友可借我十两灵石？来日必有厚报。”',
+    text: '路边坐着个衣衫襟裱的散修，抬眼道：“道友可借我十两灵石？来日必有厚报。”',
     choices: [
       { text: '借给他', effects: { debt: +10, aff: { wanderer: 20 } }, next: 'wander_cultivator_2_lend' },
       { text: '婉拒', effects: { aff: { wanderer: -5 } }, next: null },
@@ -194,6 +194,16 @@ const CHAINS = [
       { text: '给些灵石买饭', effects: { debt: +10, aff: { jiantong: 10 } }, next: null },
       { text: '无视走开', effects: { aff: { jiantong: -10 } }, next: null }
     ]
+  },
+  {
+    id: 'yaotong_1',
+    title: '药童采药',
+    text: '山脚药童抱着篮子：“少侠，这丛灵草被毒虫占了，能帮我驱一驱吗？”',
+    choices: [
+      { text: '帮忙驱虫', effects: { debt: -8, aff: { yaotong: 18 } }, next: null },
+      { text: '给些灵石买草', effects: { debt: +6, aff: { yaotong: 8 } }, next: null },
+      { text: '无视走开', effects: { aff: { yaotong: -6 } }, next: null }
+    ]
   }
 ];
 
@@ -205,13 +215,14 @@ const STARTS = [
   { id: 'debt_collector_1', label: '催债使者' },
   { id: 'night_temple_1', label: '夜雨破庙' },
   { id: 'pomiao_beggar_1', label: '破庙乞丐' },
-  { id: 'jiantong_1', label: '剑童问路' }
+  { id: 'jiantong_1', label: '剑童问路' },
+  { id: 'yaotong_1', label: '药童采药' }
 ];
 
-let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0 }, current: 'debt_merchant_1' };
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0 }, current: 'debt_merchant_1' };
 
 function startChain(id) {
-  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0 }, current: id };
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0 }, current: id };
   renderSwitch();
   render();
 }
@@ -230,7 +241,7 @@ function render() {
   const app = document.getElementById('app');
   const chain = CHAINS.find(c => c.id === state.current);
   if (!chain) {
-    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button><button class="choice" onclick="startChain('pomiao_beggar_1')">重新开始（乞丐）</button><button class="choice" onclick="startChain('jiantong_1')">重新开始（剑童）</button></div>`;
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button><button class="choice" onclick="startChain('pomiao_beggar_1')">重新开始（乞丐）</button><button class="choice" onclick="startChain('jiantong_1')">重新开始（剑童）</button><button class="choice" onclick="startChain('yaotong_1')">重新开始（药童）</button></div>`;
     return;
   }
   const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';

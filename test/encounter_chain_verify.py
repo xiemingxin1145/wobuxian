@@ -139,13 +139,21 @@ CHAINS = [
             {"effects": {"aff": {"jiantong": -10}}, "next": None},
         ],
     },
+    {
+        "id": "yaotong_1",
+        "choices": [
+            {"effects": {"debt": -8, "aff": {"yaotong": 18}}, "next": None},
+            {"effects": {"debt": 6, "aff": {"yaotong": 8}}, "next": None},
+            {"effects": {"aff": {"yaotong": -6}}, "next": None},
+        ],
+    },
 ]
 
 
 def apply_path(start: str, choice_indices: list[int]) -> dict:
     """Replay a sequence of choice indices from a start node."""
     by_id = {c["id"]: c for c in CHAINS}
-    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0, "beggar": 0, "jiantong": 0}, "current": start}
+    state = {"debt": 80, "aff": {"merchant": 0, "wanderer": 0, "farmer": 0, "blackmarket": 0, "collector": 0, "wounded": 0, "beggar": 0, "jiantong": 0, "yaotong": 0}, "current": start}
     for idx in choice_indices:
         node = by_id.get(state["current"])
         if node is None:
@@ -295,6 +303,20 @@ def main() -> None:
     assert s["debt"] == 90, s  # 80 +10
     assert s["aff"]["jiantong"] == 10, s
     passed("剑童问路给灵石：债务 90，好感 10")
+
+    # Path S: yaotong help drive bugs
+    s = apply_path("yaotong_1", [0])
+    assert s["current"] is None
+    assert s["debt"] == 72, s  # 80 -8
+    assert s["aff"]["yaotong"] == 18, s
+    passed("药童采药帮忙驱虫：债务 72，好感 18")
+
+    # Path T: yaotong give stones
+    s = apply_path("yaotong_1", [1])
+    assert s["current"] is None
+    assert s["debt"] == 86, s  # 80 +6
+    assert s["aff"]["yaotong"] == 8, s
+    passed("药童采药给灵石：债务 86，好感 8")
 
     print(f"SUMMARY {len(checks)}/{len(checks)} path assertions passed")
     print(f"RESULT PASS={len(checks)} FAIL=0 EXIT_CODE=0")
