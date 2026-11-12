@@ -207,79 +207,15 @@ const CHAINS = [
   },
   {
     id: 'chaguan_1',
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
     title: '茶馆讨茶资',
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
     text: '茶馆老板笑咱咱走出来：“少侠，上回茶资还挂着呢，这回讨一下？”',
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
     choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
-    choices: [
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
       { text: '付清茶资', effects: { debt: -12, aff: { chaguan: 15 } }, next: null },
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
       { text: '推说下回定', effects: { debt: +8, aff: { chaguan: -8 } }, next: null },
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
       { text: '无视走开', effects: { aff: { chaguan: -10 } }, next: null }
-  ,
+    ]
+  }
+
   {
     id: 'tiejiang_1',
     title: '铁匠打欠条',
@@ -289,20 +225,7 @@ const CHAINS = [
       { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
       { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
     ]
-  }
-    ]
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
-  }
+  },
 ];
 
 const STARTS = [
@@ -315,31 +238,9 @@ const STARTS = [
   { id: 'pomiao_beggar_1', label: '破庙乞丐' },
   { id: 'jiantong_1', label: '剑童问路' },
   { id: 'yaotong_1', label: '药童采药' },
-  { id: 'chaguan_1', label: '茶馆讨茶资' }
-  { id: 'tiejiang_1', label: '铁匠打欠条' },
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
+  { id: 'chaguan_1', label: '茶馆讨茶资' },
+  { id: 'tiejiang_1', label: '铁匠打欠条' }
 ];
-  ,
-  {
-    id: 'tiejiang_1',
-    title: '铁匠打欠条',
-    text: '铁匠铺前，老板抬起铁锤：“少侠，上回修剑的欠条还在，这回补一下？”',
-    choices: [
-      { text: '付清欠条', effects: { debt: -15, aff: { tiejiang: 12 } }, next: null },
-      { text: '推说下回定', effects: { debt: +10, aff: { tiejiang: -6 } }, next: null },
-      { text: '无视走开', effects: { aff: { tiejiang: -8 } }, next: null }
-    ]
-  }
 
 let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0 }, current: 'debt_merchant_1' };
 
