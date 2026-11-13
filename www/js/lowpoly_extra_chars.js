@@ -259,6 +259,19 @@
       ['hammer', 20, 10, 30, 6, 8, 16, '#a08060', 'sword'],
       ['anvil', -12, 2, 24, 10, 6, 6, '#6a6a6a', ''],
     ] },
+    yufu: { name: '渔夫', parts: [
+      ['legL', -6, 0, 7, 7, 7, 15, '#3a4a5a', 'legL'],
+      ['legR', 6, 0, 7, 7, 7, 15, '#3a4a5a', 'legR'],
+      ['body', 0, 0, 26, 20, 13, 22, '#4a6a7a', ''],
+      ['armL', -14, 0, 28, 6, 6, 16, '#4a6a7a', 'armL'],
+      ['armR', 14, 0, 28, 6, 6, 16, '#4a6a7a', 'armR'],
+      ['head', 0, 0, 50, 22, 20, 20, '#e0c8a8', ''],
+      ['hat', 0, -2, 62, 26, 24, 6, '#5a6a4a', ''],
+      ['net', 0, -6, 38, 12, 4, 10, '#6a8a6a', ''],
+      ['eyeL', -5, 10, 50, 3, 1, 4, '#1a1a22', ''],
+      ['eyeR', 5, 10, 50, 3, 1, 4, '#1a1a22', ''],
+      ['rod', 16, 8, 26, 2, 20, 2, '#8a6a4a', 'sword'],
+    ] },
   };
   if (typeof window !== 'undefined') window.LowpolyExtra = CHARS;
   if (typeof module !== 'undefined' && module.exports) module.exports = CHARS;
