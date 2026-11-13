@@ -1,3 +1,9 @@
+## 开放世界线 · 低模样例：渔夫；渔夫借船最小奇遇链（2026-11-13，Grok Bot）
+- 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「渔夫」（网罩+竹竿+笋帽，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全渔夫。
+- `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「渔夫借船」（还船并给鱼钱 / 推说下回定 / 无视，影响债务/好感），并修正铁匠链前缺逗号。docs/encounter_chain_draft.md 与 openworld_upgrade.md 同步。
+- 仍不接入正式加载链 / 不改核心。
+- 下一步：主人试打对比低模手感，或给渔夫链加路径断言，或继续扩展低模角色进战斗。
+
 ## 开放世界线 · 低模样例：铁匠；铁匠打欠条最小奇遇链（2026-11-12，Grok Bot）
 - 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「铁匠」（围裙+铁锤+砧，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全铁匠。
 - `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「铁匠打欠条」（付清欠条 / 推说下回定 / 无视，影响债务/好感）。docs/encounter_chain_draft.md 同步。
