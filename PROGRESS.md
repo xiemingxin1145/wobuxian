@@ -1,3 +1,9 @@
+## 开放世界线 · 低模样例：客栈老板；客栈讨房钱最小奇遇链（2026-11-15，Grok Bot）
+- 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「客栈老板」（围裙+钥匙+账本+灯笼，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全客栈老板。
+- `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「客栈讨房钱」（付清房钱 / 推说下回定 / 无视，影响债务/好感）。docs/encounter_chain_draft.md 同步。
+- 仍不接入正式加载链 / 不改核心。
+- 下一步：主人试打对比低模手感，或给客栈/书生链加路径断言，或继续扩展低模角色进战斗。
+
 ## 开放世界线 · 低模样例：书生；书生求字最小奇遇链（2026-11-14，Grok Bot）
 - 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「书生」（书+笔+笋帽，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全书生。
 - `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「书生求字」（借纸笔并代写 / 只给灵石买纸 / 无视，影响债务/好感）。docs/encounter_chain_draft.md 同步。

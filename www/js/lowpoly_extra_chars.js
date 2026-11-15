@@ -286,6 +286,21 @@
       ['eyeL', -5, 10, 50, 3, 1, 4, '#1a1a22', ''],
       ['eyeR', 5, 10, 50, 3, 1, 4, '#1a1a22', ''],
     ] },
+    kezhan: { name: '客栈老板', parts: [
+      ['legL', -6, 0, 7, 8, 8, 15, '#4a3a2a', 'legL'],
+      ['legR', 6, 0, 7, 8, 8, 15, '#4a3a2a', 'legR'],
+      ['body', 0, 0, 26, 24, 15, 24, '#7a5a3a', ''],
+      ['apron', 0, 0, 28, 26, 16, 20, '#e8d0b0', ''],
+      ['armL', -15, 0, 28, 7, 7, 16, '#7a5a3a', 'armL'],
+      ['armR', 15, 0, 28, 7, 7, 16, '#7a5a3a', 'armR'],
+      ['head', 0, 0, 52, 24, 22, 22, '#f0d8c0', ''],
+      ['hat', 0, -1, 64, 28, 26, 7, '#5a4a2a', ''],
+      ['key', 12, 4, 30, 4, 2, 6, '#c0a060', ''],
+      ['ledger', -12, 6, 26, 8, 3, 10, '#e0d0a0', ''],
+      ['eyeL', -5, 10, 52, 3, 1, 4, '#1a1a22', ''],
+      ['eyeR', 5, 10, 52, 3, 1, 4, '#1a1a22', ''],
+      ['lantern', 16, 8, 28, 5, 5, 8, '#f0c070', 'sword'],
+    ] },
   };
   if (typeof window !== 'undefined') window.LowpolyExtra = CHARS;
   if (typeof module !== 'undefined' && module.exports) module.exports = CHARS;
