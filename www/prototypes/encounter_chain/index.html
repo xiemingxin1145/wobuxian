@@ -255,6 +255,26 @@ const CHAINS = [
       { text: '无视走开', effects: { aff: { kezhan: -8 } }, next: null }
     ]
   },
+  {
+    id: 'daoshi_1',
+    title: '道士化缘',
+    text: '山路旁一个道士抬着法杖：“少侠，给点香火钱，可保你路上平安。”',
+    choices: [
+      { text: '给香火钱', effects: { debt: -6, aff: { daoshi: 16 } }, next: null },
+      { text: '推说下回定', effects: { debt: +5, aff: { daoshi: -4 } }, next: null },
+      { text: '无视走开', effects: { aff: { daoshi: -7 } }, next: null }
+    ]
+  },
+  {
+    id: 'shanzei_1',
+    title: '山贼拦路',
+    text: '山口跳出个山贼抬刀：“交财不过，少侠带了多少灵石？”',
+    choices: [
+      { text: '给一些灵石', effects: { debt: +12, aff: { shanzei: -10 } }, next: null },
+      { text: '硬拒并试探', effects: { debt: -5, aff: { shanzei: 8 } }, next: null },
+      { text: '无视绕路', effects: { aff: { shanzei: -5 } }, next: null }
+    ]
+  },
 ];
 
 const STARTS = [
@@ -271,13 +291,15 @@ const STARTS = [
   { id: 'tiejiang_1', label: '铁匠打欠条' },
   { id: 'yufu_1', label: '渔夫借船' },
   { id: 'shusheng_1', label: '书生求字' },
-  { id: 'kezhan_1', label: '客栈讨房钱' }
+  { id: 'kezhan_1', label: '客栈讨房钱' },
+  { id: 'daoshi_1', label: '道士化缘' },
+  { id: 'shanzei_1', label: '山贼拦路' }
 ];
 
-let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0 }, current: 'debt_merchant_1' };
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0 }, current: 'debt_merchant_1' };
 
 function startChain(id) {
-  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0 }, current: id };
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0 }, current: id };
   renderSwitch();
   render();
 }
@@ -296,7 +318,7 @@ function render() {
   const app = document.getElementById('app');
   const chain = CHAINS.find(c => c.id === state.current);
   if (!chain) {
-    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button><button class="choice" onclick="startChain('pomiao_beggar_1')">重新开始（乏丐）</button><button class="choice" onclick="startChain('jiantong_1')">重新开始（剑童）</button><button class="choice" onclick="startChain('yaotong_1')">重新开始（药童）</button><button class="choice" onclick="startChain('chaguan_1')">重新开始（茶馆）</button><button class="choice" onclick="startChain('tiejiang_1')">重新开始（铁匠）</button><button class="choice" onclick="startChain('yufu_1')">重新开始（渔夫）</button><button class="choice" onclick="startChain('shusheng_1')">重新开始（书生）</button><button class="choice" onclick="startChain('kezhan_1')">重新开始（客栈）</button></div>`;
+    app.innerHTML = `<div class="card"><h2>链条结束</h2><p>最终债务：${state.debt}，好感：${Object.entries(state.aff).map(([k,v])=>k+':'+v).join('　')}</p><button class="choice" onclick="startChain('debt_merchant_1')">重新开始（贩子）</button><button class="choice" onclick="startChain('wander_cultivator_1')">重新开始（散修）</button><button class="choice" onclick="startChain('herb_farmer_1')">重新开始（药农）</button><button class="choice" onclick="startChain('black_market_1')">重新开始（黑市）</button><button class="choice" onclick="startChain('debt_collector_1')">重新开始（使者）</button><button class="choice" onclick="startChain('night_temple_1')">重新开始（破庙）</button><button class="choice" onclick="startChain('pomiao_beggar_1')">重新开始（乏丐）</button><button class="choice" onclick="startChain('jiantong_1')">重新开始（剑童）</button><button class="choice" onclick="startChain('yaotong_1')">重新开始（药童）</button><button class="choice" onclick="startChain('chaguan_1')">重新开始（茶馆）</button><button class="choice" onclick="startChain('tiejiang_1')">重新开始（铁匠）</button><button class="choice" onclick="startChain('yufu_1')">重新开始（渔夫）</button><button class="choice" onclick="startChain('shusheng_1')">重新开始（书生）</button><button class="choice" onclick="startChain('kezhan_1')">重新开始（客栈）</button><button class="choice" onclick="startChain('daoshi_1')">重新开始（道士）</button><button class="choice" onclick="startChain('shanzei_1')">重新开始（山贼）</button></div>`;
     return;
   }
   const affLines = Object.entries(state.aff).map(([k, v]) => `${k}：${v}`).join(' 　') || '无';
