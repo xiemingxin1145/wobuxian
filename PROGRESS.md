@@ -1,3 +1,9 @@
+## 开放世界线 · 低模样例：道士 + 山贼；道士化缘 + 山贼拦路最小奇遇链（2026-11-16，Grok Bot）
+- 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「道士」（法杖+胡须+笋帽，从 Cube 拼出）与「山贼」（刀+疤+布带，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全两角色。
+- `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「道士化缘」（给香火钱 / 推说下回定 / 无视，影响债务/好感）与「山贼拦路」（给灵石 / 硬拒试探 / 无视绕路，影响债务/好感）。docs/encounter_chain_draft.md 同步。
+- 仍不接入正式加载链 / 不改核心。
+- 下一步：主人试打对比低模手感，或给道士/山贼链加路径断言，或继续扩展低模角色进战斗。
+
 ## 开放世界线 · 低模样例：客栈老板；客栈讨房钱最小奇遇链（2026-11-15，Grok Bot）
 - 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「客栈老板」（围裙+钥匙+账本+灯笼，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全客栈老板。
 - `www/prototypes/encounter_chain/index.html` 新增最小奇遇链「客栈讨房钱」（付清房钱 / 推说下回定 / 无视，影响债务/好感）。docs/encounter_chain_draft.md 同步。
