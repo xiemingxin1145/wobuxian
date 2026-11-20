@@ -1,3 +1,8 @@
+## 开放世界线 · 低模样例：茶博士 + 剑客；茶博士讨茶资 + 剑客问路最小奇遇链（2026-11-20，Grok Bot）
+- 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「茶博士」（托盘+茶壶，从 Cube 拼出）与「剑客」（剑+青衫，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全两角色。
+- docs/encounter_chain_draft.md 新增最小奇遇链「茶博士讨茶资」（付清茶资 / 推说下回定 / 无视）与「剑客问路」（指路 / 给灵石 / 无视）。仍不接入正式加载链 / 不改核心。
+- 下一步：主人试打对比低模手感，或给新链加路径断言，或继续扩展低模角色进战斗。
+
 ## 开放世界线 · 低模样例：槙夫 + 茶客；槙夫讨柴钱最小奇遇链（2026-11-19，Grok Bot）
 - 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「槙夫」（斧头+柴担，从 Cube 拼出）与「茶客」（茶杯+帽，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全两角色。
 - docs/encounter_chain_draft.md 新增最小奇遇链「槙夫讨柴钱」（付清柴钱 / 推说下回定 / 无视，影响债务/好感）。仍不接入正式加载链 / 不改核心。
