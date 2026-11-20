@@ -43,18 +43,40 @@ const CHAINS = [
       { text: '无视走开', effects: { aff: { huolang: -9 } }, next: null }
     ]
   },
+  {
+    id: 'chaboshi_1',
+    title: '茶博士讨茶资',
+    text: '茶馆里茶博士端着托盘过来：“少侠，这壶好茶欠的茶资，这回能结一下吗？”',
+    choices: [
+      { text: '付清茶资', effects: { debt: -10, aff: { chaboshi: 12 } }, next: null },
+      { text: '推说下回定', effects: { debt: +6, aff: { chaboshi: -5 } }, next: null },
+      { text: '无视走开', effects: { aff: { chaboshi: -8 } }, next: null }
+    ]
+  },
+  {
+    id: 'jiake_1',
+    title: '剑客问路',
+    text: '路边一个青衫剑客拦住你：“少侠，前方山路可通？在下有事相问。”',
+    choices: [
+      { text: '指路', effects: { aff: { jiake: 10 } }, next: null },
+      { text: '给灵石', effects: { debt: -5, aff: { jiake: 8 } }, next: null },
+      { text: '无视', effects: { aff: { jiake: -6 } }, next: null }
+    ]
+  },
 ];
 
 const STARTS = [
   // ... previous ...
   { id: 'shanzei_1', label: '山贼拦路' },
-  { id: 'huolang_1', label: '货郎讨账' }
+  { id: 'huolang_1', label: '货郎讨账' },
+  { id: 'chaboshi_1', label: '茶博士讨茶资' },
+  { id: 'jiake_1', label: '剑客问路' }
 ];
 
-let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0, huolang: 0 }, current: 'debt_merchant_1' };
+let state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0, huolang: 0, chaboshi: 0, jiake: 0 }, current: 'debt_merchant_1' };
 
 function startChain(id) {
-  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0, huolang: 0 }, current: id };
+  state = { debt: 80, aff: { merchant: 0, wanderer: 0, farmer: 0, blackmarket: 0, collector: 0, wounded: 0, beggar: 0, jiantong: 0, yaotong: 0, chaguan: 0, tiejiang: 0, yufu: 0, shusheng: 0, kezhan: 0, daoshi: 0, shanzei: 0, huolang: 0, chaboshi: 0, jiake: 0 }, current: id };
   renderSwitch();
   render();
 }
