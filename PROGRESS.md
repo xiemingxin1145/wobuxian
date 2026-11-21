@@ -7,3 +7,11 @@
 - 分支 openworld-wip：`www/js/lowpoly_extra_chars.js` 新增「茶博士」（托盘+茶壶，从 Cube 拼出）与「剑客」（剑+青衫，从 Cube 拼出）；预览页 `www/prototypes/lowpoly_box/index.html` 下拉补全两角色。
 - docs/encounter_chain_draft.md 新增最小奇遇链「茶博士讨茶资」（付清茶资 / 推说下回定 / 无视）与「剑客问路」（指路 / 给灵石 / 无视）。仍不接入正式加载链 / 不改核心。
 - 下一步：主人试打对比低模手感，或给新链加路径断言，或继续扩展低模角色进战斗。
+
+## 开放世界线 · 2026-11-21（openworld-wip）——守山弟子/记账童子 + 双链奇遇原型 + 低模合集
+- [x] `lowpoly_extra_chars.js`：在已有路上人/船夫基础上补 **守山弟子、记账童子**；并合入 **更夫、茶博士、剑客**（避免覆盖丢失）。
+- [x] `prototypes/lowpoly_box`：下拉与画布适配多角色。
+- [x] `prototypes/adventure_chain`：可切换「渡口船夫·过河欠条」「守山弟子·后山禁地」。
+- [x] `docs/random_adventure_chain_draft.md` 下一步改为挂 `dev_openworld` 真实 `G.life34.rel`。
+- 未改正式加载链 / rt27 / life34 / 存档。
+- 下一步：dev_openworld 加「奇遇链草稿」按钮做真实闭环；真机看低模与即时战手感。
