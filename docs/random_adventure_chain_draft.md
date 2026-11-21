@@ -33,4 +33,6 @@
 - 随机刷点概率：进图后 15% 触发。
 - 存档：用现有 G.flags / G.aff / G.life34.rel，不新增字段。
 
-下一步：接入开发者面板按钮，做可测小闭环（先测渡口船夫链，复用真实 G.life34.rel）。
+**可测原型（2026-11-21）**：`www/prototypes/adventure_chain/index.html` 已支持切换「渡口船夫」与「守山弟子」两条链，选择可看 rel/debt 变化。
+
+下一步：把奇遇链挂到 `dev_openworld.js` 开发者面板按钮，做真实状态闭环（复用 G.life34.rel / G.flags）；不进正式任务栏。
