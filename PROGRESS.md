@@ -1,3 +1,8 @@
+## 开放世界线 · 药农 / 黑市商人低模样例（2026-11-22）
+- 从 Cube 拼出药农（背药篓）与黑市商人（深色袍+低帽檐+金眼）加入 lowpoly_extra_chars.js，预览页下拉补全。
+- docs/openworld_upgrade.md 扩展样例列表已与实际代码同步。
+- 仍不接入正式加载链。下一步：主人试打对比低模手感，或把新角色接进即时战原型，或继续加随机奇遇链草稿。
+
 ## 开放世界线 · 更夫低模样例 + 讨更钱最小奇遇链（2026-11-21）
 - 从 Cube 拼出更夫（灯笼 + 更棒）加入 lowpoly_extra_chars.js，预览页下拉补全。
 - docs/encounter_chain_draft.md 与 www/prototypes/encounter_chain/index.html 新增最小单步链「更夫讨更钱」（付清 / 推说下回定 / 无视）。
