@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>随机奇遇链小闭环原型（船夫 / 乞丐 / 算命）</title>
+  <title>随机奇遇链小闭环原型（船夫 / 乞丐 / 算命 / 小贩）</title>
   <style>
     body { margin: 20px; background: #101b25; color: #f1e1c8; font: 15px/1.6 sans-serif; max-width: 640px; }
     h1 { font-size: 18px; }
@@ -23,6 +23,7 @@
       <option value="chuanfu">渡口船夫·过河欠条</option>
       <option value="qigai">乞丐讨饭钱</option>
       <option value="suanming">算命先生·拾骨费</option>
+      <option value="xiaofan">小贩讨货钱</option>
     </select>
   </label>
 
@@ -63,6 +64,15 @@
           { id: 'pay', label: '付算命钱', rel: 12, debt: 0, msg: '你付了算命钱。先生摇签说了句虚词，并退了一点灵石。', cons: '后果：先生 rel +12；可得一句虚词或小量灵石返还。' },
           { id: 'later', label: '推说下回定', rel: 0, debt: 0, msg: '你说：「下回再来吧。」先生点点头，继续摇签。', cons: '后果：无变化。' },
           { id: 'ignore', label: '无视', rel: -8, debt: 0, msg: '你不理他。先生在背后说了句凶识。', cons: '后果：rel -8；可能后续传出凶识。' },
+        ]
+      },
+      xiaofan: {
+        name: '小贩',
+        meet: '路边小贩摆着货柜，招手道：「少侠，这批货的钱还没结，讨要一下。」',
+        opts: [
+          { id: 'pay', label: '付清货钱', rel: 8, debt: 0, msg: '你付清了货钱。小贩乐哈哈送了点小便宜。', cons: '后果：小贩 rel +8；可得一点小便宜。' },
+          { id: 'later', label: '推说下回定', rel: 0, debt: 0, msg: '你说：「下回定。」小贩点头，继续摆摊。', cons: '后果：无变化。' },
+          { id: 'ignore', label: '无视', rel: -6, debt: 0, msg: '你不理他。小贩在背后说你货不值。', cons: '后果：rel -6；可能传言货不值。' },
         ]
       }
     };
