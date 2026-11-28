@@ -1,3 +1,9 @@
+## 开放世界线 · 低模样例：更夫 + 剑客；更夫讨更钱最小奇遇链（2026-11-28）
+- 从 Cube 拼出更夫（灯笼+更棒）与剑客（剑+青衫）加入 lowpoly_extra_chars.js，预览页下拉补全。
+- docs/random_adventure_chain_draft.md 新增最小单步链「更夫讨更钱」（付清 / 推说下回定 / 无视）。
+- www/prototypes/adventure_chain/index.html 已支持切换到更夫链。
+- 仍不接入正式加载链。下一步：主人试打对比低模手感，或给新链加路径断言，或把新角色接进即时战原型。
+
 ## 开放世界线 · 低模样例：小贩 + 道士；小贩讨货钱最小奇遇链（2026-11-26）
 - 从 Cube 拼出小贩（货柜+货盘）与道士（道袍+符咒）加入 lowpoly_extra_chars.js，预览页下拉补全。
 - docs/random_adventure_chain_draft.md 新增最小单步链「小贩讨货钱」（付清 / 推说下回定 / 无视）。
