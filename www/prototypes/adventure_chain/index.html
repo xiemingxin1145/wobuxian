@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>随机奇遇链小闭环原型（船夫 / 乞丐 / 算命 / 小贩）</title>
+  <title>随机奇遇链小闭环原型（船夫 / 乞丐 / 算命 / 小贩 / 更夫）</title>
   <style>
     body { margin: 20px; background: #101b25; color: #f1e1c8; font: 15px/1.6 sans-serif; max-width: 640px; }
     h1 { font-size: 18px; }
@@ -24,6 +24,7 @@
       <option value="qigai">乞丐讨饭钱</option>
       <option value="suanming">算命先生·拾骨费</option>
       <option value="xiaofan">小贩讨货钱</option>
+      <option value="gengfu">更夫讨更钱</option>
     </select>
   </label>
 
@@ -54,7 +55,7 @@
         opts: [
           { id: 'give', label: '给灵石', rel: 10, debt: 0, msg: '你丢了几块灵石。乞丐连连磕头：「下次有事我报恩！」', cons: '后果：乞丐 rel +10；可能触发小报恩（情报或灵石）。' },
           { id: 'later', label: '推说下回定', rel: 0, debt: 0, msg: '你摆摆手：「下回再说。」乞丐应了声，继续蹲着。', cons: '后果：无变化。' },
-          { id: 'ignore', label: '无视', rel: -5, debt: 0, msg: '你径直走过。乞丐在背后嘀咕了几句。', cons: '后果：rel -5；可能传闲话。' },
+          { id: 'ignore', label: '无视', rel: -5, debt: 0, msg: '你径直走过。乞丐在背后嘟咕了几句。', cons: '后果：rel -5；可能传闲话。' },
         ]
       },
       suanming: {
@@ -73,6 +74,15 @@
           { id: 'pay', label: '付清货钱', rel: 8, debt: 0, msg: '你付清了货钱。小贩乐哈哈送了点小便宜。', cons: '后果：小贩 rel +8；可得一点小便宜。' },
           { id: 'later', label: '推说下回定', rel: 0, debt: 0, msg: '你说：「下回定。」小贩点头，继续摆摊。', cons: '后果：无变化。' },
           { id: 'ignore', label: '无视', rel: -6, debt: 0, msg: '你不理他。小贩在背后说你货不值。', cons: '后果：rel -6；可能传言货不值。' },
+        ]
+      },
+      gengfu: {
+        name: '更夫',
+        meet: '夜间更夫提着灯笼，走过来道：「少侠，讨要一点更钱吧，今夜巡了几回。」',
+        opts: [
+          { id: 'pay', label: '付清更钱', rel: 9, debt: 0, msg: '你付了更钱。更夫点头：「夜安，少侠。」', cons: '后果：更夫 rel +9；可得一句安民话。' },
+          { id: 'later', label: '推说下回定', rel: 0, debt: 0, msg: '你说：「下回定。」更夫应了声，提灯继续走。', cons: '后果：无变化。' },
+          { id: 'ignore', label: '无视', rel: -7, debt: 0, msg: '你不理他。更夫在背后嘴嘟了几句。', cons: '后果：rel -7；可能夜间传闲话。' },
         ]
       }
     };
